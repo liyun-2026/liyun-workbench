@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  砺蕴工作台                                                   ║
+  ║  由 不一书个人工作台生成器 (bys-personal-dashboard) 生成       ║
+  ╠══════════════════════════════════════════════════════════════╣
+  ║  改这个文件时请遵守：                                          ║
+  ║  1. 每个功能必须被分区标记包裹，且 START 和 END 的功能名        ║
+  ║     必须一字不差（HTML 和 JS 两处都要）                        ║
+  ║  2. 数据读写只走 Store.*，不要直接碰 localStorage             ║
+  ║  3. 输入框 font-size 不能小于 16px                            ║
+  ║  4. 敏感数据（API key）走 Store.setSecret，不进备份            ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>砺蕴工作台</title>
+
+<!-- PWA：这四行决定了"添加到主屏幕"之后是不是全屏、图标好不好看 -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="砺蕴">
+<meta name="theme-color" content="#f6f5f2">
+
+<style>
+/* ==== 主题变量 · 极简·暖（浅色默认，跟随系统切深色） ==== */
+:root{
+  --bg:#f6f5f2;
+  --sidebar:#ffffff;
+  --sidebar-text:#55524c;
+  --sidebar-active:#edebe5;
+  --card:#ffffff;
+  --text:#26241f;
+  --text-dim:#96918a;
+  --accent:#26241f;
+  --btn-text:#ffffff;
+  --radius:14px;
+  --shadow:0 1px 4px rgba(60,50,35,.07);
+  --font:-apple-system,"PingFang SC",system-ui,sans-serif;
+  --line:#e8e6e0;          /* 1px 细边框色。现代审美用细线，不用投影 */
+
+  /* 字号阶梯 —— 故意拉开跨度。所有字号都差不多，是业余感最大的来源 */
+  --fs-hero:40px;   /* 英雄元素：每页最大的那一个数字或标题，其余全部退后 */
+  --fs-title:22px;
+  --fs-body:16px;   /* 输入框不得低于 16px，否则 iOS 会自动放大整页 */
+  --fs-meta:13px;
+
+  --pad:18px;       /* 卡片内边距。留白是最便宜的高级感，宽屏下会变大 */
+  --gap:12px;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.4,0,.2,1);
+  --dur:.18s;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141311;
+    --sidebar:#1c1a18;
+    --sidebar-text:#a8a29a;
+    --sidebar-active:#332f2a;
+    --card:#1c1a18;
+    --text:#efe9df;
+    --text-dim:#8f897f;
+    --accent:#c9ab7c;
+    --btn-text:#141311;
+    --line:#302d29;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+
+/* ==== 基础 ==== */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font); background:var(--bg); color:var(--text);
+  font-size:var(--fs-body); line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden; /* 整页不滚，只让内容区滚 —— 避免 iOS 橡皮筋把侧边栏拽走 */
+}
+.app{display:flex;height:100%}
+
+/* ==== 侧边栏：常驻窄条 ==== */
+.side{
+  width:76px;flex-shrink:0;background:var(--sidebar);
+  display:flex;flex-direction:column;
+  padding:calc(12px + env(safe-area-inset-top,0)) 6px calc(12px + env(safe-area-inset-bottom,0));
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.side::-webkit-scrollbar{display:none}
+.brand{text-align:center;margin-bottom:14px;flex-shrink:0}
+.brand .logo{font-size:26px;line-height:1}
+.brand .name{font-size:11px;color:var(--sidebar-text);opacity:.85;margin-top:4px;line-height:1.3;word-break:break-all}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav button{
+  border:none;background:transparent;font-family:inherit;
+  padding:10px 2px;border-radius:12px;
+  color:var(--sidebar-text);font-size:11px;line-height:1.3;
+}
+.nav button .ico{display:block;font-size:21px;margin-bottom:3px}
+.nav button.on{background:var(--sidebar-active);color:var(--text)}
+
+/* ==== 内容区 ==== */
+.main{
+  flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(14px + env(safe-area-inset-top,0)) 12px calc(28px + env(safe-area-inset-bottom,0));
+  scroll-behavior:smooth;
+}
+.page{display:none;flex-direction:column;gap:var(--gap)}
+.page.on{display:flex}
+.page-title{font-size:var(--fs-title);font-weight:500;line-height:1.25;letter-spacing:-.01em;margin-bottom:2px}
+.page-sub{font-size:var(--fs-meta);color:var(--text-dim);margin-top:-6px;margin-bottom:2px}
+
+/* ==== 卡片 ==== */
+.card{
+  background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--line);   /* 细线代替投影 */
+  box-shadow:var(--shadow);padding:var(--pad);
+}
+.card h2{font-size:17px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.hint{font-size:var(--fs-meta);color:var(--text-dim);margin-top:8px;line-height:1.6}
+.empty{font-size:var(--fs-meta);color:var(--text-dim);text-align:center;padding:22px 0}
+
+/* 英雄元素：每页最大的那一个。数字一律等宽，对齐后立刻专业 */
+.hero{font-size:var(--fs-hero);font-weight:500;line-height:1.1;letter-spacing:-.01em}
+.num,.hero{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.unit{font-size:var(--fs-meta);color:var(--text-dim);font-weight:400;margin-left:5px}
+
+/* ==== 表单：字号必须 >=16px，否则 iOS 会自动放大整页 ==== */
+input,textarea,select{
+  transition:border-color var(--dur) var(--ease);
+  width:100%;font-size:var(--fs-body);font-family:inherit;color:var(--text);line-height:1.5;
+  padding:11px 13px;border:1px solid rgba(128,128,128,.28);
+  border-radius:calc(var(--radius) - 6px);background:transparent;
+}
+textarea{min-height:88px;resize:vertical;line-height:1.6}
+input::placeholder,textarea::placeholder{color:var(--text-dim)}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+.btn{
+  padding:11px 18px;font-size:15px;font-family:inherit;white-space:nowrap;
+  border:none;border-radius:calc(var(--radius) - 6px);
+  background:var(--accent);color:var(--btn-text);
+}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid rgba(128,128,128,.3)}
+.btn.danger{background:#d9534f;color:#fff}
+.btn:active{opacity:.75}
+.row{display:flex;gap:8px;align-items:center}
+.row .btn{flex-shrink:0}
+.row select,.row input{flex-shrink:1;min-width:0;width:auto;flex:1}
+
+/* 状态小按钮：考勤、作业登记用 */
+.chip{
+  border:1px solid rgba(128,128,128,.32);background:transparent;color:var(--text-dim);
+  font-size:13px;font-family:inherit;padding:7px 11px;
+  border-radius:calc(var(--radius) - 5px);white-space:nowrap;
+}
+.chip-on{background:var(--accent);color:var(--btn-text);border-color:transparent}
+.chip-no{border-color:#c25650;color:#c25650}
+.chip:active{opacity:.7}
+
+/* ==== 列表 ==== */
+.item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(128,128,128,.22)}
+.item:last-child{border-bottom:none}
+.item .grow{flex:1;min-width:0;line-height:1.6}
+.item .del{color:var(--text-dim);font-size:16px;background:none;border:none;padding:0 4px;flex-shrink:0}
+.box{
+  width:21px;height:21px;flex-shrink:0;margin-top:1px;
+  border:2px solid var(--accent);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--btn-text);background:transparent;
+}
+.item.done .box{background:var(--accent)}
+.item.done .grow{text-decoration:line-through;color:var(--text-dim)}
+.pre{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.7}
+
+/* ==== 提示条 ==== */
+.banner{
+  background:var(--accent);color:var(--btn-text);padding:11px 14px;
+  border-radius:var(--radius);font-size:13px;line-height:1.5;
+  display:flex;align-items:center;gap:10px;
+}
+.banner button{
+  margin-left:auto;flex-shrink:0;background:rgba(128,128,128,.18);color:inherit;
+  border:none;padding:6px 12px;border-radius:8px;font-size:13px;font-family:inherit;
+}
+.toast{
+  position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0));
+  transform:translateX(-50%) translateY(8px);z-index:99;
+  background:rgba(0,0,0,.82);color:#fff;padding:10px 18px;border-radius:20px;
+  font-size:14px;opacity:0;pointer-events:none;
+  transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ════════ 动画 ════════
+   只做「让状态变化可理解」的动画，不做炫技的。
+   这是一天开十次的工具，任何多余动效第十次看就烦了。 */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.page.on > *{animation:rise .26s var(--ease) both}
+/* 错开进场，形成自上而下的节奏，只错开前几个免得末尾等太久 */
+.page.on > *:nth-child(1){animation-delay:0s}
+.page.on > *:nth-child(2){animation-delay:.03s}
+.page.on > *:nth-child(3){animation-delay:.06s}
+.page.on > *:nth-child(4){animation-delay:.09s}
+.page.on > *:nth-child(n+5){animation-delay:.12s}
+
+.nav button,.btn,.card,.chip{transition:all var(--dur) var(--ease)}
+.btn:active{opacity:.75;transform:scale(.98)}
+.chip:active{transform:scale(.96)}
+
+/* 用户在系统里关了动效就一律不放 —— 这不是可选项 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-delay:0s !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
+
+/* ════════ 平板与横屏：侧栏展开成图标配文字 ════════ */
+@media (min-width:700px){
+  :root{--fs-hero:48px;--fs-title:26px;--pad:24px;--gap:16px}
+  .side{width:200px;padding-left:12px;padding-right:12px}
+  .brand{text-align:left;padding:0 8px;margin-bottom:22px}
+  .brand .logo{font-size:30px}
+  .brand .name{font-size:14px;margin-top:6px;word-break:normal}
+  .nav{gap:2px}
+  .nav button{
+    display:flex;align-items:center;gap:12px;text-align:left;
+    padding:12px 14px;font-size:15px;
+  }
+  .nav button .ico{display:inline;font-size:20px;margin:0;width:24px;text-align:center}
+  .main{padding:28px 32px 40px}
+}
+
+/* ════════ 桌面：卡片并排 ════════
+   标题、副标题、提示条永远占满整行；卡片默认半宽。
+   需要占满的重要卡片（英雄卡、长列表）加 class="card wide"。 */
+@media (min-width:1100px){
+  :root{--fs-hero:56px;--fs-title:30px;--pad:30px;--gap:20px}
+  .side{width:240px}
+  .main{padding:36px 44px 52px}
+  .page.on{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:var(--gap);align-content:start;
+  }
+  .page.on > .page-title,
+  .page.on > .page-sub,
+  .page.on > .banner,
+  .page.on > .card.wide{grid-column:1 / -1}
+}
+
+/* 超宽屏限制内容宽度并居中 —— 一行文字超过 40 个汉字就难读了 */
+@media (min-width:1700px){
+  .main > .page.on{max-width:1400px;margin:0 auto}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ==== 侧边栏 START ==== -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">🎙️</div>
+      <div class="name">砺蕴工作台</div>
+    </div>
+    <nav class="nav" id="nav">
+      <!-- 由 App.routes 自动渲染 -->
+    </nav>
+  </aside>
+  <!-- ==== 侧边栏 END ==== -->
+
+  <main class="main" id="main">
+
+    <!-- ==== 功能：今日 START ==== -->
+    <section class="page" id="page-home">
+      <div class="page-title">今日</div>
+      <div class="page-sub" id="homeSub"></div>
+      <div class="card wide">
+        <h2>🎯 <span id="cdLabel">统考</span>倒计时</h2>
+        <div id="cdBody"></div>
+        <div class="row" style="margin-top:14px">
+          <input type="text" id="cdLabelIn" placeholder="名目，如：统考" style="max-width:140px">
+          <input type="date" id="cdDateIn" style="max-width:170px">
+          <button class="btn" onclick="Home.saveDate()">保存</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h2 style="margin:0">📰 每日新闻 <span class="hint" id="newsMeta" style="display:inline;margin:0"></span></h2>
+          <button class="btn ghost" onclick="News.fetch()">刷新</button>
+        </div>
+        <div id="newsBody" style="max-height:420px;overflow:auto"></div>
+        <p class="hint">来源：央视新闻 · 出话题评述先看这里</p>
+      </div>
+      <div class="card">
+        <h2>📌 今日速览</h2>
+        <div id="todayBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：今日 END ==== -->
+
+    <!-- ==== 功能：名册 START ==== -->
+    <section class="page" id="page-roster">
+      <div class="page-title">班级名册</div>
+      <div class="page-sub">先在这里建班级、加学员，其他功能都能选到人</div>
+      <div class="card">
+        <h2>👥 班级</h2>
+        <div class="row">
+          <input type="text" id="clsIn" placeholder="班级名，如：播音一班">
+          <button class="btn" onclick="Roster.addClass()">建班</button>
+        </div>
+        <div id="clsList" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h2>🧑‍🎓 学员</h2>
+        <select id="rosterCls" onchange="Roster.pickCls(this.value)" style="margin-bottom:10px"></select>
+        <div class="row">
+          <input type="text" id="stuIn" placeholder="学员姓名">
+          <button class="btn" onclick="Roster.addStudent()">加入</button>
+        </div>
+        <div id="stuList" style="margin-top:8px"></div>
+      </div>
+      <div class="card wide">
+        <h2>⚡ 批量添加学员 <span class="hint" style="display:inline;margin:0">（加进上面选中的班）</span></h2>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <span class="hint" style="margin:0">名单是图片可以拍/传上来识别，txt、docx 也行；识别完检查一遍再导入</span>
+          <button class="btn ghost" onclick="document.getElementById('batchFile').click()">📄 传名单识别</button>
+        </div>
+        <input type="file" id="batchFile" accept="image/*,.txt,.docx" style="display:none" onchange="Roster.importFile(this)">
+        <p class="hint" id="batchStat" style="margin:6px 0 0"></p>
+        <textarea id="batchStu" placeholder="每行一个名字，或用空格、逗号隔开，例如：&#10;张三&#10;李四，王五&#10;赵六 刘七" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Roster.batchAdd()">批量加入</button>
+          <button class="btn ghost" onclick="document.getElementById('batchStu').value='';document.getElementById('batchStat').textContent=''">清空</button>
+        </div>
+      </div>
+    </section>
+    <!-- ==== 功能：名册 END ==== -->
+
+    <!-- ==== 功能：考勤 START ==== -->
+    <section class="page" id="page-att">
+      <div class="page-title">考勤登记</div>
+      <div class="row">
+        <input type="date" id="attDate" onchange="Att.pickDate(this.value)" style="max-width:175px">
+        <select id="attCls" onchange="Att.pickCls(this.value)"></select>
+      </div>
+      <div class="card wide">
+        <div id="attBody"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn ghost" onclick="Att.allNormal()">一键全部正常</button>
+        </div>
+        <p class="hint" id="attSum"></p>
+      </div>
+    </section>
+    <!-- ==== 功能：考勤 END ==== -->
+
+    <!-- ==== 功能：排课 START ==== -->
+    <section class="page" id="page-schedule">
+      <div class="page-title">排课表</div>
+      <div class="page-sub">上下课时间全校统一，在这里配一次，加课选节次就行</div>
+      <div class="card wide">
+        <h2>⏰ 每日作息时间 <span class="hint" style="display:inline;margin:0">（改这里，全表自动跟着变）</span></h2>
+        <div id="periodList"></div>
+        <div class="row" style="margin-top:10px">
+          <input type="text" id="perName" placeholder="节次名，如：第1节" style="max-width:130px">
+          <input type="time" id="perStart" style="max-width:125px">
+          <input type="time" id="perEnd" style="max-width:125px">
+          <button class="btn" onclick="Schedule.addPeriod()">加入</button>
+        </div>
+      </div>
+      <div class="card wide">
+        <h2>🗓️ 本周大课</h2>
+        <div class="row">
+          <select id="schDay" style="max-width:100px"></select>
+          <select id="schPeriod"></select>
+          <input type="text" id="schTitle" placeholder="内容，如：即兴评述" style="flex:2;min-width:150px">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="schCls" placeholder="班级/板块，如：播音一班">
+          <button class="btn" onclick="Schedule.add()">加入大课</button>
+        </div>
+        <div id="schBigBody" style="margin-top:10px"></div>
+      </div>
+      <div class="card wide">
+        <h2>🎓 小课 <span class="hint" style="display:inline;margin:0">（一对一 / 辅导课，独立于大课表）</span></h2>
+        <div class="row">
+          <select id="miniDay" style="max-width:100px"></select>
+          <select id="miniPeriod"></select>
+          <input type="time" id="miniTime" style="max-width:118px" title="不按节次时单独填时间">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="miniStu" list="stuSuggestions" placeholder="学员，如：张三">
+          <datalist id="stuSuggestions"></datalist>
+          <input type="text" id="miniTitle" placeholder="内容，如：一对一·自备稿件" style="flex:1.4;min-width:150px">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Schedule.addMini()">加入小课</button>
+          <span class="hint" style="margin:0">不选节次、单独填时间也行</span>
+        </div>
+        <div id="schSmallBody" style="margin-top:10px"></div>
+      </div>
+      <div class="card wide">
+        <h2>📥 导入课表</h2>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <span class="hint" style="margin:0">拍课表照片 / 传图片、txt、docx，识别出来检查一遍再导入</span>
+          <button class="btn ghost" onclick="document.getElementById('schFile').click()">📄 选文件识别</button>
+        </div>
+        <input type="file" id="schFile" accept="image/*,.txt,.docx" style="display:none" onchange="Schedule.importFile(this)">
+        <p class="hint" id="impStat" style="margin:6px 0 0"></p>
+        <textarea id="impText" placeholder="识别出的课表文字会出现在这里，可以直接改。点「AI 解析导入」自动变成课表；没有 AI key 也能在这里核对后手动加。" style="margin-top:8px;min-height:110px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Schedule.aiImport()">🤖 AI 解析并替换本周课表</button>
+          <button class="btn ghost" onclick="Schedule.archiveText()">原文存入往期</button>
+          <button class="btn ghost" onclick="Schedule.clearImport()">清空</button>
+        </div>
+        <p class="hint">AI 解析需要设置页里的 DeepSeek key；替换前本周课表会自动存进「往期课表」。</p>
+      </div>
+      <div class="card wide">
+        <h2>🗄️ 往期课表</h2>
+        <div id="archBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：排课 END ==== -->
+
+    <!-- ==== 功能：作业 START ==== -->
+    <section class="page" id="page-homework">
+      <div class="page-title">作业布置</div>
+      <div class="card">
+        <h2>➕ 布置作业</h2>
+        <div class="row">
+          <select id="hwCls" style="max-width:150px"></select>
+          <input type="date" id="hwDate" style="max-width:170px">
+        </div>
+        <div style="margin-top:8px">
+          <textarea id="hwText" placeholder="作业内容，如：即兴评述《AI 会取代主持人吗》，明早功检查"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Homework.add()">布置</button>
+        </div>
+      </div>
+      <div class="card wide">
+        <h2>📚 作业列表</h2>
+        <div id="hwBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：作业 END ==== -->
+
+    <!-- ==== 功能：晚自习 START ==== -->
+    <section class="page" id="page-night">
+      <div class="page-title">晚自习过关</div>
+      <div class="row">
+        <input type="date" id="nightDate" onchange="Night.pickDate(this.value)" style="max-width:175px">
+        <select id="nightCls" onchange="Night.pickCls(this.value)"></select>
+      </div>
+      <div class="card wide">
+        <div id="nightBody"></div>
+        <p class="hint" id="nightSum"></p>
+      </div>
+    </section>
+    <!-- ==== 功能：晚自习 END ==== -->
+
+    <!-- ==== 功能：量化 START ==== -->
+    <section class="page" id="page-quant">
+      <div class="page-title">量化统计</div>
+      <div class="row">
+        <select id="qCls" onchange="Quant.render()"></select>
+        <select id="qRange" onchange="Quant.render()" style="max-width:130px">
+          <option value="week">本周</option>
+          <option value="month">本月</option>
+          <option value="30">近 30 天</option>
+        </select>
+      </div>
+      <div class="card wide">
+        <div id="qBody"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" onclick="Quant.copy()">📋 复制本班公布文案</button>
+          <button class="btn ghost" onclick="Quant.copyAll()">📋 全部班级各一份（一次复制）</button>
+        </div>
+        <p class="hint">公布以班级为单位：上面复制当前选的班，「全部班级」把每个班各拼一段、一次复制，分别贴到各班群就行。</p>
+      </div>
+      <div class="card wide">
+        <h2>📊 本周小结</h2>
+        <div id="recapBody"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" onclick="Quant.makeCard()">生成图卡</button>
+        </div>
+        <p class="hint">生成一张能存下来的图，想发就发。图上只有汇总数字，不含学员明细。</p>
+      </div>
+    </section>
+    <!-- ==== 功能：量化 END ==== -->
+
+    <!-- ==== 功能：模考 START ==== -->
+    <section class="page" id="page-exam">
+      <div class="page-title">每周模考</div>
+      <div class="card">
+        <h2>🎤 AI 出题</h2>
+        <div id="aiBody"></div>
+      </div>
+      <div class="card">
+        <h2>✍️ 手动出题</h2>
+        <textarea id="examManual" placeholder="自己粘贴或编写题目，每题一行"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" onclick="Exam.saveManual()">存入题库</button>
+        </div>
+      </div>
+      <div class="card wide">
+        <h2>🗂️ 题库记录</h2>
+        <div id="examList"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：模考 END ==== -->
+
+    <!-- ==== 功能：体重 START ==== -->
+    <section class="page" id="page-weight">
+      <div class="page-title">学员体重</div>
+      <div class="card">
+        <h2>⚖️ 记一笔</h2>
+        <select id="wStu" style="margin-bottom:10px"></select>
+        <div class="row">
+          <input type="date" id="wDate" style="max-width:170px">
+          <input type="number" id="wVal" placeholder="kg" step="0.1" style="max-width:110px">
+          <button class="btn" onclick="Weight.add()">记录</button>
+        </div>
+      </div>
+      <div class="card wide">
+        <h2>📈 趋势</h2>
+        <div id="wChart"></div>
+        <div id="wList" style="margin-top:6px"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：体重 END ==== -->
+
+    <!-- 设置页是必备的，不要删 -->
+    <!-- ==== 功能：设置 START ==== -->
+    <section class="page" id="page-settings">
+      <div class="page-title">设置</div>
+
+      <div class="card">
+        <h2>💾 数据备份</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:12px">
+          你的所有数据都存在这台设备的浏览器里，同时会同步到你自己开启的云端。<br>
+          换手机、清理浏览器数据前，记得先导出备份。
+        </p>
+        <div class="row">
+          <button class="btn" onclick="Store.exportFile()">导出备份</button>
+          <button class="btn ghost" onclick="document.getElementById('importFile').click()">恢复备份</button>
+        </div>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="Store.importFile(this)">
+        <p class="hint" id="backupInfo"></p>
+      </div>
+
+      <!-- ==== 双端同步卡片 START ====（用户选单设备时删掉这张卡） -->
+      <div class="card wide" id="syncCard">
+        <h2>🔄 多设备同步 <span class="hint" id="syncState" style="margin:0 0 0 auto;font-size:var(--fs-meta)"></span></h2>
+        <div id="syncOff">
+          <p class="hint" style="margin-top:0">
+            开启后手机和电脑登同一个账号，记的东西自动对齐。<br>
+            <b>数据会在你的设备和云端各存一份</b>，本地那份始终在，断网照样能记。<br>
+            云端那份是明文的——只有知道你密码的人能读，但平台运维理论上能看到。<br>
+            <b>密码忘了就进不去了，没有找回功能。</b>
+          </p>
+          <div style="margin-top:14px">
+            <input type="text" id="syncUser" placeholder="用户名（3-32 个字符，只用来定位你的数据）" autocomplete="username">
+          </div>
+          <div style="margin-top:10px">
+            <input type="password" id="syncPass" placeholder="密码（至少 8 位）" autocomplete="new-password">
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn" onclick="Settings.enableSync()">开启同步</button>
+            <button class="btn ghost" onclick="Store.exportFile()">先导出备份</button>
+          </div>
+          <p class="hint">建议先导出一份备份再开——万一以后忘了密码，本地这份还在。</p>
+        </div>
+        <div id="syncOn" style="display:none">
+          <p class="hint" style="margin-top:0">账号：<b id="syncWho" class="mono"></b><br>上次同步：<span id="syncTime"></span></p>
+          <div class="row" style="margin-top:14px">
+            <button class="btn" onclick="Sync.pull(true)">立即同步</button>
+            <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
+            <button class="btn ghost" onclick="Sync.disable()">关闭同步</button>
+          </div>
+          <p class="hint">
+            刚在另一台设备改的东西，这边最多等一分钟才看得到（云端缓存机制），
+            等不及就点「立即同步」。
+          </p>
+        </div>
+      </div>
+      <!-- ==== 双端同步卡片 END ==== -->
+
+      <!-- 有联网功能时保留这张卡，没有就删掉 -->
+      <div class="card" id="apiCard">
+        <h2>🔑 接口配置</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:12px">
+          填在这里的 key 只保存在你自己的设备上，不会上传，也<b>不会被导出到备份文件里</b>。
+        </p>
+        <div style="margin-bottom:12px">
+          <label style="font-size:14px;display:block;margin-bottom:6px">DeepSeek（每周模考 AI 出题）</label>
+          <input type="password" id="key_deepseek" placeholder="粘贴你的 key">
+          <p class="hint">在 platform.deepseek.com 注册并实名后，进「API Keys」创建。key 只显示一次，先粘到备忘录再回来。</p>
+        </div>
+        <button class="btn" onclick="Settings.saveKeys()">保存</button>
+      </div>
+
+      <div class="card wide" id="rulesCard">
+        <h2>🧮 量化细则</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:10px">
+          每条 = 计分项 + 分值。下面是占位规则，等老师们开会定稿后直接在这里改，量化统计立刻按新规则算。
+        </p>
+        <div id="rulesList"></div>
+        <div class="row" style="margin-top:10px">
+          <select id="ruleSrc" style="max-width:130px">
+            <option value="att">考勤状态</option>
+            <option value="hw:已交">作业已交</option>
+            <option value="hw:未交">作业未交</option>
+            <option value="night:过">晚自习过关</option>
+            <option value="night:未过">晚自习未过</option>
+          </select>
+          <input type="text" id="ruleName" placeholder="名目，如：早退" style="max-width:120px">
+          <input type="number" id="ruleDelta" placeholder="分值" step="1" style="max-width:95px">
+          <button class="btn ghost" onclick="Settings.addRule()">加一条</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" onclick="Settings.saveRules()">保存细则</button>
+        </div>
+        <div class="row" style="margin-top:12px;justify-content:space-between;align-items:center">
+          <span class="hint" style="margin:0">开会定的细则拍了照？传上来识别，自动拆成规则</span>
+          <button class="btn ghost" onclick="document.getElementById('rulesFile').click()">📄 传细则识别</button>
+        </div>
+        <input type="file" id="rulesFile" accept="image/*,.txt,.docx" style="display:none" onchange="Settings.importRulesFile(this)">
+        <p class="hint" id="rulesImpStat" style="margin:6px 0 0"></p>
+        <textarea id="rulesImpText" placeholder="识别结果会出现在这里，每行一条，如：&#10;迟到 扣2分&#10;病假 −1&#10;作业按时上交 +1&#10;确认无误后点「导入这些规则」，也可以先手动改。" style="margin-top:8px;min-height:90px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Settings.parseRulesImport()">导入这些规则</button>
+          <button class="btn ghost" onclick="document.getElementById('rulesImpText').value='';document.getElementById('rulesImpStat').textContent=''">清空</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>⚠️ 危险操作</h2>
+        <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
+        <p class="hint">清空前请确认已经导出过备份，这个操作无法撤销。</p>
+      </div>
+
+      <div class="card">
+        <p class="hint" style="margin:0;text-align:center">
+          砺蕴工作台<br>
+          <span style="opacity:.6">由 不一书个人工作台生成器 生成</span>
+        </p>
+      </div>
+    </section>
+    <!-- ==== 功能：设置 END ==== -->
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   Store · 存储抽象层
+   所有数据读写都必须走这里，不要直接用 localStorage。
+
+   ── 为什么数组型数据要用 list/upsert 而不是 get/set ──
+   Store.set('money', 整个数组) 是「整本账一起覆盖」。单设备没问题，
+   一旦两台设备各自离线改过，后上传的那份会把另一份的改动无声吞掉：
+
+     手机 10 条 → 加 1 条 = 11 条，上传
+     电脑 10 条 → 加另 1 条 = 11 条，后上传 → 手机加的那条消失
+
+   所以数组型一律用 upsert / softDelete，每条带修改时间，合并时逐条比对。
+   ═══════════════════════════════════════════════════════════ */
+const Store = (() => {
+  const NS  = 'bysdash:';
+  const SEC = 'bysdash$secret:';
+  const TOMB_TTL = 30 * 864e5;   // 墓碑保留 30 天，之后清掉（那时各端早同步过了）
+
+  const driver = {
+    get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k,v){
+      try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+      catch(e){
+        // 配额超了几乎总是因为存了没压缩的图片
+        UI.toast('存储空间满了，请到设置里导出备份后清理旧数据');
+        console.error(e); return false;
+      }
+    },
+    remove(k){ localStorage.removeItem(k); },
+    keys(){ return Object.keys(localStorage); }
+  };
+
+  const now = () => Date.now();
+
+  /** 按 id 逐条合并两个列表：同 id 取修改时间更新的那条 */
+  function mergeList(a, b){
+    const m = new Map();
+    for (const it of [...(a || []), ...(b || [])]) {
+      if (!it || !it.id) continue;
+      const prev = m.get(it.id);
+      if (!prev || (it._u || 0) > (prev._u || 0)) m.set(it.id, it);
+    }
+    return [...m.values()];
+  }
+
+  const S = {
+    /* ── 单值：配置、开关、计数快照这类 ── */
+    get(key, fallback = null){
+      const v = driver.get(NS + key);
+      return v === null || v === undefined ? fallback : v;
+    },
+    set(key, val){
+      const ok = driver.set(NS + key, val);
+      if (ok) this._touch();
+      return ok;
+    },
+    remove(key){ driver.remove(NS + key); this._touch(); },
+
+    /* ── 数组型：一条一条存，可合并 ── */
+    /** 读列表：过滤掉墓碑，顺手清理过期墓碑 */
+    list(key, sort){
+      const raw = this.get(key, []);
+      if (!Array.isArray(raw)) return [];
+      const cut = now() - TOMB_TTL;
+      const alive = [], keep = [];
+      for (const it of raw) {
+        if (it && it._d) { if ((it._u || 0) > cut) keep.push(it); continue; }
+        if (it) { alive.push(it); keep.push(it); }
+      }
+      if (keep.length !== raw.length) driver.set(NS + key, keep);  // 静默清理，不算一次写
+      return sort ? alive.sort(sort) : alive;
+    },
+
+    /** 增或改一条。没有 id 就生成一个；自动打修改时间 */
+    upsert(key, item){
+      const raw = this.get(key, []);
+      const it = Object.assign({}, item);
+      if (!it.id) it.id = Util.uid();
+      it._u = now();
+      delete it._d;
+      const i = raw.findIndex(x => x && x.id === it.id);
+      if (i >= 0) raw[i] = Object.assign({}, raw[i], it); else raw.push(it);
+      this.set(key, raw);
+      return it;
+    },
+
+    /** 软删除：留一个墓碑，否则另一台设备同步回来会把它复活 */
+    softDelete(key, id){
+      const raw = this.get(key, []);
+      const i = raw.findIndex(x => x && x.id === id);
+      if (i >= 0) raw[i] = { id, _d: 1, _u: now() };
+      else raw.push({ id, _d: 1, _u: now() });
+      this.set(key, raw);
+    },
+
+    /** 计数器：存成事件列表而不是一个数字。
+        数字没法正确合并（取大值会丢、相加会重复），列表天然可以。 */
+    incr(key, n = 1){
+      const raw = this.get(key, []);
+      for (let i = 0; i < n; i++) raw.push({ id: Util.uid(), _u: now() });
+      this.set(key, raw);
+      return this.count(key);
+    },
+    decr(key){
+      const alive = this.list(key);
+      if (alive.length) this.softDelete(key, alive[alive.length - 1].id);
+      return this.count(key);
+    },
+    count(key){ return this.list(key).length; },
+
+    /* ── 按天：key 自带日期，两台设备改的是不同 key，天然不冲突 ── */
+    getDaily(key, fallback = null){ return this.get(key + ':' + Util.today(), fallback); },
+    setDaily(key, val){ return this.set(key + ':' + Util.today(), val); },
+    listDaily(key, sort){ return this.list(key + ':' + Util.today(), sort); },
+    upsertDaily(key, item){ return this.upsert(key + ':' + Util.today(), item); },
+    incrDaily(key, n = 1){ return this.incr(key + ':' + Util.today(), n); },
+    decrDaily(key){ return this.decr(key + ':' + Util.today()); },
+    countDaily(key){ return this.count(key + ':' + Util.today()); },
+
+    /* ── 敏感数据：独立命名空间，不进备份 ── */
+    getSecret(key){ return driver.get(SEC + key); },
+    setSecret(key, val){ return driver.set(SEC + key, val); },
+
+
+    /* ── 旧版数据迁移 ──
+       v1.0 生成的工作台里，体重 [{date,value}]、日记 [{date,text}]、读书 [{title,...}]
+       这类结构是没有 id 的。而合并是按 id 做的，没 id 的条目会被整个跳过——
+       也就是升级后一开同步，这些历史记录会全部消失。
+       所以启动时补一次 id。
+
+       id 必须由内容算出来（不能用随机数）：手机和电脑各自迁移同一条记录时，
+       算出的 id 要一样，否则合并后会变成两条重复。 */
+    _stableId(o){
+      const s = JSON.stringify(Object.keys(o).sort().map(k => [k, o[k]]));
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return 'm' + (h >>> 0).toString(36);
+    },
+
+    migrate(){
+      if (this.get('_migrated')) return 0;
+      let n = 0;
+      driver.keys().filter(k => k.startsWith(NS)).forEach(k => {
+        const v = driver.get(k);
+        if (!Array.isArray(v) || !v.length) return;
+        let touched = false;
+        const fixed = v.map(it => {
+          if (!it || typeof it !== 'object') return it;
+          const o = Object.assign({}, it);
+          if (!o.id) { o.id = this._stableId(it); touched = true; }
+          if (!o._u) { o._u = 1; touched = true; }   // 标成很早，新改动永远胜出
+          return o;
+        });
+        if (touched) { driver.set(k, fixed); n++; }
+      });
+      this.set('_migrated', Date.now());
+      if (n) console.info(`[迁移] 已为 ${n} 组历史数据补齐标识，一条没少`);
+      return n;
+    },
+
+    /* ── 供云同步用 ── */
+    _touch(){
+      driver.set(NS + '_lastWrite', now());
+      if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.schedule();
+    },
+    mergeList,
+    /** 把远端整包数据合并进本地。数组型逐条合并，单值取时间新的 */
+    mergeRemote(remote){
+      if (!remote || typeof remote !== 'object') return 0;
+      let changed = 0;
+      for (const [key, rv] of Object.entries(remote)) {
+        if (key.startsWith('_')) continue;
+        const lv = this.get(key, null);
+        if (Array.isArray(rv)) {
+          const merged = mergeList(Array.isArray(lv) ? lv : [], rv);
+          if (JSON.stringify(merged) !== JSON.stringify(lv)) { driver.set(NS + key, merged); changed++; }
+        } else if (lv === null || lv === undefined) {
+          driver.set(NS + key, rv); changed++;
+        }
+        // 单值且两边都有：保守起来保留本地，避免远端旧值覆盖刚改的设置
+      }
+      return changed;
+    },
+    /** 导出给云端或备份用的整包（不含 secret） */
+    dump(){
+      const data = {};
+      driver.keys().filter(k => k.startsWith(NS)).forEach(k => {
+        data[k.slice(NS.length)] = driver.get(k);
+      });
+      return data;
+    },
+
+    /* ── 备份 ── */
+    exportAll(){
+      return { app:'砺蕴工作台', version:2, exportedAt:new Date().toISOString(), data:this.dump() };
+    },
+
+    exportFile(){
+      const blob = new Blob([JSON.stringify(this.exportAll(), null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = '砺蕴备份-' + Util.today() + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      this.set('_lastBackup', now());
+      UI.toast('已导出，建议转发到微信文件传输助手存一份');
+      Settings.refreshBackupInfo();
+    },
+
+    importFile(input){
+      const f = input.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed.data) throw new Error('格式不对');
+          if (!confirm('恢复备份会与当前数据合并，确定吗？')) return;
+          // 用合并而不是覆盖：万一用户导入的是旧备份，现有数据不会被抹掉
+          const n = this.mergeRemote(parsed.data);
+          Object.entries(parsed.data).forEach(([k,v]) => {
+            if (!Array.isArray(v) && this.get(k, null) === null) driver.set(NS + k, v);
+          });
+          UI.toast('已合并 ' + n + ' 项，正在重新加载');
+          setTimeout(() => location.reload(), 900);
+        } catch(err){ UI.toast('文件读不了，可能不是备份文件'); }
+      };
+      r.readAsText(f);
+      input.value = '';
+    },
+
+    wipe(){
+      if (!confirm('确定清空所有数据？这个操作无法撤销。')) return;
+      if (!confirm('再确认一次：真的要清空吗？')) return;
+      driver.keys().filter(k => k.startsWith(NS)).forEach(k => driver.remove(k));
+      location.reload();
+    }
+  };
+  return S;
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   Util · 工具
+   ═══════════════════════════════════════════════════════════ */
+const Util = {
+  today(){
+    const d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           String(d.getDate()).padStart(2,'0');
+  },
+  uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); },
+  dateOf(d){
+    return d.getFullYear() + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           String(d.getDate()).padStart(2,'0');
+  },
+  esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+
+  /** 按姓名排序学生时的通用比较器 */
+  byName(a, b){ return (a.name || '') > (b.name || '') ? 1 : -1; },
+
+  /** 把班级下拉框填好，返回当前选中的班级 id（没有班级返回空串） */
+  fillCls(selId, memKey){
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    const el = document.getElementById(selId);
+    if (!el) return '';
+    let cur = Store.get(memKey);
+    if (!classes.some(c => c.id === cur)) cur = classes[0] ? classes[0].id : '';
+    if (cur && cur !== Store.get(memKey)) Store.set(memKey, cur);
+    el.innerHTML = classes.length
+      ? classes.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${Util.esc(c.name)}</option>`).join('')
+      : '<option value="">先去「名册」建班级</option>';
+    return cur;
+  },
+
+  /** 复制文本到剪贴板，兼容非 https 环境 */
+  copy(text){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(
+        () => UI.toast('已复制'),
+        () => this._copyFallback(text)
+      );
+    } else this._copyFallback(text);
+  },
+  _copyFallback(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); UI.toast('已复制'); }
+    catch(e){ UI.toast('复制失败，请长按文本手动复制'); }
+    document.body.removeChild(ta);
+  },
+
+  // 图片必须压缩后再存，否则几张手机原图就撑爆 localStorage
+  compressImage(file, maxW = 800, quality = .72){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const cv = document.createElement('canvas');
+        cv.width  = img.width  * scale;
+        cv.height = img.height * scale;
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL('image/jpeg', quality));
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   UI · 界面工具
+   ═══════════════════════════════════════════════════════════ */
+const UI = {
+  toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(this._t);
+    this._t = setTimeout(() => t.classList.remove('on'), 2200);
+  },
+  banner(html, pageId = null){
+    const box = document.createElement('div');
+    box.className = 'banner';
+    box.innerHTML = html;
+    const target = pageId ? document.getElementById(pageId) : document.querySelector('.page.on');
+    target?.prepend(box);
+    return box;
+  }
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   App · 路由与启动
+   每加一个功能，在 routes 里加一条，侧边栏自动就有了。
+   ═══════════════════════════════════════════════════════════ */
+const App = {
+  routes: [
+    { id:'home',     icon:'🎯', name:'今日',   onShow: () => Home.render() },
+    { id:'roster',   icon:'👥', name:'名册',   onShow: () => Roster.render() },
+    { id:'att',      icon:'📋', name:'考勤',   onShow: () => Att.render() },
+    { id:'schedule', icon:'🗓️', name:'排课',   onShow: () => Schedule.render() },
+    { id:'homework', icon:'📝', name:'作业',   onShow: () => Homework.render() },
+    { id:'night',    icon:'🌙', name:'晚自习', onShow: () => Night.render() },
+    { id:'quant',    icon:'📊', name:'量化',   onShow: () => Quant.render() },
+    { id:'exam',     icon:'🎤', name:'模考',   onShow: () => Exam.render() },
+    { id:'weight',   icon:'⚖️', name:'体重',   onShow: () => Weight.render() },
+    { id:'settings', icon:'⚙️', name:'设置',   onShow: () => Settings.render() }
+  ],
+
+  go(id){
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+    document.getElementById('page-' + id)?.classList.add('on');
+    document.querySelectorAll('#nav button').forEach(b =>
+      b.classList.toggle('on', b.dataset.id === id));
+    document.getElementById('main').scrollTop = 0;
+    Store.set('_lastPage', id);
+    this.routes.find(r => r.id === id)?.onShow?.();
+  },
+
+  init(){
+    Store.migrate();          // 旧版数据补齐 id，无感升级
+    Settings.initRules();     // 量化细则占位规则（只初始化一次）
+    // 渲染侧边栏
+    document.getElementById('nav').innerHTML = this.routes.map(r =>
+      `<button data-id="${r.id}" onclick="App.go('${r.id}')">
+         <span class="ico">${r.icon}</span>${r.name}
+       </button>`).join('');
+
+    // 回到上次看的那一页
+    const last = Store.get('_lastPage');
+    this.go(this.routes.some(r => r.id === last) ? last : this.routes[0].id);
+
+    this.checkBackup();
+    if (typeof Sync !== 'undefined') Sync.init();
+  },
+
+  /** 重绘当前页。同步拉到新数据后调用 */
+  refresh(){
+    const cur = document.querySelector('.page.on');
+    if (!cur) return;
+    const id = cur.id.replace('page-', '');
+    this.routes.find(r => r.id === id)?.onShow?.();
+  },
+
+  // 用户永远不会主动点导出，所以要主动提醒
+  checkBackup(){
+    const last = Store.get('_lastBackup');
+    const write = Store.get('_lastWrite');
+    if (!write) return;                                  // 还没存过东西，不用提醒
+    const days = last ? (Date.now() - last) / 864e5 : 99;
+    if (days < 7) return;
+    const b = UI.banner(
+      `<span>${last ? '已经 ' + Math.floor(days) + ' 天没备份了' : '记得备份一下，数据只在这台设备上'}</span>
+       <button onclick="App.go('settings')">去备份</button>`);
+  }
+};
+
+
+/* ==== 功能：今日 START ==== */
+const Home = {
+  render(){
+    /* ── 倒计时 ── */
+    const label = Store.get('cd_label', '统考');
+    const date  = Store.get('cd_date', '');
+    document.getElementById('cdLabel').textContent = label || '目标日';
+    document.getElementById('cdLabelIn').value = label;
+    document.getElementById('cdDateIn').value = date;
+    const cd = document.getElementById('cdBody');
+    if (!date){
+      cd.innerHTML = '<div class="empty">还没定日期，在下面填上就开始倒数</div>';
+    } else {
+      const days = Math.ceil((new Date(date) - new Date(Util.today())) / 864e5);
+      cd.innerHTML = days >= 0
+        ? `<div class="hero num">${days}<span class="unit">天</span></div><p class="hint">${Util.esc(label)}：${date}</p>`
+        : `<div class="hero num">0<span class="unit">天</span></div><p class="hint">${Util.esc(label)}日已过，记得改成下一个目标</p>`;
+    }
+
+    /* ── 今日速览 ── */
+    const t = Util.today();
+    const attRecs  = Store.list('att:' + t);
+    const abnormal = attRecs.filter(a => a.status && a.status !== '正常').length;
+    const nightRecs = Store.list('night:' + t);
+    const nightOk = nightRecs.filter(x => x.st === '过').length;
+    const hwToday = Store.list('homework').filter(h => h.date === t).length;
+    document.getElementById('todayBody').innerHTML = `
+      <div class="item"><span class="grow">考勤已登记</span><b class="num">${attRecs.length}</b></div>
+      <div class="item"><span class="grow">考勤异常（迟到/请假）</span><b class="num">${abnormal}</b></div>
+      <div class="item"><span class="grow">晚自习过关</span><b class="num">${nightOk}${nightRecs.length ? ' / ' + nightRecs.length : ''}</b></div>
+      <div class="item"><span class="grow">今晚作业</span><b class="num">${hwToday}</b></div>`;
+
+    document.getElementById('homeSub').textContent =
+      Store.list('classes').length ? '' : '先去「名册」建班级、加学员，其他功能才能选到人';
+
+    /* ── 每日新闻（卡片在本页，缓存当天结果） ── */
+    News.render();
+  },
+
+  saveDate(){
+    const l = document.getElementById('cdLabelIn').value.trim() || '统考';
+    Store.set('cd_label', l);
+    const d = document.getElementById('cdDateIn').value;
+    if (d) Store.set('cd_date', d);
+    this.render();
+  }
+};
+/* ==== 功能：今日 END ==== */
+
+
+/* ==== 通用：识别与读文件 START ====
+   图片走 Tesseract.js（CDN 按需加载，中文包约 10MB，第一次识别会等一会儿），
+   txt 直接读，docx 用 mammoth 转文字。识别出来的都是「纯文字」，交给各功能自己解析。 */
+const Ocr = {
+  _lib: null,
+
+  load(){
+    if (this._lib) return this._lib;
+    this._lib = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => { if (window.Tesseract) res(window.Tesseract); else { this._lib = null; rej(new Error('识别引擎加载失败')); } };
+      s.onerror = () => { this._lib = null; rej(new Error('识别引擎加载失败，请检查网络后重试')); };
+      document.head.appendChild(s);
+    });
+    return this._lib;
+  },
+
+  async recognize(file, onProgress){
+    const T = await this.load();
+    const { data } = await T.recognize(file, 'chi_sim', {
+      logger: m => { if (onProgress && m.status === 'recognizing text') onProgress(m.progress); }
+    });
+    return (data.text || '').replace(/[ \t]+\n/g, '\n').trim();
+  }
+};
+
+/** 任意文件 → { text, via } 。图片走 OCR，txt/docx 直接抽文字。 */
+async function readAnyFile(file, onProgress){
+  if (/^image\//.test(file.type)) return { text: await Ocr.recognize(file, onProgress), via: 'ocr' };
+  if (/\.txt$/i.test(file.name) || /^text\//.test(file.type))
+    return { text: (await file.text()).trim(), via: 'text' };
+  if (/\.docx$/i.test(file.name)){
+    if (!window.mammoth){
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js';
+        s.onload = res; s.onerror = () => rej(new Error('文档解析引擎加载失败'));
+        document.head.appendChild(s);
+      });
+    }
+    const r = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return { text: (r.value || '').trim(), via: 'text' };
+  }
+  throw new Error('这种文件还不支持：图片、txt、docx 都行；PDF 请先截图再传');
+}
+/* ==== 通用：识别与读文件 END ==== */
+
+
+/* ==== 功能：名册 START ==== */
+const Roster = {
+  render(){
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    let cur = Store.get('_rosterCls');
+    if (!classes.some(c => c.id === cur)) cur = classes[0] ? classes[0].id : '';
+    if (cur && cur !== Store.get('_rosterCls')) Store.set('_rosterCls', cur);
+
+    const clsSel = document.getElementById('rosterCls');
+    clsSel.innerHTML = classes.length
+      ? classes.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${Util.esc(c.name)}</option>`).join('')
+      : '<option value="">还没有班级</option>';
+
+    document.getElementById('clsList').innerHTML = classes.length ? classes.map(c => {
+      const n = Store.list('students').filter(s => s.classId === c.id).length;
+      return `<div class="item">
+        <span class="grow">${Util.esc(c.name)} <span class="hint" style="display:inline;margin:0">${n} 人</span></span>
+        <button class="del" onclick="Roster.delCls('${c.id}')">✕</button>
+      </div>`;
+    }).join('') : '<div class="empty">还没有班级，先建一个</div>';
+
+    const students = Store.list('students', Util.byName).filter(s => s.classId === cur);
+    document.getElementById('stuList').innerHTML = students.length
+      ? students.map(s => `<div class="item">
+          <span class="grow">${Util.esc(s.name)}</span>
+          <button class="del" onclick="Roster.delStu('${s.id}')">✕</button>
+        </div>`).join('')
+      : '<div class="empty">这个班还没有学员</div>';
+  },
+
+  pickCls(v){ Store.set('_rosterCls', v); this.render(); },
+
+  addClass(){
+    const el = document.getElementById('clsIn');
+    const name = el.value.trim();
+    if (!name) return UI.toast('填一下班级名');
+    if (Store.list('classes').some(c => c.name === name)) return UI.toast('已经有这个班了');
+    Store.upsert('classes', { name });
+    el.value = '';
+    Store.set('_rosterCls', Store.list('classes').find(c => c.name === name).id);
+    this.render();
+  },
+
+  addStudent(){
+    const el = document.getElementById('stuIn');
+    const name = el.value.trim();
+    const clsId = Store.get('_rosterCls');
+    if (!clsId) return UI.toast('先建一个班级');
+    if (!name) return UI.toast('填一下学员姓名');
+    Store.upsert('students', { classId: clsId, name });
+    el.value = '';
+    this.render();
+  },
+
+  /* ── 批量添加：上传识别 → 文本框可改 → 确认导入 ── */
+  async importFile(input){
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    const stat = document.getElementById('batchStat');
+    stat.textContent = f.type.startsWith('image/') ? '正在识别图片里的名单，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    try {
+      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      document.getElementById('batchStu').value = text;
+      stat.textContent = '识别完成，检查一遍再点「批量加入」';
+    } catch(e){
+      stat.textContent = e.message;
+      UI.toast(e.message);
+    }
+  },
+
+  batchAdd(){
+    const clsId = Store.get('_rosterCls');
+    if (!clsId) return UI.toast('先在上方选中一个班级');
+    const raw = document.getElementById('batchStu').value.trim();
+    if (!raw) return UI.toast('先填名字，或传名单识别');
+    const names = raw.split(/[\n,，、;；\t]+|\s{2,}| /).map(s => s.trim()).filter(Boolean);
+    if (!names.length) return UI.toast('没解析出名字，检查一下格式');
+    const existing = new Set(Store.list('students').filter(s => s.classId === clsId).map(s => s.name));
+    let added = 0, dup = 0;
+    names.forEach(n => {
+      if (existing.has(n)) { dup++; return; }
+      Store.upsert('students', { classId: clsId, name: n });
+      existing.add(n); added++;
+    });
+    document.getElementById('batchStu').value = '';
+    document.getElementById('batchStat').textContent = '';
+    this.render();
+    UI.toast(`加入 ${added} 人` + (dup ? `，跳过重复 ${dup} 人` : ''));
+  },
+
+  delCls(id){
+    const n = Store.list('students').filter(s => s.classId === id).length;
+    if (n && !confirm(`班里还有 ${n} 名学员，删班级会连学员一起删，确定？`)) return;
+    Store.list('students').filter(s => s.classId === id).forEach(s => Store.softDelete('students', s.id));
+    Store.softDelete('classes', id);
+    if (Store.get('_rosterCls') === id) Store.remove('_rosterCls');
+    this.render();
+  },
+
+  delStu(id){
+    if (!confirm('删除这名学员？TA 的历史记录会保留，但不再出现在名单里。')) return;
+    Store.softDelete('students', id);
+    this.render();
+  }
+};
+/* ==== 功能：名册 END ==== */
+
+
+/* ==== 功能：考勤 START ==== */
+const Att = {
+  STATUSES: ['正常', '迟到', '病假', '事假'],
+
+  render(){
+    const dEl = document.getElementById('attDate');
+    if (!dEl.value) dEl.value = Store.get('_attDate') || Util.today();
+    const date = dEl.value;
+    if (date !== Store.get('_attDate')) Store.set('_attDate', date);
+
+    const clsId = Util.fillCls('attCls', '_attCls');
+    const body = document.getElementById('attBody');
+    const sum = document.getElementById('attSum');
+    if (!clsId){
+      body.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
+      sum.textContent = '';
+      return;
+    }
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    const recs = Store.list('att:' + date);
+    const byStu = {};
+    recs.forEach(r => { byStu[r.studentId] = r.status; });
+
+    body.innerHTML = students.length ? students.map(s => {
+      const cur = byStu[s.id];
+      return `<div class="item">
+        <span class="grow" style="min-width:64px;flex-shrink:0">${Util.esc(s.name)}</span>
+        <span style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">` +
+        this.STATUSES.map(st =>
+          `<button class="chip ${cur === st ? 'chip-on' : ''}" onclick="Att.mark('${s.id}','${st}')">${st}</button>`
+        ).join('') +
+        `</span></div>`;
+    }).join('') : '<div class="empty">这个班还没有学员</div>';
+
+    const c = {};
+    this.STATUSES.forEach(st => c[st] = 0);
+    recs.forEach(r => { if (c[r.status] !== undefined) c[r.status]++; });
+    sum.textContent = `应到 ${students.length} · ` + this.STATUSES.map(st => `${st} ${c[st]}`).join(' · ') +
+      ' · 未登记 ' + (students.length - recs.filter(r => c[r.status] !== undefined).length);
+  },
+
+  mark(sid, st){
+    const date = Store.get('_attDate') || Util.today();
+    const key = 'att:' + date;
+    const rec = Store.list(key).find(r => r.studentId === sid);
+    if (rec && rec.status === st){ Store.softDelete(key, rec.id); }   // 再点一下取消
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, status: st });
+    this.render();
+  },
+
+  allNormal(){
+    const date = Store.get('_attDate') || Util.today();
+    const key = 'att:' + date;
+    const clsId = Store.get('_attCls');
+    const students = Store.list('students').filter(s => s.classId === clsId);
+    const recs = Store.list(key);
+    students.forEach(s => {
+      const rec = recs.find(r => r.studentId === s.id);
+      if (!rec || rec.status !== '正常')
+        Store.upsert(key, { id: rec ? rec.id : null, studentId: s.id, status: '正常' });
+    });
+    UI.toast('已全部标为正常');
+    this.render();
+  },
+
+  pickDate(v){ Store.set('_attDate', v || Util.today()); this.render(); },
+  pickCls(v){ Store.set('_attCls', v); this.render(); }
+};
+/* ==== 功能：考勤 END ==== */
+
+
+/* ==== 功能：排课 START ==== */
+const Schedule = {
+  DAYS: ['周一','周二','周三','周四','周五','周六','周日'],
+
+  /* ── 作息时间：全校统一配置，加课时选节次，不用每次填时间 ── */
+  periods(){
+    return Store.list('periods', (a,b) => (a.start||'') > (b.start||'') ? 1 : -1);
+  },
+
+  /** 一节课显示用的时间：优先自己的时间（小课自定义），否则查节次 */
+  timeOf(item){
+    if (item.time) return item.time;
+    const p = this.periods().find(p => p.id === item.periodId);
+    return p ? p.start + '–' + p.end : '';
+  },
+
+  periodLabel(item){
+    if (item.time) return '自定义';
+    const p = this.periods().find(p => p.id === item.periodId);
+    return p ? p.name : '（节次已删）';
+  },
+
+  render(){
+    // 周几下拉只填一次
+    ['schDay','miniDay'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (sel && !sel.options.length)
+        sel.innerHTML = this.DAYS.map(d => `<option value="${d}">${d}</option>`).join('');
+    });
+    this.renderPeriods();
+    this.renderPeriodSels();
+    this.renderStudents();
+    this.renderBig();
+    this.renderSmall();
+    this.renderArch();
+  },
+
+  renderPeriods(){
+    const ps = this.periods();
+    document.getElementById('periodList').innerHTML = ps.length
+      ? ps.map(p => `<div class="item">
+          <span class="mono" style="flex-shrink:0;width:110px">${Util.esc(p.start)}–${Util.esc(p.end)}</span>
+          <span class="grow">${Util.esc(p.name)}</span>
+          <button class="del" onclick="Schedule.delPeriod('${p.id}')" title="删除节次">✕</button>
+        </div>`).join('')
+      : '<div class="empty">还没配节次。把每天的上下课时间加进来，比如：早功 06:30–07:30、第1节 08:00–09:40、晚自习 19:00–21:30</div>';
+  },
+
+  /** 两张加课表单里的节次下拉，随作息时间自动刷新 */
+  renderPeriodSels(){
+    const ps = this.periods();
+    const html = ps.length
+      ? ps.map(p => `<option value="${p.id}">${Util.esc(p.name)} ${Util.esc(p.start)}</option>`).join('')
+      : '<option value="">先在上方添加节次</option>';
+    ['schPeriod','miniPeriod'].forEach(id => {
+      const sel = document.getElementById(id);
+      const keep = sel.value;
+      sel.innerHTML = html;
+      if (keep && ps.some(p => p.id === keep)) sel.value = keep;
+    });
+  },
+
+  /** 小课的学员建议列表（来自名册，仍可手输任意名字） */
+  renderStudents(){
+    document.getElementById('stuSuggestions').innerHTML =
+      Store.list('students', Util.byName).map(s => `<option value="${Util.esc(s.name)}">`).join('');
+  },
+
+  /** 按天分组渲染一种课表；kind: 'big' | 'small'，互不掺和 */
+  renderKind(kind, boxId, emptyText){
+    const items = Store.list('schedule', (a,b) => {
+      const d = this.DAYS.indexOf(a.day) - this.DAYS.indexOf(b.day);
+      return d !== 0 ? d : (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1;
+    }).filter(x => (x.kind || 'big') === kind);   // 旧数据没有 kind，按大课算
+
+    document.getElementById(boxId).innerHTML = items.length
+      ? this.DAYS.map(day => {
+          const one = items.filter(x => x.day === day);
+          if (!one.length) return '';
+          return `<p class="hint" style="margin:14px 0 2px;font-size:14px;color:var(--text)">${day}</p>` +
+            one.map(x => `<div class="item">
+              <span class="mono" style="flex-shrink:0;width:96px">${Util.esc(this.timeOf(x) || '--:--')}<br><span class="hint" style="display:inline;margin:0">${Util.esc(this.periodLabel(x))}</span></span>
+              <span class="grow">${Util.esc(x.title)}${x.cls ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.cls)}</span>` : ''}${x.stu ? `<br><span class="hint" style="display:inline;margin:0">学员：${Util.esc(x.stu)}</span>` : ''}</span>
+              <button class="del" onclick="Schedule.del('${x.id}')">✕</button>
+            </div>`).join('');
+        }).join('')
+      : `<div class="empty">${emptyText}</div>`;
+  },
+
+  renderBig(){ this.renderKind('big', 'schBigBody', '这周还没有大课'); },
+  renderSmall(){ this.renderKind('small', 'schSmallBody', '这周还没有小课'); },
+
+  /* ── 往期课表归档：日期 + 类别 + 可展开看全文 ── */
+  renderArch(){
+    const list = Store.list('schedule_archive', (a,b) => a.date < b.date ? 1 : -1);
+    document.getElementById('archBody').innerHTML = list.length ? list.map(x => `
+      <details class="item" style="flex-direction:column;align-items:stretch;gap:6px">
+        <summary style="display:flex;gap:10px;align-items:center;cursor:pointer;list-style:none">
+          <span class="hint" style="margin:0;flex-shrink:0">${x.date}</span>
+          <span class="chip chip-on" style="flex-shrink:0">${Util.esc(x.kind || '课表')}</span>
+          <span class="grow hint" style="margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${Util.esc((x.text || '').split('\n')[0])}</span>
+          <button class="del" onclick="event.preventDefault();event.stopPropagation();Schedule.delArch('${x.id}')">✕</button>
+        </summary>
+        <pre class="pre" style="margin:6px 0 0">${Util.esc(x.text)}</pre>
+      </details>`).join('')
+      : '<div class="empty">还没有往期。导入新课表时，本周的会自动存到这里；也可以把文字直接「存入往期」。</div>';
+  },
+
+  /** 把当前课表整表快照进往期（导入替换前自动调用） */
+  archiveCurrent(){
+    const items = Store.list('schedule');
+    if (!items.length) return;
+    const kinds = [...new Set(items.map(x => x.kind || 'big'))].map(k => k === 'big' ? '大课' : '小课').join('+');
+    const days = ['周一','周二','周三','周四','周五','周六','周日'];
+    const lines = [];
+    days.forEach(day => {
+      items.filter(x => (x.day || '') === day && x.title)
+        .sort((a,b) => (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1)
+        .forEach(x => {
+          const who = x.kind === 'small' ? (x.stu ? '学员 ' + x.stu + ' · ' : '') : (x.cls ? x.cls + ' · ' : '');
+          lines.push(`${day} ${this.timeOf(x) || '--:--'} ${this.periodLabel(x)} | ${who}${x.title}`);
+        });
+    });
+    Store.upsert('schedule_archive', { date: Util.today(), kind: kinds, text: lines.join('\n') });
+  },
+
+  /** 手动把导入框里的原文存进往期 */
+  archiveText(){
+    const text = document.getElementById('impText').value.trim();
+    if (!text) return UI.toast('先在下面填点课表文字');
+    Store.upsert('schedule_archive', { date: Util.today(), kind: '原文', text });
+    this.clearImport();
+    this.renderArch();
+    UI.toast('已存入往期');
+  },
+
+  delArch(id){ Store.softDelete('schedule_archive', id); this.renderArch(); },
+
+  /* ── 导入课表：识别 → 检查 → AI 解析替换 ── */
+  async importFile(input){
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    const stat = document.getElementById('impStat');
+    stat.textContent = f.type.startsWith('image/') ? '正在识别课表图片，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    try {
+      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      document.getElementById('impText').value = text;
+      stat.textContent = '识别完成，核对一下文字，然后点「AI 解析导入」';
+    } catch(e){
+      stat.textContent = e.message;
+      UI.toast(e.message);
+    }
+  },
+
+  clearImport(){
+    document.getElementById('impText').value = '';
+    document.getElementById('impStat').textContent = '';
+  },
+
+  PROMPT: `你是排课助手。把课表文字解析成 JSON，格式：
+{"periods":[{"name":"节次名","start":"HH:MM","end":"HH:MM"}],
+"big":[{"day":"周一","period":"节次名","time":"","title":"上课内容","cls":"班级或板块"}],
+"small":[{"day":"周一","period":"节次名","time":"","stu":"学员姓名","title":"上课内容"}]}
+规则：day 只能是周一~周日；一对一/单独辅导/小课/加课归 small，班级集体课归 big；时间统一 HH:MM，没有就空字符串；解析不出字段就留空。只输出 JSON，不要任何解释。`,
+
+  async aiImport(){
+    const key = Store.getSecret('deepseek');
+    if (!key) return UI.toast('先去设置页配 DeepSeek key，配好后就能一键解析');
+    const text = document.getElementById('impText').value.trim();
+    if (!text) return UI.toast('先传文件识别，或直接粘贴课表文字');
+    const stat = document.getElementById('impStat');
+    stat.textContent = 'AI 正在解析课表…';
+    try {
+      const r = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type':'application/json', Authorization: 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role:'user', content: this.PROMPT + '\n\n课表原文：\n' + text }],
+          temperature: 0.2, stream: false
+        })
+      });
+      if (r.status === 401) throw new Error('key 好像不对，去设置里检查一下');
+      if (r.status === 402) throw new Error('额度用完了，去 DeepSeek 控制台充值');
+      if (!r.ok) throw new Error('接口暂时用不了（' + r.status + '），过会儿再试');
+      const j = await r.json();
+      const raw = (j.choices?.[0]?.message?.content || '').trim();
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error('AI 没返回能用的 JSON，再试一次');
+      this.applyImported(JSON.parse(m[0]));
+    } catch(e){
+      stat.textContent = e.message;
+      UI.toast(e.message);
+    }
+  },
+
+  /** 把 AI 解析结果落库：旧课表先归档，再整表替换 */
+  applyImported(data){
+    const stat = document.getElementById('impStat');
+    const periods = Array.isArray(data.periods) ? data.periods : [];
+    const big = Array.isArray(data.big) ? data.big : [];
+    const small = Array.isArray(data.small) ? data.small : [];
+    if (!big.length && !small.length) throw new Error('解析出 0 节课，检查下原文再试');
+
+    // 新节次先补进作息时间（同名跳过）
+    let newPer = 0;
+    periods.forEach(p => {
+      if (!p.name || !p.start) return;
+      if (this.periods().some(x => x.name === p.name)) return;
+      Store.upsert('periods', { name: p.name, start: p.start, end: p.end || p.start });
+      newPer++;
+    });
+    const perByName = {};
+    this.periods().forEach(p => { if (!perByName[p.name]) perByName[p.name] = p.id; });
+
+    // 替换前自动归档本周
+    this.archiveCurrent();
+    Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
+
+    let nBig = 0, nSmall = 0;
+    const validDay = d => this.DAYS.includes(d) ? d : '周一';
+    big.forEach(x => {
+      if (!x || !x.title) return;
+      Store.upsert('schedule', {
+        day: validDay(x.day), periodId: perByName[x.period] || '',
+        time: (x.time || '').trim(), title: x.title, cls: (x.cls || '').trim(), kind: 'big'
+      });
+      nBig++;
+    });
+    small.forEach(x => {
+      if (!x || !x.title) return;
+      Store.upsert('schedule', {
+        day: validDay(x.day), periodId: perByName[x.period] || '',
+        time: (x.time || '').trim(), stu: (x.stu || '').trim(), title: x.title, kind: 'small'
+      });
+      nSmall++;
+    });
+
+    this.clearImport();
+    this.render();
+    stat.textContent = `导入完成：大课 ${nBig} 节、小课 ${nSmall} 节` + (newPer ? `，新增节次 ${newPer} 个` : '') + '。本周原课表已自动存入往期。';
+    UI.toast('课表导入完成');
+  },
+
+  addPeriod(){
+    const name  = document.getElementById('perName').value.trim();
+    const start = document.getElementById('perStart').value;
+    const end   = document.getElementById('perEnd').value;
+    if (!name || !start || !end) return UI.toast('节次名和起止时间都要填');
+    if (end <= start) return UI.toast('结束时间要晚于开始时间');
+    Store.upsert('periods', { name, start, end });
+    document.getElementById('perName').value = '';
+    this.render();
+  },
+
+  delPeriod(id){
+    const used = Store.list('schedule').filter(x => x.periodId === id).length;
+    if (used && !confirm(`有 ${used} 节课排在这个节次上，删掉后它们会显示不出时间。确定删吗？`)) return;
+    Store.softDelete('periods', id);
+    this.render();
+  },
+
+  add(){
+    const day    = document.getElementById('schDay').value;
+    const period = document.getElementById('schPeriod').value;
+    const title  = document.getElementById('schTitle').value.trim();
+    const cls    = document.getElementById('schCls').value.trim();
+    if (!period) return UI.toast('先在上方配好作息时间');
+    if (!title) return UI.toast('填一下上课内容');
+    Store.upsert('schedule', { day, periodId: period, title, cls, kind: 'big' });
+    document.getElementById('schTitle').value = '';
+    document.getElementById('schCls').value = '';
+    this.render();
+  },
+
+  addMini(){
+    const day    = document.getElementById('miniDay').value;
+    const period = document.getElementById('miniPeriod').value;
+    const time   = document.getElementById('miniTime').value;
+    const stu    = document.getElementById('miniStu').value.trim();
+    const title  = document.getElementById('miniTitle').value.trim();
+    if (!period && !time) return UI.toast('选个节次，或者单独填个时间');
+    if (!title) return UI.toast('填一下上课内容');
+    Store.upsert('schedule', { day, periodId: period || '', time, stu, title, kind: 'small' });
+    document.getElementById('miniTime').value = '';
+    document.getElementById('miniStu').value = '';
+    document.getElementById('miniTitle').value = '';
+    this.render();
+  },
+
+  del(id){ Store.softDelete('schedule', id); this.render(); }
+};
+/* ==== 功能：排课 END ==== */
+
+
+/* ==== 功能：作业 START ==== */
+const Homework = {
+  _open: null,   // 当前展开登记的那条作业 id
+
+  render(){
+    const clsId = Util.fillCls('hwCls', '_hwCls');
+    const dEl = document.getElementById('hwDate');
+    if (!dEl.value) dEl.value = Util.today();
+
+    const list = Store.list('homework', (a,b) => a.date < b.date ? 1 : -1).slice(0, 40);
+    document.getElementById('hwBody').innerHTML = list.length ? list.map(h => {
+      const cls = Store.list('classes').find(c => c.id === h.clsId);
+      const total = Store.list('students').filter(s => s.classId === h.clsId).length;
+      const subs = Store.list('hw:' + h.id);
+      const done = subs.filter(x => x.done).length;
+      const no = subs.filter(x => x.done === 0).length;
+      const open = this._open === h.id;
+      return `<div class="item" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span class="grow"><b>${Util.esc(h.text)}</b><br>
+            <span class="hint" style="display:inline;margin:0">${h.date} · ${cls ? Util.esc(cls.name) : ''} · 已交 ${done} · 未交 ${no}</span></span>
+          <button class="btn ghost" style="padding:7px 12px;font-size:13px" onclick="Homework.toggle('${h.id}')">${open ? '收起' : '登记'}</button>
+          <button class="del" onclick="Homework.del('${h.id}')">✕</button>
+        </div>
+        ${open ? this.renderSubs(h) : ''}
+      </div>`;
+    }).join('') : '<div class="empty">还没有作业，在上面布置一条</div>';
+  },
+
+  renderSubs(h){
+    const students = Store.list('students', Util.byName).filter(s => s.classId === h.clsId);
+    if (!students.length) return '<p class="hint">这个班还没有学员</p>';
+    const subs = {};
+    Store.list('hw:' + h.id).forEach(x => { subs[x.studentId] = x.done; });
+    return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">` +
+      students.map(s => {
+        const st = subs[s.id];
+        const cls = st === 1 ? 'chip-on' : st === 0 ? 'chip-no' : '';
+        return `<button class="chip ${cls}" onclick="Homework.mark('${h.id}','${s.id}')">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</button>`;
+      }).join('') +
+      `</div><p class="hint">点一下 = 已交，再点 = 未交，第三下 = 清除。未登记的不计分。</p>`;
+  },
+
+  toggle(id){
+    this._open = this._open === id ? null : id;
+    this.render();
+  },
+
+  mark(hid, sid){
+    const key = 'hw:' + hid;
+    const rec = Store.list(key).find(x => x.studentId === sid);
+    let next;
+    if (!rec) next = 1;
+    else if (rec.done === 1) next = 0;
+    else next = null;
+    if (next === null){ if (rec) Store.softDelete(key, rec.id); }
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, done: next });
+    this.render();
+  },
+
+  add(){
+    const clsId = Store.get('_hwCls');
+    const text = document.getElementById('hwText').value.trim();
+    const date = document.getElementById('hwDate').value || Util.today();
+    if (!clsId) return UI.toast('先去「名册」建班级');
+    if (!text) return UI.toast('写一下作业内容');
+    Store.upsert('homework', { clsId, date, text });
+    document.getElementById('hwText').value = '';
+    UI.toast('布置好了');
+    this.render();
+  },
+
+  del(id){
+    if (!confirm('删除这条作业？它的提交登记也会一起删。')) return;
+    Store.softDelete('homework', id);
+    Store.get('hw:' + id, []).forEach(x => Store.softDelete('hw:' + id, x.id));
+    if (this._open === id) this._open = null;
+    this.render();
+  }
+};
+/* ==== 功能：作业 END ==== */
+
+
+/* ==== 功能：晚自习 START ==== */
+const Night = {
+  STATUSES: ['过', '未过'],
+
+  render(){
+    const dEl = document.getElementById('nightDate');
+    if (!dEl.value) dEl.value = Store.get('_nightDate') || Util.today();
+    const date = dEl.value;
+    if (date !== Store.get('_nightDate')) Store.set('_nightDate', date);
+
+    const clsId = Util.fillCls('nightCls', '_nightCls');
+    const body = document.getElementById('nightBody');
+    const sum = document.getElementById('nightSum');
+    if (!clsId){
+      body.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
+      sum.textContent = '';
+      return;
+    }
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    const recs = Store.list('night:' + date);
+    const byStu = {};
+    recs.forEach(r => { byStu[r.studentId] = r.st; });
+
+    body.innerHTML = students.length ? students.map(s => {
+      const cur = byStu[s.id];
+      return `<div class="item">
+        <span class="grow" style="min-width:64px;flex-shrink:0">${Util.esc(s.name)}</span>
+        <span style="display:flex;gap:5px">` +
+        this.STATUSES.map(st =>
+          `<button class="chip ${cur === st ? 'chip-on' : ''}" onclick="Night.mark('${s.id}','${st}')">${st}</button>`
+        ).join('') +
+        `</span></div>`;
+    }).join('') : '<div class="empty">这个班还没有学员</div>';
+
+    const ok = recs.filter(r => r.st === '过').length;
+    const no = recs.filter(r => r.st === '未过').length;
+    sum.textContent = `过关 ${ok} · 未过 ${no} · 未登记 ${students.length - recs.length}`;
+  },
+
+  mark(sid, st){
+    const date = Store.get('_nightDate') || Util.today();
+    const key = 'night:' + date;
+    const rec = Store.list(key).find(r => r.studentId === sid);
+    if (rec && rec.st === st){ Store.softDelete(key, rec.id); }   // 再点一下取消
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, st });
+    this.render();
+  },
+
+  pickDate(v){ Store.set('_nightDate', v || Util.today()); this.render(); },
+  pickCls(v){ Store.set('_nightCls', v); this.render(); }
+};
+/* ==== 功能：晚自习 END ==== */
+
+
+/* ==== 功能：量化 START ====
+   分数完全由「量化细则」驱动：考勤/晚自习按日期逐条算，
+   作业按每条作业的提交登记算。细则在设置页改，这里不用动。 */
+const Quant = {
+  render(){
+    const clsId = Util.fillCls('qCls', '_qCls');
+    const body = document.getElementById('qBody');
+    if (!clsId){
+      body.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
+      this._rows = null;
+      this.renderRecap();
+      return;
+    }
+    const fromto = this.range();
+    const rows = this.compute(clsId, fromto.from, fromto.to);
+    this._rows = rows;
+    this._meta = { clsId, from: fromto.from, to: fromto.to };
+    body.innerHTML = rows.length ? rows.map((r, i) =>
+      `<div class="item">
+        <span class="hint num" style="margin:0;width:22px;flex-shrink:0">${i + 1}</span>
+        <span class="grow">${Util.esc(r.name)}<br>
+          <span class="hint" style="display:inline;margin:0">${this.partText(r.parts)}</span></span>
+        <b class="num" style="font-size:20px;flex-shrink:0">${r.score}</b>
+      </div>`
+    ).join('') : '<div class="empty">这个班还没有学员</div>';
+    this.renderRecap();
+  },
+
+  range(){
+    const mode = document.getElementById('qRange').value;
+    const today = new Date();
+    const to = Util.dateOf(today);
+    let from;
+    if (mode === 'week'){
+      const dow = (today.getDay() + 6) % 7;                  // 周一为一周之始
+      const d = new Date(today); d.setDate(today.getDate() - dow);
+      from = Util.dateOf(d);
+    } else if (mode === 'month'){
+      from = to.slice(0, 8) + '01';
+    } else {
+      const d = new Date(today); d.setDate(today.getDate() - 29);
+      from = Util.dateOf(d);
+    }
+    return { from, to };
+  },
+
+  dates(from, to){
+    const out = [];
+    const d = new Date(from), end = new Date(to);
+    while (d <= end){ out.push(Util.dateOf(d)); d.setDate(d.getDate() + 1); }
+    return out;
+  },
+
+  compute(clsId, from, to){
+    const rules = Store.list('quant_rules');
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    const stat = {};
+    students.forEach(s => stat[s.id] = { name: s.name, score: 0, parts: {} });
+    const bump = (sid, key, n) => {
+      if (!stat[sid] || !n) return;
+      const r = rules.find(x => x.key === key);
+      if (!r || !r.delta) return;
+      stat[sid].score += r.delta * n;
+      stat[sid].parts[key] = (stat[sid].parts[key] || 0) + n;
+    };
+    this.dates(from, to).forEach(d => {
+      Store.list('att:' + d).forEach(a => bump(a.studentId, 'att:' + a.status, 1));
+      Store.list('night:' + d).forEach(a => bump(a.studentId, 'night:' + a.st, 1));
+    });
+    Store.list('homework').forEach(hw => {
+      if (hw.clsId !== clsId || hw.date < from || hw.date > to) return;
+      Store.list('hw:' + hw.id).forEach(x => bump(x.studentId, x.done ? 'hw:已交' : 'hw:未交', 1));
+    });
+    return Object.values(stat).sort((a,b) => b.score - a.score);
+  },
+
+  partText(parts){
+    const rules = Store.list('quant_rules');
+    const entries = Object.entries(parts);
+    if (!entries.length) return '暂无记录';
+    return entries.map(([k, n]) => {
+      const r = rules.find(x => x.key === k);
+      return (r ? r.label : k) + '×' + n;
+    }).join(' · ');
+  },
+
+  copy(){
+    if (!this._rows || !this._rows.length) return UI.toast('先选个有学员的班级');
+    const { clsId, from, to } = this._meta;
+    const cls = Store.list('classes').find(c => c.id === clsId);
+    const lines = this._rows.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n');
+    const text = `【${cls ? cls.name : ''} · 量化公示】\n${from} ~ ${to}\n\n${lines}`;
+    Util.copy(text);
+  },
+
+  /** 公布以班级为单位：每个班各生成一段，拼成一份，发群时按班拆开贴 */
+  copyAll(){
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    if (!classes.length) return UI.toast('还没有班级');
+    const fromto = this.range();
+    const parts = classes.map(cls => {
+      const rows = this.compute(cls.id, fromto.from, fromto.to);
+      if (!rows.length) return '';
+      const lines = rows.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n');
+      return `【${cls.name} · 量化公示】\n${fromto.from} ~ ${fromto.to}\n\n${lines}`;
+    }).filter(Boolean);
+    if (!parts.length) return UI.toast('各班都还没有记录');
+    Util.copy(parts.join('\n\n————————\n\n'));
+    UI.toast(`已复制 ${parts.length} 个班的公示，发群时按班级分开贴`);
+  },
+
+  /* ── 本周小结 + 图卡（原「周复盘」，并入量化页） ── */
+  weekDays(){
+    const t = new Date();
+    const dow = (t.getDay() + 6) % 7;
+    const s = new Date(t); s.setDate(t.getDate() - dow);
+    return { from: Util.dateOf(s), to: Util.dateOf(t) };
+  },
+
+  renderRecap(){
+    const el = document.getElementById('recapBody');
+    if (!el) return;
+    const { from, to } = this.weekDays();
+    const days = this.dates(from, to);
+    let n = 0;
+    const per = {};
+    days.forEach(d => {
+      const c = Store.list('att:' + d).length
+              + Store.list('night:' + d).length
+              + Store.list('homework').filter(h => h.date === d).length;
+      per[d] = c; n += c;
+    });
+    this._recap = { n, per, from, to };
+    const active = days.filter(d => per[d] > 0).length;
+    el.innerHTML = `<div class="hero num">${n}<span class="unit">条本周记录</span></div>
+      <p class="hint">${from} 到 ${to} · 其中 ${active} 天有登记</p>`;
+  },
+
+  /** 画一张 1080×1350 的图卡，取当前主题色，只有汇总数字，不含学员明细 */
+  makeCard(){
+    if (!this._recap) this.renderRecap();
+    const r = this._recap;
+    const cs = getComputedStyle(document.documentElement);
+    const v = n => cs.getPropertyValue(n).trim();
+    const W = 1080, H = 1350, cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    const font = (sz, w) => `${w || 400} ${sz}px -apple-system,"PingFang SC",system-ui,sans-serif`;
+
+    g.fillStyle = v('--bg') || '#f6f5f2'; g.fillRect(0, 0, W, H);
+    g.fillStyle = v('--card') || '#fff';
+    const pad = 72, cw = W - pad * 2;
+    if (g.roundRect){ g.beginPath(); g.roundRect(pad, 180, cw, 900, 40); g.fill(); }
+    else g.fillRect(pad, 180, cw, 900);
+
+    g.fillStyle = v('--accent') || '#26241f';
+    g.font = font(30, 500);
+    g.fillText('砺蕴工作台 · 这一周', pad + 56, 300);
+
+    g.fillStyle = v('--text') || '#26241f';
+    g.font = font(190, 500);
+    g.fillText(String(r.n), pad + 56, 490);
+    g.font = font(38);
+    g.fillStyle = v('--text-dim') || '#96918a';
+    g.fillText('条教学记录', pad + 56 + g.measureText(String(r.n)).width + 190, 490);
+
+    g.font = font(34);
+    g.fillText(`${r.from}  —  ${r.to}`, pad + 56, 570);
+
+    const bw = 96, gap = 24, y = 670;
+    '一二三四五六日'.split('').forEach((ch, i) => {
+      const n = r.per[Object.keys(r.per)[i]] || 0;
+      g.fillStyle = n ? (v('--accent') || '#26241f') : (v('--line') || '#e8e6e0');
+      g.globalAlpha = n ? Math.min(1, 0.35 + n * 0.12) : 1;
+      const x = pad + 56 + i * (bw + gap);
+      if (g.roundRect){ g.beginPath(); g.roundRect(x, y, bw, bw, 26); g.fill(); }
+      else g.fillRect(x, y, bw, bw);
+      g.globalAlpha = 1;
+      g.fillStyle = v('--text-dim') || '#96918a';
+      g.font = font(28);
+      g.fillText(ch, x + bw / 2 - 14, y + bw + 48);
+    });
+
+    g.fillStyle = v('--text-dim') || '#96918a';
+    g.font = font(26);
+    g.fillText('由 不一书个人工作台生成器 生成', pad + 56, 1010);
+
+    cv.toBlob(b => {
+      const url = URL.createObjectURL(b);
+      const a = document.createElement('a');
+      a.href = url; a.download = `本周小结-${r.to}.png`;
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        UI.toast('图卡已保存到下载目录');
+      }, 800);
+    }, 'image/png');
+  }
+};
+/* ==== 功能：量化 END ==== */
+
+
+/* ==== 功能：模考 START ==== */
+const Exam = {
+  PROMPT: '你是播音与主持艺术艺考的命题老师。请基于最近一周的时事热点和热点事件，出 5 道即兴评述考题。每题一行，格式为「1. 题目（后面括号里给一句评述角度提示）」。只输出 5 道题，不要任何其他说明。',
+
+  render(){
+    this.renderAI();
+    this.renderList();
+  },
+
+  renderAI(){
+    const box = document.getElementById('aiBody');
+    if (this._result !== undefined){
+      box.innerHTML = `<textarea id="aiResult" style="min-height:170px">${Util.esc(this._result)}</textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Exam.saveBox()">存入题库</button>
+          <button class="btn ghost" onclick="Exam.gen()">再出一组</button>
+        </div>`;
+      return;
+    }
+    if (this._loading){
+      box.innerHTML = '<div class="empty">正在基于近期热点出题，几秒钟…</div>';
+      return;
+    }
+    if (!Store.getSecret('deepseek')){
+      box.innerHTML = `<div class="empty">还没配置 AI key，配置好就能一键出题<br>
+        <button class="btn" style="margin-top:10px" onclick="App.go('settings')">去设置</button></div>`;
+      return;
+    }
+    box.innerHTML = `<div class="row"><button class="btn" onclick="Exam.gen()">生成本周评述题</button></div>
+      <p class="hint">AI 会基于最近一周的热点新闻出 5 道即兴评述题，出来后可以直接改再存。</p>`;
+  },
+
+  async gen(){
+    const key = Store.getSecret('deepseek');
+    if (!key){ this._result = undefined; this.renderAI(); return; }
+    this._loading = true;
+    this._result = undefined;
+    this.renderAI();
+    try {
+      const r = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type':'application/json', Authorization: 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role:'user', content: this.PROMPT }],
+          temperature: 1.1,
+          stream: false
+        })
+      });
+      if (r.status === 401) throw new Error('key 好像不对，去设置里检查一下');
+      if (r.status === 402) throw new Error('账户额度用完了，去 DeepSeek 控制台充值');
+      if (!r.ok) throw new Error('接口暂时用不了（' + r.status + '），过会儿再试');
+      const j = await r.json();
+      const text = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || '').trim();
+      if (!text) throw new Error('返回是空的，再试一次');
+      this._result = text;
+    } catch(e){
+      this._error = e.message;
+      this._result = undefined;
+    }
+    this._loading = false;
+    this.renderAI();
+    if (this._error !== undefined){ UI.toast(this._error); this._error = undefined; }
+  },
+
+  saveBox(){
+    const text = document.getElementById('aiResult').value.trim();
+    if (text) this.save(text);
+    this._result = undefined;
+    this.render();
+  },
+
+  saveManual(){
+    const text = document.getElementById('examManual').value.trim();
+    if (!text) return UI.toast('先写点题目');
+    this.save(text);
+    document.getElementById('examManual').value = '';
+    this.renderList();
+  },
+
+  save(text){
+    Store.upsert('exams', { date: Util.today(), content: text });
+    UI.toast('已存入题库');
+  },
+
+  renderList(){
+    const list = Store.list('exams', (a,b) => a.date < b.date ? 1 : -1);
+    const el = document.getElementById('examList');
+    el.innerHTML = list.length ? list.map(x => `
+      <div class="item" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <span class="hint" style="margin:0;flex-shrink:0">${x.date}</span>
+          <span class="grow pre" style="margin-top:-2px">${Util.esc(x.content)}</span>
+          <span style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <button class="chip" onclick="Exam.copy('${x.id}')">复制</button>
+            <button class="del" onclick="Exam.del('${x.id}')">✕</button>
+          </span>
+        </div>
+      </div>`).join('') : '<div class="empty">还没有存过题。每周模考前出一组，存进来方便回看。</div>';
+  },
+
+  copy(id){
+    const x = Store.list('exams').find(e => e.id === id);
+    if (x) Util.copy(x.content);
+  },
+
+  del(id){
+    if (!confirm('删除这组题？')) return;
+    Store.softDelete('exams', id);
+    this.renderList();
+  }
+};
+/* ==== 功能：模考 END ==== */
+
+
+/* ==== 功能：体重 START ==== */
+const Weight = {
+  render(){
+    const classes = Store.list('classes');
+    const students = Store.list('students', Util.byName);
+    const sel = document.getElementById('wStu');
+    let cur = Store.get('_wStu');
+    if (!students.some(s => s.id === cur)) cur = students[0] ? students[0].id : '';
+    if (cur && cur !== Store.get('_wStu')) Store.set('_wStu', cur);
+
+    sel.innerHTML = students.length ? students.map(s => {
+      const c = classes.find(c => c.id === s.classId);
+      return `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${c ? Util.esc(c.name) + ' · ' : ''}${Util.esc(s.name)}</option>`;
+    }).join('') : '<option value="">先去「名册」加学员</option>';
+
+    const dEl = document.getElementById('wDate');
+    if (!dEl.value) dEl.value = Util.today();
+
+    const chart = document.getElementById('wChart');
+    const list = document.getElementById('wList');
+    if (!cur){
+      chart.innerHTML = '<div class="empty">先去「名册」加学员</div>';
+      list.innerHTML = '';
+      return;
+    }
+    const recs = Store.list('weights', (a,b) => a.date < b.date ? -1 : 1).filter(x => x.studentId === cur);
+    const last = recs[recs.length - 1];
+    const shown = recs.slice(-12);
+
+    let svg = '';
+    if (shown.length >= 2){
+      const vals = shown.map(x => x.value);
+      const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+      const pts = shown.map((x, i) =>
+        `${(i / (shown.length - 1) * 300 + 10).toFixed(1)},${(110 - (x.value - min) / span * 90).toFixed(1)}`
+      ).join(' ');
+      svg = `<svg viewBox="0 0 320 120" style="width:100%;height:auto;display:block">
+          <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <div class="stat"><span>${shown[0].date} ${shown[0].value}kg</span><span>${shown[shown.length - 1].date} ${shown[shown.length - 1].value}kg</span></div>`;
+    } else {
+      svg = '<div class="empty">同一人记两次以上就能看到曲线</div>';
+    }
+    chart.innerHTML = (last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次</span></div>` : '') + svg;
+
+    list.innerHTML = recs.slice(-10).reverse().map(x =>
+      `<div class="item">
+        <span class="grow num">${x.date}</span>
+        <b class="num" style="flex-shrink:0">${x.value} kg</b>
+        <button class="del" onclick="Weight.del('${x.id}')">✕</button>
+      </div>`).join('');
+  },
+
+  add(){
+    const sid = Store.get('_wStu');
+    const v = parseFloat(document.getElementById('wVal').value);
+    const date = document.getElementById('wDate').value || Util.today();
+    if (!sid) return UI.toast('先去「名册」加学员');
+    if (!v || v < 20 || v > 300) return UI.toast('体重数值看着不对，检查一下');
+    // 同一人同一天只保留一条，重复记就是改
+    const dup = Store.list('weights').find(x => x.studentId === sid && x.date === date);
+    Store.upsert('weights', { id: dup ? dup.id : null, studentId: sid, date, value: v });
+    document.getElementById('wVal').value = '';
+    UI.toast('记好了');
+    this.render();
+  },
+
+  del(id){ Store.softDelete('weights', id); this.render(); }
+};
+/* ==== 功能：体重 END ==== */
+
+
+/* ==== 功能：每日新闻 START ==== */
+const News = {
+  _loading: false,
+
+  render(){
+    const cache = Store.get('news_cache');
+    if (!this._loading && (!cache || cache.date !== Util.today())) this.fetch();
+    else if (cache) this.paint(cache.items, cache.date);
+    else document.getElementById('newsBody').innerHTML =
+      '<div class="empty">正在拉取央视新闻…</div>';
+  },
+
+  /* 央视新闻官方接口返回 JSONP，用 script 标签拉，浏览器不受跨域限制。
+     当天结果缓存进 Store，再打开不重复请求。 */
+  fetch(){
+    if (this._loading) return;
+    this._loading = true;
+    document.getElementById('newsBody').innerHTML = '<div class="empty">正在拉取央视新闻…</div>';
+    const cb = '_cctvNews_' + Date.now();
+    const s = document.createElement('script');
+    const fail = () => {
+      this._loading = false;
+      delete window[cb]; s.remove();
+      document.getElementById('newsBody').innerHTML =
+        '<div class="empty">没拉到，多半是网络问题，点右上角「刷新」再试</div>';
+    };
+    window[cb] = (res) => {
+      try {
+        const items = ((res && res.data && res.data.list) || []).map(x => ({
+          id: x.id || Util.uid(),
+          title: x.title || '',
+          url: x.url || '',
+          brief: x.brief || '',
+          time: (x.focus_date || '').slice(11, 16),
+          date: (x.focus_date || '').slice(0, 10)
+        }));
+        if (!items.length) return fail();
+        Store.set('news_cache', { date: Util.today(), items, _u: Date.now() });
+        this._loading = false;
+        delete window[cb]; s.remove();
+        this.paint(items, Util.today());
+      } catch(e){ fail(); }
+    };
+    s.onerror = fail;
+    s.src = 'https://news.cctv.com/2019/07/gaiban/cmsdatainterface/page/news_1.jsonp?cb=' + cb + '&_=' + Date.now();
+    document.head.appendChild(s);
+  },
+
+  paint(items, date){
+    document.getElementById('newsMeta').textContent = `${date} · ${items.length} 条`;
+    document.getElementById('newsBody').innerHTML = items.map(x => `
+      <div class="item">
+        <span class="mono" style="flex-shrink:0;width:44px">${Util.esc(x.time || '--:--')}</span>
+        <span class="grow">${x.url
+          ? `<a href="${Util.esc(x.url)}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">${Util.esc(x.title)}</a>`
+          : Util.esc(x.title)}${x.brief
+          ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.brief.length > 90 ? x.brief.slice(0, 90) + '…' : x.brief)}</span>` : ''}</span>
+      </div>`).join('');
+  }
+};
+/* ==== 功能：每日新闻 END ==== */
+
+
+/* ==== 功能：设置 START ==== */
+const Settings = {
+  keys: ['deepseek'],
+
+  render(){
+    this.refreshBackupInfo();
+    this.renderSync();
+    this.renderRules();
+    this.keys.forEach(k => {
+      const el = document.getElementById('key_' + k);
+      if (el) el.value = Store.getSecret(k) || '';
+    });
+    if (!this.keys.length) document.getElementById('apiCard')?.remove();
+  },
+
+  /** 占位细则：只初始化一次。老师们开会定稿后在设置页改 */
+  initRules(){
+    if (Store.get('_rulesInit')) return;
+    const rid = k => 'r_' + k;   // 固定 id：跨设备合并时同一条规则不会重复
+    [
+      ['att:正常','出勤正常',1], ['att:迟到','迟到',-2],
+      ['att:病假','病假',-1],   ['att:事假','事假',-2],
+      ['hw:已交','作业按时提交',1], ['hw:未交','作业未交',-2],
+      ['night:过','晚自习过关',1], ['night:未过','晚自习未过',-1]
+    ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
+    Store.set('_rulesInit', Date.now());
+  },
+
+  renderRules(){
+    const el = document.getElementById('rulesList');
+    if (!el) return;
+    const rules = Store.list('quant_rules', (a,b) => (a.key||'') > (b.key||'') ? 1 : -1);
+    el.innerHTML = rules.length ? rules.map(r => `
+      <div class="row" style="margin-bottom:8px" data-rid="${r.id}">
+        <input type="text" class="rule-label" value="${Util.esc(r.label)}" style="flex:1;min-width:0">
+        <input type="number" class="rule-delta" value="${r.delta}" step="1" style="max-width:95px">
+        <button class="del" onclick="Settings.delRule('${r.id}')">✕</button>
+      </div>`).join('')
+      : '<div class="empty">还没有细则，用下面那行加一条</div>';
+  },
+
+  addRule(){
+    const src   = document.getElementById('ruleSrc').value;
+    const name  = document.getElementById('ruleName').value.trim();
+    const delta = parseFloat(document.getElementById('ruleDelta').value);
+    if (!name && src === 'att') return UI.toast('考勤类细则要填状态名，如：早退');
+    if (isNaN(delta)) return UI.toast('填一下分值，扣分用负数');
+    const key   = src === 'att' ? 'att:' + name : src;
+    const fixed = { 'hw:已交':'作业已交', 'hw:未交':'作业未交', 'night:过':'晚自习过关', 'night:未过':'晚自习未过' };
+    const label = src === 'att' ? name : (name || fixed[src] || src);
+    const rid   = 'r_' + key;
+    Store.upsert('quant_rules', { id:rid, key, label, delta });
+    document.getElementById('ruleName').value = '';
+    document.getElementById('ruleDelta').value = '';
+    this.renderRules();
+    UI.toast('已加入，改完分值记得点保存');
+  },
+
+  saveRules(){
+    const rules = Store.list('quant_rules');
+    document.querySelectorAll('#rulesList .row').forEach(row => {
+      const rid = row.dataset.rid;
+      const old = rules.find(x => x.id === rid);
+      if (!old) return;
+      const label = row.querySelector('.rule-label').value.trim() || old.label;
+      const delta = parseFloat(row.querySelector('.rule-delta').value);
+      Store.upsert('quant_rules', { id:rid, key:old.key, label, delta:isNaN(delta) ? old.delta : delta });
+    });
+    UI.toast('细则已保存，量化统计按新规则算');
+    if (document.querySelector('.page.on')?.id === 'page-quant') Quant.render();
+  },
+
+  delRule(rid){
+    Store.softDelete('quant_rules', rid);
+    this.renderRules();
+  },
+
+  /* ── 细则上传识别：图片/文档 → 文字 → 拆成「名目 分值」→ 导入 ── */
+  async importRulesFile(input){
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    const stat = document.getElementById('rulesImpStat');
+    stat.textContent = f.type.startsWith('image/') ? '正在识别细则图片，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    try {
+      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      document.getElementById('rulesImpText').value = text;
+      stat.textContent = '识别完成，每行应类似「迟到 扣2分」，确认后点「导入这些规则」';
+    } catch(e){
+      stat.textContent = e.message;
+      UI.toast(e.message);
+    }
+  },
+
+  /** 把一行细则文字解析成 { label, delta }，解析不出返回 null */
+  parseRuleLine(line){
+    line = line.replace(/^\s*\d+\s*[\.、)）]\s*/, '');   // 去掉行首序号
+    const m = line.match(/^(.*?)([+\-−])?\s*(\d+(?:\.\d+)?)\s*分?/);
+    if (!m || !m[3]) return null;
+    let label = m[1].replace(/[扣减罚加奖计分，,。；;：:\s]+$/, '').trim();
+    if (!label) return null;
+    let delta = parseFloat(m[3]);
+    if (m[2] === '-' || m[2] === '−' || /扣|减|罚/.test(m[1])) delta = -Math.abs(delta);
+    else if (m[2] === '+' || /加|奖/.test(m[1])) delta = Math.abs(delta);
+    return { label, delta };
+  },
+
+  /** 细则名目 → 自动计分来源。没匹配上的存为自定义，不会自动计分，导入后会提示。 */
+  ruleKey(label){
+    const map = [
+      [/迟到/, 'att:迟到'], [/早退/, 'att:早退'], [/病假/, 'att:病假'], [/事假/, 'att:事假'],
+      [/正常|全勤/, 'att:正常'], [/过关/, 'night:过'], [/未过/, 'night:未过'],
+      [/已交|按时.{0,3}(交|提交)/, 'hw:已交'], [/未交|没交|缺交/, 'hw:未交']
+    ];
+    for (const [re, key] of map) if (re.test(label)) return key;
+    return 'x:' + label;   // 自定义项：不出现在日常记录里，只手工用
+  },
+
+  parseRulesImport(){
+    const raw = document.getElementById('rulesImpText').value.trim();
+    if (!raw) return UI.toast('先传文件识别，或每行填一条「名目 分值」');
+    let ok = 0, custom = [];
+    raw.split('\n').forEach(line => {
+      const r = this.parseRuleLine(line);
+      if (!r) return;
+      const key = this.ruleKey(r.label);
+      if (key.startsWith('x:')) custom.push(r.label);
+      Store.upsert('quant_rules', { id: 'r_' + key, key, label: r.label, delta: r.delta });
+      ok++;
+    });
+    document.getElementById('rulesImpText').value = '';
+    document.getElementById('rulesImpStat').textContent = custom.length
+      ? '已导入 ' + ok + ' 条。其中「' + [...new Set(custom)].join('、') + '」不是自动记录项（考勤/作业/过关），不会自动计分，仅供手动参照。'
+      : '已导入 ' + ok + ' 条，全部对应自动计分项。';
+    this.renderRules();
+    UI.toast('导入 ' + ok + ' 条细则，记得点「保存细则」');
+  },
+
+  enableSync(){
+    Sync.enable(document.getElementById('syncUser').value,
+                document.getElementById('syncPass').value);
+  },
+
+  changePass(){
+    const np = prompt('输入新密码（至少 8 位）');
+    if (np) Sync.changePass(np);
+  },
+
+  renderSync(){
+    const card = document.getElementById('syncCard');
+    if (!card || typeof Sync === 'undefined') return;
+    const on = Sync.on();
+    document.getElementById('syncOff').style.display = on ? 'none' : 'block';
+    document.getElementById('syncOn').style.display  = on ? 'block' : 'none';
+    if (on) {
+      document.getElementById('syncWho').textContent = Sync.cfg().user;
+      const t = Store.get('_syncAt');
+      document.getElementById('syncTime').textContent =
+        t ? new Date(t).toLocaleString('zh-CN') : '还没同步过';
+    }
+  },
+
+  saveKeys(){
+    this.keys.forEach(k => {
+      const el = document.getElementById('key_' + k);
+      if (el) Store.setSecret(k, el.value.trim());
+    });
+    UI.toast('已保存');
+  },
+
+  refreshBackupInfo(){
+    const last = Store.get('_lastBackup');
+    const el = document.getElementById('backupInfo');
+    if (el) el.textContent = last
+      ? '上次备份：' + new Date(last).toLocaleDateString('zh-CN')
+      : '还没备份过';
+  }
+};
+/* ==== 功能：设置 END ==== */
+
+
+/* ==== 双端同步 START ====
+   用户选「只在一台设备用」时，把这整段（以及设置页里的 syncCard）删掉。
+
+   三条设计红线，破了就会烧掉免费额度或者丢数据：
+   1. 本地优先 —— 写入永远先落 localStorage，界面立刻变。云端是异步的。
+      断网、KV 抽风、额度用完，工作台照常能用，只是不同步。
+   2. 绝不轮询 —— 只在「打开时 / 切回前台 / 手动刷新」拉取。
+      每 30 秒轮一次的话，一台设备一个月就是 8 万多次函数调用。
+   3. 推送防抖 —— 改动后等 4 秒再推，把连续操作合并成一次请求。
+      勾 10 个待办应该是 1 次调用，不是 10 次。 */
+const Sync = {
+  DEBOUNCE: 4000,
+  _timer: null,
+  _busy: false,
+
+  cfg(){ return Store.get('_sync', { on:false, user:'' }); },
+  on(){ return !!this.cfg().on; },
+  pass(){ return Store.getSecret('syncPass') || ''; },
+
+  async call(action, extra = {}){
+    const c = this.cfg();
+    const r = await fetch('/api/sync', {
+      method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify(Object.assign({ action, user:c.user, pass:this.pass() }, extra))
+    });
+    const j = await r.json().catch(() => ({ error:'返回格式不对' }));
+    if (!r.ok) throw new Error(j.error || ('请求失败 ' + r.status));
+    return j;
+  },
+
+  /** 开启同步：首次会把这个用户名注册下来 */
+  async enable(user, pass){
+    user = (user || '').trim().toLowerCase();
+    if (user.length < 3) return UI.toast('用户名至少 3 个字符');
+    if ((pass || '').length < 8) return UI.toast('密码至少 8 位');
+    Store.set('_sync', { on:true, user });
+    Store.setSecret('syncPass', pass);
+    try {
+      const j = await this.call('push', { data: Store.dump() });   // push 兼注册
+      if (j.data) Store.mergeRemote(j.data);
+      Store.set('_syncAt', Date.now());
+      UI.toast(j.created ? '同步已开启' : '已连上，数据已合并');
+      setTimeout(() => location.reload(), 900);
+    } catch(e){
+      Store.set('_sync', { on:false, user:'' });
+      Store.setSecret('syncPass', '');
+      UI.toast(e.message);
+    }
+  },
+
+  disable(){
+    if (!confirm('关闭同步？本地数据一条不会少，只是不再和云端对齐。')) return;
+    Store.set('_sync', { on:false, user:'' });
+    Store.setSecret('syncPass', '');
+    UI.toast('已关闭同步');
+    Settings.render();
+  },
+
+  async changePass(np){
+    if ((np || '').length < 8) return UI.toast('新密码至少 8 位');
+    try {
+      await this.call('chpass', { newPass: np });
+      Store.setSecret('syncPass', np);
+      UI.toast('密码已改');
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  /** 拉取并合并。失败一律静默降级——本地数据才是主的 */
+  async pull(loud){
+    if (!this.on() || this._busy) return;
+    this._busy = true;
+    this.status('同步中');
+    try {
+      const j = await this.call('pull');
+      const n = Store.mergeRemote(j.data || {});
+      Store.set('_syncAt', Date.now());
+      this.status('已同步');
+      if (n) { if (loud) UI.toast('拉到 ' + n + ' 处更新'); App.refresh(); }
+      else if (loud) UI.toast('已是最新');
+    } catch(e){
+      this.status('未同步');
+      if (loud) UI.toast(e.message.includes('NO_ACCOUNT') ? '云端还没有数据' : e.message);
+    } finally { this._busy = false; }
+  },
+
+  /** 改动后延迟推送，把连续操作合并成一次 */
+  schedule(){
+    if (!this.on()) return;
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.push(), this.DEBOUNCE);
+  },
+
+  async push(){
+    if (!this.on() || this._busy) return;
+    this._busy = true;
+    this.status('同步中');
+    try {
+      const j = await this.call('push', { data: Store.dump() });
+      if (j.data) Store.mergeRemote(j.data);
+      Store.set('_syncAt', Date.now());
+      this.status('已同步');
+    } catch(e){
+      this.status('未同步');
+      console.warn('同步失败，本地数据不受影响：', e.message);
+    } finally { this._busy = false; }
+  },
+
+  status(t){
+    const el = document.getElementById('syncState');
+    if (el) el.textContent = t;
+  },
+
+  init(){
+    if (!this.on()) return;
+    this.pull();                                   // 打开时拉一次
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this.pull();           // 切回前台再拉一次。到此为止，不轮询
+    });
+    window.addEventListener('online', () => this.push());
+  }
+};
+/* ==== 双端同步 END ==== */
+
+
+App.init();
+</script>
+</body>
+</html>
