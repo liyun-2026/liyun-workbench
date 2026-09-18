@@ -285,9 +285,12 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
       assert(err('аdmin') !== '', '西里尔同形字（长得像 a 但要挡住）');
     });
 
-    t('输入框提示里写明可以用汉字', () => {
+    t('登录门干净：标题就是书法「砺蕴」，提示只写「用户名」，按钮下不放说明文字', () => {
       const m = html.match(/id="gUser"[^>]*placeholder="([^"]+)"/);
-      assert(m && /汉字/.test(m[1]), '登录框的提示应告诉用户汉字也行');
+      assert(m && m[1] === '用户名', '提示应只写「用户名」（2026-09-18 用户要求删掉括号说明）：' + (m && m[1]));
+      assert(html.includes('g-logo') && /assets\/logo-liyun\.png/.test(html), '登录门该用书法标志图');
+      assert(!/第一次使用：填一个用户名/.test(html), '「第一次使用…首位教务」这句该删掉');
+      assert(!/账号由教务创建，没有自助注册。<br>/.test(html), '登录按钮下的两行说明该删掉');
     });
 
     t('前后端是同一套规则：正则与长度上限逐字比对', () => {

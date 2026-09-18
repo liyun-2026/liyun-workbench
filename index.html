@@ -42,6 +42,7 @@
   --shadow:0 1px 4px rgba(60,50,35,.07);
   --font:-apple-system,"PingFang SC",system-ui,sans-serif;
   --line:#e8e6e0;          /* 1px 细边框色。现代审美用细线，不用投影 */
+  --gold:#c9ab7c;          /* 古铜金，品牌色，深浅色模式通用 */
 
   /* 字号阶梯 —— 故意拉开跨度。所有字号都差不多，是业余感最大的来源 */
   --fs-hero:40px;   /* 英雄元素：每页最大的那一个数字或标题，其余全部退后 */
@@ -284,23 +285,46 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .dgrid button .ico{font-size:21px;line-height:1}
 .dgrid button.on{border-color:var(--accent)}
 
-/* ── 登录门：没登录前挡在一切前面 ── */
+/* ── 登录门：没登录前挡在一切前面（方案 B · 鎏金牌匾） ── */
 .gate{
   position:fixed;inset:0;z-index:80;display:none;
   background:var(--bg);overflow-y:auto;
 }
 .gate.on{display:block}
+.gate .g-top{position:absolute;top:0;left:0;right:0;height:5px;background:var(--gold)}
 .gate .wrap{
-  max-width:400px;margin:0 auto;padding:calc(56px + env(safe-area-inset-top,0)) 24px 40px;
+  max-width:400px;margin:0 auto;padding:calc(64px + env(safe-area-inset-top,0)) 24px 40px;
+  min-height:100%;position:relative;
 }
-.gate .g-logo{font-size:44px;line-height:1;text-align:center}
-.gate .g-name{font-size:22px;font-weight:500;text-align:center;margin-top:14px;letter-spacing:.02em}
-.gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:6px;margin-bottom:30px}
-.gate .g-form{display:flex;flex-direction:column;gap:12px}
-.gate .g-form .btn{padding:13px;font-size:16px}
-.gate .g-note{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;line-height:1.7}
+.gate .g-brand{display:flex;align-items:center;justify-content:center;gap:14px}
+.gate .g-brand .rule{flex:0 0 34px;height:1px;background:var(--gold)}
+.gate .g-logo{
+  height:80px;width:min(250px,62vw);flex:0 1 auto;
+  background:var(--text);
+  -webkit-mask:url(assets/logo-liyun.png) no-repeat center / contain;
+          mask:url(assets/logo-liyun.png) no-repeat center / contain;
+}
+.gate .g-tagline{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;letter-spacing:4px}
+.gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:8px;margin-bottom:30px;min-height:20px}
+.gate .g-form{display:flex;flex-direction:column;gap:14px}
+.gate .g-form input{
+  background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
+  border-radius:8px;padding:13px 16px;font-size:16px;color:var(--text);width:100%;
+}
+.gate .g-form input::placeholder{color:var(--text-dim)}
+.gate .g-form .btn{
+  padding:13px;font-size:16px;margin-top:6px;
+  background:var(--gold);border:none;color:#fff;
+  border-radius:8px;letter-spacing:8px;text-indent:8px;
+}
+.gate .g-form .btn:active{opacity:.85}
 .gate .g-err{
   font-size:13px;color:#c25650;text-align:center;min-height:20px;margin-top:2px;line-height:1.5;
+}
+.gate .g-note{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;line-height:1.7}
+.gate .g-foot{
+  position:absolute;bottom:24px;left:0;right:0;
+  text-align:center;font-size:11px;color:var(--text-dim);opacity:.65;letter-spacing:3px;
 }
 .gate .whoami{
   display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;
@@ -973,17 +997,23 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 <!-- ==== 登录 START ====
      没登录之前只显示这一层。账号由教务创建，没有自助注册。 -->
 <div class="gate" id="gate">
+  <div class="g-top"></div>
   <div class="wrap">
-    <div class="g-logo">🎙️</div>
-    <div class="g-name">砺蕴工作台</div>
+    <div class="g-brand">
+      <span class="rule"></span>
+      <div class="g-logo" role="img" aria-label="砺蕴"></div>
+      <span class="rule"></span>
+    </div>
+    <div class="g-tagline">播音主持 · 艺考教务</div>
     <div class="g-sub" id="gSub">登录后开始今天的工作</div>
     <div class="g-form">
-      <input type="text" id="gUser" placeholder="用户名（汉字或拼音都行）" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input type="text" id="gUser" placeholder="用户名" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
       <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
       <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
     </div>
     <div class="g-err" id="gErr"></div>
     <div class="g-note" id="gNote"></div>
+    <div class="g-foot">LIYUN WORKBENCH</div>
   </div>
 </div>
 <!-- ==== 登录 END ==== -->
@@ -4286,7 +4316,7 @@ const Auth = {
     document.getElementById('gSub').textContent =
       sub || (local
         ? '本机模式：填个用户名和密码就能进'
-        : (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务'));
+        : (Store.get('_hadAccount') ? '登录后继续' : '登录后开始今天的工作'));
     document.getElementById('gErr').textContent = '';
     /* 上次在这台设备登录过的用户名直接带上 —— 切换账号、退出重进都不用再打一遍 */
     const gUser = document.getElementById('gUser');
@@ -4322,7 +4352,7 @@ const Auth = {
       note.innerHTML = '这是本机预览，数据存在这台电脑上，关掉窗口也在。' + '<br>' + resetLink;
       if (form) form.style.display = '';
     } else {
-      note.innerHTML = '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
+      note.innerHTML = '';   /* 正常情况下登录按钮下面不放说明文字，出错或特殊环境才会出现提示 */
       if (form) form.style.display = '';
     }
     g.classList.add('on');
