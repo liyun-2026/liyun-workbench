@@ -306,6 +306,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 .gate .g-tagline{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;letter-spacing:4px}
 .gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:8px;margin-bottom:30px;min-height:20px}
+.gate .g-sub:empty{display:none;margin:0}
 .gate .g-form{display:flex;flex-direction:column;gap:14px}
 .gate .g-form input{
   background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
@@ -1005,7 +1006,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       <span class="rule"></span>
     </div>
     <div class="g-tagline">博学宏才 · 艺德卓绝</div>
-    <div class="g-sub" id="gSub">登录后开始今天的工作</div>
+    <div class="g-sub" id="gSub"></div>
     <div class="g-form">
       <input type="text" id="gUser" placeholder="用户名" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
       <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
@@ -4314,9 +4315,7 @@ const Auth = {
     if (!g) return;
     const local = this.mode === 'local';
     document.getElementById('gSub').textContent =
-      sub || (local
-        ? '本机模式：填个用户名和密码就能进'
-        : (Store.get('_hadAccount') ? '登录后继续' : '登录后开始今天的工作'));
+      sub || (local ? '本机模式：填个用户名和密码就能进' : '');
     document.getElementById('gErr').textContent = '';
     /* 上次在这台设备登录过的用户名直接带上 —— 切换账号、退出重进都不用再打一遍 */
     const gUser = document.getElementById('gUser');
