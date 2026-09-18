@@ -2991,20 +2991,28 @@ const News = {
   },
 
   /* 央视新闻官方接口返回 JSONP，用 script 标签拉，浏览器不受跨域限制。
+     ⚠️ 这个接口的回调名写死为 news(...)，URL 上传 cb=xxx 它也不改名 ——
+     所以只能把回调挂在 window.news 上，并保存/还原现场避免污染全局。
      当天结果缓存进 Store，再打开不重复请求。 */
   fetch(){
     if (this._loading) return;
     this._loading = true;
     document.getElementById('newsBody').innerHTML = '<div class="empty">正在拉取央视新闻…</div>';
-    const cb = '_cctvNews_' + Date.now();
-    const s = document.createElement('script');
-    const fail = () => {
+    const prev = window.news;
+    let done = false;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(this._timer);
+      if (prev !== undefined) window.news = prev; else delete window.news;
       this._loading = false;
-      delete window[cb]; s.remove();
-      document.getElementById('newsBody').innerHTML =
-        '<div class="empty">没拉到，多半是网络问题，点右上角「刷新」再试</div>';
     };
-    window[cb] = (res) => {
+    const fail = (msg) => {
+      cleanup();
+      document.getElementById('newsBody').innerHTML =
+        '<div class="empty">' + (msg || '没拉到，多半是网络问题，点右上角「刷新」再试') + '</div>';
+    };
+    window.news = (res) => {
       try {
         const items = ((res && res.data && res.data.list) || []).map(x => ({
           id: x.id || Util.uid(),
@@ -3016,13 +3024,14 @@ const News = {
         }));
         if (!items.length) return fail();
         Store.set('news_cache', { date: Util.today(), items, _u: Date.now() });
-        this._loading = false;
-        delete window[cb]; s.remove();
+        cleanup();
         this.paint(items, Util.today());
       } catch(e){ fail(); }
     };
-    s.onerror = fail;
-    s.src = 'https://news.cctv.com/2019/07/gaiban/cmsdatainterface/page/news_1.jsonp?cb=' + cb + '&_=' + Date.now();
+    this._timer = setTimeout(() => fail('等了 15 秒还没回应，点右上角「刷新」再试'), 15000);
+    const s = document.createElement('script');
+    s.onerror = () => fail();
+    s.src = 'https://news.cctv.com/2019/07/gaiban/cmsdatainterface/page/news_1.jsonp?_=' + Date.now();
     document.head.appendChild(s);
   },
 
