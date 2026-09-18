@@ -3871,7 +3871,10 @@ const Auth = {
         body: JSON.stringify(Object.assign({ action, token: this.token() }, extra))
       });
     } catch {
-      const e = new Error('网络没连上。本地记的东西都还在，等有网了会自动补传。');
+      let msg = '连不上服务器（网络断了，或预览服务没在跑）。本地记的东西都还在，恢复后会自动补传。';
+      /* localhost 走代理是常见坑：有的代理软件不放过它，换成 IP 就绕开了 */
+      if (location.hostname === 'localhost') msg += ' 也可以把地址里的 localhost 换成 127.0.0.1 试试。';
+      const e = new Error(msg);
       e.code = 'OFFLINE';
       this._connErr = e.message;
       throw e;

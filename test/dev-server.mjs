@@ -32,7 +32,7 @@ const TYPES = {
   '.js': 'text/javascript; charset=utf-8',
 };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
 
   /* 后端接口 */
@@ -71,8 +71,16 @@ createServer(async (req, res) => {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
     res.end('没有这个文件：' + rel);
   }
-}).listen(port, '127.0.0.1', () => {
-  console.log(`\n砺蕴工作台 · 本地预览  →  http://localhost:${port}\n`);
+}).listen(port, () => {
+  console.log(`\n砺蕴工作台 · 本地预览  →  http://127.0.0.1:${port}   （推荐用这个地址）`);
+  console.log(`                        http://localhost:${port}     （有的浏览器会把它送进代理，连不上就换上面的）\n`);
   console.log('  第一次打开就填个用户名和密码，第一个账号会自动成为「首位教务」。');
   console.log('  数据存在内存里，关掉这个终端就清空，可以随便试。\n');
+});
+/* 不指定地址 = IPv4/IPv6 都听。之前只绑 127.0.0.1，有的浏览器把 localhost 解析成
+   ::1 先试，撞上代理软件就「网络没连上」，人还以为服务挂了。 */
+server.on('error', e => {
+  console.error('起不来：' + (e && e.message));
+  if (e && /EADDRINUSE/.test(e.code || '')) console.error('端口 ' + port + ' 被占了。换一个：node test/dev-server.mjs 8080');
+  process.exit(1);
 });
