@@ -722,7 +722,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
         <p class="hint" id="acctSync"></p>
         <div class="row" style="margin-top:14px;flex-wrap:wrap">
-          <button class="btn" onclick="Sync.pull(true)">立即同步</button>
+          <button class="btn" id="syncNowBtn" onclick="Sync.pull(true)">立即同步</button>
           <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
           <button class="btn ghost" onclick="Auth.logout()">退出登录</button>
         </div>
@@ -988,9 +988,23 @@ const Store = (() => {
   const SEC = 'bysdash$secret:';
   const TOMB_TTL = 30 * 864e5;   // 墓碑保留 30 天，之后清掉（那时各端早同步过了）
 
+  /* localStorage 不是到处都能用：Safari 打开本地文件、隐私模式、企业策略下，
+     连读一下都可能抛 SecurityError。存储坏了不该让整个工作台崩掉 ——
+     先探一次，用不了就退回内存存储：这次照常能用，只是关掉页面就没了。
+     （这也正是「双击 index.html 就能用」能成立的前提。） */
+  const MEM = new Map();
+  const LS_OK = (() => {
+    try {
+      localStorage.setItem(NS + ':probe', '1');
+      localStorage.removeItem(NS + ':probe');
+      return true;
+    } catch { return false; }
+  })();
+
   const driver = {
-    get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    get(k){ try { return JSON.parse(LS_OK ? localStorage.getItem(k) : MEM.get(k)); } catch { return null; } },
     set(k,v){
+      if (!LS_OK){ MEM.set(k, JSON.stringify(v)); return true; }
       try { localStorage.setItem(k, JSON.stringify(v)); return true; }
       catch(e){
         // 配额超了几乎总是因为存了没压缩的图片
@@ -998,8 +1012,9 @@ const Store = (() => {
         console.error(e); return false;
       }
     },
-    remove(k){ localStorage.removeItem(k); },
-    keys(){ return Object.keys(localStorage); }
+    remove(k){ if (!LS_OK){ MEM.delete(k); return; } try { localStorage.removeItem(k); } catch {} },
+    keys(){ if (!LS_OK) return [...MEM.keys()]; try { return Object.keys(localStorage); } catch { return []; } },
+    persistent: LS_OK
   };
 
   const now = () => Date.now();
@@ -1222,7 +1237,11 @@ const Store = (() => {
       driver.keys()
         .filter(k => k.startsWith(NS) || k.startsWith(SEC))
         .forEach(k => driver.remove(k));
-    }
+    },
+
+    /* 这台浏览器能不能长期存东西？不能的话（本地文件 / 隐私模式 / 策略禁用），
+       数据只在这次会话里有效 —— 界面必须如实说，别让人以为记下来了。 */
+    canPersist(){ return driver.persistent; }
   };
   return S;
 })();
@@ -1412,7 +1431,10 @@ const App = {
 
   can(id){
     const r = this.routes.find(x => x.id === id);
-    return !!r && r.roles.includes(Auth.role());
+    if (!r || !r.roles.includes(Auth.role())) return false;
+    /* 本机模式没有账号服务，「老师管理」无从谈起 —— 不显示，免得点进去一片空 */
+    if (id === 'teachers' && Auth.mode === 'local') return false;
+    return true;
   },
 
   defaultPage(){ return Auth.isStaff() ? 'home' : 'today'; },
@@ -1470,15 +1492,17 @@ const App = {
     this.go(this.can(last) ? last : this.defaultPage());
     this.checkBackup();
     Staff.reset();                              // 换了账号，老师名单缓存作废
-    Sync.init();
+    if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
+    else Sync.init();
   },
 
   async init(){
     Store.migrate();          // 旧版数据补齐 id，无感升级
 
+    await Auth.probe();       // 先弄清这地址背后有没有后台：有 → 云端；没有 → 本机模式
     const ok = await Auth.boot();
     if (!ok){
-      Auth.show(Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
+      Auth.show();
       return;                 // 没登录之前什么都不渲染，免得闪一下别人的界面
     }
     this.boot();
@@ -3646,10 +3670,12 @@ const Settings = {
 
     /* 教务和老师看到的设置不一样：老师那边没有备份、没有量化细则、没有接口配置。
        这不是把界面藏起来就算数 —— 那些数据服务端本来就没发给老师。 */
+    const cloud = Auth.mode !== 'local';      // 本机模式没有账号服务，也没有云端可同步
     show('backupCard', staff);
     show('apiCard', staff);
     show('rulesCard', staff);
-    show('tEntryCard', Auth.isSuper());
+    show('tEntryCard', Auth.isSuper() && cloud);
+    show('syncNowBtn', cloud);
     show('syncCard', true);
 
     this.refreshBackupInfo();
@@ -3804,8 +3830,14 @@ const Settings = {
     setT('acctMeta', '@' + (Auth.user() || '') + ' · ' + scope);
     const roleEl = document.getElementById('acctRole');
     if (roleEl) roleEl.textContent = Auth.roleLabel();
-    const t = Store.get('_syncAt');
-    setT('acctSync', '上次同步：' + (t ? new Date(t).toLocaleString('zh-CN') : '还没同步过'));
+    if (Auth.mode === 'local'){
+      setT('acctSync', '🖥 本机模式 · 数据只存在这台电脑，不会上传');
+    } else if (Auth._offline){
+      setT('acctSync', '离线中 · 数据已存本机，联网后会自动补传');
+    } else {
+      const t = Store.get('_syncAt');
+      setT('acctSync', '上次同步：' + (t ? new Date(t).toLocaleString('zh-CN') : '还没同步过'));
+    }
   },
 
   saveKeys(){
@@ -3860,10 +3892,19 @@ function userErr(u){
    只用来决定要不要显示「重置」入口 —— 那个接口 /api/dev-reset 是
    dev-server 独有的，线上根本没有，所以正网址永远不会出现这个按钮。 */
 const IS_LOCAL_PREVIEW = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(location.hostname);
+const IS_FILE = location.protocol === 'file:';
+/* 哪些入口允许转「本机模式」：本机地址，或直接双击打开的本地文件。
+   正式网址不在其列 —— 那儿没有后台就该明说，不能让影子账号出现
+   （用户在不会同步的地方记了真数据，比进不去更糟）。 */
+const LOCAL_OK = IS_LOCAL_PREVIEW || IS_FILE;
+/* 哪些入口显示「重置本地数据」。接口 /api/dev-reset 只有 dev-server 有，线上没有 */
+const ALLOW_RESET = IS_LOCAL_PREVIEW || IS_FILE;
 
 const Auth = {
   _me: null,
   _connErr: '',        // 连不上后端时记下原因，交给登录门显示
+  mode: '',            // '' 未知 | 'cloud' 有后台 | 'local' 本机模式（没有后台也能用）
+  _offline: false,     // 有后台但此刻连不上：用缓存的档案先干活，恢复后自动补传
 
   token(){ return Store.getSecret('token') || ''; },
   me(){ return this._me; },
@@ -3876,6 +3917,73 @@ const Auth = {
   roleLabel(){
     if (!this._me) return '';
     return this.isSuper() ? '首位教务' : (this.isStaff() ? '教务老师' : '授课老师');
+  },
+
+  /* ── 有没有后台？──
+     这不是「能不能登录」，是「这个地址背后有没有服务端」。
+     工作台以前把这两件事绑死了：后台一不可达（双击 index.html、静态预览、
+     预览进程被回收、代理拦截），登录门就把人挡死，提示还写得像在怪用户填错。
+     现在开页面先探一声，没有后台就转「本机模式」，照样完整可用。 */
+  async probe(){
+    try {
+      const r = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'hello' })
+      });
+      await r.json();          // 后端任何状态码都回 JSON；回不了 JSON = 没有后端
+      this.mode = 'cloud';
+      this._connErr = '';
+    } catch {
+      /* 没有后台。只有本机入口才允许转「本机模式」—— 正式网址上不能出现
+         影子账号：用户在不会同步的地方记了真数据，比进不去更糟。 */
+      if (LOCAL_OK){
+        this.mode = 'local';
+      } else {
+        this.mode = 'cloud';
+        this._connErr = '连不上服务器（网络断了，或正在重新部署）。本地已记的东西都在，过一会儿刷新试试。';
+      }
+    }
+    return this.mode;
+  },
+
+  /* ── 本机模式：没有后台也能用 ──
+     账号存在这台电脑的浏览器里，第一个账号即首位教务。数据全部留在本机，
+     不上传、不共享。适合「先在电脑上自己试」，或后台没起来的时候。
+     密码只做散列存本机，防的是误登，不是防攻击 —— 数据本来就在本机。 */
+  _accts(){ const a = Store.getSecret('acct'); return Array.isArray(a) ? a : []; },
+  _saveAccts(a){ Store.setSecret('acct', a); },
+  _strip(a){ const { salt, hash, ...p } = a; return p; },
+
+  async _hash(pass, salt){
+    const s = salt + '|' + pass;
+    try {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      /* 老浏览器、或非安全上下文里没有 SubtleCrypto。兜底一个简单散列。 */
+      let h = 5381;
+      for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+      return 'djb2:' + (h >>> 0).toString(16);
+    }
+  },
+
+  async localLogin(user, pass){
+    const list = this._accts();
+    if (!list.length){
+      const salt = Math.random().toString(36).slice(2);
+      const rec = { id:'u_local', user, name:user, role:'super',
+                    isStaff:true, isSuper:true, classIds:[],
+                    salt, hash: await this._hash(pass, salt) };
+      this._saveAccts([rec]);
+      return { token: 'local:' + user, profile: this._strip(rec), created: true };
+    }
+    const a = list.find(x => x.user === user);
+    if (!a){ const e = new Error('NO_ACCOUNT'); e.code = 'NO_ACCOUNT'; throw e; }
+    if (await this._hash(pass, a.salt || 'fixed') !== a.hash){
+      const e = new Error('密码不对。'); e.code = 'BADPASS'; throw e;
+    }
+    return { token: 'local:' + user, profile: this._strip(a), created: false };
   },
 
   async call(action, extra = {}){
@@ -3921,14 +4029,27 @@ const Auth = {
   show(sub){
     const g = document.getElementById('gate');
     if (!g) return;
+    const local = this.mode === 'local';
     document.getElementById('gSub').textContent =
-      sub || (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
+      sub || (local
+        ? '本机模式：填个用户名和密码就能进'
+        : (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务'));
     document.getElementById('gErr').textContent = '';
     const note = document.getElementById('gNote');
     const form = g.querySelector('.g-form');
-    /* 连不上后端就别装没事：横幅写清原因、表单直接收起来 ——
-       一个注定登不进去的表单留在那儿，只会让人以为是自己填错了。 */
-    if (this._connErr && this._connErr.indexOf('只有页面、没有后台') !== -1){
+    const resetLink = '<a href="#" onclick="Auth.resetLocal();return false" style="color:var(--text);text-decoration:underline">重置本地数据，重新开始</a>';
+
+    if (local){
+      /* 本机模式：没有后台也能用。把「数据留在哪」说明白，再给一个重来的入口。 */
+      const exist = (this._accts()[0] || {}).user;
+      note.innerHTML =
+        '<b>🖥 本机模式</b>：没连到服务器，数据只存在这台电脑上，不会上传。<br>' +
+        (exist ? `这台电脑上的账号是「${Util.esc(exist)}」。` : '第一次使用，填完就自动成为首位教务。') +
+        (Store.canPersist() ? '' :
+          '<br><b style="color:#c25650">注意：这个浏览器不允许本机存储，关掉页面数据就没了。</b>') +
+        (ALLOW_RESET ? '<br>' + resetLink : '');
+      if (form) form.style.display = '';
+    } else if (this._connErr && this._connErr.indexOf('只有页面、没有后台') !== -1){
       note.innerHTML =
         '<div style="background:rgba(194,86,80,.10);border:1px solid rgba(194,86,80,.35);border-radius:12px;padding:14px 16px;text-align:left;line-height:1.9;font-size:13px">' +
           '<b style="color:#c25650">⚠️ 这个窗口登不进去：它只有页面、没有后台</b><br>' +
@@ -3936,14 +4057,13 @@ const Auth = {
           '👉 请用<b style="color:#c25650">带后台的地址</b>打开：正式网址，或本机 http://localhost:5173</div>';
       if (form) form.style.display = 'none';
     } else if (this._connErr){
-      note.innerHTML = `<b style="color:#c25650">${Util.esc(this._connErr)}</b>` +
-        '<br>账号由教务创建，没有自助注册。';
+      note.innerHTML = `<b style="color:#c25650">${Util.esc(this._connErr)}</b>`;
+      if (form) form.style.display = '';
     } else if (IS_LOCAL_PREVIEW){
       /* 本机预览：说明这是临时环境，并给一个「重来」的按钮。
          踩过两次坑：忘了自己随手填的测试密码；账号被端到端测试占掉了。
          两次用户都只能来找我，而「重启预览进程」这件事他自己做不到。 */
-      note.innerHTML = '这是本机预览，数据只存在内存里，关掉预览窗口就清空。' +
-        '<br><a href="#" onclick="Auth.resetLocal();return false" style="color:var(--text);text-decoration:underline">重置本地数据，重新开始</a>';
+      note.innerHTML = '这是本机预览，数据存在这台电脑上，关掉窗口也在。' + '<br>' + resetLink;
       if (form) form.style.display = '';
     } else {
       note.innerHTML = '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
@@ -3967,25 +4087,44 @@ const Auth = {
     if (bad) return this.err(bad);
     if (pass.length < 8) return this.err('密码至少 8 位');
     this.err(''); this.busy(true);
+    const local = this.mode === 'local';
     try {
-      const j = await this.call('login', { user, pass });
+      const j = local ? await this.localLogin(user, pass)
+                      : await this.call('login', { user, pass });
       Store.setSecret('token', j.token);
       Store.set('_hadAccount', 1);
+      if (!local) Store.setSecret('me', j.profile);   // 断网时靠这份进得来
       this._me = j.profile;
       this.busy(false);
       this.hide();
       document.getElementById('gPass').value = '';
-      UI.toast(j.created ? '已创建，你是首位教务' : '欢迎回来，' + j.profile.name);
+      UI.toast(j.created
+        ? (local ? '已创建 · 本机模式' : '已创建，你是首位教务')
+        : '欢迎回来，' + j.profile.name);
       App.boot();
       Sync.pull();
       if (typeof Sync !== 'undefined') Sync.push();
     } catch(e){
       this.busy(false);
-      /* 确认没有后台时，把表单换成横幅 —— 别让人对着一个永远登不进去的表单反复试 */
-      if (e.code === 'NO_BACKEND'){ this.show(); return; }
-      let msg = e.message === 'NO_ACCOUNT' ? '没有这个账号。请让教务老师在「老师管理」里创建。' : e.message;
-      /* 本机预览里的「密码不对」，多半是自己随手填的测试密码忘了 —— 直接指路 */
-      if (IS_LOCAL_PREVIEW && msg.indexOf('密码不对') !== -1) msg += '　忘了的话，点下面那行「重置本地数据」。';
+      /* 确认没有后台：
+         · 本机入口（localhost / 双击打开的本地文件）→ 转本机模式，让人进去干活
+         · 正式网址 → 不给影子账号，退回横幅说清情况
+           在不会同步的地方记了真数据，比进不去更糟 */
+      if (e.code === 'NO_BACKEND'){
+        if (LOCAL_OK) this.mode = 'local';
+        this.show();
+        return;
+      }
+      let msg = e.message;
+      if (e.code === 'NO_ACCOUNT'){
+        const exist = (this._accts()[0] || {}).user;
+        msg = local && exist
+          ? `这台电脑上的账号是「${exist}」，用那个用户名登录；想换一个就点下面的「重置本地数据」。`
+          : '没有这个账号。请让教务老师在「老师管理」里创建。';
+      }
+      /* 「密码不对」多半是自己随手填的密码忘了 —— 直接指路，别让人来回猜 */
+      if (msg.indexOf('密码不对') !== -1 && (IS_LOCAL_PREVIEW || local))
+        msg += '　忘了的话，点下面那行「重置本地数据」。';
       this.err(msg);
     }
   },
@@ -4002,15 +4141,13 @@ const Auth = {
      （那个进程在我这边），所以给它一个按钮。
      触发过的场景：忘了自己随手填的测试密码；或者账号被端到端测试占掉了。 */
   async resetLocal(){
-    if (!confirm('清空本地预览的所有数据，回到「第一次使用」？\n\n预览数据本来就存在内存里，清掉后重新填一个用户名和密码就行。')) return;
+    if (!confirm('清空本地数据，回到「第一次使用」？\n\n数据都在这台电脑上，清掉后重新填一个用户名和密码就行。')) return;
+    /* 服务端那份（预览进程的内存）能清就清，清不到也不挡着本机重来。
+       以前这里失败就直接 return —— 结果「没有后台」的时候反而重置不了，
+       而那恰恰是最需要重置的时候。 */
+    try { await fetch('/api/dev-reset', { method: 'POST' }); } catch {}
     try {
-      const r = await fetch('/api/dev-reset', { method: 'POST' });
-      if (!r.ok) throw new Error();
-    } catch {
-      return this.err('没能清掉：预览服务可能没在跑，重启一下就好。');
-    }
-    try {
-      /* 连登录令牌一起清 —— 只清业务数据的话，旧令牌还留在浏览器里，
+      /* 连登录令牌和本机账号一起清 —— 只清业务数据的话，旧令牌还留在浏览器里，
          刷新后照样进不去，看着像「重置没生效」。 */
       Store.wipeAll();
     } catch {}
@@ -4020,14 +4157,29 @@ const Auth = {
   /** 启动：有令牌就先验一遍，顺便把角色和带班刷新到最新（教务改完立刻生效） */
   async boot(){
     if (!this.token()) return false;
+
+    /* 本机模式：档案就在这台电脑里，不用问服务器 */
+    if (this.mode === 'local'){
+      const u = this.token().replace(/^local:/, '');
+      const a = this._accts().find(x => x.user === u);
+      if (!a){ Store.setSecret('token', ''); this._me = null; return false; }
+      this._me = this._strip(a);
+      return true;
+    }
+
     try {
       const j = await this.call('me');
       this._me = j.profile;
+      Store.setSecret('me', j.profile);      // 存一份，断网时还进得来
+      this._offline = false;
       return true;
     } catch(e){
-      if (e.code === 'AUTH'){ Store.setSecret('token', ''); this._me = null; }
-      /* 其它错（连不上后端、正在重新部署）不改会话状态：网络恢复后刷新一下照常进来。
-         call() 已经把原因记在 _connErr 里，登录门会直接写出来，不让人白填一遍密码。 */
+      if (e.code === 'AUTH'){ Store.setSecret('token', ''); this._me = null; return false; }
+      /* 连不上后端（断网 / 正在重新部署）：用上次的档案先让人进去干活。
+         本地优先本来就是这套设计的红线 —— 数据先落本机，恢复后自动补传。 */
+      const cached = Store.getSecret('me');
+      if (cached){ this._me = cached; this._offline = true; return true; }
+      /* call() 把原因记在 _connErr 里，登录门会直接写出来，不让人白填一遍密码 */
       return false;
     }
   }
@@ -4041,7 +4193,7 @@ const Staff = {
   loaded: false,
 
   async load(){
-    if (!Auth.isStaff()){ this.list = []; this.loaded = true; return this.list; }
+    if (!Auth.isStaff() || Auth.mode === 'local'){ this.list = []; this.loaded = true; return this.list; }
     try {
       const j = await Auth.call('users', { op: 'list' });
       this.list = j.users || [];
@@ -4060,7 +4212,7 @@ const Sync = {
   _timer: null,
   _busy: false,
 
-  on(){ return !!Auth.token(); },
+  on(){ return !!Auth.token() && Auth.mode === 'cloud'; },
   call(action, extra = {}){ return Auth.call(action, extra); },
 
   /** 拆成「机构共享」和「个人」两份。_ 开头的是本机临时状态，不上传 */

@@ -5,7 +5,8 @@
  *   node test/dev-server.mjs 8080       # 想换端口就带个数字
  *
  * 后端用的就是仓库里那份真的 edge-functions/api/sync.js，
- * 只把 Blob 存储换成内存版（test/mock-blob.mjs）—— 所以重启即清空，随便造数据。
+ * 只把 Blob 存储换成内存版（test/mock-blob.mjs），改动会落盘到
+ * test/.preview-data.json —— 重启不丢，可以当真工作台用。
  *
  * 第一次打开会让你「登录」：随便填个用户名（≥2 字，汉字也行）+ 密码（≥8 位），
  * 第一个账号就是「首位教务」，能看到全部功能。
@@ -14,7 +15,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { raw, reset } from './mock-blob.mjs';
+import { raw, reset, restoredCount } from './mock-blob.mjs';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.argv[2] || 5173);
@@ -107,7 +108,10 @@ const server = createServer(async (req, res) => {
   console.log(`\n砺蕴工作台 · 本地预览  →  http://127.0.0.1:${port}   （推荐用这个地址）`);
   console.log(`                        http://localhost:${port}     （有的浏览器会把它送进代理，连不上就换上面的）\n`);
   console.log('  第一次打开就填个用户名和密码，第一个账号会自动成为「首位教务」。');
-  console.log('  数据存在内存里，关掉这个终端就清空，可以随便试。\n');
+  console.log(restoredCount()
+    ? `  已恢复上次的数据（${restoredCount()} 项），可以接着用。`
+    : '  数据存在 test/.preview-data.json，关掉窗口、重启电脑都还在。');
+  console.log('  想从头来：登录页点「重置本地数据」。\n');
 });
 /* 不指定地址 = IPv4/IPv6 都听。之前只绑 127.0.0.1，有的浏览器把 localhost 解析成
    ::1 先试，撞上代理软件就「网络没连上」，人还以为服务挂了。 */

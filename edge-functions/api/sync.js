@@ -477,6 +477,10 @@ export async function onRequestPost(context) {
   const action = String(body.action || 'login');
 
   try {
+    /* 探活：前端用它判断「这个地址背后有没有服务端」，据此决定用云端还是本机模式。
+       不需要令牌、不碰数据，只是一声「在」。 */
+    if (action === 'hello') return json({ ok: true, service: 'liyun-workbench' });
+
     if (action === 'login' || action === 'register') return await doLogin(s, body);
 
     const me = await verify(s, body.token);

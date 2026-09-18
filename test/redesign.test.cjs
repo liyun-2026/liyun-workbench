@@ -110,6 +110,29 @@ function boot(profile, seed = {}, url = 'https://redesign.test/'){
 
 const settle = () => new Promise(r => setTimeout(r, 100));
 
+/** 启动一个「没有后台」的窗口：fetch 一律失败。
+    url 决定这是本机入口（localhost / file://）还是正式网址 —— 两者行为刻意不同，
+    所以 url 是必传的观察点，别用默认值糊过去。 */
+function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url,
+    beforeParse(window){
+      for (const [k, v] of Object.entries(seed))
+        window.localStorage.setItem(k.includes(':') ? k : 'bysdash:' + k, JSON.stringify(v));
+      window.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    },
+    virtualConsole: new (require('jsdom').VirtualConsole)().on('jsdomError', e => {
+      if (/Could not parse CSS/i.test(e.message)) return;
+      if (/Not implemented: navigation/i.test(e.message)) return;
+      throw new Error('页面抛出未捕获错误 → ' + e.message);
+    })
+  });
+  const w = dom.window;
+  const G = n => { try { return w.eval(n); } catch { return undefined; } };
+  return { w, G };
+}
+
 (async () => {
   console.log('\n=== 二、角色能看到的页面 ===');
   const expected = {
@@ -405,6 +428,103 @@ const settle = () => new Promise(r => setTimeout(r, 100));
       assert(wipeAll, '找不到 wipeAll()');
       assert(!/SEC/.test(wipe[1]), 'wipe() 不该动登录令牌（它是「清数据但保持登录」）');
       assert(/SEC/.test(wipeAll[1]), 'wipeAll() 必须连登录令牌一起清');
+    });
+  }
+
+  /* ───────────────── 八、本机模式（没有后台也能用） ─────────────────
+     起因：用户连着几轮卡在「进不去」—— 静态窗口没后台、预览进程被回收、
+     代理拦 localhost、账号又被我的测试占掉。每一次提示都像在怪他填错，
+     而他没有任何办法自查。根子是：工作台把「能不能用」和「后台可不可达」绑死了。
+     现在开页面先探一声，没有后台就转本机模式，照样完整可用。 */
+  console.log('\n=== 八、本机模式（没有后台也能用） ===');
+  {
+    const { w, G } = bootNoBackend();
+    await settle();
+
+    t('探不到后台就转「本机模式」，不再把人挡在登录门外', () => {
+      eq(G('Auth').mode, 'local', '模式判断错了');
+      const note = w.document.getElementById('gNote').textContent;
+      assert(/本机模式/.test(note), '登录门没说明现在是本机模式：' + note);
+      assert(/数据只存在这台电脑/.test(note), '该讲明白数据留在哪：' + note);
+      eq(w.document.querySelector('.g-form').style.display, '', '本机模式必须让人能填表');
+    });
+
+    w.document.getElementById('gUser').value = '谢一鸣';
+    w.document.getElementById('gPass').value = 'liyun2026pass';
+    await G('Auth').submit();
+
+    t('第一次填用户名密码就能进，自动成为首位教务', () => {
+      const me = G('Auth').me();
+      assert(me, '没能进本机模式');
+      eq(me.user, '谢一鸣', '用户名不对');
+      eq(me.role, 'super', '第一个账号该是首位教务');
+    });
+
+    const acct = JSON.parse(w.localStorage.getItem('bysdash$secret:acct') || 'null');
+
+    t('本机账号连同密码散列一起存在浏览器里，不留明文', () => {
+      assert(acct && acct[0], '没存下账号');
+      eq(acct[0].user, '谢一鸣');
+      assert(acct[0].hash, '没存密码散列');
+      assert(!JSON.stringify(acct).includes('liyun2026pass'), '明文密码不该出现在本地');
+    });
+
+    t('本机模式下藏掉「老师管理」与「立即同步」（没有账号服务，也没有云端）', () => {
+      G('Settings').render();
+      eq(w.document.getElementById('tEntryCard').style.display, 'none', '老师管理该藏起来');
+      eq(w.document.getElementById('syncNowBtn').style.display, 'none', '立即同步该藏起来');
+    });
+
+    /* 关掉再打开：拿同一份本地账号 + 令牌重开一个窗口 */
+    const { w: w2, G: G2 } = bootNoBackend({
+      'bysdash$secret:acct': acct,
+      'bysdash$secret:token': 'local:谢一鸣',
+    }, 'http://127.0.0.1:5173/');
+    await settle();
+
+    t('关掉再打开还在，不用重新建号', () => {
+      const me = G2('Auth').me();
+      assert(me, '第二次打开没自动进去');
+      eq(me.user, '谢一鸣');
+    });
+
+    const { w: w3, G: G3 } = bootNoBackend({ 'bysdash$secret:acct': acct }, 'http://127.0.0.1:5173/');
+    await settle();
+    w3.document.getElementById('gUser').value = '谢一鸣';
+    w3.document.getElementById('gPass').value = 'wrongpass123';
+    await G3('Auth').submit();
+
+    t('密码不对就不让进（本机模式也不是随便进）', () => {
+      assert(!G3('Auth').me(), '错误密码竟然放进去了');
+      assert(/密码不对/.test(w3.document.getElementById('gErr').textContent), '没提示密码不对');
+    });
+
+    const { w: w4, G: G4 } = bootNoBackend({ 'bysdash$secret:acct': acct }, 'http://127.0.0.1:5173/');
+    await settle();
+    w4.document.getElementById('gUser').value = '另一个名字';
+    w4.document.getElementById('gPass').value = 'whatever12345';
+    await G4('Auth').submit();
+
+    t('本机模式里换个用户名登录，会直接报出这台电脑上的账号是谁', () => {
+      const err = w4.document.getElementById('gErr').textContent;
+      assert(/谢一鸣/.test(err), '该把已有账号名报出来，现在写的是：' + err);
+    });
+
+    const { w: wf, G: Gf } = bootNoBackend({}, 'file:///tmp/liyun/index.html');
+    await settle();
+
+    t('双击 index.html（file://）也进本机模式 —— 「永远进得去」的兜底', () => {
+      eq(Gf('Auth').mode, 'local', 'file:// 打开也该转本机模式');
+    });
+
+    const { w: wp, G: Gp } = bootNoBackend({}, 'https://liyun2026.top/');
+    await settle();
+
+    t('正式网址没有后台时不转本机模式（影子账号比进不去更糟）', () => {
+      eq(Gp('Auth').mode, 'cloud', '正式网址不该偷偷转本机模式');
+      const note = wp.document.getElementById('gNote').textContent;
+      assert(/连不上/.test(note), '该如实说明连不上：' + note);
+      assert(!/本机模式/.test(note), '不该在正式网址上引导本机模式');
     });
   }
 
