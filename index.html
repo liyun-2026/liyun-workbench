@@ -724,6 +724,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <div class="row" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn" id="syncNowBtn" onclick="Sync.pull(true)">立即同步</button>
           <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
+          <button class="btn ghost" onclick="Auth.switchAccount()">切换账号</button>
           <button class="btn ghost" onclick="Auth.logout()">退出登录</button>
         </div>
         <p class="hint">
@@ -795,8 +796,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 
       <div class="card">
         <p class="hint" style="margin:0;text-align:center">
-          砺蕴工作台<br>
-          <span style="opacity:.6">由 不一书个人工作台生成器 生成</span>
+          砺蕴工作台 · liyun2026.top
         </p>
       </div>
     </section>
@@ -1187,14 +1187,31 @@ const Store = (() => {
       return { app:'砺蕴工作台', version:2, exportedAt:new Date().toISOString(), data:this.dump() };
     },
 
-    exportFile(){
-      const blob = new Blob([JSON.stringify(this.exportAll(), null, 2)], {type:'application/json'});
+    async exportFile(){
+      const name = '砺蕴备份-' + Util.today() + '.json';
+      const json = JSON.stringify(this.exportAll(), null, 2);
+      this.set('_lastBackup', now());
+      /* 手机上「点下载」经常没动静、或者下载了不知道去哪了 —— 所以优先调起系统分享：
+         iPhone 上能直接存进「文件」App，或发给微信文件传输助手；
+         电脑、以及不支持分享的老浏览器，退回普通下载。 */
+      const file = new File([json], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        try {
+          await navigator.share({ files: [file], title: name });
+          UI.toast('备份已发出：存到「文件」，或发给文件传输助手存一份');
+          Settings.refreshBackupInfo();
+          return;
+        } catch(e){
+          if (e && e.name === 'AbortError'){ Settings.refreshBackupInfo(); return; }  // 用户自己取消了
+          /* 分享面板调不起来（权限/环境）→ 落回下载，别把人卡死在这 */
+        }
+      }
+      const blob = new Blob([json], {type:'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = '砺蕴备份-' + Util.today() + '.json';
+      a.download = name;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      this.set('_lastBackup', now());
       UI.toast('已导出，建议转发到微信文件传输助手存一份');
       Settings.refreshBackupInfo();
     },
@@ -2601,7 +2618,7 @@ const Quant = {
 
     g.fillStyle = v('--text-dim') || '#96918a';
     g.font = font(26);
-    g.fillText('由 不一书个人工作台生成器 生成', pad + 56, 1010);
+    g.fillText('砺蕴工作台 · liyun2026.top', pad + 56, 1010);
 
     cv.toBlob(b => {
       const url = URL.createObjectURL(b);
@@ -4082,6 +4099,9 @@ const Auth = {
         ? '本机模式：填个用户名和密码就能进'
         : (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务'));
     document.getElementById('gErr').textContent = '';
+    /* 上次在这台设备登录过的用户名直接带上 —— 切换账号、退出重进都不用再打一遍 */
+    const gUser = document.getElementById('gUser');
+    if (gUser && !gUser.value) gUser.value = Store.get('_lastLoginUser', '');
     const note = document.getElementById('gNote');
     const form = g.querySelector('.g-form');
     const resetLink = '<a href="#" onclick="Auth.resetLocal();return false" style="color:var(--text);text-decoration:underline">重置本地数据，重新开始</a>';
@@ -4178,9 +4198,27 @@ const Auth = {
 
   logout(){
     if (!confirm('退出登录？\n\n本机数据会保留，下次登录还能看到；但别人在这台设备上也看不到你的数据了。')) return;
+    this._rememberUser();
     Store.setSecret('token', '');
+    Store.setSecret('me', '');
     this._me = null;
     location.reload();
+  },
+
+  /* 切换账号 = 退出 + 登录页会自动带上上次的用户名。
+     典型场景：教务和老师同用一台电脑，或者要验证老师端看到的东西。 */
+  switchAccount(){
+    if (!confirm('切换账号？\n\n会退出当前账号回到登录页，用户名已经帮你填好，换密码就能进另一个账号。')) return;
+    this._rememberUser();
+    Store.setSecret('token', '');
+    Store.setSecret('me', '');
+    this._me = null;
+    location.reload();
+  },
+
+  _rememberUser(){
+    const u = this.user();
+    if (u) Store.set('_lastLoginUser', u);   // 只记用户名不记密码，密码从来不离输入框
   },
 
   /* ── 本地预览专用：一键回到「第一次使用」 ──
