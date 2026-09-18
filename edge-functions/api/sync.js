@@ -31,6 +31,26 @@ const ADMIN = 'admin';
 const TEACHER = 'teacher';
 const STAFF = [SUPER, ADMIN];
 
+/* ── 用户名规则 ──
+   汉字和字母数字都行：教务、老师更习惯打自己名字，记拼音反而容易忘。
+   输入法常带出全角字符（ｗａｎｇ、１２３），先按 NFKC 折成半角再存，
+   否则「ｗａｎｇ」和「wang」会变成两个账号，人自己都分不清用了哪个。
+   前后端共用同一套口径：NFKC → 去空格 → 小写。 */
+const USER_MIN = 2, USER_MAX = 32;
+const USER_RE = /^[\p{Script=Han}a-z0-9_.@\-\u00b7]+$/u;
+
+function canonUser(v) {
+  return String(v == null ? '' : v).normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+}
+
+/** 合法返回空串，不合法返回一句人话。 */
+function userErr(u) {
+  const n = [...u].length;          // 按「字」数，不是 UTF-16 长度（汉字别算成两个）
+  if (n < USER_MIN || n > USER_MAX) return `用户名需要 ${USER_MIN}-${USER_MAX} 个字`;
+  if (!USER_RE.test(u)) return '用户名只能用汉字、字母、数字，或 . _ - @';
+  return '';
+}
+
 /* 授课老师能读到哪些共享数据。
    值 = 过滤规则：
      'self'      按班级 id 过滤（只留自己带的班）
@@ -291,10 +311,10 @@ function sanitizePush(shared, me, serverShared) {
 
 /* ── 登录 / 首次初始化 ── */
 async function doLogin(s, body) {
-  const user = String(body.user || '').trim().toLowerCase();
+  const user = canonUser(body.user);
   const pass = String(body.pass || '');
-  if (user.length < 3 || user.length > 32) return json({ error: '用户名需要 3-32 个字符' }, 400);
-  if (!/^[a-z0-9_.@-]+$/.test(user)) return json({ error: '用户名只能用字母、数字、点、下划线、减号' }, 400);
+  const bad = userErr(user);
+  if (bad) return json({ error: bad }, 400);
   if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
 
   const uid = await hex('u|' + user);
@@ -388,11 +408,12 @@ async function doUsers(s, me, body) {
     return json({ ok: true, users: out, ownerId: me.id });
   }
 
-  const normUser = String(body.user || '').trim().toLowerCase();
+  const normUser = canonUser(body.user);
   const cls = Array.isArray(body.classIds) ? body.classIds.filter(Boolean) : [];
 
   if (op === 'create') {
-    if (normUser.length < 3) return json({ error: '用户名至少 3 个字符' }, 400);
+    const bad = userErr(normUser);
+    if (bad) return json({ error: bad }, 400);
     const pass = String(body.pass || '');
     if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
     const uid = await hex('u|' + normUser);

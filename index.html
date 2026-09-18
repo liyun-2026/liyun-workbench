@@ -842,7 +842,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="card wide">
         <h2>➕ 新建账号</h2>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="tUser" placeholder="登录用户名（如 wanglaoshi）" style="min-width:200px" autocapitalize="off" spellcheck="false">
+          <input type="text" id="tUser" placeholder="登录用户名（如 王磊 或 wanglei）" style="min-width:200px" autocapitalize="off" spellcheck="false">
           <input type="text" id="tName" placeholder="姓名（如：王老师）" style="min-width:150px">
           <select id="tRole" style="max-width:150px">
             <option value="teacher">授课老师</option>
@@ -967,7 +967,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     <div class="g-name">砺蕴工作台</div>
     <div class="g-sub" id="gSub">登录后开始今天的工作</div>
     <div class="g-form">
-      <input type="text" id="gUser" placeholder="用户名" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input type="text" id="gUser" placeholder="用户名（汉字或拼音都行）" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
       <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
       <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
     </div>
@@ -3313,11 +3313,12 @@ const Teachers = {
   },
 
   async create(){
-    const user = document.getElementById('tUser').value.trim().toLowerCase();
+    const user = canonUser(document.getElementById('tUser').value);
     const name = document.getElementById('tName').value.trim();
     const role = document.getElementById('tRole').value;
     const pass = document.getElementById('tPass').value;
-    if (user.length < 3) return UI.toast('用户名至少 3 个字符');
+    const bad = userErr(user);
+    if (bad) return UI.toast(bad);
     if (pass.length < 8) return UI.toast('初始密码至少 8 位');
     try {
       await Auth.call('users', { op: 'create', user, name: name || user, role, pass });
@@ -3864,6 +3865,19 @@ const Settings = {
 
    数据分两区上传：机构共享区（所有人的业务数据）+ 个人区（只有自己的）。
    老师那台设备拿不到别人的班 —— 这是服务端过滤的，不是界面藏起来。 */
+
+/* 用户名统一口径，和后端 canonUser 保持一致：
+   全角折半角 → 去空格 → 小写。这样输入法带出的全角 ｗａｎｇ 和手打的 wang 是同一个账号。 */
+function canonUser(v){ return String(v == null ? '' : v).normalize('NFKC').replace(/\s+/g, '').toLowerCase(); }
+const USER_MIN = 2, USER_MAX = 32;
+const USER_RE = /^[\p{Script=Han}a-z0-9_.@\-\u00b7]+$/u;
+function userErr(u){
+  const n = [...u].length;                     // 按「字」数算，汉字别当成两个
+  if (n < USER_MIN || n > USER_MAX) return `用户名需要 ${USER_MIN}-${USER_MAX} 个字`;
+  if (!USER_RE.test(u)) return '用户名只能用汉字、字母、数字，或 . _ - @';
+  return '';
+}
+
 const Auth = {
   _me: null,
 
@@ -3917,9 +3931,10 @@ const Auth = {
   },
 
   async submit(){
-    const user = (document.getElementById('gUser').value || '').trim();
+    const user = canonUser(document.getElementById('gUser').value);
     const pass = document.getElementById('gPass').value || '';
-    if (user.length < 3) return this.err('用户名至少 3 个字符');
+    const bad = userErr(user);
+    if (bad) return this.err(bad);
     if (pass.length < 8) return this.err('密码至少 8 位');
     this.err(''); this.busy(true);
     try {

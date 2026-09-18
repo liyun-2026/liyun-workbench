@@ -225,6 +225,56 @@ const settle = () => new Promise(r => setTimeout(r, 100));
     });
   }
 
+  /* ── 用户名：汉字能用，但前后端必须是同一套规则 ── */
+  console.log('\n=== 五、用户名规则（汉字可用） ===');
+  {
+    const { G } = boot(ROLES.admin);
+    await settle();
+    const canon = G('canonUser'), err = G('userErr');
+
+    t('汉字用户名合法（不用再记拼音）', () => {
+      assert(typeof err === 'function', '页面里找不到 userErr');
+      eq(err('王磊'), '');
+      eq(err('李老师'), '');
+      eq(err('欧阳娜娜'), '');
+    });
+
+    t('全角字母折成半角，不然输入法一抖就多出个账号', () => {
+      eq(canon('ｅｄｇｅ'), 'edge');
+      eq(canon('ＷＡＮＧ'), 'wang');
+      eq(canon('王　磊'), '王磊', '全角空格应被去掉');
+    });
+
+    t('大小写与空格统一口径', () => {
+      eq(canon('  LiYun2026 '), 'liyun2026');
+    });
+
+    t('空 / 太短 / 怪字符仍然挡住', () => {
+      assert(err('') !== '', '空用户名应被拒');
+      assert(err('王') !== '', '单个字太短');
+      assert(err('   ') !== '', '全是空格等于空');
+      assert(err('王磊😀') !== '', '表情符号');
+      assert(err('аdmin') !== '', '西里尔同形字（长得像 a 但要挡住）');
+    });
+
+    t('输入框提示里写明可以用汉字', () => {
+      const m = html.match(/id="gUser"[^>]*placeholder="([^"]+)"/);
+      assert(m && /汉字/.test(m[1]), '登录框的提示应告诉用户汉字也行');
+    });
+
+    t('前后端是同一套规则：正则与长度上限逐字比对', () => {
+      const sync = fs.readFileSync(path.join(dir, 'edge-functions', 'api', 'sync.js'), 'utf8');
+      const grab = (text, label) => {
+        const m = text.match(/USER_RE = (\/\^\[[\s\S]*?\/u)/);
+        assert(m, label + ' 里找不到 USER_RE 定义');
+        return m[1];
+      };
+      eq(grab(html, 'index.html'), grab(sync, 'sync.js'), 'USER_RE 两边不一致');
+      ['USER_MIN = 2', 'USER_MAX = 32'].forEach(s =>
+        assert(html.includes(s) && sync.includes(s), '长度上限两边不一致：' + s));
+    });
+  }
+
   console.log();
   if (fail.length){
     fail.forEach(x => console.log('  \x1b[31m✗\x1b[0m ' + x));

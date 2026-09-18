@@ -262,5 +262,45 @@ console.log('\n=== 七、锁定与容错 ===');
   t('请求体不是 JSON 时给友好提示', async () => {});
 }
 
+console.log('\n=== 八、用户名规则（汉字 / 全角 / 大小写） ===');
+{
+  // 正题：教务和老师可以直接用自己名字登录，不用记拼音
+  const c1 = await call({ action: 'users', op: 'create', token: owner, user: '王磊', pass: 'wanglei123', name: '王磊', role: 'teacher' });
+  t('汉字用户名可以建号', () => eq(c1.body.ok, true));
+  const l1 = await call({ action: 'login', user: '王磊', pass: 'wanglei123' });
+  t('汉字用户名可以登录', () => eq(l1.status, 200));
+  t('拿回来的是汉字本身，没被改写', () => eq(l1.body.profile.user, '王磊'));
+
+  // 输入法常带出全角字母，折成半角后才不会变成两个账号
+  const c2 = await call({ action: 'users', op: 'create', token: owner, user: 'ｅｄｇｅ', pass: 'edgepass123', name: '全角测试', role: 'teacher' });
+  t('全角用户名可以建号', () => eq(c2.body.ok, true));
+  const l2 = await call({ action: 'login', user: 'edge', pass: 'edgepass123' });
+  t('全角建的号，半角也能登进来（是同一个账号）', () => eq(l2.status, 200));
+  const l2b = await call({ action: 'login', user: 'EDGE', pass: 'edgepass123' });
+  t('大小写不敏感仍然生效', () => eq(l2b.status, 200));
+
+  // 名字中间带空格（多是全角空格）→ 一律忽略
+  const c3 = await call({ action: 'users', op: 'create', token: owner, user: '李 娜', pass: 'linaaa123', name: '李娜', role: 'teacher' });
+  t('用户名里的空格会被忽略', () => eq(c3.body.ok, true));
+  const l3 = await call({ action: 'login', user: '李\u3000娜', pass: 'linaaa123' });
+  t('全角空格也不影响登录', () => eq(l3.status, 200));
+
+  const dupHz = await call({ action: 'users', op: 'create', token: owner, user: '王磊', pass: 'another123', role: 'teacher' });
+  t('汉字重名照样被拒', () => eq(dupHz.body.error, '这个用户名已经存在'));
+
+  // 放开了汉字，不等于什么都放
+  const one = await call({ action: 'users', op: 'create', token: owner, user: '王', pass: 'onetwo123', role: 'teacher' });
+  t('单个字太短，被拒', () => ok(one.body.error.includes('2-32')));
+  const blank = await call({ action: 'users', op: 'create', token: owner, user: '   ', pass: 'blank1234', role: 'teacher' });
+  t('全是空格等于空用户名，被拒', () => ok(blank.body.error.includes('2-32')));
+  const emoji = await call({ action: 'users', op: 'create', token: owner, user: '王磊😀', pass: 'emoji1234', role: 'teacher' });
+  t('表情符号进不了用户名', () => ok(emoji.body.error.includes('只能用')));
+  // U+0430 西里尔 а，和拉丁 a 长得一样 —— 放开汉字后必须仍然挡住，否则能冒充别人
+  const cyr = await call({ action: 'users', op: 'create', token: owner, user: 'аdmin', pass: 'cyril1234', role: 'teacher' });
+  t('西里尔同形字被拒（防冒充）', () => ok(cyr.body.error.includes('只能用')));
+  const lead = await call({ action: 'login', user: '王', pass: 'wanglei123' });
+  t('登录时同样按新规则校验', () => eq(lead.status, 400));
+}
+
 console.log(`\n────────────\n通过 ${pass} 项，失败 ${fail} 项\n`);
 if (fail) process.exit(1);
