@@ -27,7 +27,10 @@
 <meta name="theme-color" content="#f6f5f2">
 <!-- iPhone 开屏图：按机型分辨率各配一张，替代系统启动时的黑屏/白屏 -->
 <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1320x2868.png">
 <link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1206x2622.png">
+<link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1260x2736.png">
 <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1179x2556.png">
 <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1170x2532.png">
 <link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-828x1792.png">
@@ -453,6 +456,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   .main > .page.on{max-width:1400px;margin:0 auto}
   .split{grid-template-columns:340px minmax(0,1fr)}
 }
+
+/* ── 未读红点：侧边栏 / 底部标签 / 全部功能抽屉三处通用 ── */
+#nav button .ico,#tabs button .ico,#dgrid button .ico{position:relative}
+#nav button.has-dot .ico::after,#tabs button.has-dot .ico::after,#dgrid button.has-dot .ico::after{
+  content:'';position:absolute;top:-3px;right:-9px;width:9px;height:9px;border-radius:50%;
+  background:#d24b3f;border:2px solid var(--card);
+}
 </style>
 </head>
 <body>
@@ -670,8 +680,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="page-title">作业布置</div>
       <div class="card">
         <h2>➕ 布置作业</h2>
-        <div class="row">
-          <select id="hwCls" style="max-width:150px"></select>
+        <p class="hint" style="margin:0 0 6px">布置给哪些班（可多选，点「全部」一次选上所有班）：</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="hwClsPick"></div>
+        <div class="row" style="margin-top:10px">
           <input type="date" id="hwDate" style="max-width:170px">
         </div>
         <div style="margin-top:8px">
@@ -708,7 +719,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     <section class="page" id="page-quant">
       <div class="page-title">量化</div>
       <div class="row">
-        <select id="qCls" onchange="Quant.render()"></select>
+        <select id="qCls" onchange="Quant.pickCls(this.value)"></select>
         <select id="qRange" onchange="Quant.render()" style="max-width:130px">
           <option value="week">本周</option>
           <option value="month">本月</option>
@@ -1045,6 +1056,15 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <button class="btn" onclick="Ticket.send()">发出</button>
         </div>
         <textarea id="tkText" placeholder="说清楚就行，例如：周三第 2 节想换到周四同一节" style="margin-top:10px"></textarea>
+        <!-- 调课/换课：系统扫一遍本周课表，把老师没课的时段摆出来供挑选 -->
+        <div id="tkSlots" style="display:none;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:12px">
+          <p class="hint" style="margin:0 0 8px">看到你在说调课。下面是你本周<b>没课</b>的时间段，点选想调去的时间（可多选）：</p>
+          <div id="tkSlotChips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" onclick="Ticket.send(true)">带上时段发出</button>
+            <button class="btn ghost" onclick="Ticket.sendForce()">不用了，直接发出</button>
+          </div>
+        </div>
       </div>
       <div class="card wide">
         <h2>📨 我发过的</h2>
@@ -1613,6 +1633,31 @@ const App = {
 
     const tn = document.getElementById('topName');
     if (tn) tn.textContent = Auth.isStaff() ? '砺蕴2026' : (Auth.name() || '砺蕴2026');
+    this.refreshDots();
+  },
+
+  /** 哪些入口该亮红点：有没看过的通知/上报/回复就点一下 */
+  dotFor(id){
+    const staff = Auth.isStaff();
+    if (staff && id === 'coop'){
+      const seen = Store.get('_coopReadAt') || 0;
+      return Store.list('tickets').some(t => t.status !== 'done' && (t.createdAt || 0) > seen) ? 1 : 0;
+    }
+    if (!staff && id === 'today'){
+      const seen = Store.get('_noticeReadAt') || 0;
+      return Store.list('notices').some(n => (n.at || 0) > seen) ? 1 : 0;
+    }
+    if (!staff && id === 'tickets'){
+      const seen = Store.get('_tkReadAt') || 0;
+      return Store.list('tickets').some(t => t.reply && (t.repliedAt || 0) > seen) ? 1 : 0;
+    }
+    return 0;
+  },
+
+  /** 侧边栏 / 底部标签 / 抽屉三处的红点一起刷 */
+  refreshDots(){
+    document.querySelectorAll('#nav button, #tabs button, #dgrid button').forEach(b =>
+      b.classList.toggle('has-dot', !!this.dotFor(b.dataset.id)));
   },
 
   drawer(on){
@@ -1629,6 +1674,12 @@ const App = {
     document.getElementById('main').scrollTop = 0;
     Store.set('_lastPage', id);
     this.routes.find(r => r.id === id)?.onShow?.();
+    // 「看过就消红点」只认用户主动点进去这一次：同步在后台刷页面不算看过，
+    // 否则人停在协作页时新工单会被瞬间自动已读，红点永远亮不起来
+    if (id === 'coop') Store.set('_coopReadAt', Date.now());
+    else if (id === 'today' && !Auth.isStaff()) Store.set('_noticeReadAt', Date.now());
+    else if (id === 'tickets' && !Auth.isStaff()) Store.set('_tkReadAt', Date.now());
+    this.refreshDots();
   },
 
   /** 登录成功后进入工作台 */
@@ -1662,6 +1713,7 @@ const App = {
     const id = cur.id.replace('page-', '');
     const r = this.routes.find(x => x.id === id);
     if (r && r.roles.includes(Auth.role())) r.onShow?.();
+    this.refreshDots();
   },
 
   // 用户永远不会主动点导出，所以要主动提醒
@@ -2429,12 +2481,54 @@ const Schedule = {
 /* ==== 功能：作业 START ==== */
 const Homework = {
   _open: null,   // 当前展开登记的那条作业 id
+  _pick: [],     // 这次要布置给哪些班（多选）
 
   render(){
-    const clsId = Util.fillCls('hwCls', '_hwCls');
     const dEl = document.getElementById('hwDate');
     if (!dEl.value) dEl.value = Util.today();
+    this.renderPick();
+    this.renderList();
+  },
 
+  /** 班级多选 chips：默认选住上次用的那个班，没有就全选 */
+  renderPick(){
+    const el = document.getElementById('hwClsPick');
+    if (!el) return;
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    const valid = id => classes.some(c => c.id === id);
+    // 剔掉已删的班；一个都不剩时默认全选（或选住上次那个班）
+    this._pick = this._pick.filter(valid);
+    if (!this._pick.length){
+      const mem = Store.get('_hwCls');
+      this._pick = valid(mem) ? [mem] : classes.map(c => c.id);
+    }
+    if (this._pick.length === 1) Store.set('_hwCls', this._pick[0]);
+    const all = this._pick.length === classes.length;
+    el.innerHTML =
+      `<button class="chip ${all ? 'chip-on' : ''}" onclick="Homework.pickAll()">全部</button>` +
+      classes.map(c => `<button class="chip ${this._pick.indexOf(c.id) >= 0 ? 'chip-on' : ''}"
+        onclick="Homework.pick('${c.id}')">${Util.esc(c.name)}</button>`).join('');
+  },
+
+  pick(id){
+    const i = this._pick.indexOf(id);
+    if (i >= 0) this._pick.splice(i, 1); else this._pick.push(id);
+    if (!this._pick.length){
+      // 一个班都不选就等于没法定目标，退回单选兜底并提示
+      this.renderPick();
+      return;
+    }
+    this.renderPick();
+  },
+
+  pickAll(){
+    const classes = Store.list('classes');
+    const all = this._pick.length === classes.length;
+    this._pick = all ? [] : classes.map(c => c.id);
+    this.renderPick();
+  },
+
+  renderList(){
     const list = Store.list('homework', (a,b) => a.date < b.date ? 1 : -1).slice(0, 40);
     document.getElementById('hwBody').innerHTML = list.length ? list.map(h => {
       const cls = Store.list('classes').find(c => c.id === h.clsId);
@@ -2487,15 +2581,15 @@ const Homework = {
   },
 
   add(){
-    const clsId = Store.get('_hwCls');
     const text = document.getElementById('hwText').value.trim();
     const date = document.getElementById('hwDate').value || Util.today();
-    if (!clsId) return UI.toast('先去「名册」建班级');
+    const targets = this._pick.filter(id => Store.list('classes').some(c => c.id === id));
+    if (!targets.length) return UI.toast('先在上面勾一下布置给哪些班');
     if (!text) return UI.toast('写一下作业内容');
-    Store.upsert('homework', { clsId, date, text });
+    targets.forEach(clsId => Store.upsert('homework', { clsId, date, text }));
     document.getElementById('hwText').value = '';
-    UI.toast('布置好了');
-    this.render();
+    UI.toast(targets.length > 1 ? `已布置给 ${targets.length} 个班` : '布置好了');
+    this.renderList();
   },
 
   del(id){
@@ -2588,6 +2682,8 @@ const Quant = {
   _cls(){
     return Util.fillCls('qCls', '_qCls');
   },
+
+  pickCls(v){ Store.set('_qCls', v); this.render(); },
 
   /* ── 总分卡：班名 + 大数字（100 + 全部流水） + 本期原因汇总 ── */
   renderScore(){
@@ -3642,11 +3738,36 @@ const Teachers = {
         ${u.role === 'super'
           ? '<span class="chip" style="pointer-events:none">谁都动不了</span>'
           : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+               ${Store.getSecret('greet:' + u.id)
+                 ? `<button class="chip chip-on" onclick="Teachers.copyGreet('${u.id}')">复制发给TA</button>`
+                 : ''}
                <button class="chip" onclick="Teachers.editCls('${u.id}')">带班</button>
                <button class="chip" onclick="Teachers.resetPass('${u.id}')">改密码</button>
                <button class="chip" onclick="Teachers.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
              </span>`}
       </div>`).join('') : '<div class="empty">还没有老师</div>';
+  },
+
+  /** 拼一条能直接发给老师的开场文案（含登录地址、用户名、初始密码） */
+  greet(name, user, pass){
+    return `尊敬的${name || user}老师：
+
+您好！您的「砺蕴2026」工作台账号已开通——
+登录地址：https://liyun2026.top
+用户名：${user}
+初始密码：${pass}
+
+请用手机浏览器打开上面的地址登录，进入后在「设置」里把密码改成您自己的。使用中有任何问题随时联系我。`;
+  },
+
+  /** 复制建号时存下的欢迎文案，复制完就清掉（密码不该一直躺在本机） */
+  copyGreet(id){
+    const key = 'greet:' + id;
+    const text = Store.getSecret(key);
+    if (!text) return;
+    Util.copy(text);
+    Store.setSecret(key, '');
+    this.paint();
   },
 
   async create(){
@@ -3658,21 +3779,25 @@ const Teachers = {
     if (bad) return UI.toast(bad);
     if (pass.length < 8) return UI.toast('初始密码至少 8 位');
     try {
-      await Auth.call('users', { op: 'create', user, name: name || user, role, pass });
+      const j = await Auth.call('users', { op: 'create', user, name: name || user, role, pass });
+      Store.setSecret('greet:' + j.id, this.greet(name || user, user, pass));
       document.getElementById('tUser').value = '';
       document.getElementById('tName').value = '';
       document.getElementById('tPass').value = '';
-      UI.toast('建好了。把用户名和初始密码告诉 TA，让 TA 登录后自己改密码');
+      UI.toast('建好了。列表里点「复制发给TA」把账号信息发给老师');
       this.render();
     } catch(e){ UI.toast(e.message); }
   },
 
   async resetPass(id){
+    const u = (this._users || []).find(x => x.id === id);
     const np = prompt('给 TA 设一个新密码（至少 8 位）');
     if (!np) return;
     try {
       await Auth.call('users', { op: 'pass', id, pass: np });
-      UI.toast('密码已重置，记得当面告诉 TA');
+      Store.setSecret('greet:' + id, this.greet(u ? u.name : '', u ? u.user : '', np));
+      UI.toast('密码已重置。列表里点「复制发给TA」把新账号信息发给老师');
+      this.paint();
     } catch(e){ UI.toast(e.message); }
   },
 
@@ -3965,7 +4090,13 @@ const MyClass = {
 
 /* ==== 功能：上报与申请 START ====（授课老师端） */
 const Ticket = {
+  _picked: [],   // 调课面板里选中的目标时段
+
+  /* 文本里出现这些词，就当成调课/换课需求 */
+  RESCHED: /(调课|换课|调到|换到|改课|换节|对调|互换|换个时间|调整.{0,4}时间|时间.{0,4}调整)/,
+
   render(){
+    this.slotsOff();
     const el = document.getElementById('tkList');
     if (!el) return;
     const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1);
@@ -3978,19 +4109,74 @@ const Ticket = {
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         <p class="hint" style="margin:4px 0 0">${t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
         ${t.reply ? `<p class="hint" style="margin:6px 0 0">教务回复：${Util.esc(t.reply)}</p>` : ''}
-      </div>`).join('') : '<div class="empty">还没发过</div>';
+      </div>`).join('')       : '<div class="empty">还没发过</div>';
   },
 
-  send(){
+  /** 综合本周课表 + 我的作息，找出没课的时段（按周几、节次排） */
+  freeSlots(){
+    const DAYS = ['周一','周二','周三','周四','周五','周六','周日'];
+    const periods = Store.list('periods', (a,b) => (a.start||'') > (b.start||'') ? 1 : -1);
+    if (!periods.length) return [];
+    const mine = Today.myLessons();
+    const busy = (day, p) => mine.some(x =>
+      x.day === day && (x.periodId ? x.periodId === p.id : (x.time || '').slice(0,5) === p.start));
+    const out = [];
+    DAYS.forEach(day => periods.forEach(p => {
+      if (!busy(day, p)) out.push(`${day} ${p.name} ${p.start}`);
+    }));
+    return out;
+  },
+
+  slotsOn(){
+    const panel = document.getElementById('tkSlots');
+    const chips = document.getElementById('tkSlotChips');
+    if (!panel || !chips) return;
+    const slots = this.freeSlots();
+    this._picked = [];
+    if (!slots.length){
+      UI.toast('课表里没配节次，帮你算不出空闲时段，直接写进文字里吧');
+      return;
+    }
+    chips.innerHTML = slots.slice(0, 14).map(s =>
+      `<button class="chip" onclick="Ticket.pickSlot(this,'${Util.esc(s)}')">${Util.esc(s)}</button>`).join('');
+    panel.style.display = '';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  slotsOff(){
+    this._picked = [];
+    const panel = document.getElementById('tkSlots');
+    if (panel) panel.style.display = 'none';
+  },
+
+  pickSlot(btn, label){
+    const on = btn.classList.toggle('chip-on');
+    const i = this._picked.indexOf(label);
+    if (on && i < 0) this._picked.push(label);
+    if (!on && i >= 0) this._picked.splice(i, 1);
+  },
+
+  send(withPicks){
     const type = document.getElementById('tkType').value;
     const el = document.getElementById('tkText');
-    const text = (el.value || '').trim();
+    let text = (el.value || '').trim();
     if (!text) return UI.toast('写一句再发');
+    // 第一次点发出且内容在说调课：先别发，把空闲时段摆出来让老师挑
+    if (!withPicks && this.RESCHED.test(text) && document.getElementById('tkSlots')?.style.display === 'none'){
+      this.slotsOn();
+      return;
+    }
+    if (withPicks && this._picked.length){
+      text += `\n（希望调到：${this._picked.join('；')}）`;
+    }
     Store.upsert('tickets', { type, text, status: 'open', createdAt: Date.now() });
     el.value = '';
+    this.slotsOff();
     UI.toast('已发出，教务那边会出现待办');
     this.render();
-  }
+  },
+
+  sendForce(){ this.slotsOff(); this.send(true); }
 };
 /* ==== 功能：上报与申请 END ==== */
 
@@ -4625,7 +4811,14 @@ const Sync = {
       if (j.profile) Auth._me = j.profile;
       Store.set('_syncAt', Date.now());
       this.status('已同步');
-      if (n) { if (loud) UI.toast('拉到 ' + n + ' 处更新'); App.refresh(); }
+      if (n){
+        // 正在打字的页面不整体重绘，免得把老师/教务刚敲的字冲掉；红点照样刷
+        const ae = document.activeElement;
+        const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA');
+        if (!typing || loud) App.refresh();
+        else App.refreshDots();
+        if (loud) UI.toast('拉到 ' + n + ' 处更新');
+      }
       else if (loud) UI.toast('已是最新');
     } catch(e){
       this.status('未同步');
@@ -4683,9 +4876,18 @@ const Sync = {
     this._inited = true;
     await this.pull();
     this.push();
+    /* 自动同步三件套：
+       1) 每十几秒静默拉一次 —— 另一台设备录的东西不用手动刷新就自己冒出来
+       2) 切回前台立刻拉（从微信切回来、解锁屏幕都属于这一下）
+       3) 电脑上窗口重新聚焦也拉一次
+       拉取本身很轻（只对齐差异），本地是主的，拉失败一律静默。 */
+    this._poll = setInterval(() => {
+      if (!document.hidden) this.pull();
+    }, 15000);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) this.pull();           // 切回前台再拉一次。到此为止，不轮询
+      if (!document.hidden) this.pull();           // 切回前台再拉一次
     });
+    window.addEventListener('focus', () => this.pull());
     window.addEventListener('online', () => this.push());
   }
 };
