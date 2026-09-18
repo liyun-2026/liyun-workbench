@@ -174,6 +174,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 .item.done .box{background:var(--accent)}
 .item.done .grow{text-decoration:line-through;color:var(--text-dim)}
+/* 可选列表里的当前项（学员档案、我带的班） */
+.pick{cursor:pointer}
+.pick.on{
+  background:var(--sidebar-active);border-radius:10px;
+  padding-left:10px;padding-right:10px;margin-left:-10px;margin-right:-10px;
+}
+/* 曲线两端的说明 */
+.stat{display:flex;justify-content:space-between;font-size:var(--fs-meta);color:var(--text-dim);margin-top:6px}
 .pre{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.7}
 
 /* ==== 提示条 ==== */
@@ -217,10 +225,99 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     transition-duration:.01ms !important;scroll-behavior:auto !important}
 }
 
+/* ════════ 手机骨架：顶栏 + 底部标签栏 ════════
+   手机上不用侧边栏 —— 手指够不到屏幕顶部，底部才是拇指区。
+   功能多于 5 个时，其余收进顶栏的「全部」抽屉。
+   这一段是默认样式（手机优先），电脑端在下面的媒体查询里覆盖。 */
+.app{flex-direction:column}
+.side{display:none}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+
+.topbar{
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:calc(10px + env(safe-area-inset-top,0)) 14px 10px;
+  border-bottom:1px solid var(--line);background:var(--bg);
+}
+.topbar .t-logo{font-size:21px;line-height:1}
+.topbar .t-name{font-size:15px;font-weight:500;white-space:nowrap}
+.topbar .t-more{
+  margin-left:auto;flex-shrink:0;font-family:inherit;font-size:13px;
+  padding:7px 13px;border-radius:999px;
+  background:transparent;border:1px solid var(--line);color:var(--text);
+}
+
+.tabbar{
+  display:block;flex-shrink:0;background:var(--sidebar);
+  border-top:1px solid var(--line);
+  padding:5px 4px calc(5px + env(safe-area-inset-bottom,0));
+}
+.tabbar:empty{display:none}
+.tabbar .tabs{display:flex;gap:2px}
+.tabbar button{
+  flex:1;min-width:0;border:none;background:transparent;font-family:inherit;
+  color:var(--sidebar-text);font-size:10px;line-height:1.25;
+  padding:6px 2px;border-radius:11px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.tabbar button .ico{font-size:19px;line-height:1}
+.tabbar button.on{background:var(--sidebar-active);color:var(--text)}
+
+/* ── 「全部」抽屉：手机上放超出标签栏的功能 ── */
+.drawer{position:absolute;inset:0;z-index:60;display:none}
+.drawer.on{display:block}
+.drawer .mask{position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.drawer .sheet{
+  position:absolute;left:0;right:0;bottom:0;max-height:84%;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--bg);border-radius:22px 22px 0 0;
+  padding:18px 16px calc(20px + env(safe-area-inset-bottom,0));
+  animation:sheetUp .24s var(--ease) both;
+}
+@keyframes sheetUp{from{transform:translateY(16px);opacity:.5}to{transform:none;opacity:1}}
+.drawer h3{font-size:13px;font-weight:500;color:var(--text-dim);margin-bottom:12px}
+.dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dgrid button{
+  border:1px solid var(--line);background:var(--card);font-family:inherit;
+  color:var(--text);font-size:11px;line-height:1.3;padding:13px 3px;border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.dgrid button .ico{font-size:21px;line-height:1}
+.dgrid button.on{border-color:var(--accent)}
+
+/* ── 登录门：没登录前挡在一切前面 ── */
+.gate{
+  position:fixed;inset:0;z-index:80;display:none;
+  background:var(--bg);overflow-y:auto;
+}
+.gate.on{display:block}
+.gate .wrap{
+  max-width:400px;margin:0 auto;padding:calc(56px + env(safe-area-inset-top,0)) 24px 40px;
+}
+.gate .g-logo{font-size:44px;line-height:1;text-align:center}
+.gate .g-name{font-size:22px;font-weight:500;text-align:center;margin-top:14px;letter-spacing:.02em}
+.gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:6px;margin-bottom:30px}
+.gate .g-form{display:flex;flex-direction:column;gap:12px}
+.gate .g-form .btn{padding:13px;font-size:16px}
+.gate .g-note{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;line-height:1.7}
+.gate .g-err{
+  font-size:13px;color:#c25650;text-align:center;min-height:20px;margin-top:2px;line-height:1.5;
+}
+.gate .whoami{
+  display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;
+  border-top:1px solid var(--line);font-size:13px;color:var(--text-dim);
+}
+.gate .whoami .grow{flex:1;min-width:0}
+
+/* ── 分栏：手机上竖着堆，电脑上变「列表 + 详情」两栏 ── */
+.split{display:flex;flex-direction:column;gap:var(--gap)}
+
 /* ════════ 平板与横屏：侧栏展开成图标配文字 ════════ */
 @media (min-width:700px){
   :root{--fs-hero:48px;--fs-title:26px;--pad:24px;--gap:16px}
-  .side{width:200px;padding-left:12px;padding-right:12px}
+  .app{flex-direction:row}
+  .side{display:flex;width:200px;padding-left:12px;padding-right:12px}
+  .topbar,.tabbar{display:none}
+  .drawer{display:none}
   .brand{text-align:left;padding:0 8px;margin-bottom:22px}
   .brand .logo{font-size:30px}
   .brand .name{font-size:14px;margin-top:6px;word-break:normal}
@@ -233,12 +330,14 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   .main{padding:28px 32px 40px}
 }
 
-/* ════════ 桌面：卡片并排 ════════
+/* ════════ 桌面：功能栏 + 列表 + 详情，一屏三栏 ════════
    标题、副标题、提示条永远占满整行；卡片默认半宽。
-   需要占满的重要卡片（英雄卡、长列表）加 class="card wide"。 */
+   需要占满的重要卡片（英雄卡、长列表）加 class="card wide"。
+   列表型页面（名册、学员档案、模考、协作）外面套一个 .split，
+   左边是选择列表，右边是详情，不用来回跳页。 */
 @media (min-width:1100px){
   :root{--fs-hero:56px;--fs-title:30px;--pad:30px;--gap:20px}
-  .side{width:240px}
+  .side{width:236px}
   .main{padding:36px 44px 52px}
   .page.on{
     display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
@@ -247,12 +346,19 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   .page.on > .page-title,
   .page.on > .page-sub,
   .page.on > .banner,
-  .page.on > .card.wide{grid-column:1 / -1}
+  .page.on > .card.wide,
+  .page.on > .split{grid-column:1 / -1}
+  .split{
+    display:grid;grid-template-columns:288px minmax(0,1fr);
+    gap:var(--gap);align-items:start;
+  }
+  .split .pane-main{display:flex;flex-direction:column;gap:var(--gap)}
 }
 
 /* 超宽屏限制内容宽度并居中 —— 一行文字超过 40 个汉字就难读了 */
 @media (min-width:1700px){
   .main > .page.on{max-width:1400px;margin:0 auto}
+  .split{grid-template-columns:340px minmax(0,1fr)}
 }
 </style>
 </head>
@@ -271,6 +377,16 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     </nav>
   </aside>
   <!-- ==== 侧边栏 END ==== -->
+
+  <div class="col">
+
+  <!-- ==== 手机顶栏 START ====（只在手机上出现） -->
+  <header class="topbar" id="topbar">
+    <span class="t-logo">🎙️</span>
+    <span class="t-name" id="topName">砺蕴工作台</span>
+    <button class="t-more" onclick="App.drawer(true)">全部功能</button>
+  </header>
+  <!-- ==== 手机顶栏 END ==== -->
 
   <main class="main" id="main">
 
@@ -349,17 +465,34 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
       <div class="card wide">
         <div id="attBody"></div>
-        <div class="row" style="margin-top:14px">
+        <div class="row" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn ghost" onclick="Att.allNormal()">一键全部正常</button>
+          <button class="btn ghost" onclick="Att.copySummary()">复制小结文案</button>
         </div>
         <p class="hint" id="attSum"></p>
+      </div>
+
+      <div class="card wide">
+        <h2>📤 导出考勤</h2>
+        <p class="hint" style="margin-top:0">
+          导出的表格一行一个学员，可以直接用 Excel / WPS 打开，也能发给教务存档。
+        </p>
+        <div class="row" style="margin-top:12px;flex-wrap:wrap">
+          <button class="btn" onclick="Att.exportDay()">导出当天（当前班级）</button>
+          <button class="btn ghost" onclick="Att.exportMonth()">导出整月（当前班级）</button>
+        </div>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap">
+          <input type="month" id="attMonth" style="max-width:180px">
+          <button class="btn ghost" onclick="Att.exportAll()">导出某月全部班级</button>
+        </div>
+        <p class="hint" id="attExpStat"></p>
       </div>
     </section>
     <!-- ==== 功能：考勤 END ==== -->
 
-    <!-- ==== 功能：排课 START ==== -->
-    <section class="page" id="page-schedule">
-      <div class="page-title">排课表</div>
+    <!-- ==== 功能：课表 START ==== -->
+    <section class="page" id="page-timetable">
+      <div class="page-title">课表</div>
       <div class="page-sub">上下课时间全校统一，在这里配一次，加课选节次就行</div>
       <div class="card wide">
         <h2>⏰ 每日作息时间 <span class="hint" style="display:inline;margin:0">（改这里，全表自动跟着变）</span></h2>
@@ -378,10 +511,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <select id="schPeriod"></select>
           <input type="text" id="schTitle" placeholder="内容，如：即兴评述" style="flex:2;min-width:150px">
         </div>
-        <div class="row" style="margin-top:8px">
-          <input type="text" id="schCls" placeholder="班级/板块，如：播音一班">
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <input type="text" id="schCls" list="clsSuggestions" placeholder="班级/板块，如：播音一班" style="min-width:150px">
+          <datalist id="clsSuggestions"></datalist>
+          <select id="schTeacher" style="max-width:160px"></select>
           <button class="btn" onclick="Schedule.add()">加入大课</button>
         </div>
+        <p class="hint">选了上课老师，那位老师打开「今天」就能看到这节课。</p>
         <div id="schBigBody" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
@@ -396,7 +532,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <datalist id="stuSuggestions"></datalist>
           <input type="text" id="miniTitle" placeholder="内容，如：一对一·自备稿件" style="flex:1.4;min-width:150px">
         </div>
-        <div class="row" style="margin-top:8px">
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <select id="miniTeacher" style="max-width:160px"></select>
           <button class="btn" onclick="Schedule.addMini()">加入小课</button>
           <span class="hint" style="margin:0">不选节次、单独填时间也行</span>
         </div>
@@ -423,7 +560,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <div id="archBody"></div>
       </div>
     </section>
-    <!-- ==== 功能：排课 END ==== -->
+    <!-- ==== 功能：课表 END ==== -->
 
     <!-- ==== 功能：作业 START ==== -->
     <section class="page" id="page-homework">
@@ -507,38 +644,59 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
       </div>
       <div class="card wide">
+        <h2>📊 成绩录入 <span class="hint" style="display:inline;margin:0">（以班级为单位，一人一行，直接在线上填）</span></h2>
+        <div class="row" style="flex-wrap:wrap">
+          <select id="exCls" onchange="Exam.pickCls(this.value)"></select>
+          <select id="exSheetSel" onchange="Exam.pickSheet(this.value)"></select>
+        </div>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <input type="text" id="exSheetName" placeholder="新场次名，如：9月第3周模考" style="min-width:190px">
+          <button class="btn ghost" onclick="Exam.newSheet()">新建这一场</button>
+        </div>
+        <div id="exSheet" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card wide">
+        <h2>📤 导出成绩</h2>
+        <div class="row" style="flex-wrap:wrap">
+          <button class="btn" onclick="Exam.exportSheet()">导出这一场</button>
+          <button class="btn ghost" onclick="Exam.exportAll()">导出该班历次成绩</button>
+          <button class="btn ghost" onclick="Exam.copyRank()">复制排名文案</button>
+        </div>
+        <p class="hint" id="exExpStat"></p>
+      </div>
+
+      <div class="card wide">
         <h2>🗂️ 题库记录</h2>
         <div id="examList"></div>
       </div>
     </section>
     <!-- ==== 功能：模考 END ==== -->
 
-    <!-- ==== 功能：体重 START ==== -->
-    <section class="page" id="page-weight">
-      <div class="page-title">学员体重</div>
-      <div class="card">
-        <h2>⚖️ 记一笔</h2>
-        <select id="wStu" style="margin-bottom:10px"></select>
-        <div class="row">
-          <input type="date" id="wDate" style="max-width:170px">
-          <input type="number" id="wVal" placeholder="kg" step="0.1" style="max-width:110px">
-          <button class="btn" onclick="Weight.add()">记录</button>
+    <!-- ==== 功能：学员档案 START ====
+         一个人一屏看完：考勤、作业、过关、模考、体重、老师评语时间线。
+         教务能改（体重也是在这里记），授课老师只读。 -->
+    <section class="page" id="page-profile">
+      <div class="page-title">学员档案</div>
+      <div class="page-sub" id="pfSub">左边挑人，右边一屏看完他的全部记录</div>
+      <div class="split">
+        <div class="card pane-list">
+          <h2>👥 选学员</h2>
+          <select id="pfCls" onchange="Student.pickCls(this.value)"></select>
+          <input type="text" id="pfSearch" placeholder="搜名字" oninput="Student.renderList()" style="margin-top:8px">
+          <div id="pfList" style="margin-top:6px;max-height:56vh;overflow:auto"></div>
         </div>
-      </div>
-      <div class="card wide">
-        <h2>📈 趋势</h2>
-        <div id="wChart"></div>
-        <div id="wList" style="margin-top:6px"></div>
+        <div class="pane-main" id="pfBody"></div>
       </div>
     </section>
-    <!-- ==== 功能：体重 END ==== -->
+    <!-- ==== 功能：学员档案 END ==== -->
 
     <!-- 设置页是必备的，不要删 -->
     <!-- ==== 功能：设置 START ==== -->
     <section class="page" id="page-settings">
       <div class="page-title">设置</div>
 
-      <div class="card">
+      <div class="card" id="backupCard">
         <h2>💾 数据备份</h2>
         <p class="hint" style="margin-top:0;margin-bottom:12px">
           你的所有数据都存在这台设备的浏览器里，同时会同步到你自己开启的云端。<br>
@@ -552,42 +710,34 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <p class="hint" id="backupInfo"></p>
       </div>
 
-      <!-- ==== 双端同步卡片 START ====（用户选单设备时删掉这张卡） -->
+      <!-- ==== 账号与同步卡片 syncCard START ==== -->
       <div class="card wide" id="syncCard">
-        <h2>🔄 多设备同步 <span class="hint" id="syncState" style="margin:0 0 0 auto;font-size:var(--fs-meta)"></span></h2>
-        <div id="syncOff">
-          <p class="hint" style="margin-top:0">
-            开启后手机和电脑登同一个账号，记的东西自动对齐。<br>
-            <b>数据会在你的设备和云端各存一份</b>，本地那份始终在，断网照样能记。<br>
-            云端那份是明文的——只有知道你密码的人能读，但平台运维理论上能看到。<br>
-            <b>密码忘了就进不去了，没有找回功能。</b>
-          </p>
-          <div style="margin-top:14px">
-            <input type="text" id="syncUser" placeholder="用户名（3-32 个字符，只用来定位你的数据）" autocomplete="username">
-          </div>
-          <div style="margin-top:10px">
-            <input type="password" id="syncPass" placeholder="密码（至少 8 位）" autocomplete="new-password">
-          </div>
-          <div class="row" style="margin-top:14px">
-            <button class="btn" onclick="Settings.enableSync()">开启同步</button>
-            <button class="btn ghost" onclick="Store.exportFile()">先导出备份</button>
-          </div>
-          <p class="hint">建议先导出一份备份再开——万一以后忘了密码，本地这份还在。</p>
+        <h2>🪪 我的账号 <span class="hint" id="syncState" style="margin:0 0 0 auto;font-size:var(--fs-meta)"></span></h2>
+        <div class="item" style="align-items:center;padding-top:0">
+          <span class="grow">
+            <b id="acctName" style="font-weight:500"></b>
+            <br><span class="hint" style="display:inline;margin:0" id="acctMeta"></span>
+          </span>
+          <span class="chip" id="acctRole" style="pointer-events:none"></span>
         </div>
-        <div id="syncOn" style="display:none">
-          <p class="hint" style="margin-top:0">账号：<b id="syncWho" class="mono"></b><br>上次同步：<span id="syncTime"></span></p>
-          <div class="row" style="margin-top:14px">
-            <button class="btn" onclick="Sync.pull(true)">立即同步</button>
-            <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
-            <button class="btn ghost" onclick="Sync.disable()">关闭同步</button>
-          </div>
-          <p class="hint">
-            刚在另一台设备改的东西，这边最多等一分钟才看得到（云端缓存机制），
-            等不及就点「立即同步」。
-          </p>
+        <p class="hint" id="acctSync"></p>
+        <div class="row" style="margin-top:14px;flex-wrap:wrap">
+          <button class="btn" onclick="Sync.pull(true)">立即同步</button>
+          <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
+          <button class="btn ghost" onclick="Auth.logout()">退出登录</button>
         </div>
+        <p class="hint">
+          打开时自动拉一次、切回前台再拉一次，不用手动点。<br>
+          <b>学生没有账号，看不到这里的任何东西。</b>退出登录后这台设备上的数据也看不到了。
+        </p>
       </div>
-      <!-- ==== 双端同步卡片 END ==== -->
+      <!-- ==== 账号与同步卡片 syncCard END ==== -->
+
+      <div class="card" id="tEntryCard" style="display:none">
+        <h2>🧑‍🏫 老师管理</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:12px">给老师开账号、分配带班、重置密码。账号只有你能建。</p>
+        <button class="btn" onclick="App.go('teachers')">打开老师管理</button>
+      </div>
 
       <!-- 有联网功能时保留这张卡，没有就删掉 -->
       <div class="card" id="apiCard">
@@ -652,8 +802,180 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     </section>
     <!-- ==== 功能：设置 END ==== -->
 
+    <!-- ==== 功能：协作 START ====（教务端：收老师上报 + 发通知 + 存资料） -->
+    <section class="page" id="page-coop">
+      <div class="page-title">协作</div>
+      <div class="page-sub">老师的上报与申请在这里处理；通知发下去，老师打开「今天」就能看到</div>
+      <div class="split">
+        <div class="card pane-list">
+          <h2>✋ 待处理 <span class="hint" id="coopCount" style="display:inline;margin:0"></span></h2>
+          <div id="coopList"></div>
+        </div>
+        <div class="pane-main">
+          <div class="card">
+            <h2>📣 发通知</h2>
+            <textarea id="noticeText" placeholder="写一条通知，老师打开「今天」就能看到"></textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" onclick="Coop.addNotice()">发出</button>
+            </div>
+            <div id="noticeList" style="margin-top:12px"></div>
+          </div>
+          <div class="card">
+            <h2>📚 资料库 <span class="hint" style="display:inline;margin:0">教务内部存档</span></h2>
+            <div class="row" style="flex-wrap:wrap">
+              <input type="text" id="matTitle" placeholder="名称，如：即兴评述题库（9月）">
+              <input type="text" id="matUrl" placeholder="链接或说明">
+              <button class="btn" onclick="Coop.addMaterial()">加入</button>
+            </div>
+            <div id="matList" style="margin-top:12px"></div>
+            <p class="hint">网盘链接、题库、模板都放这儿，教务自己找得着。老师端不显示这一块。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- ==== 功能：协作 END ==== -->
+
+    <!-- ==== 功能：老师管理 START ====（只有首位教务看得到） -->
+    <section class="page" id="page-teachers">
+      <div class="page-title">老师管理</div>
+      <div class="page-sub">给老师开账号、分配带哪几个班。账号只有首位教务能建</div>
+      <div class="card wide">
+        <h2>➕ 新建账号</h2>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="tUser" placeholder="登录用户名（如 wanglaoshi）" style="min-width:200px" autocapitalize="off" spellcheck="false">
+          <input type="text" id="tName" placeholder="姓名（如：王老师）" style="min-width:150px">
+          <select id="tRole" style="max-width:150px">
+            <option value="teacher">授课老师</option>
+            <option value="admin">教务老师</option>
+          </select>
+          <input type="text" id="tPass" placeholder="初始密码（至少 8 位）" style="min-width:180px">
+          <button class="btn" onclick="Teachers.create()">建账号</button>
+        </div>
+        <p class="hint">先把账号建出来，再到下面列表里点「带班」勾他要带的班。</p>
+      </div>
+      <div class="card wide">
+        <h2>🧑‍🏫 账号列表</h2>
+        <div id="tList"></div>
+      </div>
+      <div class="card wide" id="tClsCard" style="display:none">
+        <h2>📚 <span id="tClsWho"></span> 的带班</h2>
+        <div id="tClsBody"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" onclick="Teachers.saveCls()">保存带班</button>
+          <button class="btn ghost" onclick="Teachers.closeCls()">取消</button>
+        </div>
+        <p class="hint">不带任何班的老师，登录后看不到名册和录入，只能看通知和上报。</p>
+      </div>
+    </section>
+    <!-- ==== 功能：老师管理 END ==== -->
+
+    <!-- ==== 功能：老师今天 START ====（授课老师端首页） -->
+    <section class="page" id="page-today">
+      <div class="page-title" id="tdHi">今天</div>
+      <div class="page-sub" id="tdSub"></div>
+      <div class="card wide" id="tdNoticeCard" style="display:none">
+        <h2>📣 教务通知</h2>
+        <div id="tdNotice"></div>
+      </div>
+      <div class="card wide">
+        <h2>📍 我今天要上的课</h2>
+        <div id="tdToday"></div>
+      </div>
+      <div class="card wide">
+        <h2>📅 本周我的课</h2>
+        <div id="tdWeek"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：老师今天 END ==== -->
+
+    <!-- ==== 功能：录入今日 START ====（授课老师端，简化版：只点有情况的学生） -->
+    <section class="page" id="page-record">
+      <div class="page-title">录入今日情况</div>
+      <div class="page-sub">几秒钟的事：默认全班都正常，只点有情况的那几个</div>
+      <div class="card wide">
+        <div class="row" style="flex-wrap:wrap">
+          <select id="rcCls" onchange="Record.pickCls(this.value)"></select>
+          <input type="date" id="rcDate" onchange="Record.pickDate(this.value)" style="max-width:170px">
+          <button class="btn" onclick="Record.saveAll()">全部保存</button>
+        </div>
+        <p class="hint" id="rcStat"></p>
+      </div>
+      <div class="card wide">
+        <div id="rcBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：录入今日 END ==== -->
+
+    <!-- ==== 功能：我带的班 START ====（授课老师端） -->
+    <section class="page" id="page-myclass">
+      <div class="page-title">我带的班</div>
+      <div class="page-sub">点学员看他的档案（只读）</div>
+      <div class="card wide">
+        <div id="mcBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：我带的班 END ==== -->
+
+    <!-- ==== 功能：上报与申请 START ====（授课老师端） -->
+    <section class="page" id="page-tickets">
+      <div class="page-title">上报与申请</div>
+      <div class="page-sub">调课、请假、学生异常，点一下发出去，直接进教务的待办</div>
+      <div class="card wide">
+        <div class="row" style="flex-wrap:wrap">
+          <select id="tkType" style="max-width:170px">
+            <option>调课申请</option>
+            <option>请假上报</option>
+            <option>学生异常</option>
+            <option>其他</option>
+          </select>
+          <button class="btn" onclick="Ticket.send()">发出</button>
+        </div>
+        <textarea id="tkText" placeholder="说清楚就行，例如：周三第 2 节想换到周四同一节" style="margin-top:10px"></textarea>
+      </div>
+      <div class="card wide">
+        <h2>📨 我发过的</h2>
+        <div id="tkList"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：上报与申请 END ==== -->
+
   </main>
+
+  <!-- ==== 底部标签栏 START ====（只在手机上出现，最多 5 项） -->
+  <nav class="tabbar"><div class="tabs" id="tabs"></div></nav>
+  <!-- ==== 底部标签栏 END ==== -->
+
+  </div><!-- /.col -->
+
+  <!-- ==== 全部功能抽屉 START ==== -->
+  <div class="drawer" id="drawer">
+    <div class="mask" onclick="App.drawer(false)"></div>
+    <div class="sheet">
+      <h3 id="drawerTitle">全部功能</h3>
+      <div class="dgrid" id="dgrid"></div>
+    </div>
+  </div>
+  <!-- ==== 全部功能抽屉 END ==== -->
+
 </div>
+
+<!-- ==== 登录 START ====
+     没登录之前只显示这一层。账号由教务创建，没有自助注册。 -->
+<div class="gate" id="gate">
+  <div class="wrap">
+    <div class="g-logo">🎙️</div>
+    <div class="g-name">砺蕴工作台</div>
+    <div class="g-sub" id="gSub">登录后开始今天的工作</div>
+    <div class="g-form">
+      <input type="text" id="gUser" placeholder="用户名" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
+      <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
+    </div>
+    <div class="g-err" id="gErr"></div>
+    <div class="g-note" id="gNote"></div>
+  </div>
+</div>
+<!-- ==== 登录 END ==== -->
 
 <div class="toast" id="toast"></div>
 
@@ -711,10 +1033,15 @@ const Store = (() => {
     },
     set(key, val){
       const ok = driver.set(NS + key, val);
-      if (ok) this._touch();
+      // _ 开头的是本机临时状态（上次看哪页、同步时间），不上传也不该触发推送。
+      // 少了这个判断，「记录同步时间」本身会再触发一次同步，变成每 4 秒推一次。
+      if (ok && key.charAt(0) !== '_') this._touch();
       return ok;
     },
-    remove(key){ driver.remove(NS + key); this._touch(); },
+    remove(key){
+      driver.remove(NS + key);
+      if (key.charAt(0) !== '_') this._touch();
+    },
 
     /* ── 数组型：一条一条存，可合并 ── */
     /** 读列表：过滤掉墓碑，顺手清理过期墓碑 */
@@ -955,6 +1282,42 @@ const Util = {
     document.body.removeChild(ta);
   },
 
+  /** 下载一个文本文件。加 BOM 是因为 Excel 不认识没有 BOM 的 UTF-8 中文 */
+  download(filename, text, mime = 'text/csv;charset=utf-8'){
+    const blob = new Blob(['\ufeff' + text], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  /** 二维数组 → CSV。单元格里的逗号、引号、换行按 RFC 4180 转义 */
+  csv(rows){
+    return rows.map(r => r.map(c => {
+      const s = String(c === null || c === undefined ? '' : c);
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')).join('\r\n');
+  },
+
+  /** 某个月有哪些天，返回 ['2026-09-01', ...]，导整月用 */
+  daysOf(month){
+    const [y, m] = month.split('-').map(Number);
+    const n = new Date(y, m, 0).getDate();
+    const out = [];
+    for (let i = 1; i <= n; i++) out.push(month + '-' + String(i).padStart(2, '0'));
+    return out;
+  },
+
+  /** 班级名 */
+  clsName(id){ const c = Store.list('classes').find(x => x.id === id); return c ? c.name : ''; },
+
+  /** 学员名 */
+  stuName(id){ const s = Store.list('students').find(x => x.id === id); return s ? s.name : ''; },
+
+  /** 数字转成好读的字符串，空值给占位符 */
+  num(v, dash = '—'){ return (v === null || v === undefined || v === '' || isNaN(v)) ? dash : v; },
+
   // 图片必须压缩后再存，否则几张手机原图就撑爆 localStorage
   compressImage(file, maxW = 800, quality = .72){
     return new Promise((resolve, reject) => {
@@ -999,47 +1362,125 @@ const UI = {
 
 /* ═══════════════════════════════════════════════════════════
    App · 路由与启动
-   每加一个功能，在 routes 里加一条，侧边栏自动就有了。
+   每条 route 上标好「谁能看到」「要不要放底部标签栏」「排第几」，
+   电脑侧边栏、手机底部标签栏、手机「全部功能」抽屉都从这一份自动长出来。
+
+   roles  super   首位教务（权限最高，只有他能管账号）
+          admin   第二位教务
+          teacher 授课老师
+   tab    手机底部标签栏的顺序（1-5）。不填就不进标签栏。
    ═══════════════════════════════════════════════════════════ */
 const App = {
   routes: [
-    { id:'home',     icon:'🎯', name:'今日',   onShow: () => Home.render() },
-    { id:'roster',   icon:'👥', name:'名册',   onShow: () => Roster.render() },
-    { id:'att',      icon:'📋', name:'考勤',   onShow: () => Att.render() },
-    { id:'schedule', icon:'🗓️', name:'排课',   onShow: () => Schedule.render() },
-    { id:'homework', icon:'📝', name:'作业',   onShow: () => Homework.render() },
-    { id:'night',    icon:'🌙', name:'晚自习', onShow: () => Night.render() },
-    { id:'quant',    icon:'📊', name:'量化',   onShow: () => Quant.render() },
-    { id:'exam',     icon:'🎤', name:'模考',   onShow: () => Exam.render() },
-    { id:'weight',   icon:'⚖️', name:'体重',   onShow: () => Weight.render() },
-    { id:'settings', icon:'⚙️', name:'设置',   onShow: () => Settings.render() }
+    /* ── 教务端 ── */
+    { id:'home',      icon:'🎯', name:'今日',     roles:['super','admin'], tab:1, onShow: () => Home.render() },
+    { id:'att',       icon:'📋', name:'考勤',     roles:['super','admin'], tab:2, onShow: () => Att.render() },
+    { id:'homework',  icon:'📝', name:'作业',     roles:['super','admin'], tab:3, onShow: () => Homework.render() },
+    { id:'roster',    icon:'👥', name:'名册',     roles:['super','admin'], tab:4, onShow: () => Roster.render() },
+    { id:'profile',   icon:'📇', name:'学员档案', roles:['super','admin','teacher'], onShow: () => Student.render() },
+    { id:'timetable', icon:'🗓️', name:'课表',     roles:['super','admin'], onShow: () => Schedule.render() },
+    { id:'night',     icon:'🌙', name:'晚自习',   roles:['super','admin'], onShow: () => Night.render() },
+    { id:'quant',     icon:'📊', name:'量化',     roles:['super','admin'], onShow: () => Quant.render() },
+    { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin'], onShow: () => Exam.render() },
+    { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin'], onShow: () => Coop.render() },
+    { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
+    { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher'], tab:5, onShow: () => Settings.render() },
+
+    /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
+    { id:'today',     icon:'🎯', name:'今天',     roles:['teacher'], tab:1, onShow: () => Today.render() },
+    { id:'record',    icon:'✍️', name:'录入今日', roles:['teacher'], tab:2, onShow: () => Record.render() },
+    { id:'myclass',   icon:'👥', name:'我带的班', roles:['teacher'], tab:3, onShow: () => MyClass.render() },
+    { id:'tickets',   icon:'✋', name:'上报与申请', roles:['teacher'], tab:4, onShow: () => Ticket.render() }
   ],
 
+  /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
+  NAV_ORDER: {
+    super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
+    admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
+    teacher: ['today','record','myclass','profile','tickets','settings']
+  },
+
+  /** 当前角色能看到的功能，已按顺序排好 */
+  visible(){
+    const role = Auth.role();
+    const order = this.NAV_ORDER[role];
+    if (!order) return [];
+    return order.map(id => this.routes.find(r => r.id === id))
+                .filter(r => r && r.roles.includes(role));
+  },
+
+  can(id){
+    const r = this.routes.find(x => x.id === id);
+    return !!r && r.roles.includes(Auth.role());
+  },
+
+  defaultPage(){ return Auth.isStaff() ? 'home' : 'today'; },
+
+  /** 电脑侧边栏 / 手机底部标签栏 / 手机全部功能抽屉，三处一次画完 */
+  renderChrome(){
+    const list = this.visible();
+
+    const nav = document.getElementById('nav');
+    if (nav) nav.innerHTML = list.map(r =>
+      `<button data-id="${r.id}" onclick="App.go('${r.id}')">
+         <span class="ico">${r.icon}</span>${r.name}
+       </button>`).join('');
+
+    const tabs = document.getElementById('tabs');
+    if (tabs){
+      const onTab = list.filter(r => r.tab).sort((a,b) => a.tab - b.tab).slice(0, 5);
+      tabs.innerHTML = onTab.map(r =>
+        `<button data-id="${r.id}" onclick="App.go('${r.id}')">
+           <span class="ico">${r.icon}</span>${r.name}
+         </button>`).join('');
+    }
+
+    const grid = document.getElementById('dgrid');
+    if (grid) grid.innerHTML = list.map(r =>
+      `<button data-id="${r.id}" onclick="App.go('${r.id}');App.drawer(false)">
+         <span class="ico">${r.icon}</span>${r.name}
+       </button>`).join('');
+
+    const tn = document.getElementById('topName');
+    if (tn) tn.textContent = Auth.isStaff() ? '砺蕴工作台' : (Auth.name() || '砺蕴工作台');
+  },
+
+  drawer(on){
+    document.getElementById('drawer')?.classList.toggle('on', !!on);
+  },
+
   go(id){
+    if (!this.can(id)) return UI.toast('这个功能你的账号看不到');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
     document.getElementById('page-' + id)?.classList.add('on');
-    document.querySelectorAll('#nav button').forEach(b =>
+    // 侧边栏、底部标签栏、抽屉三处的高亮一起跟
+    document.querySelectorAll('#nav button, #tabs button, #dgrid button').forEach(b =>
       b.classList.toggle('on', b.dataset.id === id));
     document.getElementById('main').scrollTop = 0;
     Store.set('_lastPage', id);
     this.routes.find(r => r.id === id)?.onShow?.();
   },
 
-  init(){
-    Store.migrate();          // 旧版数据补齐 id，无感升级
-    Settings.initRules();     // 量化细则占位规则（只初始化一次）
-    // 渲染侧边栏
-    document.getElementById('nav').innerHTML = this.routes.map(r =>
-      `<button data-id="${r.id}" onclick="App.go('${r.id}')">
-         <span class="ico">${r.icon}</span>${r.name}
-       </button>`).join('');
-
-    // 回到上次看的那一页
+  /** 登录成功后进入工作台 */
+  boot(){
+    this.renderChrome();
+    if (Auth.isStaff()) Settings.initRules();   // 量化占位细则，只有教务这边需要
     const last = Store.get('_lastPage');
-    this.go(this.routes.some(r => r.id === last) ? last : this.routes[0].id);
-
+    this.go(this.can(last) ? last : this.defaultPage());
     this.checkBackup();
-    if (typeof Sync !== 'undefined') Sync.init();
+    Staff.reset();                              // 换了账号，老师名单缓存作废
+    Sync.init();
+  },
+
+  async init(){
+    Store.migrate();          // 旧版数据补齐 id，无感升级
+
+    const ok = await Auth.boot();
+    if (!ok){
+      Auth.show(Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
+      return;                 // 没登录之前什么都不渲染，免得闪一下别人的界面
+    }
+    this.boot();
   },
 
   /** 重绘当前页。同步拉到新数据后调用 */
@@ -1047,11 +1488,13 @@ const App = {
     const cur = document.querySelector('.page.on');
     if (!cur) return;
     const id = cur.id.replace('page-', '');
-    this.routes.find(r => r.id === id)?.onShow?.();
+    const r = this.routes.find(x => x.id === id);
+    if (r && r.roles.includes(Auth.role())) r.onShow?.();
   },
 
   // 用户永远不会主动点导出，所以要主动提醒
   checkBackup(){
+    if (!Auth.isStaff()) return;                         // 老师本机只是镜像，不用提醒备份
     const last = Store.get('_lastBackup');
     const write = Store.get('_lastWrite');
     if (!write) return;                                  // 还没存过东西，不用提醒
@@ -1079,8 +1522,8 @@ const Home = {
     } else {
       const days = Math.ceil((new Date(date) - new Date(Util.today())) / 864e5);
       cd.innerHTML = days >= 0
-        ? `<div class="hero num">${days}<span class="unit">天</span></div><p class="hint">${Util.esc(label)}：${date}</p>`
-        : `<div class="hero num">0<span class="unit">天</span></div><p class="hint">${Util.esc(label)}日已过，记得改成下一个目标</p>`;
+        ? `<div class="hero"><span class="num">${days}</span><span class="unit">天</span></div><p class="hint">${Util.esc(label)}：${date}</p>`
+        : `<div class="hero"><span class="num">0</span><span class="unit">天</span></div><p class="hint">${Util.esc(label)}日已过，记得改成下一个目标</p>`;
     }
 
     /* ── 今日速览 ── */
@@ -1115,8 +1558,16 @@ const Home = {
 
 
 /* ==== 通用：识别与读文件 START ====
-   图片走 Tesseract.js（CDN 按需加载，中文包约 10MB，第一次识别会等一会儿），
-   txt 直接读，docx 用 mammoth 转文字。识别出来的都是「纯文字」，交给各功能自己解析。 */
+   图片走 Tesseract.js（CDN 按需加载，中文包约 20MB，第一次识别会等一会儿），
+   txt 直接读，docx 用 mammoth 转文字。识别出来的都是「纯文字」，交给各功能自己解析。
+   库文件全部走 npmmirror（国内直连快），避免现场用 jsdelivr 转半天转不出来。 */
+const CDN = {
+  tesseract: 'https://registry.npmmirror.com/tesseract.js/5.1.1/files/dist/',
+  core:      'https://registry.npmmirror.com/tesseract.js-core/5.1.0/files/',
+  lang:      'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0',  // 语言包：20MB，只有这一处在国外源，认命
+  mammoth:   'https://registry.npmmirror.com/mammoth/1.8.0/files/mammoth.browser.min.js'
+};
+
 const Ocr = {
   _lib: null,
 
@@ -1124,7 +1575,7 @@ const Ocr = {
     if (this._lib) return this._lib;
     this._lib = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.src = CDN.tesseract + 'tesseract.min.js';
       s.onload = () => { if (window.Tesseract) res(window.Tesseract); else { this._lib = null; rej(new Error('识别引擎加载失败')); } };
       s.onerror = () => { this._lib = null; rej(new Error('识别引擎加载失败，请检查网络后重试')); };
       document.head.appendChild(s);
@@ -1135,6 +1586,9 @@ const Ocr = {
   async recognize(file, onProgress){
     const T = await this.load();
     const { data } = await T.recognize(file, 'chi_sim', {
+      workerPath: CDN.tesseract + 'worker.min.js',
+      corePath:   CDN.core + 'tesseract-core-simd.wasm.js',
+      langPath:   CDN.lang,
       logger: m => { if (onProgress && m.status === 'recognizing text') onProgress(m.progress); }
     });
     return (data.text || '').replace(/[ \t]+\n/g, '\n').trim();
@@ -1150,7 +1604,7 @@ async function readAnyFile(file, onProgress){
     if (!window.mammoth){
       await new Promise((res, rej) => {
         const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js';
+        s.src = CDN.mammoth;
         s.onload = res; s.onerror = () => rej(new Error('文档解析引擎加载失败'));
         document.head.appendChild(s);
       });
@@ -1338,12 +1792,100 @@ const Att = {
   },
 
   pickDate(v){ Store.set('_attDate', v || Util.today()); this.render(); },
-  pickCls(v){ Store.set('_attCls', v); this.render(); }
+  pickCls(v){ Store.set('_attCls', v); this.render(); },
+
+  /* ══ 导出 ══
+     考勤要交给别人看（存档、发群、报教务），所以必须能出去。
+     导的是 CSV——Excel、WPS、Numbers 都能直接打开，双击就是一张表。 */
+
+  /** 某天某班的行：[姓名, 状态] */
+  dayRows(date, clsId){
+    const byStu = {};
+    Store.list('att:' + date).forEach(r => { byStu[r.studentId] = r.status; });
+    return Store.list('students', Util.byName)
+      .filter(s => s.classId === clsId)
+      .map(s => [s.name, byStu[s.id] || '未登记']);
+  },
+
+  /** 发班级群用的小结文案：只说人数和要留意的几个人 */
+  copySummary(){
+    const date = Store.get('_attDate') || Util.today();
+    const clsId = Store.get('_attCls');
+    if (!clsId) return UI.toast('先选个班级');
+    const rows = this.dayRows(date, clsId);
+    if (!rows.length) return UI.toast('这个班还没有学员');
+    const c = {};
+    this.STATUSES.forEach(st => { c[st] = 0; });
+    rows.forEach(r => { if (c[r[1]] !== undefined) c[r[1]]++; });
+    const watch = rows.filter(r => r[1] !== '正常' && r[1] !== '未登记');
+    const text = `【${Util.clsName(clsId)} · 考勤】${date}\n`
+      + `应到 ${rows.length} 人 · ` + this.STATUSES.map(st => `${st} ${c[st]}`).join(' · ')
+      + (watch.length
+          ? '\n\n需要留意：\n' + watch.map(r => `${r[0]}（${r[1]}）`).join('\n')
+          : '\n\n全员正常');
+    Util.copy(text);
+  },
+
+  exportDay(){
+    const date = Store.get('_attDate') || Util.today();
+    const clsId = Store.get('_attCls');
+    if (!clsId) return UI.toast('先选个班级');
+    const name = Util.clsName(clsId);
+    const rows = [['日期', '班级', '姓名', '状态'],
+      ...this.dayRows(date, clsId).map(r => [date, name, r[0], r[1]])];
+    Util.download(`考勤-${name}-${date}.csv`, Util.csv(rows));
+    this._stat(`已导出 ${name} ${date}，共 ${rows.length - 1} 人`);
+  },
+
+  exportMonth(){
+    const clsId = Store.get('_attCls');
+    if (!clsId) return UI.toast('先选个班级');
+    const m = this._month();
+    this._monthCsv(m, [clsId]);
+  },
+
+  exportAll(){
+    const m = this._month();
+    const ids = Store.list('classes').map(c => c.id);
+    if (!ids.length) return UI.toast('还没有班级');
+    this._monthCsv(m, ids);
+  },
+
+  _month(){
+    const el = document.getElementById('attMonth');
+    if (el && el.value) return el.value;
+    return (Store.get('_attDate') || Util.today()).slice(0, 7);
+  },
+
+  /** 整月表：一行一个学员，一列一天。横向看完一个人整个月的出勤最直观 */
+  _monthCsv(month, clsIds){
+    const days = Util.daysOf(month);
+    const byDay = {};
+    days.forEach(d => {
+      const m = {};
+      Store.list('att:' + d).forEach(r => { m[r.studentId] = r.status; });
+      byDay[d] = m;
+    });
+    const rows = [['班级', '姓名', ...days.map(d => d.slice(8) + '日')]];
+    let people = 0;
+    clsIds.forEach(cid => {
+      const name = Util.clsName(cid);
+      Store.list('students', Util.byName).filter(s => s.classId === cid).forEach(s => {
+        rows.push([name, s.name, ...days.map(d => byDay[d][s.id] || '')]);
+        people++;
+      });
+    });
+    if (!people) return UI.toast('这些班还没有学员');
+    Util.download(`考勤-${month}-整月.csv`, Util.csv(rows));
+    this._stat(`已导出 ${month}，共 ${people} 人 × ${days.length} 天`);
+  },
+
+  _stat(t){ const el = document.getElementById('attExpStat'); if (el) el.textContent = t; }
 };
 /* ==== 功能：考勤 END ==== */
 
 
-/* ==== 功能：排课 START ==== */
+/* ==== 功能：课表 START ==== */
 const Schedule = {
   DAYS: ['周一','周二','周三','周四','周五','周六','周日'],
 
@@ -1375,9 +1917,33 @@ const Schedule = {
     this.renderPeriods();
     this.renderPeriodSels();
     this.renderStudents();
+    this.renderTeachers();
     this.renderBig();
     this.renderSmall();
     this.renderArch();
+  },
+
+  /** 上课老师下拉：账号列表来自服务端，只读缓存一次 */
+  renderTeachers(){
+    const fill = () => {
+      const list = Staff.teachers();
+      const html = '<option value="">上课老师（可选）</option>'
+        + list.map(u => `<option value="${u.id}">${Util.esc(u.name)}</option>`).join('');
+      ['schTeacher','miniTeacher'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const keep = sel.value;
+        sel.innerHTML = html;
+        if (keep && list.some(u => u.id === keep)) sel.value = keep;
+      });
+    };
+    const clsHtml = Store.list('classes', (a,b) => (a.name || '') > (b.name || '') ? 1 : -1)
+      .map(c => `<option value="${Util.esc(c.name)}">`).join('');
+    const dl = document.getElementById('clsSuggestions');
+    if (dl) dl.innerHTML = clsHtml;
+
+    if (Staff.loaded) fill();
+    else Staff.load().then(fill);
   },
 
   renderPeriods(){
@@ -1425,7 +1991,7 @@ const Schedule = {
           return `<p class="hint" style="margin:14px 0 2px;font-size:14px;color:var(--text)">${day}</p>` +
             one.map(x => `<div class="item">
               <span class="mono" style="flex-shrink:0;width:96px">${Util.esc(this.timeOf(x) || '--:--')}<br><span class="hint" style="display:inline;margin:0">${Util.esc(this.periodLabel(x))}</span></span>
-              <span class="grow">${Util.esc(x.title)}${x.cls ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.cls)}</span>` : ''}${x.stu ? `<br><span class="hint" style="display:inline;margin:0">学员：${Util.esc(x.stu)}</span>` : ''}</span>
+              <span class="grow">${Util.esc(x.title)}${x.cls ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.cls)}</span>` : ''}${x.stu ? `<br><span class="hint" style="display:inline;margin:0">学员：${Util.esc(x.stu)}</span>` : ''}${x.teacherId && Staff.name(x.teacherId) ? `<br><span class="hint" style="display:inline;margin:0">老师：${Util.esc(Staff.name(x.teacherId))}</span>` : ''}</span>
               <button class="del" onclick="Schedule.del('${x.id}')">✕</button>
             </div>`).join('');
         }).join('')
@@ -1613,7 +2179,8 @@ const Schedule = {
     const cls    = document.getElementById('schCls').value.trim();
     if (!period) return UI.toast('先在上方配好作息时间');
     if (!title) return UI.toast('填一下上课内容');
-    Store.upsert('schedule', { day, periodId: period, title, cls, kind: 'big' });
+    const teacherId = document.getElementById('schTeacher').value;
+    Store.upsert('schedule', { day, periodId: period, title, cls, teacherId, kind: 'big' });
     document.getElementById('schTitle').value = '';
     document.getElementById('schCls').value = '';
     this.render();
@@ -1627,7 +2194,8 @@ const Schedule = {
     const title  = document.getElementById('miniTitle').value.trim();
     if (!period && !time) return UI.toast('选个节次，或者单独填个时间');
     if (!title) return UI.toast('填一下上课内容');
-    Store.upsert('schedule', { day, periodId: period || '', time, stu, title, kind: 'small' });
+    const teacherId = document.getElementById('miniTeacher').value;
+    Store.upsert('schedule', { day, periodId: period || '', time, stu, title, teacherId, kind: 'small' });
     document.getElementById('miniTime').value = '';
     document.getElementById('miniStu').value = '';
     document.getElementById('miniTitle').value = '';
@@ -1636,7 +2204,7 @@ const Schedule = {
 
   del(id){ Store.softDelete('schedule', id); this.render(); }
 };
-/* ==== 功能：排课 END ==== */
+/* ==== 功能：课表 END ==== */
 
 
 /* ==== 功能：作业 START ==== */
@@ -1985,6 +2553,7 @@ const Exam = {
   render(){
     this.renderAI();
     this.renderList();
+    this.renderSheet();
   },
 
   renderAI(){
@@ -2088,41 +2657,184 @@ const Exam = {
     if (!confirm('删除这组题？')) return;
     Store.softDelete('exams', id);
     this.renderList();
+  },
+
+  /* ══ 成绩录入 ══
+     以班级为单位：选班 → 选（或新建）一场 → 一人一行直接填分，填完自动存。
+     存两条数据：
+       exam_sheets  一场模考（班级 + 场次名 + 日期）
+       exam_scores  一个学生一条成绩。带上 clsId 是为了让老师端能按班过滤。 */
+
+  _sheet(){ return Store.get('_exSheet'); },
+  _cls(){ return Store.get('_exCls'); },
+
+  pickCls(v){ Store.set('_exCls', v); Store.remove('_exSheet'); this.renderSheet(); },
+  pickSheet(id){ if (id) Store.set('_exSheet', id); this.renderSheet(); },
+
+  sheets(clsId){
+    return Store.list('exam_sheets', (a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
+                .filter(s => s.clsId === clsId);
+  },
+
+  sheetById(id){ return Store.list('exam_sheets').find(s => s.id === id); },
+
+  newSheet(){
+    const clsId = this._cls();
+    const el = document.getElementById('exSheetName');
+    const name = (el.value || '').trim();
+    if (!clsId) return UI.toast('先选个班级');
+    if (!name) return UI.toast('给这次模考起个名字，比如「9 月第 3 周」');
+    const dup = this.sheets(clsId).find(s => s.name === name);
+    el.value = '';
+    if (dup){ Store.set('_exSheet', dup.id); this.renderSheet(); return UI.toast('这场已经在了，直接往下填'); }
+    const it = Store.upsert('exam_sheets', { clsId, name, date: Util.today() });
+    Store.set('_exSheet', it.id);
+    UI.toast('建好了，下面开始填分');
+    this.renderSheet();
+  },
+
+  renderSheet(){
+    const clsEl = document.getElementById('exCls');
+    if (!clsEl) return;
+    const clsId = Util.fillCls('exCls', '_exCls');
+    const sheets = this.sheets(clsId);
+    let cur = this._sheet();
+    if (!sheets.some(s => s.id === cur)) cur = sheets[0] ? sheets[0].id : '';
+    if (cur !== this._sheet()) Store.set('_exSheet', cur);
+
+    const selEl = document.getElementById('exSheetSel');
+    selEl.innerHTML = sheets.length
+      ? sheets.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${Util.esc(s.name)}（${s.date}）</option>`).join('')
+      : '<option value="">还没有场次</option>';
+
+    const box = document.getElementById('exSheet');
+    const stat = document.getElementById('exExpStat');
+    if (!clsId){
+      box.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
+      if (stat) stat.textContent = '';
+      return;
+    }
+    if (!cur){
+      box.innerHTML = '<div class="empty">这个班还没有模考场次。上面填个名字，点「新建这一场」就开始。</div>';
+      if (stat) stat.textContent = '';
+      return;
+    }
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    if (!students.length){ box.innerHTML = '<div class="empty">这个班还没有学员</div>'; return; }
+
+    const scores = {};
+    Store.list('exam_scores').filter(x => x.sheetId === cur).forEach(x => { scores[x.studentId] = x.score; });
+    const done = students.filter(s => scores[s.id] !== undefined && scores[s.id] !== '');
+    const avg = done.length ? done.reduce((a, s) => a + Number(scores[s.id]), 0) / done.length : null;
+
+    box.innerHTML = `
+      <p class="hint" style="margin:0 0 6px">填完自动存，不用点保存。留空表示还没考。</p>
+      ${students.map(s => `<div class="item">
+        <span class="grow">${Util.esc(s.name)}</span>
+        <input type="number" step="0.1" inputmode="decimal" class="ex-score" data-sid="${s.id}"
+               value="${scores[s.id] === undefined ? '' : Util.esc(String(scores[s.id]))}"
+               placeholder="分" style="max-width:108px;text-align:right">
+      </div>`).join('')}`;
+    box.querySelectorAll('.ex-score').forEach(inp => {
+      inp.addEventListener('change', () => Exam.saveScore(inp.dataset.sid, inp.value));
+    });
+
+    const sh = this.sheetById(cur);
+    if (stat) stat.textContent = `${Util.clsName(clsId)} · ${sh ? sh.name : ''}`
+      + ` · 已填 ${done.length}/${students.length}`
+      + (avg === null ? '' : ` · 平均 ${avg.toFixed(1)} 分`);
+  },
+
+  saveScore(sid, val){
+    const sheetId = this._sheet();
+    const sheet = this.sheetById(sheetId);
+    if (!sheet || !sid) return;
+    const v = String(val).trim();
+    const old = Store.list('exam_scores').find(x => x.sheetId === sheetId && x.studentId === sid);
+    if (v === ''){
+      if (old){ Store.softDelete('exam_scores', old.id); this.renderSheet(); }
+      return;
+    }
+    const n = Number(v);
+    if (isNaN(n)) return UI.toast('分数要填数字');
+    if (old && Number(old.score) === n) return;
+    Store.upsert('exam_scores', {
+      id: old ? old.id : null, sheetId, clsId: sheet.clsId,
+      studentId: sid, score: n, date: sheet.date, sheetName: sheet.name,
+    });
+    this.renderSheet();
+  },
+
+  /* ── 导出成绩 ── */
+  exportSheet(){
+    const sheet = this.sheetById(this._sheet());
+    if (!sheet) return UI.toast('先选（或新建）一场模考');
+    const students = Store.list('students', Util.byName).filter(s => s.classId === sheet.clsId);
+    const scores = {};
+    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => { scores[x.studentId] = x.score; });
+    const rows = [['班级', '场次', '日期', '姓名', '分数'],
+      ...students.map(s => [Util.clsName(sheet.clsId), sheet.name, sheet.date, s.name,
+        scores[s.id] === undefined ? '' : scores[s.id]])];
+    Util.download(`模考成绩-${Util.clsName(sheet.clsId)}-${sheet.name}.csv`, Util.csv(rows));
+    const st = document.getElementById('exExpStat');
+    if (st) st.textContent = `已导出「${sheet.name}」共 ${students.length} 人`;
+  },
+
+  exportAll(){
+    const clsId = this._cls();
+    if (!clsId) return UI.toast('先选个班级');
+    const sheets = this.sheets(clsId);
+    if (!sheets.length) return UI.toast('这个班还没有模考场次');
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    const index = {};
+    Store.list('exam_scores').forEach(x => { index[x.sheetId + '|' + x.studentId] = x.score; });
+    // 横向排：一行一个学员，一列一场，看进退步一目了然
+    const cols = sheets.slice().reverse();
+    const rows = [['班级', '姓名', ...cols.map(s => s.name)]];
+    students.forEach(s => {
+      rows.push([Util.clsName(clsId), s.name,
+        ...cols.map(c => index[c.id + '|' + s.id] === undefined ? '' : index[c.id + '|' + s.id])]);
+    });
+    Util.download(`模考历次成绩-${Util.clsName(clsId)}.csv`, Util.csv(rows));
+    const st = document.getElementById('exExpStat');
+    if (st) st.textContent = `已导出 ${students.length} 人 × ${cols.length} 场`;
+  },
+
+  copyRank(){
+    const sheet = this.sheetById(this._sheet());
+    if (!sheet) return UI.toast('先选一场模考');
+    const scores = {};
+    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => { scores[x.studentId] = Number(x.score); });
+    const ranked = Store.list('students').filter(s => s.classId === sheet.clsId)
+      .filter(s => !isNaN(scores[s.id]))
+      .map(s => ({ name: s.name, score: scores[s.id] }))
+      .sort((a, b) => b.score - a.score);
+    if (!ranked.length) return UI.toast('这一场还没填分');
+    const avg = ranked.reduce((a, r) => a + r.score, 0) / ranked.length;
+    Util.copy(`【${Util.clsName(sheet.clsId)} · ${sheet.name} 成绩】\n`
+      + `${sheet.date} · 共 ${ranked.length} 人 · 平均 ${avg.toFixed(1)} 分\n\n`
+      + ranked.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n'));
   }
 };
 /* ==== 功能：模考 END ==== */
 
 
-/* ==== 功能：体重 START ==== */
+/* ==== 功能：体重 START ====
+   体重不再是一个独立功能了 —— 它跟着某个学员，出现在「学员档案」里。
+   教务能记（同一人同一天只留一条，重复记就是改），授课老师只读。 */
 const Weight = {
-  render(){
-    const classes = Store.list('classes');
-    const students = Store.list('students', Util.byName);
-    const sel = document.getElementById('wStu');
-    let cur = Store.get('_wStu');
-    if (!students.some(s => s.id === cur)) cur = students[0] ? students[0].id : '';
-    if (cur && cur !== Store.get('_wStu')) Store.set('_wStu', cur);
+  /** 某人的体重记录，按日期从早到晚 */
+  of(sid){
+    return Store.list('weights', (a,b) => a.date < b.date ? -1 : 1).filter(x => x.studentId === sid);
+  },
 
-    sel.innerHTML = students.length ? students.map(s => {
-      const c = classes.find(c => c.id === s.classId);
-      return `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${c ? Util.esc(c.name) + ' · ' : ''}${Util.esc(s.name)}</option>`;
-    }).join('') : '<option value="">先去「名册」加学员</option>';
-
-    const dEl = document.getElementById('wDate');
-    if (!dEl.value) dEl.value = Util.today();
-
-    const chart = document.getElementById('wChart');
-    const list = document.getElementById('wList');
-    if (!cur){
-      chart.innerHTML = '<div class="empty">先去「名册」加学员</div>';
-      list.innerHTML = '';
-      return;
-    }
-    const recs = Store.list('weights', (a,b) => a.date < b.date ? -1 : 1).filter(x => x.studentId === cur);
+  /** 档案里那一块。canEdit=false 时没有录入框和删除键 */
+  block(sid, canEdit){
+    const recs = this.of(sid);
     const last = recs[recs.length - 1];
     const shown = recs.slice(-12);
 
-    let svg = '';
+    let svg;
     if (shown.length >= 2){
       const vals = shown.map(x => x.value);
       const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
@@ -2133,35 +2845,46 @@ const Weight = {
           <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"
             stroke-linejoin="round" stroke-linecap="round"/>
         </svg>
-        <div class="stat"><span>${shown[0].date} ${shown[0].value}kg</span><span>${shown[shown.length - 1].date} ${shown[shown.length - 1].value}kg</span></div>`;
+        <div class="stat"><span>${shown[0].date}　${shown[0].value}kg</span>
+          <span>${shown[shown.length - 1].date}　${shown[shown.length - 1].value}kg</span></div>`;
     } else {
-      svg = '<div class="empty">同一人记两次以上就能看到曲线</div>';
+      svg = '<div class="empty">记两次以上就能看到曲线</div>';
     }
-    chart.innerHTML = (last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次</span></div>` : '') + svg;
 
-    list.innerHTML = recs.slice(-10).reverse().map(x =>
+    const list = recs.slice(-10).reverse().map(x =>
       `<div class="item">
         <span class="grow num">${x.date}</span>
         <b class="num" style="flex-shrink:0">${x.value} kg</b>
-        <button class="del" onclick="Weight.del('${x.id}')">✕</button>
+        ${canEdit ? `<button class="del" onclick="Weight.del('${x.id}','${sid}')">✕</button>` : ''}
       </div>`).join('');
+
+    return `<div class="card">
+      <h2>⚖️ 体重 <span class="hint" style="display:inline;margin:0">（一周记一次就够）</span></h2>
+      ${last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次 ${last.date}</span></div>` : ''}
+      ${canEdit ? `<div class="row" style="margin-top:14px;flex-wrap:wrap">
+        <input type="date" id="wDate" value="${Util.today()}" style="max-width:170px">
+        <input type="number" id="wVal" step="0.1" inputmode="decimal" placeholder="kg" style="max-width:108px">
+        <button class="btn" onclick="Weight.add('${sid}')">记录</button>
+      </div>` : ''}
+      <div style="margin-top:14px">${svg}</div>
+      <div style="margin-top:4px">${list || '<div class="empty">还没有记录</div>'}</div>
+    </div>`;
   },
 
-  add(){
-    const sid = Store.get('_wStu');
+  add(sid){
+    if (!Auth.isStaff()) return UI.toast('体重只有教务能改');
     const v = parseFloat(document.getElementById('wVal').value);
     const date = document.getElementById('wDate').value || Util.today();
-    if (!sid) return UI.toast('先去「名册」加学员');
     if (!v || v < 20 || v > 300) return UI.toast('体重数值看着不对，检查一下');
     // 同一人同一天只保留一条，重复记就是改
     const dup = Store.list('weights').find(x => x.studentId === sid && x.date === date);
     Store.upsert('weights', { id: dup ? dup.id : null, studentId: sid, date, value: v });
     document.getElementById('wVal').value = '';
     UI.toast('记好了');
-    this.render();
+    Student.renderDetail();
   },
 
-  del(id){ Store.softDelete('weights', id); this.render(); }
+  del(id){ Store.softDelete('weights', id); Student.renderDetail(); }
 };
 /* ==== 功能：体重 END ==== */
 
@@ -2229,19 +2952,734 @@ const News = {
 /* ==== 功能：每日新闻 END ==== */
 
 
+/* ==== 功能：学员档案 START ====
+   一个人一屏看完：考勤、作业、过关、模考、体重、老师评语时间线。
+   教务能改（体重、评语都在这儿记），授课老师只读 —— 服务端本来也没给他写权限。 */
+const Student = {
+  _sid(){ return Store.get('_pfStu'); },
+
+  render(){
+    Util.fillCls('pfCls', '_pfCls');
+    // 没选人时自动挑当前班第一个，省一次点击
+    if (!this._sid()){
+      const first = Store.list('students', Util.byName).find(s => s.classId === Store.get('_pfCls'));
+      if (first) Store.set('_pfStu', first.id);
+    }
+    const sub = document.getElementById('pfSub');
+    if (sub) sub.textContent = Auth.isStaff()
+      ? '左边挑人，右边一屏看完他的全部记录（体重和评语也在这里记）'
+      : '左边挑人，右边一屏看完他的全部记录（只读）';
+    this.renderList();
+    this.renderDetail();
+  },
+
+  pickCls(v){ Store.set('_pfCls', v); Store.remove('_pfStu'); this.render(); },
+  pickStu(id){ Store.set('_pfStu', id); this.renderList(); this.renderDetail(); },
+
+  /** 从别的页面跳过来看某个人（老师端的「我带的班」用） */
+  openFor(id){
+    const s = Store.list('students').find(x => x.id === id);
+    if (s) Store.set('_pfCls', s.classId);
+    Store.set('_pfStu', id);
+    App.go('profile');
+    this.renderList();
+    this.renderDetail();
+  },
+
+  /** 不搜就在当前班里找，搜了就跨班找 —— 想不起他在哪个班的时候最省事 */
+  renderList(){
+    const el = document.getElementById('pfList');
+    if (!el) return;
+    const q = (document.getElementById('pfSearch')?.value || '').trim();
+    let list = Store.list('students', Util.byName);
+    if (q) list = list.filter(s => (s.name || '').indexOf(q) >= 0);
+    else list = list.filter(s => s.classId === Store.get('_pfCls'));
+    if (!list.length){
+      el.innerHTML = '<div class="empty">' + (q ? '没找到这个名字' : '这个班还没有学员') + '</div>';
+      return;
+    }
+    const cur = this._sid();
+    el.innerHTML = list.map(s => `<div class="item pick${s.id === cur ? ' on' : ''}" onclick="Student.pickStu('${s.id}')">
+        <span class="grow">${Util.esc(s.name)}${q ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(Util.clsName(s.classId))}</span>` : ''}</span>
+        <span class="del">›</span>
+      </div>`).join('');
+  },
+
+  metric(label, value){
+    return `<div style="background:var(--sidebar-active);border-radius:12px;padding:10px 12px">
+      <div class="hint" style="margin:0;font-size:12px">${label}</div>
+      <div class="num" style="font-size:20px;font-weight:500;margin-top:2px">${value}</div>
+    </div>`;
+  },
+
+  renderDetail(){
+    const box = document.getElementById('pfBody');
+    if (!box) return;
+    const sid = this._sid();
+    const s = Store.list('students').find(x => x.id === sid);
+    if (!s){
+      box.innerHTML = '<div class="card"><div class="empty">左边挑一个学员，这里会显示他的全部记录</div></div>';
+      return;
+    }
+    const canEdit = Auth.isStaff();
+    const keys = Object.keys(Store.dump());
+
+    /* ── 考勤 ── */
+    const attCount = { '正常': 0, '迟到': 0, '病假': 0, '事假': 0 };
+    const attRecent = [];
+    keys.filter(k => k.indexOf('att:') === 0).sort().forEach(k => {
+      const r = Store.list(k).find(x => x.studentId === sid);
+      if (!r) return;
+      if (attCount[r.status] !== undefined) attCount[r.status]++;
+      attRecent.push({ date: k.slice(4), status: r.status });
+    });
+    const attTotal = attRecent.length;
+    const pct = attTotal ? Math.round(attCount['正常'] / attTotal * 100) : null;
+
+    /* ── 晚自习过关 ── */
+    let nightOk = 0, nightNo = 0;
+    keys.filter(k => k.indexOf('night:') === 0).forEach(k => {
+      const r = Store.list(k).find(x => x.studentId === sid);
+      if (!r) return;
+      if (r.st === '过') nightOk++; else if (r.st === '未过') nightNo++;
+    });
+
+    /* ── 作业 ── */
+    const hwRows = [];
+    let hwDone = 0, hwMiss = 0;
+    Store.list('homework', (a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
+      .filter(h => h.clsId === s.classId)
+      .forEach(h => {
+        const sub = Store.list('hw:' + h.id).find(x => x.studentId === sid);
+        if (sub){ if (sub.done) hwDone++; else hwMiss++; }
+        hwRows.push({ date: h.date, text: h.text, st: !sub ? '未登记' : (sub.done ? '已交' : '未交') });
+      });
+
+    /* ── 模考成绩 ── */
+    const scoreOf = {};
+    Store.list('exam_scores').filter(x => x.studentId === sid).forEach(x => { scoreOf[x.sheetId] = x.score; });
+    const myScores = Store.list('exam_sheets', (a,b) => (a.date || '') < (b.date || '') ? -1 : 1)
+      .filter(sh => sh.clsId === s.classId)
+      .map(sh => ({ name: sh.name, date: sh.date, score: scoreOf[sh.id] }))
+      .filter(x => x.score !== undefined && x.score !== '');
+    const lastFew = myScores.slice(-8);
+    let scoreSvg = '';
+    if (lastFew.length >= 2){
+      const vals = lastFew.map(x => Number(x.score));
+      const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+      const pts = lastFew.map((x, i) =>
+        `${(i / (lastFew.length - 1) * 300 + 10).toFixed(1)},${(110 - (Number(x.score) - min) / span * 90).toFixed(1)}`).join(' ');
+      scoreSvg = `<svg viewBox="0 0 320 120" style="width:100%;height:auto;display:block">
+          <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+    }
+
+    /* ── 量化分：直接借用量化页那套算法，不另搞一套口径 ── */
+    let quant = null;
+    try {
+      const rows = Quant.compute(s.classId, '1970-01-01', Util.today());
+      const me = rows.find(r => r.id === sid || r.name === s.name);
+      if (me) quant = me.score;
+    } catch(e){ quant = null; }
+
+    /* ── 评语 / 今日情况时间线 ── */
+    const recs = Store.list('records', (a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
+                       .filter(r => r.studentId === sid);
+
+    box.innerHTML = `
+      <div class="card">
+        <h2>📇 ${Util.esc(s.name)} <span class="hint" style="display:inline;margin:0">${Util.esc(Util.clsName(s.classId))}</span></h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px;margin-top:6px">
+          ${this.metric('出勤率', pct === null ? '—' : pct + '%')}
+          ${this.metric('考勤天数', attTotal)}
+          ${this.metric('作业已交', hwDone)}
+          ${this.metric('作业未交', hwMiss)}
+          ${this.metric('晚自习过关', nightOk + (nightNo ? '/' + (nightOk + nightNo) : ''))}
+          ${this.metric('量化分', quant === null ? '—' : quant)}
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📋 考勤明细</h2>
+        <p class="hint" style="margin-top:0">${['正常','迟到','病假','事假'].map(k => k + ' ' + attCount[k]).join(' · ')}</p>
+        ${attRecent.length ? attRecent.slice(-14).reverse().map(r =>
+          `<div class="item"><span class="grow num">${r.date}</span>
+             <span class="chip ${r.status === '正常' ? '' : 'chip-no'}" style="pointer-events:none">${r.status}</span></div>`).join('')
+          : '<div class="empty">还没有考勤记录</div>'}
+      </div>
+
+      <div class="card">
+        <h2>📝 作业</h2>
+        ${hwRows.length ? hwRows.slice(0, 12).map(h =>
+          `<div class="item">
+             <span class="grow">${Util.esc(h.text)}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
+             <span class="chip ${h.st === '未交' ? 'chip-no' : (h.st === '已交' ? 'chip-on' : '')}" style="pointer-events:none">${h.st}</span>
+           </div>`).join('')
+          : '<div class="empty">这个班还没布置过作业</div>'}
+      </div>
+
+      <div class="card">
+        <h2>🎤 模考成绩</h2>
+        ${myScores.length ? `<div class="hero num">${myScores[myScores.length - 1].score}<span class="unit">分 · ${Util.esc(myScores[myScores.length - 1].name)}</span></div>` : ''}
+        ${scoreSvg ? `<div style="margin-top:12px">${scoreSvg}</div>` : ''}
+        ${myScores.length ? myScores.slice().reverse().map(x =>
+          `<div class="item"><span class="grow">${Util.esc(x.name)}<br><span class="hint" style="display:inline;margin:0">${x.date}</span></span>
+             <b class="num" style="flex-shrink:0">${x.score}</b></div>`).join('')
+          : '<div class="empty">还没有模考成绩</div>'}
+      </div>
+
+      ${Weight.block(sid, canEdit)}
+
+      <div class="card">
+        <h2>💬 表现与评语</h2>
+        ${canEdit ? `<div class="row" style="margin-bottom:10px">
+          <input type="text" id="pfNote" placeholder="记一句，例如：气息稳了，但咬字偏松">
+          <button class="btn" onclick="Student.addNote('${sid}')">记下</button>
+        </div>` : ''}
+        ${recs.length ? recs.map(r => {
+          const bits = [];
+          if (r.perf) bits.push(Util.esc(r.perf));
+          if (r.state) bits.push(`<span class="chip" style="pointer-events:none">${Util.esc(r.state)}</span>`);
+          if (r.hw) bits.push(`<span class="chip ${r.hw === '未交' ? 'chip-no' : 'chip-on'}" style="pointer-events:none">作业${Util.esc(r.hw)}</span>`);
+          return `<div class="item">
+            <span class="grow">${bits.join(' ') || '（空记录）'}
+              <br><span class="hint" style="display:inline;margin:0">${r.date} · ${Util.esc(r.byName || '')}</span></span>
+            ${canEdit ? `<button class="del" onclick="Student.delNote('${r.id}')">✕</button>` : ''}
+          </div>`;
+        }).join('') : '<div class="empty">还没有记录</div>'}
+      </div>`;
+  },
+
+  /** 教务在这里写的那一句，和老师端「录入今日情况」进的是同一份数据 */
+  addNote(sid){
+    if (!Auth.isStaff()) return UI.toast('评语只有教务能写');
+    const el = document.getElementById('pfNote');
+    const perf = (el.value || '').trim();
+    if (!perf) return UI.toast('写一句再记');
+    const s = Store.list('students').find(x => x.id === sid);
+    const meId = Auth.me() ? Auth.me().id : '';
+    const date = Util.today();
+    const old = Store.list('records').find(r =>
+      r.studentId === sid && r.date === date && (r.byId || '') === meId);
+    Store.upsert('records', Object.assign({}, old || {}, {
+      id: old ? old.id : null, studentId: sid, classId: s ? s.classId : '',
+      date, byId: meId, byName: Auth.name(), perf,
+    }));
+    el.value = '';
+    UI.toast('记下了');
+    this.renderDetail();
+  },
+
+  delNote(id){ Store.softDelete('records', id); this.renderDetail(); }
+};
+/* ==== 功能：学员档案 END ==== */
+
+
+/* ==== 功能：协作 START ====（教务端） */
+const Coop = {
+  render(){ this.renderList(); this.renderNotices(); this.renderMaterials(); },
+
+  renderList(){
+    const el = document.getElementById('coopList');
+    if (!el) return;
+    const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1);
+    const open = list.filter(t => t.status !== 'done');
+    const cnt = document.getElementById('coopCount');
+    if (cnt) cnt.textContent = open.length ? '（' + open.length + ' 条待处理）' : '';
+    el.innerHTML = list.length ? list.map(t => `
+      <div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(t.type || '上报')}</b>
+          <span class="chip ${t.status === 'done' ? '' : 'chip-no'}" style="pointer-events:none">${t.status === 'done' ? '已处理' : '待处理'}</span>
+        </div>
+        <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
+        <p class="hint" style="margin:4px 0 0">${Util.esc(t.userName || '')}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
+        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
+          <input type="text" class="tkReply" data-tid="${t.id}" placeholder="回一句，老师那边能看到" style="margin-top:8px">
+          <div class="row" style="margin-top:6px">
+            <button class="btn" onclick="Coop.reply('${t.id}')">处理并回复</button>
+            <button class="btn ghost" onclick="Coop.reply('${t.id}', true)">直接标已处理</button>
+          </div>`}
+      </div>`).join('') : '<div class="empty">老师们还没有上报</div>';
+  },
+
+  reply(id, noText){
+    const t = Store.list('tickets').find(x => x.id === id);
+    if (!t) return;
+    const el = document.querySelector('.tkReply[data-tid="' + id + '"]');
+    const text = noText ? '' : ((el && el.value) || '').trim();
+    Store.upsert('tickets', Object.assign({}, t, {
+      status: 'done', reply: text, repliedAt: Date.now(),
+    }));
+    UI.toast('已处理');
+    this.renderList();
+  },
+
+  addNotice(){
+    const el = document.getElementById('noticeText');
+    const text = (el.value || '').trim();
+    if (!text) return UI.toast('先写点内容');
+    Store.upsert('notices', { date: Util.today(), text, by: Auth.name(), at: Date.now() });
+    el.value = '';
+    UI.toast('已发出，老师打开「今天」就能看到');
+    this.renderNotices();
+  },
+
+  renderNotices(){
+    const el = document.getElementById('noticeList');
+    if (!el) return;
+    const list = Store.list('notices', (a,b) => (a.at || 0) < (b.at || 0) ? 1 : -1);
+    el.innerHTML = list.length ? list.slice(0, 8).map(n => `
+      <div class="item">
+        <span class="grow pre">${Util.esc(n.text)}
+          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(n.by || '')}</span></span>
+        <button class="del" onclick="Coop.delNotice('${n.id}')">✕</button>
+      </div>`).join('') : '<div class="empty">还没发过通知</div>';
+  },
+
+  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); },
+
+  addMaterial(){
+    const t = document.getElementById('matTitle').value.trim();
+    const u = document.getElementById('matUrl').value.trim();
+    if (!t) return UI.toast('填个名称');
+    Store.upsert('materials', { title: t, url: u });
+    document.getElementById('matTitle').value = '';
+    document.getElementById('matUrl').value = '';
+    this.renderMaterials();
+  },
+
+  renderMaterials(){
+    const el = document.getElementById('matList');
+    if (!el) return;
+    const list = Store.list('materials', (a,b) => (a.title || '') > (b.title || '') ? 1 : -1);
+    el.innerHTML = list.length ? list.map(m => `
+      <div class="item">
+        <span class="grow">${Util.esc(m.title)}${m.url ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(m.url)}</span>` : ''}</span>
+        <button class="del" onclick="Coop.delMaterial('${m.id}')">✕</button>
+      </div>`).join('') : '<div class="empty">资料库还是空的</div>';
+  },
+
+  delMaterial(id){ Store.softDelete('materials', id); this.renderMaterials(); }
+};
+/* ==== 功能：协作 END ==== */
+
+
+/* ==== 功能：老师管理 START ====（只有首位教务，且账号操作全部在服务端鉴权） */
+const Teachers = {
+  _users: [],
+  _editing: null,
+
+  roleName(r){ return r === 'super' ? '首位教务（你）' : (r === 'admin' ? '教务老师' : '授课老师'); },
+
+  clsText(u){
+    if (u.role !== 'teacher') return '';
+    const names = (u.classIds || []).map(id => Util.clsName(id)).filter(Boolean);
+    return names.length ? ' · 带 ' + names.join('、') : ' · 还没分班';
+  },
+
+  async render(){
+    const el = document.getElementById('tList');
+    if (!el) return;
+    el.innerHTML = '<div class="empty">正在读取账号列表…</div>';
+    this.closeCls();
+    try {
+      const j = await Auth.call('users', { op: 'list' });
+      this._users = j.users || [];
+      this.paint();
+    } catch(e){
+      el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
+    }
+  },
+
+  paint(){
+    const el = document.getElementById('tList');
+    if (!el) return;
+    const list = this._users || [];
+    el.innerHTML = list.length ? list.map(u => `
+      <div class="item">
+        <span class="grow">
+          ${Util.esc(u.name)} <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>
+          <br><span class="hint" style="display:inline;margin:0">${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}</span>
+        </span>
+        ${u.role === 'super'
+          ? '<span class="chip" style="pointer-events:none">谁都动不了</span>'
+          : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+               <button class="chip" onclick="Teachers.editCls('${u.id}')">带班</button>
+               <button class="chip" onclick="Teachers.resetPass('${u.id}')">改密码</button>
+               <button class="chip" onclick="Teachers.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
+             </span>`}
+      </div>`).join('') : '<div class="empty">还没有老师</div>';
+  },
+
+  async create(){
+    const user = document.getElementById('tUser').value.trim().toLowerCase();
+    const name = document.getElementById('tName').value.trim();
+    const role = document.getElementById('tRole').value;
+    const pass = document.getElementById('tPass').value;
+    if (user.length < 3) return UI.toast('用户名至少 3 个字符');
+    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
+    try {
+      await Auth.call('users', { op: 'create', user, name: name || user, role, pass });
+      document.getElementById('tUser').value = '';
+      document.getElementById('tName').value = '';
+      document.getElementById('tPass').value = '';
+      UI.toast('建好了。把用户名和初始密码告诉 TA，让 TA 登录后自己改密码');
+      this.render();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async resetPass(id){
+    const np = prompt('给 TA 设一个新密码（至少 8 位）');
+    if (!np) return;
+    try {
+      await Auth.call('users', { op: 'pass', id, pass: np });
+      UI.toast('密码已重置，记得当面告诉 TA');
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async toggle(id, active){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!active && u && !confirm('停用「' + u.name + '」？\n\nTA 立刻登不进来，但之前录的数据一条不丢。随时可以再启用。')) return;
+    try {
+      await Auth.call('users', { op: 'update', id, active });
+      UI.toast(active ? '已启用' : '已停用');
+      this.render();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  editCls(id){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!u) return;
+    this._editing = id;
+    const card = document.getElementById('tClsCard');
+    document.getElementById('tClsWho').textContent = u.name;
+    const classes = Store.list('classes', (a,b) => (a.name || '') > (b.name || '') ? 1 : -1);
+    const mine = u.classIds || [];
+    document.getElementById('tClsBody').innerHTML = classes.length
+      ? classes.map(c => `<div class="item">
+          <span class="grow">${Util.esc(c.name)}
+            <br><span class="hint" style="display:inline;margin:0">${Store.list('students').filter(s => s.classId === c.id).length} 人</span></span>
+          <button class="chip ${mine.indexOf(c.id) >= 0 ? 'chip-on' : ''}" data-cid="${c.id}"
+                  onclick="Teachers.toggleCls(this)">${mine.indexOf(c.id) >= 0 ? '已选' : '选上'}</button>
+        </div>`).join('')
+      : '<div class="empty">先去「名册」建班级</div>';
+    card.style.display = '';
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+
+  toggleCls(btn){
+    const on = btn.classList.toggle('chip-on');
+    btn.textContent = on ? '已选' : '选上';
+  },
+
+  async saveCls(){
+    const id = this._editing;
+    if (!id) return;
+    const classIds = Array.from(document.querySelectorAll('#tClsBody .chip-on')).map(b => b.dataset.cid);
+    try {
+      await Auth.call('users', { op: 'update', id, classIds });
+      UI.toast('带班已保存，TA 下次刷新就生效');
+      this.closeCls();
+      this.render();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  closeCls(){
+    this._editing = null;
+    const card = document.getElementById('tClsCard');
+    if (card) card.style.display = 'none';
+  }
+};
+/* ==== 功能：老师管理 END ==== */
+
+
+/* ==== 功能：老师今天 START ====（授课老师端首页） */
+const Today = {
+  DAYS: ['周一','周二','周三','周四','周五','周六','周日'],
+
+  /** 我的课 = 教务点名排给我的 + 没点名但班级名字对得上的 */
+  myLessons(){
+    const mine = Auth.classIds();
+    const myClsNames = Store.list('classes').filter(c => mine.indexOf(c.id) >= 0).map(c => c.name);
+    const meId = Auth.me() ? Auth.me().id : '';
+    return Store.list('schedule', (a,b) => {
+      const d = this.DAYS.indexOf(a.day) - this.DAYS.indexOf(b.day);
+      return d !== 0 ? d : (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1;
+    }).filter(x => {
+      if (x.teacherId) return x.teacherId === meId;
+      // 老数据没有老师字段：班级名对得上就当是我的
+      return !!x.cls && myClsNames.some(n => n && x.cls.indexOf(n) >= 0);
+    });
+  },
+
+  timeOf(x){
+    if (x.time) return x.time;
+    const p = Store.list('periods').find(q => q.id === x.periodId);
+    return p ? (p.start || '') : '';
+  },
+
+  periodText(x){
+    const p = Store.list('periods').find(q => q.id === x.periodId);
+    return p ? p.name : '';
+  },
+
+  lessonRow(x){
+    return `<div class="item">
+      <span class="mono" style="flex-shrink:0;width:96px">${Util.esc(this.timeOf(x) || '--:--')}<br>
+        <span class="hint" style="display:inline;margin:0">${Util.esc(this.periodText(x))}</span></span>
+      <span class="grow">${Util.esc(x.title || '')}
+        ${x.cls ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.cls)}</span>` : ''}
+        ${x.stu ? `<br><span class="hint" style="display:inline;margin:0">学员：${Util.esc(x.stu)}</span>` : ''}</span>
+      <span class="chip" style="pointer-events:none">${(x.kind || 'big') === 'small' ? '小课' : '大课'}</span>
+    </div>`;
+  },
+
+  render(){
+    const d = new Date();
+    const week = this.DAYS[(d.getDay() + 6) % 7];
+    const hi = document.getElementById('tdHi');
+    if (hi) hi.textContent = '今天 ' + week;
+    const items = this.myLessons();
+    const todays = items.filter(x => x.day === week);
+    const sub = document.getElementById('tdSub');
+    if (sub) sub.textContent = Util.today() + ' · ' + Auth.name() + ' · 今天 ' + todays.length + ' 节课';
+
+    const notices = Store.list('notices', (a,b) => (a.at || 0) < (b.at || 0) ? 1 : -1).slice(0, 5);
+    const nc = document.getElementById('tdNoticeCard');
+    if (nc) nc.style.display = notices.length ? '' : 'none';
+    const nb = document.getElementById('tdNotice');
+    if (nb) nb.innerHTML = notices.map(n => `
+      <div class="item"><span class="grow pre">${Util.esc(n.text)}
+        <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(n.by || '')}</span></span></div>`).join('');
+
+    const te = document.getElementById('tdToday');
+    if (te) te.innerHTML = todays.length ? todays.map(x => this.lessonRow(x)).join('')
+      : '<div class="empty">今天没有排你的课</div>';
+
+    const we = document.getElementById('tdWeek');
+    if (we) we.innerHTML = items.length
+      ? this.DAYS.map(dd => {
+          const one = items.filter(x => x.day === dd);
+          if (!one.length) return '';
+          return `<p class="hint" style="margin:14px 0 2px;font-size:14px;color:var(--text)">${dd}</p>`
+            + one.map(x => this.lessonRow(x)).join('');
+        }).join('')
+      : '<div class="empty">教务还没有给你排课</div>';
+  }
+};
+/* ==== 功能：老师今天 END ==== */
+
+
+/* ==== 功能：录入今日 START ====
+   老师上课没时间玩手机，所以这一页只有一个动作：扫一眼名单，只点有情况的那几个。
+   作业那一栏写的是全班共用的 hw:{作业} 记录，等于顺手把量化分的原料也采了。 */
+const Record = {
+  STATES: ['状态好', '一般', '需关注', '身体不适'],
+
+  cls(){ return Store.get('_rcCls'); },
+  date(){ return Store.get('_rcDate') || Util.today(); },
+  meId(){ return Auth.me() ? Auth.me().id : ''; },
+
+  render(){
+    const dEl = document.getElementById('rcDate');
+    if (dEl && !dEl.value) dEl.value = this.date();
+    Util.fillCls('rcCls', '_rcCls');
+    this.renderBody();
+  },
+
+  pickCls(v){ Store.set('_rcCls', v); this.renderBody(); },
+  pickDate(v){ Store.set('_rcDate', v || Util.today()); this.renderBody(); },
+
+  /** 我（当前登录的人）今天给这个学生留的那条记录 */
+  mine(sid, date){
+    const me = this.meId();
+    return Store.list('records').find(r =>
+      r.studentId === sid && r.date === date && (r.byId || '') === me);
+  },
+
+  renderBody(){
+    const box = document.getElementById('rcBody');
+    const stat = document.getElementById('rcStat');
+    if (!box) return;
+    const clsId = this.cls();
+    const date = this.date();
+    if (!clsId){
+      box.innerHTML = '<div class="empty">教务还没给你分配班级，联系一下教务</div>';
+      if (stat) stat.textContent = '';
+      return;
+    }
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    if (!students.length){ box.innerHTML = '<div class="empty">这个班还没有学员</div>'; return; }
+
+    const hw = Store.list('homework').filter(h => h.clsId === clsId && h.date === date);
+    const hwState = {};
+    hw.forEach(h => Store.list('hw:' + h.id).forEach(x => { hwState[h.id + '|' + x.studentId] = x.done; }));
+
+    const loaded = students.filter(s => this.mine(s.id, date)).length;
+    if (stat) stat.textContent = Util.clsName(clsId) + ' · ' + date + ' · ' + students.length + ' 人'
+      + (loaded ? '，已记 ' + loaded + ' 人' : '，还没开始记')
+      + (hw.length ? '' : '（今天这个班还没布置作业）');
+
+    box.innerHTML = students.map(s => {
+      const r = this.mine(s.id, date) || {};
+      const st = r.state || '';
+      const perf = r.perf || '';
+      return `<div class="item" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(s.name)}</b>
+          <span class="hint" style="margin:0">${(r.state || r.perf || r.hw) ? '已记' : ''}</span>
+        </div>
+        ${hw.length ? `<div class="row" style="flex-wrap:wrap">
+          <span class="hint" style="margin:0;flex-shrink:0;width:34px">作业</span>
+          ${hw.slice(0, 3).map(h => {
+            const v = hwState[h.id + '|' + s.id];
+            return `<button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Record.markHw('${h.id}','${s.id}',1)">交了</button>
+                    <button class="chip ${v === 0 ? 'chip-no' : ''}" onclick="Record.markHw('${h.id}','${s.id}',0)">没交</button>`;
+          }).join('')}
+        </div>` : ''}
+        <div class="row" style="flex-wrap:wrap">
+          <span class="hint" style="margin:0;flex-shrink:0;width:34px">状态</span>
+          ${this.STATES.map(x => `<button class="chip ${st === x ? 'chip-on' : ''}"
+            onclick="Record.setState('${s.id}','${x}')">${x}</button>`).join('')}
+        </div>
+        <input type="text" class="rc-perf" data-sid="${s.id}" value="${Util.esc(perf)}"
+               placeholder="课堂表现，一句话，可以不写" onchange="Record.setPerf(this)">
+      </div>`;
+    }).join('');
+  },
+
+  /** 写一条自己的记录。patch 里给 null 表示清掉这一项 */
+  save(sid, patch){
+    const date = this.date();
+    const s = Store.list('students').find(x => x.id === sid);
+    if (!s) return;
+    const old = this.mine(sid, date);
+    const next = Object.assign({ perf: '', state: '', hw: '' }, old || {}, patch);
+    if (!next.perf && !next.state && !next.hw){
+      if (old) Store.softDelete('records', old.id);
+      return;
+    }
+    Store.upsert('records', Object.assign({}, old || {}, next, {
+      id: old ? old.id : null, studentId: sid, classId: s.classId,
+      date, byId: this.meId(), byName: Auth.name(),
+    }));
+  },
+
+  setState(sid, state){
+    const old = this.mine(sid, this.date());
+    const cur = old ? (old.state || '') : '';
+    this.save(sid, { state: cur === state ? '' : state });   // 再点一下取消
+    this.renderBody();
+  },
+
+  setPerf(input){
+    this.save(input.dataset.sid, { perf: (input.value || '').trim() });
+  },
+
+  markHw(hid, sid, done){
+    const key = 'hw:' + hid;
+    const rec = Store.list(key).find(x => x.studentId === sid);
+    const next = (rec && rec.done === done) ? null : done;
+    if (next === null){ if (rec) Store.softDelete(key, rec.id); }
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, done: next });
+    this.renderBody();
+  },
+
+  /** 「全部保存」其实是为了安心：本来就是边填边存 */
+  saveAll(){
+    document.querySelectorAll('.rc-perf').forEach(inp => this.setPerf(inp));
+    UI.toast('都存好了（本来就是边填边存）');
+    this.renderBody();
+  }
+};
+/* ==== 功能：录入今日 END ==== */
+
+
+/* ==== 功能：我带的班 START ====（授课老师端） */
+const MyClass = {
+  render(){
+    const el = document.getElementById('mcBody');
+    if (!el) return;
+    const mine = Auth.classIds();
+    const classes = Store.list('classes', (a,b) => (a.name || '') > (b.name || '') ? 1 : -1)
+                          .filter(c => mine.indexOf(c.id) >= 0);
+    if (!classes.length){
+      el.innerHTML = '<div class="empty">教务还没给你分配班级。分配好之后这里会出现你的班。</div>';
+      return;
+    }
+    el.innerHTML = classes.map(c => {
+      const students = Store.list('students', Util.byName).filter(s => s.classId === c.id);
+      return `<div style="margin-bottom:20px">
+        <h2 style="font-size:16px">👥 ${Util.esc(c.name)}
+          <span class="hint" style="display:inline;margin:0">${students.length} 人</span></h2>
+        ${students.length ? students.map(s => `
+          <div class="item pick" onclick="Student.openFor('${s.id}')">
+            <span class="grow">${Util.esc(s.name)}</span>
+            <span class="del">›</span>
+          </div>`).join('') : '<div class="empty">这个班还没有学员</div>'}
+      </div>`;
+    }).join('');
+  }
+};
+/* ==== 功能：我带的班 END ==== */
+
+
+/* ==== 功能：上报与申请 START ====（授课老师端） */
+const Ticket = {
+  render(){
+    const el = document.getElementById('tkList');
+    if (!el) return;
+    const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1);
+    el.innerHTML = list.length ? list.map(t => `
+      <div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(t.type || '上报')}</b>
+          <span class="chip ${t.status === 'done' ? 'chip-on' : ''}" style="pointer-events:none">${t.status === 'done' ? '教务已处理' : '等待处理'}</span>
+        </div>
+        <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
+        <p class="hint" style="margin:4px 0 0">${t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
+        ${t.reply ? `<p class="hint" style="margin:6px 0 0">教务回复：${Util.esc(t.reply)}</p>` : ''}
+      </div>`).join('') : '<div class="empty">还没发过</div>';
+  },
+
+  send(){
+    const type = document.getElementById('tkType').value;
+    const el = document.getElementById('tkText');
+    const text = (el.value || '').trim();
+    if (!text) return UI.toast('写一句再发');
+    Store.upsert('tickets', { type, text, status: 'open', createdAt: Date.now() });
+    el.value = '';
+    UI.toast('已发出，教务那边会出现待办');
+    this.render();
+  }
+};
+/* ==== 功能：上报与申请 END ==== */
+
+
 /* ==== 功能：设置 START ==== */
 const Settings = {
   keys: ['deepseek'],
 
   render(){
+    const staff = Auth.isStaff();
+    const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+
+    /* 教务和老师看到的设置不一样：老师那边没有备份、没有量化细则、没有接口配置。
+       这不是把界面藏起来就算数 —— 那些数据服务端本来就没发给老师。 */
+    show('backupCard', staff);
+    show('apiCard', staff);
+    show('rulesCard', staff);
+    show('tEntryCard', Auth.isSuper());
+    show('syncCard', true);
+
     this.refreshBackupInfo();
-    this.renderSync();
-    this.renderRules();
+    this.renderAcct();
+    if (staff) this.renderRules();
     this.keys.forEach(k => {
       const el = document.getElementById('key_' + k);
       if (el) el.value = Store.getSecret(k) || '';
     });
-    if (!this.keys.length) document.getElementById('apiCard')?.remove();
   },
 
   /** 占位细则：只初始化一次。老师们开会定稿后在设置页改 */
@@ -2356,7 +3794,8 @@ const Settings = {
       if (!r) return;
       const key = this.ruleKey(r.label);
       if (key.startsWith('x:')) custom.push(r.label);
-      Store.upsert('quant_rules', { id: 'r_' + key, key, label: r.label, delta: r.delta });
+      const rid = 'r_' + key;
+      Store.upsert('quant_rules', { id:rid, key, label: r.label, delta: r.delta });
       ok++;
     });
     document.getElementById('rulesImpText').value = '';
@@ -2367,28 +3806,27 @@ const Settings = {
     UI.toast('导入 ' + ok + ' 条细则，记得点「保存细则」');
   },
 
-  enableSync(){
-    Sync.enable(document.getElementById('syncUser').value,
-                document.getElementById('syncPass').value);
-  },
-
   changePass(){
-    const np = prompt('输入新密码（至少 8 位）');
-    if (np) Sync.changePass(np);
+    const oldPass = prompt('先输一遍现在的密码');
+    if (oldPass === null) return;
+    const np = prompt('再输一遍新密码（至少 8 位）');
+    if (np) Sync.changePass(np, oldPass);
   },
 
-  renderSync(){
-    const card = document.getElementById('syncCard');
-    if (!card || typeof Sync === 'undefined') return;
-    const on = Sync.on();
-    document.getElementById('syncOff').style.display = on ? 'none' : 'block';
-    document.getElementById('syncOn').style.display  = on ? 'block' : 'none';
-    if (on) {
-      document.getElementById('syncWho').textContent = Sync.cfg().user;
-      const t = Store.get('_syncAt');
-      document.getElementById('syncTime').textContent =
-        t ? new Date(t).toLocaleString('zh-CN') : '还没同步过';
+  renderAcct(){
+    const setT = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+    setT('acctName', Auth.name() || '—');
+    let scope;
+    if (Auth.isStaff()) scope = '全部班级';
+    else {
+      const names = Auth.classIds().map(id => Util.clsName(id)).filter(Boolean);
+      scope = names.length ? '带 ' + names.join('、') : '还没分班';
     }
+    setT('acctMeta', '@' + (Auth.user() || '') + ' · ' + scope);
+    const roleEl = document.getElementById('acctRole');
+    if (roleEl) roleEl.textContent = Auth.roleLabel();
+    const t = Store.get('_syncAt');
+    setT('acctSync', '上次同步：' + (t ? new Date(t).toLocaleString('zh-CN') : '还没同步过'));
   },
 
   saveKeys(){
@@ -2410,72 +3848,157 @@ const Settings = {
 /* ==== 功能：设置 END ==== */
 
 
-/* ==== 双端同步 START ====
-   用户选「只在一台设备用」时，把这整段（以及设置页里的 syncCard）删掉。
+/* ==== 身份与同步 START ====
+   ── 身份（Auth）──
+   账号由教务创建，没有自助注册。第一位使用的人登录时自动成为「首位教务」。
+   登录后拿到一个签名令牌，存在本机（不进备份、不上传），60 天内不用重登。
 
+   ── 同步（Sync）──
    三条设计红线，破了就会烧掉免费额度或者丢数据：
    1. 本地优先 —— 写入永远先落 localStorage，界面立刻变。云端是异步的。
       断网、KV 抽风、额度用完，工作台照常能用，只是不同步。
    2. 绝不轮询 —— 只在「打开时 / 切回前台 / 手动刷新」拉取。
       每 30 秒轮一次的话，一台设备一个月就是 8 万多次函数调用。
    3. 推送防抖 —— 改动后等 4 秒再推，把连续操作合并成一次请求。
-      勾 10 个待办应该是 1 次调用，不是 10 次。 */
+      勾 10 个待办应该是 1 次调用，不是 10 次。
+
+   数据分两区上传：机构共享区（所有人的业务数据）+ 个人区（只有自己的）。
+   老师那台设备拿不到别人的班 —— 这是服务端过滤的，不是界面藏起来。 */
+const Auth = {
+  _me: null,
+
+  token(){ return Store.getSecret('token') || ''; },
+  me(){ return this._me; },
+  name(){ return this._me ? this._me.name : ''; },
+  user(){ return this._me ? this._me.user : ''; },
+  role(){ return this._me ? this._me.role : ''; },
+  isStaff(){ return !!(this._me && this._me.isStaff); },
+  isSuper(){ return !!(this._me && this._me.isSuper); },
+  classIds(){ return (this._me && this._me.classIds) || []; },
+  roleLabel(){
+    if (!this._me) return '';
+    return this.isSuper() ? '首位教务' : (this.isStaff() ? '教务老师' : '授课老师');
+  },
+
+  async call(action, extra = {}){
+    const r = await fetch('/api/sync', {
+      method:'POST',
+      headers:{ 'content-type':'application/json' },
+      body: JSON.stringify(Object.assign({ action, token: this.token() }, extra))
+    });
+    let j = {};
+    try { j = await r.json(); } catch { j = { error: '返回格式不对' }; }
+    if (!r.ok){
+      const e = new Error(j.error || ('请求失败 ' + r.status));
+      e.code = j.code;
+      throw e;
+    }
+    return j;
+  },
+
+  /* ── 登录门 ── */
+  show(sub){
+    const g = document.getElementById('gate');
+    if (!g) return;
+    document.getElementById('gSub').textContent =
+      sub || (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
+    document.getElementById('gErr').textContent = '';
+    document.getElementById('gNote').innerHTML =
+      '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
+    g.classList.add('on');
+  },
+  hide(){ document.getElementById('gate')?.classList.remove('on'); },
+  err(msg){ const e = document.getElementById('gErr'); if (e) e.textContent = msg || ''; },
+  busy(on){
+    const b = document.getElementById('gBtn');
+    if (!b) return;
+    b.disabled = !!on;
+    b.textContent = on ? '登录中…' : '登 录';
+  },
+
+  async submit(){
+    const user = (document.getElementById('gUser').value || '').trim();
+    const pass = document.getElementById('gPass').value || '';
+    if (user.length < 3) return this.err('用户名至少 3 个字符');
+    if (pass.length < 8) return this.err('密码至少 8 位');
+    this.err(''); this.busy(true);
+    try {
+      const j = await this.call('login', { user, pass });
+      Store.setSecret('token', j.token);
+      Store.set('_hadAccount', 1);
+      this._me = j.profile;
+      this.busy(false);
+      this.hide();
+      document.getElementById('gPass').value = '';
+      UI.toast(j.created ? '已创建，你是首位教务' : '欢迎回来，' + j.profile.name);
+      App.boot();
+      Sync.pull();
+      if (typeof Sync !== 'undefined') Sync.push();
+    } catch(e){
+      this.busy(false);
+      this.err(e.message === 'NO_ACCOUNT' ? '没有这个账号。请让教务老师在「老师管理」里创建。' : e.message);
+    }
+  },
+
+  logout(){
+    if (!confirm('退出登录？\n\n本机数据会保留，下次登录还能看到；但别人在这台设备上也看不到你的数据了。')) return;
+    Store.setSecret('token', '');
+    this._me = null;
+    location.reload();
+  },
+
+  /** 启动：有令牌就先验一遍，顺便把角色和带班刷新到最新（教务改完立刻生效） */
+  async boot(){
+    if (!this.token()) return false;
+    try {
+      const j = await this.call('me');
+      this._me = j.profile;
+      return true;
+    } catch(e){
+      if (e.code === 'AUTH'){ Store.setSecret('token', ''); this._me = null; }
+      return false;
+    }
+  }
+};
+
+/* ── Staff · 账号列表的只读缓存 ──
+   教务排课时要选「上课老师」，得先知道有哪些老师。
+   账号列表在服务端，拉一次缓存住，别每渲染一次就请求一次。 */
+const Staff = {
+  list: [],
+  loaded: false,
+
+  async load(){
+    if (!Auth.isStaff()){ this.list = []; this.loaded = true; return this.list; }
+    try {
+      const j = await Auth.call('users', { op: 'list' });
+      this.list = j.users || [];
+    } catch(e){ this.list = []; }
+    this.loaded = true;
+    return this.list;
+  },
+
+  teachers(){ return this.list.filter(u => u.role === 'teacher' && u.active); },
+  name(id){ const u = this.list.find(x => x.id === id); return u ? u.name : ''; },
+  reset(){ this.list = []; this.loaded = false; }
+};
+
 const Sync = {
   DEBOUNCE: 4000,
   _timer: null,
   _busy: false,
 
-  cfg(){ return Store.get('_sync', { on:false, user:'' }); },
-  on(){ return !!this.cfg().on; },
-  pass(){ return Store.getSecret('syncPass') || ''; },
+  on(){ return !!Auth.token(); },
+  call(action, extra = {}){ return Auth.call(action, extra); },
 
-  async call(action, extra = {}){
-    const c = this.cfg();
-    const r = await fetch('/api/sync', {
-      method:'POST',
-      headers:{ 'content-type':'application/json' },
-      body: JSON.stringify(Object.assign({ action, user:c.user, pass:this.pass() }, extra))
-    });
-    const j = await r.json().catch(() => ({ error:'返回格式不对' }));
-    if (!r.ok) throw new Error(j.error || ('请求失败 ' + r.status));
-    return j;
-  },
-
-  /** 开启同步：首次会把这个用户名注册下来 */
-  async enable(user, pass){
-    user = (user || '').trim().toLowerCase();
-    if (user.length < 3) return UI.toast('用户名至少 3 个字符');
-    if ((pass || '').length < 8) return UI.toast('密码至少 8 位');
-    Store.set('_sync', { on:true, user });
-    Store.setSecret('syncPass', pass);
-    try {
-      const j = await this.call('push', { data: Store.dump() });   // push 兼注册
-      if (j.data) Store.mergeRemote(j.data);
-      Store.set('_syncAt', Date.now());
-      UI.toast(j.created ? '同步已开启' : '已连上，数据已合并');
-      setTimeout(() => location.reload(), 900);
-    } catch(e){
-      Store.set('_sync', { on:false, user:'' });
-      Store.setSecret('syncPass', '');
-      UI.toast(e.message);
+  /** 拆成「机构共享」和「个人」两份。_ 开头的是本机临时状态，不上传 */
+  split(){
+    const shared = {};
+    for (const [k, v] of Object.entries(Store.dump())){
+      if (k.charAt(0) === '_') continue;
+      shared[k] = v;
     }
-  },
-
-  disable(){
-    if (!confirm('关闭同步？本地数据一条不会少，只是不再和云端对齐。')) return;
-    Store.set('_sync', { on:false, user:'' });
-    Store.setSecret('syncPass', '');
-    UI.toast('已关闭同步');
-    Settings.render();
-  },
-
-  async changePass(np){
-    if ((np || '').length < 8) return UI.toast('新密码至少 8 位');
-    try {
-      await this.call('chpass', { newPass: np });
-      Store.setSecret('syncPass', np);
-      UI.toast('密码已改');
-    } catch(e){ UI.toast(e.message); }
+    return { shared, personal: {} };
   },
 
   /** 拉取并合并。失败一律静默降级——本地数据才是主的 */
@@ -2485,14 +4008,17 @@ const Sync = {
     this.status('同步中');
     try {
       const j = await this.call('pull');
-      const n = Store.mergeRemote(j.data || {});
+      let n = Store.mergeRemote(j.shared || {});
+      n += Store.mergeRemote(j.personal || {});
+      if (j.profile) Auth._me = j.profile;
       Store.set('_syncAt', Date.now());
       this.status('已同步');
       if (n) { if (loud) UI.toast('拉到 ' + n + ' 处更新'); App.refresh(); }
       else if (loud) UI.toast('已是最新');
     } catch(e){
       this.status('未同步');
-      if (loud) UI.toast(e.message.includes('NO_ACCOUNT') ? '云端还没有数据' : e.message);
+      if (loud) UI.toast(e.message);
+      if (e.code === 'AUTH') this.sessionLost();
     } finally { this._busy = false; }
   },
 
@@ -2508,14 +4034,24 @@ const Sync = {
     this._busy = true;
     this.status('同步中');
     try {
-      const j = await this.call('push', { data: Store.dump() });
-      if (j.data) Store.mergeRemote(j.data);
+      const { shared, personal } = this.split();
+      const j = await this.call('push', { shared, personal });
+      if (j.shared || j.personal) Store.mergeRemote(Object.assign({}, j.shared || {}, j.personal || {}));
       Store.set('_syncAt', Date.now());
       this.status('已同步');
     } catch(e){
       this.status('未同步');
       console.warn('同步失败，本地数据不受影响：', e.message);
+      if (e.code === 'AUTH') this.sessionLost();
     } finally { this._busy = false; }
+  },
+
+  async changePass(np, oldPass){
+    if ((np || '').length < 8) return UI.toast('新密码至少 8 位');
+    try {
+      await this.call('chpass', { oldPass, newPass: np });
+      UI.toast('密码已改，下次用新密码登录');
+    } catch(e){ UI.toast(e.message); }
   },
 
   status(t){
@@ -2523,16 +4059,25 @@ const Sync = {
     if (el) el.textContent = t;
   },
 
-  init(){
-    if (!this.on()) return;
-    this.pull();                                   // 打开时拉一次
+  sessionLost(){
+    Store.setSecret('token', '');
+    Auth._me = null;
+    Auth.show('登录状态已过期，请重新登录');
+  },
+
+  /** 登录后接上云端。先拉一遍对齐，再把本机已有的推上去（老数据首次上云就靠这一下） */
+  async init(){
+    if (!this.on() || this._inited) return;
+    this._inited = true;
+    await this.pull();
+    this.push();
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) this.pull();           // 切回前台再拉一次。到此为止，不轮询
     });
     window.addEventListener('online', () => this.push());
   }
 };
-/* ==== 双端同步 END ==== */
+/* ==== 身份与同步 END ==== */
 
 
 App.init();
