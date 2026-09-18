@@ -25,6 +25,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="砺蕴">
 <meta name="theme-color" content="#f6f5f2">
+<!-- iPhone 开屏图：按机型分辨率各配一张，替代系统启动时的黑屏/白屏 -->
+<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1290x2796.png">
+<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1284x2778.png">
+<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1179x2556.png">
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-750x1334.png">
+<link rel="preload" href="assets/liyun-xingshu.woff2" as="font" type="font/woff2" crossorigin>
 
 <style>
 /* ==== 主题变量 · 极简·暖（浅色默认，跟随系统切深色） ==== */
@@ -56,6 +64,44 @@
   --ease:cubic-bezier(.4,0,.2,1);
   --dur:.18s;
 }
+/* 行书字体：子集只有 10KB，只管「砺蕴」「博学宏才 艺德卓绝」这几个字 */
+@font-face{
+  font-family:'LiYunXingShu';
+  src:url(assets/liyun-xingshu.woff2) format('woff2');
+  font-display:swap;
+}
+/* ── 开屏层：HTML 一解析就显示，替代 PWA 启动空档的黑屏 ── */
+#splash{
+  position:fixed;inset:0;z-index:120;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .45s var(--ease);
+}
+#splash.off{opacity:0;pointer-events:none}
+#splash .s-disc{
+  width:104px;height:104px;border:3px solid var(--gold);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  animation:s-disc-in .8s var(--ease) both;
+}
+#splash .s-disc::before{
+  content:'';position:absolute;inset:16px;border:1.5px solid var(--gold);opacity:.6;border-radius:50%;
+}
+#splash .s-disc svg{width:64px;height:auto;animation:s-wave-in 1s .25s var(--ease) both}
+#splash .s-name{
+  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
+  font-size:64px;color:var(--text);letter-spacing:.12em;margin-top:34px;
+  animation:s-name-in .7s .3s var(--ease) both;
+}
+#splash .s-bar{width:150px;height:4px;border-radius:2px;background:var(--line);margin-top:44px;overflow:hidden}
+#splash .s-bar i{display:block;height:100%;background:var(--gold);border-radius:2px;animation:s-bar-run 2.2s var(--ease) both}
+#splash .s-tag{
+  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
+  font-size:17px;color:var(--text-dim);margin-top:20px;letter-spacing:.35em;text-indent:.35em;
+  animation:s-name-in .7s .55s var(--ease) both;
+}
+@keyframes s-disc-in{from{transform:rotate(-160deg) scale(.7);opacity:0}to{transform:rotate(0) scale(1);opacity:1}}
+@keyframes s-wave-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes s-name-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes s-bar-run{from{width:0}to{width:58%}}
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#141311;
@@ -263,6 +309,24 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .tabbar button .ico{font-size:19px;line-height:1}
 .tabbar button.on{background:var(--sidebar-active);color:var(--text)}
 
+/* ── M1 · 雅金卡片：手机端质感强化（只在 <700px 生效，电脑端不掺和） ── */
+@media (max-width:699px){
+  .card{border-radius:16px;position:relative}
+  .card::before{
+    content:'';position:absolute;top:-1px;left:22px;right:22px;height:2px;
+    border-radius:0 0 3px 3px;background:var(--gold);opacity:.55;
+  }
+  .col{position:relative}
+  .tabbar{
+    position:absolute;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0));
+    background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);
+    border-radius:24px;box-shadow:0 8px 28px rgba(40,32,18,.14);
+    padding:7px 10px;
+  }
+  .tabbar button{border-radius:16px;padding:7px 2px}
+  .main{padding-bottom:calc(108px + env(safe-area-inset-bottom,0))}
+}
+
 /* ── 「全部」抽屉：手机上放超出标签栏的功能 ── */
 .drawer{position:absolute;inset:0;z-index:60;display:none}
 .drawer.on{display:block}
@@ -353,7 +417,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     padding:12px 14px;font-size:15px;
   }
   .nav button .ico{display:inline;font-size:20px;margin:0;width:24px;text-align:center}
-  .main{padding:28px 32px 40px}
+  /* D3 · 数据雅座：浅灰画布衬托白卡，侧栏细描边分界，卡片去投影走扁平 */
+  .main{padding:28px 32px 40px;background:rgba(38,36,31,.035)}
+  .side{border-right:1px solid var(--line)}
+  .card{border-radius:12px;box-shadow:none}
 }
 
 /* ════════ 桌面：功能栏 + 列表 + 详情，一屏三栏 ════════
@@ -389,6 +456,16 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 </style>
 </head>
 <body>
+
+<!-- 开屏层：本地资源秒开，替代启动黑屏；App 就绪后由 JS 淡出移除 -->
+<div id="splash" aria-hidden="true">
+  <div class="s-disc">
+    <svg viewBox="0 0 64 24" fill="none"><path d="M6 14 Q18 4 32 14 Q46 24 58 14" stroke="#c9ab7c" stroke-width="2.6" stroke-linecap="round"/><path d="M14 19 Q23 12 32 19 Q41 26 50 19" stroke="#c9ab7c" stroke-width="2" stroke-linecap="round" opacity=".65"/><path d="M22 23.5 Q27 20 32 23.5" stroke="#c9ab7c" stroke-width="1.5" stroke-linecap="round" opacity=".4"/></svg>
+  </div>
+  <div class="s-name">砺蕴</div>
+  <div class="s-bar"><i></i></div>
+  <div class="s-tag">博学宏才 艺德卓绝</div>
+</div>
 
 <div class="app">
 
@@ -4356,8 +4433,15 @@ const Auth = {
       if (form) form.style.display = '';
     }
     g.classList.add('on');
+    this._splashOff();
   },
-  hide(){ document.getElementById('gate')?.classList.remove('on'); },
+  hide(){ document.getElementById('gate')?.classList.remove('on'); this._splashOff(); },
+  /* 开屏层至少亮 300ms 再淡出；进 App 或弹登录门都算就绪 */
+  _splashOff(){
+    const sp = document.getElementById('splash');
+    if (!sp || sp.classList.contains('off')) return;
+    setTimeout(() => { sp.classList.add('off'); setTimeout(() => sp.remove(), 550); }, 300);
+  },
   err(msg){ const e = document.getElementById('gErr'); if (e) e.textContent = msg || ''; },
   busy(on){
     const b = document.getElementById('gBtn');
@@ -4609,6 +4693,8 @@ const Sync = {
 
 
 App.init();
+/* 开屏层兜底：万一初始化卡住，最多 6 秒后强制淡出，绝不让人卡在开屏 */
+setTimeout(() => { const sp = document.getElementById('splash'); if (sp) Auth._splashOff(); }, 6000);
 </script>
 </body>
 </html>
