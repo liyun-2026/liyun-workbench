@@ -1,17 +1,20 @@
 /**
  * 图片识别（OCR）真浏览器验收
  *
- *   node test/ocr_browser_test.mjs          # 用 5199 端口，默认无头
- *   node test/ocr_browser_test.mjs 5200
+ *   node test/ocr_browser_test.mjs                       # 本地：起预览服务 + 无头 Chrome
+ *   node test/ocr_browser_test.mjs 5200                  # 换端口
+ *   OCR_TARGET=https://liyun2026.top node test/ocr_browser_test.mjs
+ *                                                        # 直接打线上真实网址（不起本地服务）
  *
  * 为什么非要开真浏览器：识别跑在 Web Worker + WASM 里，jsdom 根本没有这两样，
  * 模拟出来的「通过」是假的 —— 真机上一样会挂。这个脚本会：
- *   1. 起本地预览服务（真 sync.js）
+ *   1. （本地模式）起本地预览服务，并检查同源 ocr/ 资源可取
  *   2. 用真 Chrome（无头）打开页面
  *   3. 在页面里画一张带中文名的图片，喂给 Ocr.recognize
- *   4. 打印识别结果和耗时，并确认资源确实来自「本站」而不是第三方 CDN
+ *   4. 打印识别结果和耗时，并确认资源确实来自「站内同源」而不是第三方 CDN
  *
  * 通过标准：识别出的文字里包含画上去的姓名，且加载的是同源 ocr/ 资源。
+ * 线上跑的时候不会登录、不会写任何数据，只验证识别链路本身。
  */
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -21,6 +24,8 @@ import { fileURLToPath } from 'node:url';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.argv[2] || 5199);
+const TARGET = (process.env.OCR_TARGET || '').replace(/\/$/, '');   // 有值＝打线上/远端，不起本地服务
+const BASE = TARGET || `http://127.0.0.1:${PORT}`;
 const CDP = 9333;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const NAMES = ['张三', '李四', '王五', '赵六'];
@@ -71,16 +76,24 @@ let server, chrome, profile, cdp, failed = 0;
 const ok = (c, m) => { console.log((c ? '  ✅ ' : '  ❌ ') + m); if (!c) failed++; };
 
 try {
-  console.log('\n【1/5】起本地预览服务 …');
-  server = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(PORT)], { cwd: dir, stdio: 'ignore' });
-  await waitFor(async () => (await fetch(`http://127.0.0.1:${PORT}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务' });
-  console.log(`  服务就绪 → http://127.0.0.1:${PORT}`);
+  if (TARGET) {
+    console.log(`\n【1-2/5】直接打目标站：${TARGET}（不起本地服务）`);
+    for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd.wasm.js', 'chi_sim.traineddata.gz']) {
+      const r = await fetch(`${TARGET}/ocr/${f}`);
+      const n = Number(r.headers.get('content-length') || 0);
+      ok(r.ok, `ocr/${f}  HTTP ${r.status}  ${n ? (n / 1048576).toFixed(2) + ' MB' : ''}`);
+    }
+  } else {
+    console.log('\n【1/5】起本地预览服务 …');
+    server = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(PORT)], { cwd: dir, stdio: 'ignore' });
+    await waitFor(async () => (await fetch(`http://127.0.0.1:${PORT}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务' });
+    console.log(`  服务就绪 → http://127.0.0.1:${PORT}`);
 
-  console.log('\n【2/5】同源识别资源是否可取 …');
-  for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd.wasm.js', 'chi_sim.traineddata.gz']) {
-    const r = await fetch(`http://127.0.0.1:${PORT}/ocr/${f}`);
-    const n = Number(r.headers.get('content-length') || 0);
-    ok(r.ok, `${f}  HTTP ${r.status}  ${(n / 1048576).toFixed(2)} MB`);
+    console.log('\n【2/5】同源识别资源是否可取 …');
+    for (const f of ['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd.wasm.js', 'chi_sim.traineddata.gz']) {
+      const r = await fetch(`http://127.0.0.1:${PORT}/ocr/${f}`);
+      ok(r.ok, `ocr/${f}  HTTP ${r.status}`);
+    }
   }
 
   console.log('\n【3/5】起真 Chrome（无头）…');
@@ -97,7 +110,7 @@ try {
   await cdp.send('Runtime.enable');
   await cdp.send('Page.enable');
   const loaded = cdp.once('Page.loadEventFired');
-  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
+  await cdp.send('Page.navigate', { url: `${BASE}/` });
   await loaded;
   console.log('  页面已打开');
 
@@ -124,7 +137,7 @@ try {
   console.log(`  识别结果：${JSON.stringify(out.text)}`);
 
   console.log('\n【5/5】判定 …');
-  ok(out.base.startsWith(`http://127.0.0.1:${PORT}`), '识别资源来自本站（同源），不依赖第三方 CDN');
+  ok(out.base === `${BASE}/ocr`, `识别资源来自站内同源（${out.base}），不依赖第三方 CDN`);
   const hit = NAMES.filter(n => out.text.includes(n));
   ok(hit.length >= 3, `中文识别命中 ${hit.length}/${NAMES.length}（${hit.join('、') || '无'}）`);
   ok(out.ms < 120000, `耗时 ${(out.ms / 1000).toFixed(1)}s 在可接受范围`);
