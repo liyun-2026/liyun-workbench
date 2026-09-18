@@ -528,6 +528,74 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
     });
   }
 
+  /* ───────────────── 六、量化板块：班级制 + 快捷按钮 ───────────────── */
+  console.log('\n=== 六、量化板块：班级制 + 快捷按钮 ===');
+  {
+    t('页面骨架：总分卡 / 快捷按钮 / 记录 / 公示，旧的「学员排行」已删', () => {
+      ['id="qScoreCard"', 'id="qBtns"', 'id="qLogBody"', '快捷加减分', '公示文案', '起始 100 分']
+        .forEach(sig => assert(html.includes(sig), '缺了 ' + sig));
+      assert(!html.includes('id="qBody"'), '旧的按学员排行的 #qBody 应该删掉（量化页不显示学生姓名）');
+      assert(!html.includes('复制本班公布文案'), '旧公示按钮文案应该已经换掉');
+    });
+
+    const { w, G } = boot(
+      { id: 'u1', name: '测试教务', role: 'super', isStaff: true, isSuper: true },
+      {
+        classes:  [{ id: 'c1', name: 'BY05' }, { id: 'c2', name: 'BY06' }],
+        students: [{ id: 's1', name: '张三', classId: 'c1' }],
+      }
+    );
+    w.eval('window.prompt = () => "3"');   // jsdom 的 prompt 没实现，先钉住
+    await settle();
+
+    t('initRules 补种 20 条「考前集训量化管理细则」的班级名目（老数据也能升级）', () => {
+      G('Settings.initRules()');
+      const cls = G(`Store.list('quant_rules').filter(r => (r.key||'').indexOf('cls:') === 0).length`);
+      eq(cls, 20, '班级名目条数');
+      const late = G(`Store.list('quant_rules').find(r => r.key === 'cls:late')`);
+      eq(late.delta, -2, '迟到每分钟 -2');
+      const water = G(`Store.list('quant_rules').find(r => r.key === 'cls:water')`);
+      eq(water.delta, 10, '换水 +10（公示里出现过）');
+    });
+
+    t('班级总分 = 100 起始分 + 流水合计，加扣分方向都算对', () => {
+      G(`Store.upsert('quant_log', { id:'q1', clsId:'c1', date: Util.today(), label:'换水', delta:10, _u:1 })`);
+      G(`Store.upsert('quant_log', { id:'q2', clsId:'c1', date: Util.today(), label:'迟到3分钟', delta:-6, _u:2 })`);
+      eq(G(`Quant.score('c1')`), 104, '100 + 10 - 6');
+      eq(G(`Quant.score('c2')`), 100, '没有流水的班就是起始分');
+    });
+
+    t('公示文案照「班名：总分 + 加扣分原因」出，整段没有学生姓名', () => {
+      const b = G(`Quant.block('c1', '1970-01-01', '2999-12-31')`);
+      assert(/BY05：104/.test(b), '该有班名和总分：' + b);
+      assert(/加扣分原因：换水\+10分，迟到3分钟-6分/.test(b), '原因聚合不对：' + b);
+      assert(!/张三/.test(b), '公示里不该出现学生姓名');
+    });
+
+    t('快捷按钮由 cls: 细则驱动，页面渲染不含学员姓名', () => {
+      G(`Store.set('_qCls','c1'); Quant.render()`);
+      const btns = G(`document.getElementById('qBtns').innerHTML`);
+      assert(/换水/.test(btns) && /\+10/.test(btns), '按钮该带名目和分值');
+      const page = G(`(document.getElementById('qScoreCard').textContent + document.getElementById('qBtns').textContent + document.getElementById('qLogBody').textContent)`);
+      assert(!/张三/.test(page), '量化页面任何地方都不该出现学生姓名');
+    });
+
+    t('点带数量的按钮先问数量：迟到 3 分钟 → 记 -6 分', () => {
+      const before = G(`Quant.score('c1')`);
+      G(`Quant.quick('r_cls:late')`);
+      eq(G(`Quant.score('c1')`), before - 6, '3 分钟 × 2 分');
+      const last = G(`Store.list('quant_log').filter(x => x.clsId === 'c1').sort((a,b) => (a._u||0) - (b._u||0)).pop()`);
+      eq(last.label, '迟到3分钟', '名目要带上数量');
+    });
+
+    t('撤销：软删一笔，总分跟着回退', () => {
+      const before = G(`Quant.score('c1')`);
+      const id = G(`Store.list('quant_log').filter(x => x.clsId === 'c1').sort((a,b) => (a._u||0) - (b._u||0)).pop().id`);
+      G(`Quant.del('${id}')`);
+      eq(G(`Quant.score('c1')`), before + 6, '删掉迟到那笔后回退 6 分');
+    });
+  }
+
   console.log();
   if (fail.length){
     fail.forEach(x => console.log('  \x1b[31m✗\x1b[0m ' + x));

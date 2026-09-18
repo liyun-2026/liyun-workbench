@@ -599,9 +599,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     </section>
     <!-- ==== 功能：晚自习 END ==== -->
 
-    <!-- ==== 功能：量化 START ==== -->
+    <!-- ==== 功能：量化 START ====
+         以班级为单位计分（每班起始 100 分），加减分只记「名目 + 分值」，
+         不落到具体学生头上 —— 公示时只公布班级总分和原因。 -->
     <section class="page" id="page-quant">
-      <div class="page-title">量化统计</div>
+      <div class="page-title">量化</div>
       <div class="row">
         <select id="qCls" onchange="Quant.render()"></select>
         <select id="qRange" onchange="Quant.render()" style="max-width:130px">
@@ -610,13 +612,28 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <option value="30">近 30 天</option>
         </select>
       </div>
+      <div class="card wide" id="qScoreCard"></div>
       <div class="card wide">
-        <div id="qBody"></div>
+        <h2>⚡ 快捷加减分</h2>
+        <div id="qBtns"></div>
+        <div class="row" style="margin-top:12px">
+          <input id="qCustomLabel" placeholder="名目，如：清理公共区域卫生" style="flex:1.4;min-width:0">
+          <input id="qCustomDelta" type="number" placeholder="分值" step="1" style="max-width:90px">
+          <button class="btn" onclick="Quant.addCustom()">记一笔</button>
+        </div>
+        <p class="hint">点按钮就给上面选的班记一笔（记在今天）。要改数量的按钮（迟到按分钟、评述 10~20 这些）点了会先问你。记错了在下面「加扣分记录」里点 ✕ 撤销。名目和分值在设置页「量化细则」里改。</p>
+      </div>
+      <div class="card wide">
+        <h2>📜 加扣分记录 <span class="hint" id="qLogMeta" style="display:inline;margin:0 0 0 auto"></span></h2>
+        <div id="qLogBody"></div>
+      </div>
+      <div class="card wide">
+        <h2>📢 公示文案</h2>
         <div class="row" style="margin-top:14px">
-          <button class="btn" onclick="Quant.copy()">📋 复制本班公布文案</button>
+          <button class="btn" onclick="Quant.copy()">📋 复制本班公示</button>
           <button class="btn ghost" onclick="Quant.copyAll()">📋 全部班级各一份（一次复制）</button>
         </div>
-        <p class="hint">公布以班级为单位：上面复制当前选的班，「全部班级」把每个班各拼一段、一次复制，分别贴到各班群就行。</p>
+        <p class="hint">以班级为单位：班名 + 总分 + 加扣分原因，整段里不出现学生姓名，直接贴班群就行。</p>
       </div>
       <div class="card wide">
         <h2>📊 本周小结</h2>
@@ -759,11 +776,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="card wide" id="rulesCard">
         <h2>🧮 量化细则</h2>
         <p class="hint" style="margin-top:0;margin-bottom:10px">
-          每条 = 计分项 + 分值。下面是占位规则，等老师们开会定稿后直接在这里改，量化统计立刻按新规则算。
+          每条 = 计分项 + 分值，扣分用负数。「班级名目」会变成量化页的快捷加减分按钮；
+          「自动计分」按考勤 / 作业 / 晚自习的登记记录自动算，不用手动点。
         </p>
         <div id="rulesList"></div>
         <div class="row" style="margin-top:10px">
           <select id="ruleSrc" style="max-width:130px">
+            <option value="cls">班级名目</option>
             <option value="att">考勤状态</option>
             <option value="hw:已交">作业已交</option>
             <option value="hw:未交">作业未交</option>
@@ -2436,31 +2455,198 @@ const Night = {
 
 
 /* ==== 功能：量化 START ====
-   分数完全由「量化细则」驱动：考勤/晚自习按日期逐条算，
-   作业按每条作业的提交登记算。细则在设置页改，这里不用动。 */
+   以班级为单位：每班起始 100 分，加减分记流水（名目 + 分值），不挂学生姓名。
+   流水存在 quant_log；快捷按钮由设置页「量化细则」里 key 以 cls: 开头的条目驱动。
+   compute() 仍保留：考勤/作业/晚自习按学生自动算的那套，供学员档案用。 */
 const Quant = {
+  /* 需要现场问数量的规则：key → { q, d(默认值), calc(答案→分值), labelFn(可选，名目带数量) } */
+  ASK: {
+    'cls:late':     { q: '迟到共几分钟？\n每分钟扣 2 分；满 10 分钟按一次扣 20 分', d: 3, calc: v => -(v >= 10 ? 20 : 2 * v), labelFn: v => `迟到${v}分钟` },
+    'cls:interact': { q: '课堂互动突出，加几分？（1~10）', d: 5, calc: v => Math.abs(v) },
+    'cls:evalPass': { q: '即兴评述集体通关，加几分？（10~20）', d: 15, calc: v => Math.abs(v) },
+    'cls:evalLazy': { q: '评述消极对待，扣几分？（10~20）', d: 15, calc: v => -Math.abs(v) },
+    'cls:examMiss': { q: '缺考几人？（每人扣 20 分）', d: 1, calc: v => -20 * Math.abs(v), labelFn: v => `模考缺考${v}人` },
+    'cls:equip':    { q: '损坏设备/公物，扣几分？', d: 20, calc: v => -Math.abs(v) },
+  },
+
   render(){
-    const clsId = Util.fillCls('qCls', '_qCls');
-    const body = document.getElementById('qBody');
+    this.renderScore();
+    this.renderBtns();
+    this.renderLog();
+    this.renderRecap();
+  },
+
+  _cls(){
+    return Util.fillCls('qCls', '_qCls');
+  },
+
+  /* ── 总分卡：班名 + 大数字（100 + 全部流水） + 本期原因汇总 ── */
+  renderScore(){
+    const el = document.getElementById('qScoreCard');
+    const clsId = this._cls();
     if (!clsId){
-      body.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
-      this._rows = null;
-      this.renderRecap();
+      el.innerHTML = '<div class="empty">先去「名册」建班级</div>';
       return;
     }
-    const fromto = this.range();
-    const rows = this.compute(clsId, fromto.from, fromto.to);
-    this._rows = rows;
-    this._meta = { clsId, from: fromto.from, to: fromto.to };
-    body.innerHTML = rows.length ? rows.map((r, i) =>
-      `<div class="item">
-        <span class="hint num" style="margin:0;width:22px;flex-shrink:0">${i + 1}</span>
-        <span class="grow">${Util.esc(r.name)}<br>
-          <span class="hint" style="display:inline;margin:0">${this.partText(r.parts)}</span></span>
-        <b class="num" style="font-size:20px;flex-shrink:0">${r.score}</b>
-      </div>`
-    ).join('') : '<div class="empty">这个班还没有学员</div>';
-    this.renderRecap();
+    const cls = Store.list('classes').find(c => c.id === clsId);
+    const { from, to } = this.range();
+    const period = this.logFor(clsId, from, to);
+    const total = this.score(clsId);
+    const delta = period.reduce((s, x) => s + (Number(x.delta) || 0), 0);
+    const reasons = this.reasonText(period);
+    el.innerHTML = `
+      <div class="hero num">${total}<span class="unit">${Util.esc(cls ? cls.name : '')} · 总分</span></div>
+      <p class="hint" style="margin:2px 0 10px">起始 100 分 · ${from} ~ ${to} 这段${delta ? `变化 <b style="color:${delta > 0 ? '#c25650' : '#2e7d4f'}">${delta > 0 ? '+' : ''}${delta}</b> 分` : '没有加减分'}</p>
+      ${reasons ? `<p style="margin:0;line-height:1.8"><b style="font-weight:500">加扣分原因：</b>${reasons}</p>` : ''}`;
+  },
+
+  /* ── 快捷按钮：quant_rules 里 key 以 cls: 开头的条目 ── */
+  renderBtns(){
+    const el = document.getElementById('qBtns');
+    const rules = Store.list('quant_rules').filter(r => (r.key || '').indexOf('cls:') === 0);
+    if (!rules.length){
+      el.innerHTML = '<div class="empty">还没有班级名目的细则，去设置页「量化细则」加</div>';
+      return;
+    }
+    const sorted = rules.slice().sort((a, b) => (a.delta - b.delta) || (a.label > b.label ? 1 : -1));
+    el.innerHTML = sorted.map(r =>
+      `<button class="btn ${r.delta > 0 ? '' : 'ghost'}" style="margin:0 8px 8px 0" onclick="Quant.quick('${r.id}')">${Util.esc(r.label)} ${r.delta > 0 ? '+' : ''}${r.delta}</button>`
+    ).join('');
+  },
+
+  quick(rid){
+    const clsId = this._cls();
+    if (!clsId) return UI.toast('先去「名册」建班级');
+    const r = Store.list('quant_rules').find(x => x.id === rid);
+    if (!r) return;
+    let delta = r.delta;
+    let label = r.label;
+    const ask = this.ASK[r.key];
+    if (ask){
+      const v = prompt(ask.q, ask.d);
+      if (v === null) return;                       // 取消
+      const n = parseFloat(v);
+      if (isNaN(n)) return UI.toast('要填一个数字');
+      delta = ask.calc(n);
+      if (ask.labelFn) label = ask.labelFn(n);
+      if (!delta) return UI.toast('算出来是 0 分，就没有记');
+    }
+    this.add(label, delta);
+  },
+
+  addCustom(){
+    const clsId = this._cls();
+    if (!clsId) return UI.toast('先去「名册」建班级');
+    const label = document.getElementById('qCustomLabel').value.trim();
+    const delta = parseFloat(document.getElementById('qCustomDelta').value);
+    if (!label) return UI.toast('填一下名目');
+    if (isNaN(delta) || !delta) return UI.toast('填一下分值（扣分填负数）');
+    this.add(label, delta);
+    document.getElementById('qCustomLabel').value = '';
+    document.getElementById('qCustomDelta').value = '';
+  },
+
+  add(label, delta){
+    const clsId = this._cls();
+    Store.upsert('quant_log', { id: Util.uid(), clsId, date: Util.today(), label, delta, _u: Date.now() });
+    UI.toast(`已记：${label} ${delta > 0 ? '+' : ''}${delta} 分`);
+    this.render();
+  },
+
+  del(id){
+    Store.softDelete('quant_log', id);
+    UI.toast('已撤销这一笔');
+    this.render();
+  },
+
+  /* ── 数据 helpers ── */
+  logFor(clsId, from, to){
+    return Store.list('quant_log')
+      .filter(x => x.clsId === clsId && !x._d && x.date >= from && x.date <= to)
+      .sort((a, b) => (b.date + (b._u || 0)) - (a.date + (a._u || 0)));
+  },
+
+  score(clsId){
+    return 100 + Store.list('quant_log')
+      .filter(x => x.clsId === clsId && !x._d)
+      .reduce((s, x) => s + (Number(x.delta) || 0), 0);
+  },
+
+  /** 流水 → 按名目聚合，出「迟到-16分」这种公示口径 */
+  agg(entries){
+    const m = new Map();
+    entries.forEach(x => {
+      const cur = m.get(x.label) || { label: x.label, n: 0, total: 0 };
+      cur.n++;
+      cur.total += Number(x.delta) || 0;
+      m.set(x.label, cur);
+    });
+    return [...m.values()];
+  },
+
+  reasonText(entries){
+    if (!entries.length) return '';
+    return this.agg(entries).map(a =>
+      `${Util.esc(a.label)}${a.n > 1 ? `(${a.n}次)` : ''}<b style="color:${a.total > 0 ? '#c25650' : '#2e7d4f'};font-weight:500">${a.total > 0 ? '+' : ''}${a.total}分</b>`
+    ).join('，');
+  },
+
+  cnDate(d){
+    return `${+d.slice(5, 7)}月${+d.slice(8, 10)}日`;
+  },
+
+  block(clsId, from, to){
+    const cls = Store.list('classes').find(c => c.id === clsId);
+    if (!cls) return '';
+    const period = this.logFor(clsId, from, to);
+    if (!period.length) return '';                    // 没有动态的班不占位
+    const reasons = this.agg(period).map(a =>
+      `${a.label}${a.n > 1 ? `(${a.n}次)` : ''}${a.total > 0 ? '+' : ''}${a.total}分`
+    ).join('，');
+    return `${cls.name}：${this.score(clsId)}\n加扣分原因：${reasons}`;
+  },
+
+  /* ── 记录列表 ── */
+  renderLog(){
+    const el = document.getElementById('qLogBody');
+    const meta = document.getElementById('qLogMeta');
+    const clsId = this._cls();
+    if (!clsId){
+      el.innerHTML = '<div class="empty">先去「名册」建班级</div>';
+      if (meta) meta.textContent = '';
+      return;
+    }
+    const { from, to } = this.range();
+    const rows = this.logFor(clsId, from, to);
+    if (meta) meta.textContent = `${from} ~ ${to} · ${rows.length} 笔`;
+    el.innerHTML = rows.length ? rows.map(x => `
+      <div class="item">
+        <span class="hint num" style="margin:0;width:48px;flex-shrink:0">${x.date.slice(5)}</span>
+        <span class="grow">${Util.esc(x.label)}</span>
+        <b class="num" style="font-size:18px;flex-shrink:0;color:${x.delta > 0 ? '#c25650' : '#2e7d4f'}">${x.delta > 0 ? '+' : ''}${x.delta}</b>
+        <button class="del" onclick="Quant.del('${x.id}')" title="撤销这一笔">✕</button>
+      </div>`).join('')
+      : '<div class="empty">这段没有加减分记录</div>';
+  },
+
+  /* ── 公示文案：班级为单位，不出现学生姓名 ── */
+  copy(){
+    const clsId = this._cls();
+    if (!clsId) return UI.toast('先去「名册」建班级');
+    const { from, to } = this.range();
+    const block = this.block(clsId, from, to);
+    if (!block) return UI.toast('这段时间没有加减分记录');
+    Util.copy(`【量化公示】${this.cnDate(from)}${from !== to ? ' ~ ' + this.cnDate(to) : ''}\n\n${block}`);
+  },
+
+  copyAll(){
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    if (!classes.length) return UI.toast('还没有班级');
+    const { from, to } = this.range();
+    const parts = classes.map(c => this.block(c.id, from, to)).filter(Boolean);
+    if (!parts.length) return UI.toast('各班都还没有加减分记录');
+    Util.copy(`【量化公示】${this.cnDate(from)}${from !== to ? ' ~ ' + this.cnDate(to) : ''}\n\n` + parts.join('\n\n'));
+    UI.toast(`已复制 ${parts.length} 个班的公示，直接贴群`);
   },
 
   range(){
@@ -2509,41 +2695,6 @@ const Quant = {
       Store.list('hw:' + hw.id).forEach(x => bump(x.studentId, x.done ? 'hw:已交' : 'hw:未交', 1));
     });
     return Object.values(stat).sort((a,b) => b.score - a.score);
-  },
-
-  partText(parts){
-    const rules = Store.list('quant_rules');
-    const entries = Object.entries(parts);
-    if (!entries.length) return '暂无记录';
-    return entries.map(([k, n]) => {
-      const r = rules.find(x => x.key === k);
-      return (r ? r.label : k) + '×' + n;
-    }).join(' · ');
-  },
-
-  copy(){
-    if (!this._rows || !this._rows.length) return UI.toast('先选个有学员的班级');
-    const { clsId, from, to } = this._meta;
-    const cls = Store.list('classes').find(c => c.id === clsId);
-    const lines = this._rows.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n');
-    const text = `【${cls ? cls.name : ''} · 量化公示】\n${from} ~ ${to}\n\n${lines}`;
-    Util.copy(text);
-  },
-
-  /** 公布以班级为单位：每个班各生成一段，拼成一份，发群时按班拆开贴 */
-  copyAll(){
-    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
-    if (!classes.length) return UI.toast('还没有班级');
-    const fromto = this.range();
-    const parts = classes.map(cls => {
-      const rows = this.compute(cls.id, fromto.from, fromto.to);
-      if (!rows.length) return '';
-      const lines = rows.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n');
-      return `【${cls.name} · 量化公示】\n${fromto.from} ~ ${fromto.to}\n\n${lines}`;
-    }).filter(Boolean);
-    if (!parts.length) return UI.toast('各班都还没有记录');
-    Util.copy(parts.join('\n\n————————\n\n'));
-    UI.toast(`已复制 ${parts.length} 个班的公示，发群时按班级分开贴`);
   },
 
   /* ── 本周小结 + 图卡（原「周复盘」，并入量化页） ── */
@@ -3764,39 +3915,66 @@ const Settings = {
 
   /** 占位细则：只初始化一次。老师们开会定稿后在设置页改 */
   initRules(){
-    if (Store.get('_rulesInit')) return;
-    const rid = k => 'r_' + k;   // 固定 id：跨设备合并时同一条规则不会重复
-    [
-      ['att:正常','出勤正常',1], ['att:迟到','迟到',-2],
-      ['att:病假','病假',-1],   ['att:事假','事假',-2],
-      ['hw:已交','作业按时提交',1], ['hw:未交','作业未交',-2],
-      ['night:过','晚自习过关',1], ['night:未过','晚自习未过',-1]
-    ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
-    Store.set('_rulesInit', Date.now());
+    if (!Store.get('_rulesInit')){
+      const rid = k => 'r_' + k;   // 固定 id：跨设备合并时同一条规则不会重复
+      [
+        ['att:正常','出勤正常',1], ['att:迟到','迟到',-2],
+        ['att:病假','病假',-1],   ['att:事假','事假',-2],
+        ['hw:已交','作业按时提交',1], ['hw:未交','作业未交',-2],
+        ['night:过','晚自习过关',1], ['night:未过','晚自习未过',-1]
+      ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
+      Store.set('_rulesInit', Date.now());
+    }
+    /* 班级名目（考前集训量化管理细则）：驱动量化页的快捷加减分按钮。
+       独立标记，老设备升级后也能补种。 */
+    if (!Store.get('_rulesClsInit')){
+      const rid = k => 'r_' + k;
+      [
+        ['cls:late','迟到（每分钟）',-2],      ['cls:earlyLeave','早退',-20],
+        ['cls:absent','无故请假',-30],         ['cls:fullAtt','全勤奖励',30],
+        ['cls:phone','上课玩手机',-20],        ['cls:interact','课堂互动突出',5],
+        ['cls:hwGood','作业全部按时交齐',20],  ['cls:hwBad','作业迟交/敷衍',-10],
+        ['cls:dialect','专业时间说方言',-5],   ['cls:evalPass','即兴评述集体通关',15],
+        ['cls:evalLazy','评述消极对待',-15],   ['cls:examMiss','模考缺考（每人）',-20],
+        ['cls:examTop','模考平均分最高',20],   ['cls:examUp','模考进步最大',20],
+        ['cls:cleanGreat','卫生优秀',20],      ['cls:cleanOk','卫生合格',10],
+        ['cls:cleanBad','卫生不合格',-10],     ['cls:equip','损坏设备/公物',-20],
+        ['cls:dress','仪容不整（拖鞋/睡衣/帽子）',-5], ['cls:water','换水',10]
+      ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
+      Store.set('_rulesClsInit', Date.now());
+    }
   },
 
   renderRules(){
     const el = document.getElementById('rulesList');
     if (!el) return;
     const rules = Store.list('quant_rules', (a,b) => (a.key||'') > (b.key||'') ? 1 : -1);
-    el.innerHTML = rules.length ? rules.map(r => `
+    if (!rules.length){
+      el.innerHTML = '<div class="empty">还没有细则，用下面那行加一条</div>';
+      return;
+    }
+    const row = r => `
       <div class="row" style="margin-bottom:8px" data-rid="${r.id}">
         <input type="text" class="rule-label" value="${Util.esc(r.label)}" style="flex:1;min-width:0">
         <input type="number" class="rule-delta" value="${r.delta}" step="1" style="max-width:95px">
         <button class="del" onclick="Settings.delRule('${r.id}')">✕</button>
-      </div>`).join('')
-      : '<div class="empty">还没有细则，用下面那行加一条</div>';
+      </div>`;
+    const legacy = rules.filter(r => (r.key || '').indexOf('cls:') !== 0);
+    const cls = rules.filter(r => (r.key || '').indexOf('cls:') === 0);
+    el.innerHTML =
+      (legacy.length ? `<p class="hint" style="margin:2px 0 8px">自动计分（考勤 / 作业 / 晚自习，按登记记录自动算）</p>${legacy.map(row).join('')}` : '') +
+      (cls.length ? `<p class="hint" style="margin:10px 0 8px">班级名目（量化页「快捷加减分」按钮，删一条就少一个按钮）</p>${cls.map(row).join('')}` : '');
   },
 
   addRule(){
     const src   = document.getElementById('ruleSrc').value;
     const name  = document.getElementById('ruleName').value.trim();
     const delta = parseFloat(document.getElementById('ruleDelta').value);
-    if (!name && src === 'att') return UI.toast('考勤类细则要填状态名，如：早退');
+    if (!name && (src === 'att' || src === 'cls')) return UI.toast(src === 'att' ? '考勤类细则要填状态名，如：早退' : '班级名目要填名字，如：换水');
     if (isNaN(delta)) return UI.toast('填一下分值，扣分用负数');
-    const key   = src === 'att' ? 'att:' + name : src;
+    const key   = src === 'att' ? 'att:' + name : (src === 'cls' ? 'cls:' + name : src);
     const fixed = { 'hw:已交':'作业已交', 'hw:未交':'作业未交', 'night:过':'晚自习过关', 'night:未过':'晚自习未过' };
-    const label = src === 'att' ? name : (name || fixed[src] || src);
+    const label = (src === 'att' || src === 'cls') ? name : (name || fixed[src] || src);
     const rid   = 'r_' + key;
     Store.upsert('quant_rules', { id:rid, key, label, delta });
     document.getElementById('ruleName').value = '';
