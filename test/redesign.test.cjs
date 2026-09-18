@@ -307,6 +307,20 @@ const settle = () => new Promise(r => setTimeout(r, 100));
       assert(/只有页面|没有后台/.test(note), '登录门没把断连原因写出来，现在写的是：' + note);
     });
 
+    t('确认没有后台后，登录表单要收起来（别让人对着死表单反复试）', () => {
+      G('Auth').show();
+      eq(w.document.querySelector('.g-form').style.display, 'none', '表单应隐藏');
+    });
+
+    t('在死表单里点了登录，也会换成横幅（你截图里那条路径）', async () => {
+      w.document.getElementById('gUser').value = '谢一鸣';
+      w.document.getElementById('gPass').value = 'whatever123';
+      await G('Auth').submit();
+      const note = w.document.getElementById('gNote').textContent;
+      assert(/登不进去/.test(note), '应显示「登不进去」横幅，现在显示：' + note);
+      eq(w.document.querySelector('.g-form').style.display, 'none', '表单应隐藏');
+    });
+
     t('整个工程里不该再有「返回格式不对」这句话', () => {
       assert(!html.includes('返回格式不对'), 'index.html 里还有');
     });

@@ -3906,10 +3906,23 @@ const Auth = {
       sub || (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
     document.getElementById('gErr').textContent = '';
     const note = document.getElementById('gNote');
-    /* 连不上后端就直接说清楚，别让人填完用户名密码才被告知 */
-    note.innerHTML = this._connErr
-      ? `<b style="color:#c25650">${Util.esc(this._connErr)}</b>`
-      : '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
+    const form = g.querySelector('.g-form');
+    /* 连不上后端就别装没事：横幅写清原因、表单直接收起来 ——
+       一个注定登不进去的表单留在那儿，只会让人以为是自己填错了。 */
+    if (this._connErr && this._connErr.indexOf('只有页面、没有后台') !== -1){
+      note.innerHTML =
+        '<div style="background:rgba(194,86,80,.10);border:1px solid rgba(194,86,80,.35);border-radius:12px;padding:14px 16px;text-align:left;line-height:1.9;font-size:13px">' +
+          '<b style="color:#c25650">⚠️ 这个窗口登不进去：它只有页面、没有后台</b><br>' +
+          '账号验证在服务器上做，这个地址只有界面、没有那个服务器。<br>' +
+          '👉 请用<b style="color:#c25650">带后台的地址</b>打开：正式网址，或本机 http://localhost:5173</div>';
+      if (form) form.style.display = 'none';
+    } else if (this._connErr){
+      note.innerHTML = `<b style="color:#c25650">${Util.esc(this._connErr)}</b>` +
+        '<br>账号由教务创建，没有自助注册。';
+    } else {
+      note.innerHTML = '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
+      if (form) form.style.display = '';
+    }
     g.classList.add('on');
   },
   hide(){ document.getElementById('gate')?.classList.remove('on'); },
@@ -3942,6 +3955,8 @@ const Auth = {
       if (typeof Sync !== 'undefined') Sync.push();
     } catch(e){
       this.busy(false);
+      /* 确认没有后台时，把表单换成横幅 —— 别让人对着一个永远登不进去的表单反复试 */
+      if (e.code === 'NO_BACKEND'){ this.show(); return; }
       this.err(e.message === 'NO_ACCOUNT' ? '没有这个账号。请让教务老师在「老师管理」里创建。' : e.message);
     }
   },
