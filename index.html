@@ -802,7 +802,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     </section>
     <!-- ==== 功能：设置 END ==== -->
 
-    <!-- ==== 功能：协作 START ====（教务端：收老师上报 + 发通知 + 存资料） -->
+    <!-- ==== 功能：协作 START ====（教务端：收老师上报 + 发通知） -->
     <section class="page" id="page-coop">
       <div class="page-title">协作</div>
       <div class="page-sub">老师的上报与申请在这里处理；通知发下去，老师打开「今天」就能看到</div>
@@ -819,16 +819,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
               <button class="btn" onclick="Coop.addNotice()">发出</button>
             </div>
             <div id="noticeList" style="margin-top:12px"></div>
-          </div>
-          <div class="card">
-            <h2>📚 资料库 <span class="hint" style="display:inline;margin:0">教务内部存档</span></h2>
-            <div class="row" style="flex-wrap:wrap">
-              <input type="text" id="matTitle" placeholder="名称，如：即兴评述题库（9月）">
-              <input type="text" id="matUrl" placeholder="链接或说明">
-              <button class="btn" onclick="Coop.addMaterial()">加入</button>
-            </div>
-            <div id="matList" style="margin-top:12px"></div>
-            <p class="hint">网盘链接、题库、模板都放这儿，教务自己找得着。老师端不显示这一块。</p>
           </div>
         </div>
       </div>
@@ -3177,7 +3167,7 @@ const Student = {
 
 /* ==== 功能：协作 START ====（教务端） */
 const Coop = {
-  render(){ this.renderList(); this.renderNotices(); this.renderMaterials(); },
+  render(){ this.renderList(); this.renderNotices(); },
 
   renderList(){
     const el = document.getElementById('coopList');
@@ -3237,30 +3227,7 @@ const Coop = {
       </div>`).join('') : '<div class="empty">还没发过通知</div>';
   },
 
-  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); },
-
-  addMaterial(){
-    const t = document.getElementById('matTitle').value.trim();
-    const u = document.getElementById('matUrl').value.trim();
-    if (!t) return UI.toast('填个名称');
-    Store.upsert('materials', { title: t, url: u });
-    document.getElementById('matTitle').value = '';
-    document.getElementById('matUrl').value = '';
-    this.renderMaterials();
-  },
-
-  renderMaterials(){
-    const el = document.getElementById('matList');
-    if (!el) return;
-    const list = Store.list('materials', (a,b) => (a.title || '') > (b.title || '') ? 1 : -1);
-    el.innerHTML = list.length ? list.map(m => `
-      <div class="item">
-        <span class="grow">${Util.esc(m.title)}${m.url ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(m.url)}</span>` : ''}</span>
-        <button class="del" onclick="Coop.delMaterial('${m.id}')">✕</button>
-      </div>`).join('') : '<div class="empty">资料库还是空的</div>';
-  },
-
-  delMaterial(id){ Store.softDelete('materials', id); this.renderMaterials(); }
+  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); }
 };
 /* ==== 功能：协作 END ==== */
 
@@ -3880,6 +3847,7 @@ function userErr(u){
 
 const Auth = {
   _me: null,
+  _connErr: '',        // 连不上后端时记下原因，交给登录门显示
 
   token(){ return Store.getSecret('token') || ''; },
   me(){ return this._me; },
@@ -3895,13 +3863,33 @@ const Auth = {
   },
 
   async call(action, extra = {}){
-    const r = await fetch('/api/sync', {
-      method:'POST',
-      headers:{ 'content-type':'application/json' },
-      body: JSON.stringify(Object.assign({ action, token: this.token() }, extra))
-    });
+    let r;
+    try {
+      r = await fetch('/api/sync', {
+        method:'POST',
+        headers:{ 'content-type':'application/json' },
+        body: JSON.stringify(Object.assign({ action, token: this.token() }, extra))
+      });
+    } catch {
+      const e = new Error('网络没连上。本地记的东西都还在，等有网了会自动补传。');
+      e.code = 'OFFLINE';
+      this._connErr = e.message;
+      throw e;
+    }
     let j = {};
-    try { j = await r.json(); } catch { j = { error: '返回格式不对' }; }
+    try { j = await r.json(); }
+    catch {
+      /* 服务器回的不是 JSON —— 说明这个请求根本没到后端。
+         最常撞上的是两种：① 直接双击 index.html 用 file:// 打开；
+         ② 用了只托管静态文件的预览地址。两种都是「页面能看、就是登不进去」。 */
+      const e = new Error(r.status === 404
+        ? '这个地址只有页面、没有后台，所以登不进去。请从正式网址打开（本机试就用 http://localhost:5173）。'
+        : `服务器没回正常内容（HTTP ${r.status}），可能正在重新部署，过一会儿再试。`);
+      e.code = 'NO_BACKEND';
+      this._connErr = e.message;
+      throw e;
+    }
+    this._connErr = '';
     if (!r.ok){
       const e = new Error(j.error || ('请求失败 ' + r.status));
       e.code = j.code;
@@ -3917,8 +3905,11 @@ const Auth = {
     document.getElementById('gSub').textContent =
       sub || (Store.get('_hadAccount') ? '登录后继续' : '第一次使用：填一个用户名和密码，你就自动成为首位教务');
     document.getElementById('gErr').textContent = '';
-    document.getElementById('gNote').innerHTML =
-      '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
+    const note = document.getElementById('gNote');
+    /* 连不上后端就直接说清楚，别让人填完用户名密码才被告知 */
+    note.innerHTML = this._connErr
+      ? `<b style="color:#c25650">${Util.esc(this._connErr)}</b>`
+      : '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
     g.classList.add('on');
   },
   hide(){ document.getElementById('gate')?.classList.remove('on'); },
@@ -3971,6 +3962,8 @@ const Auth = {
       return true;
     } catch(e){
       if (e.code === 'AUTH'){ Store.setSecret('token', ''); this._me = null; }
+      /* 其它错（连不上后端、正在重新部署）不改会话状态：网络恢复后刷新一下照常进来。
+         call() 已经把原因记在 _connErr 里，登录门会直接写出来，不让人白填一遍密码。 */
       return false;
     }
   }

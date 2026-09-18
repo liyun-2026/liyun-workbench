@@ -275,6 +275,43 @@ const settle = () => new Promise(r => setTimeout(r, 100));
     });
   }
 
+  /* ── 连不上后台时，提示必须说人话 ── */
+  console.log('\n=== 六、连不上后台时的提示 ===');
+  {
+    t('资料库删干净了（界面 + 代码 + 后端白名单）', () => {
+      ['matTitle', 'matList', 'addMaterial', 'renderMaterials', 'delMaterial', '资料']
+        .forEach(s => assert(!html.includes(s), 'index.html 里还留着 ' + s));
+      const sync = fs.readFileSync(path.join(dir, 'edge-functions', 'api', 'sync.js'), 'utf8');
+      assert(!/materials/.test(sync), '后端白名单里还留着 materials');
+      assert(!/materials/.test(html), '前端还引用着 materials');
+    });
+
+    const { w, G } = boot(ROLES.admin);
+    await settle();
+
+    // 换掉 fetch，模拟「这个地址只有页面、没有后端」：404 + 一段非 JSON
+    w.fetch = async () => ({ ok: false, status: 404, json: async () => { throw new Error('not json'); } });
+    let msg = '';
+    try { await G('Auth').call('me'); } catch (e) { msg = e.message; }
+
+    t('别说「返回格式不对」——那听着像是用户自己填错了', () => {
+      assert(msg, '没有抛出错误');
+      assert(!/返回格式不对/.test(msg), '还在把锅甩给用户：' + msg);
+      assert(/只有页面|没有后台/.test(msg), '该点明是地址/后台的问题：' + msg);
+      assert(/localhost:5173/.test(msg), '该给出一个能用的地址：' + msg);
+    });
+
+    t('登录门直接写出断连原因，不让人先白填一遍密码', () => {
+      G('Auth').show();
+      const note = w.document.getElementById('gNote').textContent;
+      assert(/只有页面|没有后台/.test(note), '登录门没把断连原因写出来，现在写的是：' + note);
+    });
+
+    t('整个工程里不该再有「返回格式不对」这句话', () => {
+      assert(!html.includes('返回格式不对'), 'index.html 里还有');
+    });
+  }
+
   console.log();
   if (fail.length){
     fail.forEach(x => console.log('  \x1b[31m✗\x1b[0m ' + x));
