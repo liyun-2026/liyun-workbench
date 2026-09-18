@@ -1583,56 +1583,103 @@ const Home = {
 
 
 /* ==== 通用：识别与读文件 START ====
-   图片走 Tesseract.js（CDN 按需加载，中文包约 20MB，第一次识别会等一会儿），
-   txt 直接读，docx 用 mammoth 转文字。识别出来的都是「纯文字」，交给各功能自己解析。
-   库文件全部走 npmmirror（国内直连快），避免现场用 jsdelivr 转半天转不出来。 */
+   图片走 Tesseract.js，txt 直接读，docx 用 mammoth 转文字。识别出来的都是「纯文字」，
+   交给各功能自己解析。
+
+   ⚠️ 识别引擎（`ocr/` 目录）**跟着站点一起部署**，不再指第三方 CDN：
+   页面既然打得开，同源文件就一定取得下来；而第三方 CDN 在国内时通时断，
+   用户只会看到「请检查网络」四个字，无从下手。CDN 降为二、三顺位兜底。
+   中文识别包用 tessdata_fast（1.7MB，原来的 best 模型 19MB，手机流量和等待时间差 10 倍）。 */
+
+/** 同源识别资源目录（部署在站点根目录下的 ocr/），file:// 打开时也指向旁边 */
+const OCR_BASE = new URL('./ocr/', location.href).href.replace(/\/$/, '');
+
 const CDN = {
-  tesseract: 'https://registry.npmmirror.com/tesseract.js/5.1.1/files/dist/',
-  core:      'https://registry.npmmirror.com/tesseract.js-core/5.1.0/files/',
-  lang:      'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0',  // 语言包：20MB，只有这一处在国外源，认命
-  mammoth:   'https://registry.npmmirror.com/mammoth/1.8.0/files/mammoth.browser.min.js'
+  self:       OCR_BASE,                                                        // 第一顺位：本站（同源，必然可达）
+  mirror:     'https://registry.npmmirror.com/tesseract.js/5.1.1/files/dist/',  // 第二顺位：国内镜像
+  mirrorCore: 'https://registry.npmmirror.com/tesseract.js-core/5.1.0/files/',
+  alt:        'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/',          // 第三顺位：国外源
+  altCore:    'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0/',
+  altLang:    'https://cdn.jsdelivr.net/npm/@tesseract.js-data/chi_sim@1.0.0/4.0.0',
+  mammoth:    'https://registry.npmmirror.com/mammoth/1.8.0/files/mammoth.browser.min.js'
 };
+
+/** 识别引擎的三套资源组合，按顺序试；每套内部必须同源（worker / core / 语言包要对得上） */
+const OCR_SETS = [
+  { name:'本站',   worker: CDN.self + '/worker.min.js',      core: CDN.self + '/tesseract-core-simd.wasm.js',      lang: CDN.self },
+  { name:'国内镜像', worker: CDN.mirror + 'worker.min.js',    core: CDN.mirrorCore + 'tesseract-core-simd.wasm.js', lang: CDN.altLang },
+  { name:'备用源',  worker: CDN.alt + 'worker.min.js',        core: CDN.altCore + 'tesseract-core-simd.wasm.js',    lang: CDN.altLang }
+];
+
+/** 依次尝试多个地址加载脚本，任一成功即返回；全失败才抛错（错误信息带上是什么东西没加载上） */
+function loadFirstScript(urls, pick, what){
+  return new Promise((res, rej) => {
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length) return rej(new Error(what + '加载失败，换个网络环境再试'));
+      const s = document.createElement('script');
+      s.src = urls[i++];
+      s.onload = () => { const v = pick(); v ? res(v) : next(); };
+      s.onerror = next;
+      document.head.appendChild(s);
+    };
+    next();
+  });
+}
 
 const Ocr = {
   _lib: null,
 
   load(){
     if (this._lib) return this._lib;
-    this._lib = new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = CDN.tesseract + 'tesseract.min.js';
-      s.onload = () => { if (window.Tesseract) res(window.Tesseract); else { this._lib = null; rej(new Error('识别引擎加载失败')); } };
-      s.onerror = () => { this._lib = null; rej(new Error('识别引擎加载失败，请检查网络后重试')); };
-      document.head.appendChild(s);
-    });
+    this._lib = loadFirstScript(
+      [CDN.self + '/tesseract.min.js', CDN.mirror + 'tesseract.min.js', CDN.alt + 'tesseract.min.js'],
+      () => window.Tesseract, '识别引擎'
+    ).catch(e => { this._lib = null; throw e; });
     return this._lib;
+  },
+
+  /** 进度→人话。让用户知道卡在哪一步，而不是干等一个转圈 */
+  stageText(m){
+    const p = Math.round((m.progress || 0) * 100);
+    switch (m.status){
+      case 'loading tesseract core':       return '正在加载识别内核 ' + p + '%…';
+      case 'initializing tesseract':       return '正在启动识别引擎…';
+      case 'loading language traineddata': return '正在下载中文识别包 ' + p + '%（1.7MB，只有第一次要下）…';
+      case 'initializing api':             return '正在准备识别…';
+      case 'recognizing text':             return '识别中 ' + p + '%…';
+      default:                             return m.status || '识别中…';
+    }
   },
 
   async recognize(file, onProgress){
     const T = await this.load();
-    const { data } = await T.recognize(file, 'chi_sim', {
-      workerPath: CDN.tesseract + 'worker.min.js',
-      corePath:   CDN.core + 'tesseract-core-simd.wasm.js',
-      langPath:   CDN.lang,
-      logger: m => { if (onProgress && m.status === 'recognizing text') onProgress(m.progress); }
-    });
-    return (data.text || '').replace(/[ \t]+\n/g, '\n').trim();
+    let lastErr = null;
+    for (const s of OCR_SETS){
+      try {
+        const { data } = await T.recognize(file, 'chi_sim', {
+          workerPath: s.worker,
+          corePath:   s.core,
+          langPath:   s.lang,
+          logger: m => { if (onProgress) onProgress(Ocr.stageText(m)); }
+        });
+        return (data.text || '').replace(/[ \t]+\n/g, '\n').trim();
+      } catch(e){ lastErr = e; }          // 这套资源不通就换下一套，别让用户看着报错干瞪眼
+    }
+    throw new Error('识别没成功（' + (lastErr && lastErr.message ? lastErr.message : '资源加载不上') + '）。可以退而用 txt / docx，或换个网络再试一次');
   }
 };
 
-/** 任意文件 → { text, via } 。图片走 OCR，txt/docx 直接抽文字。 */
-async function readAnyFile(file, onProgress){
-  if (/^image\//.test(file.type)) return { text: await Ocr.recognize(file, onProgress), via: 'ocr' };
+/** 任意文件 → { text, via, prog } 。图片走 OCR，txt/docx 直接抽文字。
+    prog(msg) 收到的是给人看的中文进度，调用方直接显示即可。 */
+async function readAnyFile(file, prog){
+  if (/^image\//.test(file.type)) return { text: await Ocr.recognize(file, prog), via: 'ocr' };
   if (/\.txt$/i.test(file.name) || /^text\//.test(file.type))
     return { text: (await file.text()).trim(), via: 'text' };
   if (/\.docx$/i.test(file.name)){
+    if (prog) prog('正在读取文档…');
     if (!window.mammoth){
-      await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = CDN.mammoth;
-        s.onload = res; s.onerror = () => rej(new Error('文档解析引擎加载失败'));
-        document.head.appendChild(s);
-      });
+      await loadFirstScript([CDN.mammoth], () => window.mammoth, '文档解析引擎');
     }
     const r = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
     return { text: (r.value || '').trim(), via: 'text' };
@@ -1702,9 +1749,9 @@ const Roster = {
     input.value = '';
     if (!f) return;
     const stat = document.getElementById('batchStat');
-    stat.textContent = f.type.startsWith('image/') ? '正在识别图片里的名单，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    stat.textContent = f.type.startsWith('image/') ? '正在识别图片里的名单，第一次要下识别包（约 1.7MB），等几秒…' : '正在读取文件…';
     try {
-      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      const { text } = await readAnyFile(f, msg => { stat.textContent = msg; });
       document.getElementById('batchStu').value = text;
       stat.textContent = '识别完成，检查一遍再点「批量加入」';
     } catch(e){
@@ -2078,9 +2125,9 @@ const Schedule = {
     input.value = '';
     if (!f) return;
     const stat = document.getElementById('impStat');
-    stat.textContent = f.type.startsWith('image/') ? '正在识别课表图片，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    stat.textContent = f.type.startsWith('image/') ? '正在识别课表图片，第一次要下识别包（约 1.7MB），等几秒…' : '正在读取文件…';
     try {
-      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      const { text } = await readAnyFile(f, msg => { stat.textContent = msg; });
       document.getElementById('impText').value = text;
       stat.textContent = '识别完成，核对一下文字，然后点「AI 解析导入」';
     } catch(e){
@@ -3755,9 +3802,9 @@ const Settings = {
     input.value = '';
     if (!f) return;
     const stat = document.getElementById('rulesImpStat');
-    stat.textContent = f.type.startsWith('image/') ? '正在识别细则图片，第一次要下中文识别包，等 10~30 秒…' : '正在读取文件…';
+    stat.textContent = f.type.startsWith('image/') ? '正在识别细则图片，第一次要下识别包（约 1.7MB），等几秒…' : '正在读取文件…';
     try {
-      const { text } = await readAnyFile(f, p => { stat.textContent = '识别中 ' + Math.round(p * 100) + '%…'; });
+      const { text } = await readAnyFile(f, msg => { stat.textContent = msg; });
       document.getElementById('rulesImpText').value = text;
       stat.textContent = '识别完成，每行应类似「迟到 扣2分」，确认后点「导入这些规则」';
     } catch(e){
