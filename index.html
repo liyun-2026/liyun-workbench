@@ -293,8 +293,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .gate.on{display:block}
 .gate .g-top{position:absolute;top:0;left:0;right:0;height:5px;background:var(--gold)}
 .gate .wrap{
-  max-width:400px;margin:0 auto;padding:calc(64px + env(safe-area-inset-top,0)) 24px 40px;
+  max-width:400px;margin:0 auto;padding:calc(64px + env(safe-area-inset-top,0)) 24px calc(56px + env(safe-area-inset-bottom,0));
   min-height:100%;position:relative;
+  display:flex;flex-direction:column;box-sizing:border-box;
 }
 .gate .g-brand{display:flex;align-items:center;justify-content:center;gap:14px}
 .gate .g-brand .rule{flex:0 0 34px;height:1px;background:var(--gold)}
@@ -307,7 +308,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .gate .g-tagline{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;letter-spacing:4px}
 .gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:8px;margin-bottom:30px;min-height:20px}
 .gate .g-sub:empty{display:none;margin:0}
-.gate .g-form{display:flex;flex-direction:column;gap:14px}
+.gate .g-form{display:flex;flex-direction:column;gap:14px;margin:auto 0}
 .gate .g-form input{
   background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);
   border-radius:8px;padding:13px 16px;font-size:16px;color:var(--text);width:100%;
