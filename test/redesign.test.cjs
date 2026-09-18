@@ -75,11 +75,13 @@ const ROLES = {
   teacher: { id:'u_teach',  user:'t1',    name:'张老师',   role:'teacher', isStaff:false, isSuper:false, classIds:['c1'] },
 };
 
-/** 用假身份启动一次工作台，返回窗口内的句柄 */
-function boot(profile, seed = {}){
+/** 用假身份启动一次工作台，返回窗口内的句柄。
+    url 可换 —— 「本机预览」和「正式网址」的界面差别就靠它验（见第七节）。 */
+function boot(profile, seed = {}, url = 'https://redesign.test/'){
+  const nav = { count: 0 };          // 有几处代码尝试跳转/刷新（见下）
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
-    url: 'https://redesign.test/',
+    url,
     beforeParse(window){
       window.localStorage.setItem('bysdash$secret:token', JSON.stringify('test-token'));
       for (const [k, v] of Object.entries(seed))
@@ -95,12 +97,15 @@ function boot(profile, seed = {}){
     },
     virtualConsole: new (require('jsdom').VirtualConsole)().on('jsdomError', e => {
       if (/Could not parse CSS/i.test(e.message)) return;
+      /* jsdom 没法真跳转。代码里 logout / resetLocal 结尾都会 location.reload()，
+         那不是页面出错，记一笔就行（location.reload 是访问器属性，补不掉） */
+      if (/Not implemented: navigation/i.test(e.message)) { nav.count++; return; }
       throw new Error('页面抛出未捕获错误 → ' + e.message);
     })
   });
   const w = dom.window;
   const G = n => { try { return w.eval(n); } catch { return undefined; } };
-  return { w, d: w.document, G };
+  return { w, d: w.document, G, nav };
 }
 
 const settle = () => new Promise(r => setTimeout(r, 100));
@@ -323,6 +328,83 @@ const settle = () => new Promise(r => setTimeout(r, 100));
 
     t('整个工程里不该再有「返回格式不对」这句话', () => {
       assert(!html.includes('返回格式不对'), 'index.html 里还有');
+    });
+  }
+
+  /* ───────────────── 七、本地预览的「重置」入口 ─────────────────
+     起因：做端到端验证时随手 curl 建了个账号，它当场成了「首位教务」，
+     真正的人再来登录就一直「密码不对」—— 而且没有任何办法看见已有账号。
+     现在给了复位接口，但这是开发后门，必须保证它只在本地出现。 */
+  console.log('\n=== 七、本地预览的「重置」入口 ===');
+  {
+    const { w, G } = boot(ROLES.super, {}, 'https://liyun2026.top/');
+    await settle();
+
+    t('正式网址上不出现「重置本地数据」', () => {
+      G('Auth').show();
+      const note = w.document.getElementById('gNote').textContent;
+      assert(!/重置本地数据/.test(note), '开发后门跑到正式网址上了，现在写着：' + note);
+    });
+
+    t('正式后端 sync.js 里没有 /api/dev-reset', () => {
+      const sync = fs.readFileSync(path.join(dir, 'edge-functions', 'api', 'sync.js'), 'utf8');
+      assert(!/dev-reset/.test(sync), 'sync.js 里出现了 dev-reset —— 后门不能打进线上代码');
+    });
+
+    t('开发后门确实在 dev-server 里（免得上面两条变成空断言）', () => {
+      const dev = fs.readFileSync(path.join(dir, 'test', 'dev-server.mjs'), 'utf8');
+      assert(/dev-reset/.test(dev) && /dev-state/.test(dev), 'dev-server 里没找到重置/状态接口');
+    });
+  }
+
+  {
+    const { w, G, nav } = boot(ROLES.super, { classes: [{ id: 'c1' }] }, 'http://localhost:5173/');
+    await settle();
+    const Auth = G('Auth');
+
+    t('本机预览里显示「重置本地数据」', () => {
+      Auth.show();
+      const note = w.document.getElementById('gNote').textContent;
+      assert(/重置本地数据/.test(note), '本机预览该给一个重来的入口，现在写着：' + note);
+    });
+
+    /* 点它：确认 → 调 /api/dev-reset → 清掉本机缓存 → 刷新 */
+    let hit = '';
+    const navBefore = nav.count;
+    w.confirm = () => true;
+    w.fetch = async url => { hit = String(url); return { ok: true, status: 200, json: async () => ({ ok: true }) }; };
+    await Auth.resetLocal();
+
+    t('点「重置本地数据」会调 /api/dev-reset', () => {
+      assert(/dev-reset/.test(hit), '没调到重置接口，实际调的是：' + hit);
+    });
+
+    t('点重置会清掉本机缓存并刷新（否则旧令牌还在，等于没重置）', () => {
+      eq(w.localStorage.getItem('bysdash:classes'), null, '本机缓存的班级没清掉');
+      eq(w.localStorage.getItem('bysdash$secret:token'), null, '登录令牌没清掉');
+      assert(nav.count > navBefore, '重置完没有刷新页面');
+    });
+
+    /* 上面那条一开始是红的：我给 Store 加的 wipe() 撞上了已有的同名方法，
+       对象字面量里后写的静默覆盖前面的，新方法根本没生效。
+       这种错编译器不报、肉眼也看不出，加个守门断言。 */
+    t('Store 里没有重名方法（重名会静默覆盖）', () => {
+      const body = html.match(/const S = \{([\s\S]*?)\n  \};\n  return S;/);
+      assert(body, '找不到 Store 的方法区');
+      const names = [...body[1].matchAll(/^ {4}([A-Za-z_$][\w$]*)\(/gm)].map(x => x[1]);
+      assert(names.length > 20, '只认出 ' + names.length + ' 个方法，正则可能没匹配对');
+      const dup = [...new Set(names.filter((n, i) => names.indexOf(n) !== i))];
+      assert(dup.length === 0, 'Store 里重名的方法：' + dup.join('、'));
+    });
+
+    t('wipe 与 wipeAll 分工明确：前者不碰登录令牌，后者碰', () => {
+      const body = html.match(/const S = \{([\s\S]*?)\n  \};\n  return S;/)[1];
+      const wipe = body.match(/\n {4}wipe\(\)\{([\s\S]*?)\n {4}\},/);
+      const wipeAll = body.match(/\n {4}wipeAll\(\)\{([\s\S]*?)\n {4}\}/);
+      assert(wipe, '找不到 wipe()');
+      assert(wipeAll, '找不到 wipeAll()');
+      assert(!/SEC/.test(wipe[1]), 'wipe() 不该动登录令牌（它是「清数据但保持登录」）');
+      assert(/SEC/.test(wipeAll[1]), 'wipeAll() 必须连登录令牌一起清');
     });
   }
 

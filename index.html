@@ -1211,6 +1211,17 @@ const Store = (() => {
       if (!confirm('再确认一次：真的要清空吗？')) return;
       driver.keys().filter(k => k.startsWith(NS)).forEach(k => driver.remove(k));
       location.reload();
+    },
+
+    /* 连登录令牌一起清（含 SEC 命名空间）。
+       和上面 wipe() 的分工：
+         wipe()    —— 「清掉我的数据，但我还登录着」，设置页那个按钮用
+         wipeAll() —— 「这台设备回到出厂」，本机预览的「重置」用
+       不弹确认，由调用方负责问。 */
+    wipeAll(){
+      driver.keys()
+        .filter(k => k.startsWith(NS) || k.startsWith(SEC))
+        .forEach(k => driver.remove(k));
     }
   };
   return S;
@@ -3845,6 +3856,11 @@ function userErr(u){
   return '';
 }
 
+/* 是不是「本机预览」环境（双击「启动预览.command」起的那个）。
+   只用来决定要不要显示「重置」入口 —— 那个接口 /api/dev-reset 是
+   dev-server 独有的，线上根本没有，所以正网址永远不会出现这个按钮。 */
+const IS_LOCAL_PREVIEW = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i.test(location.hostname);
+
 const Auth = {
   _me: null,
   _connErr: '',        // 连不上后端时记下原因，交给登录门显示
@@ -3922,6 +3938,13 @@ const Auth = {
     } else if (this._connErr){
       note.innerHTML = `<b style="color:#c25650">${Util.esc(this._connErr)}</b>` +
         '<br>账号由教务创建，没有自助注册。';
+    } else if (IS_LOCAL_PREVIEW){
+      /* 本机预览：说明这是临时环境，并给一个「重来」的按钮。
+         踩过两次坑：忘了自己随手填的测试密码；账号被端到端测试占掉了。
+         两次用户都只能来找我，而「重启预览进程」这件事他自己做不到。 */
+      note.innerHTML = '这是本机预览，数据只存在内存里，关掉预览窗口就清空。' +
+        '<br><a href="#" onclick="Auth.resetLocal();return false" style="color:var(--text);text-decoration:underline">重置本地数据，重新开始</a>';
+      if (form) form.style.display = '';
     } else {
       note.innerHTML = '账号由教务创建，没有自助注册。<br>忘了密码只能让首位教务重置。';
       if (form) form.style.display = '';
@@ -3960,7 +3983,10 @@ const Auth = {
       this.busy(false);
       /* 确认没有后台时，把表单换成横幅 —— 别让人对着一个永远登不进去的表单反复试 */
       if (e.code === 'NO_BACKEND'){ this.show(); return; }
-      this.err(e.message === 'NO_ACCOUNT' ? '没有这个账号。请让教务老师在「老师管理」里创建。' : e.message);
+      let msg = e.message === 'NO_ACCOUNT' ? '没有这个账号。请让教务老师在「老师管理」里创建。' : e.message;
+      /* 本机预览里的「密码不对」，多半是自己随手填的测试密码忘了 —— 直接指路 */
+      if (IS_LOCAL_PREVIEW && msg.indexOf('密码不对') !== -1) msg += '　忘了的话，点下面那行「重置本地数据」。';
+      this.err(msg);
     }
   },
 
@@ -3968,6 +3994,26 @@ const Auth = {
     if (!confirm('退出登录？\n\n本机数据会保留，下次登录还能看到；但别人在这台设备上也看不到你的数据了。')) return;
     Store.setSecret('token', '');
     this._me = null;
+    location.reload();
+  },
+
+  /* ── 本地预览专用：一键回到「第一次使用」 ──
+     预览数据本来就在内存里，重启即清空；但「重启」这件事人是做不到的
+     （那个进程在我这边），所以给它一个按钮。
+     触发过的场景：忘了自己随手填的测试密码；或者账号被端到端测试占掉了。 */
+  async resetLocal(){
+    if (!confirm('清空本地预览的所有数据，回到「第一次使用」？\n\n预览数据本来就存在内存里，清掉后重新填一个用户名和密码就行。')) return;
+    try {
+      const r = await fetch('/api/dev-reset', { method: 'POST' });
+      if (!r.ok) throw new Error();
+    } catch {
+      return this.err('没能清掉：预览服务可能没在跑，重启一下就好。');
+    }
+    try {
+      /* 连登录令牌一起清 —— 只清业务数据的话，旧令牌还留在浏览器里，
+         刷新后照样进不去，看着像「重置没生效」。 */
+      Store.wipeAll();
+    } catch {}
     location.reload();
   },
 

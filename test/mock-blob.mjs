@@ -14,3 +14,6 @@ export function getStore(){
   };
 }
 export function raw(){ return mem; }
+
+/** 清空全部 —— 给本地预览的「重置」用，回到第一次使用的状态 */
+export function reset(){ mem.clear(); }

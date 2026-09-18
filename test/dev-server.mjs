@@ -14,6 +14,7 @@ import { createServer } from 'node:http';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { raw, reset } from './mock-blob.mjs';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.argv[2] || 5173);
@@ -56,6 +57,37 @@ const server = createServer(async (req, res) => {
       console.error('[dev] 接口出错：', e);
       res.writeHead(500, { 'content-type': 'application/json' }).end(JSON.stringify({ error: String(e && e.message || e) }));
     }
+    return;
+  }
+
+  /* ── 开发者接口 ──
+     只在本地预览存在，线上没有这两个路径（正式后端只有 /api/sync）。
+       GET  /api/dev-state   现在存了哪些账号、哪些数据（诊断用，不写不建）
+       POST /api/dev-reset   一键清空，回到「第一次使用」
+     加这两个是因为踩过一次坑：做端到端验证时随手 curl 建了账号，
+     它当场成了「首位教务」，用户再来登录就一直报密码不对 —— 而当时
+     没有任何办法看到「已经存在哪些账号」，只能靠猜。 */
+  if (url.pathname === '/api/dev-state' || url.pathname === '/api/dev-reset') {
+    const send = (code, obj) => {
+      res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(obj, null, 2));
+    };
+    if (url.pathname === '/api/dev-reset') {
+      if (req.method !== 'POST') { send(405, { error: '用 POST' }); return; }
+      reset();
+      console.log('[dev] 已清空预览数据（账号、名册、考勤…全没了）');
+      send(200, { ok: true });
+      return;
+    }
+    const mem = raw();
+    const accounts = [];
+    for (const [k, v] of mem) {
+      if (k.startsWith('auth/') && v && v.user) accounts.push({ user: v.user, name: v.name || '', role: v.role || '' });
+    }
+    send(200, {
+      accounts,
+      keys: [...mem.keys()].map(k => ({ key: k, bytes: JSON.stringify(mem.get(k) || null).length })),
+    });
     return;
   }
 
