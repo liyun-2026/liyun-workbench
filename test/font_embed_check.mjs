@@ -1,11 +1,12 @@
 /**
  * 端到端验收：开屏「砺蕴」直接用设定好的行书字体显示，不再先出楷体再换字
- *   node test/font_embed_check.mjs
+ *   node test/font_embed_check.mjs              # 打本地（自起 dev-server）
+ *   node test/font_embed_check.mjs https://liyun2026.top   # 直接打线上
  *
  * 判定标准（三条硬指标）：
  *   ① 页面完全不发 assets/liyun-xingshu.woff2 的网络请求（字体已随 CSS 内嵌）
  *   ② 一进页面还没等网络，LiYunXingShu 就已就绪（document.fonts.check 为真）
- *   ③ 「砺蕴」二字量出来的宽度 ≠ 楷体/serif 兜底宽度（证明真的用上了这个字体，不是回退）
+ *   ③ 「砺蕴」画到画布上的像素指纹 ≠ 楷体/serif 兜底（证明真的用上了这个字体，不是回退）
  */
 import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
@@ -17,8 +18,9 @@ for (const k of ['HTTP_PROXY','HTTPS_PROXY','http_proxy','https_proxy','ALL_PROX
 process.env.NO_PROXY = '*';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = Number(process.argv[2] || 5321);
-const BASE = `http://127.0.0.1:${PORT}`;
+const arg = process.argv[2] || '';
+const LIVE = /^https?:\/\//.test(arg);                       // 传网址 = 直接验收线上
+const BASE = LIVE ? arg.replace(/\/$/, '') : `http://127.0.0.1:${arg || 5321}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots');
 
@@ -51,9 +53,12 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) { pass++; console.log('  �
 
 try {
   await mkdir(OUT, { recursive: true });
-  const server = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(PORT)], { cwd: dir, stdio: 'ignore' });
-  await waitFor(async () => (await jfetch(`${BASE}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务', tries: 40 });
-  console.log('预览服务就绪 →', BASE, '\n');
+  let server = null;
+  if (!LIVE){
+    server = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(arg || 5321)], { cwd: dir, stdio: 'ignore' });
+    await waitFor(async () => (await jfetch(`${BASE}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务', tries: 40 });
+  }
+  console.log('验收目标 →', BASE, LIVE ? '（线上）' : '（本机预览）', '\n');
 
   const profile = await mkdtemp(path.join(tmpdir(), 'font-chrome-'));
   const chrome = spawn(CHROME, ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=5322', `--user-data-dir=${profile}`, '--no-first-run','--no-default-browser-check','--disable-extensions','--no-proxy-server','about:blank'], { stdio: 'ignore' });
@@ -114,13 +119,13 @@ try {
   })()`);
   ok(s2.text === '砺蕴', '开屏主字是「砺蕴」且已渲染出来');
 
-  await shot(cdp, 'font-splash.png');
+  await shot(cdp, LIVE ? 'font-splash-live.png' : 'font-splash.png');
 
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
 
   console.log('\n=== 结果：通过 ' + pass + ' / 失败 ' + fail + ' ===');
-  chrome.kill(); server.kill();
+  chrome.kill(); if (server) server.kill();
   process.exit(fail ? 1 : 0);
 } catch (e) {
   console.error('\n✗ 出错：', e.message);
