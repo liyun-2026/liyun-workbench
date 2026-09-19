@@ -3752,7 +3752,8 @@ const Teachers = {
   _users: [],
   _editing: null,
 
-  roleName(r){ return r === 'super' ? '首位教务（你）' : (r === 'admin' ? '教务老师' : '授课老师'); },
+  /* 首位教务那行不显示角色括注（他自己知道就行），这里只管 admin / teacher */
+  roleName(r){ return r === 'admin' ? '教务老师' : '授课老师'; },
 
   clsText(u){
     if (u.role !== 'teacher') return '';
