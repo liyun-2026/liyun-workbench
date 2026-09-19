@@ -3,3 +3,6 @@
 test/.sync.gen.mjs
 test/.preview-data.json
 test/.shots/
+
+# WorkBuddy 项目记忆（本机专用，不进仓库）
+/.workbuddy/
