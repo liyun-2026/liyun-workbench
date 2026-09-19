@@ -465,6 +465,31 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   content:'';position:absolute;top:-3px;right:-9px;width:9px;height:9px;border-radius:50%;
   background:#d24b3f;border:2px solid var(--card);
 }
+
+/* ── 河南省播音与主持统考：五等评级徽章 ── */
+.tier{font-size:12px;padding:1px 8px;border-radius:20px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t1{background:rgba(58,157,107,.16);color:#3a9d6b}
+.t2{background:rgba(74,158,160,.16);color:#4a9ea0}
+.t3{background:rgba(201,171,124,.20);color:#c9ab7c}
+.t4{background:rgba(217,164,65,.18);color:#d9a441}
+.t5{background:rgba(192,57,43,.18);color:#c0392b}
+.pass{background:rgba(58,157,107,.16);color:#3a9d6b}
+.fail{background:rgba(192,57,43,.18);color:#c0392b}
+
+/* ── 模考成绩录入：三科并排 ── */
+.ex-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;width:100%}
+.ex-trio label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--text-dim)}
+.ex-trio input{max-width:none;text-align:center;padding:6px 4px}
+.ex-total{font-variant-numeric:tabular-nums;font-weight:500;font-size:15px;flex-shrink:0;text-align:right}
+.ex-total .tier{margin-left:6px;font-weight:500}
+
+/* ── 学员档案：三科强弱条 ── */
+.weak{display:grid;gap:10px;margin-top:4px}
+.weak .row{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px;font-size:13px}
+.weak .bar{height:9px;border-radius:6px;background:var(--sidebar-active);overflow:hidden;position:relative}
+.weak .fill{position:absolute;left:0;top:0;bottom:0;border-radius:6px;transition:width .3s}
+.weak .lab{font-variant-numeric:tabular-nums;color:var(--text-dim)}
+.weak .tag{font-size:12px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -763,6 +788,17 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     <!-- ==== 功能：模考 START ==== -->
     <section class="page" id="page-exam">
       <div class="page-title">每周模考</div>
+      <div class="card" style="font-size:13px">
+        <h2>📐 评分标准 · 河南省播音与主持类统考</h2>
+        <p class="hint" style="margin:0 0 6px">三科各 100 分、总分 300：作品朗读 / 新闻播报 / 话题评述，每科按「五等」评定；省统考专业合格线 <b style="color:var(--text)">200</b> 分，本科段专业线 <b style="color:var(--text)">212</b> 分。</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tier t1">一等 90–100 优秀</span>
+          <span class="tier t2">二等 80–89 良好</span>
+          <span class="tier t3">三等 70–79 中等</span>
+          <span class="tier t4">四等 60–69 及格</span>
+          <span class="tier t5">五等 0–59 待提升</span>
+        </div>
+      </div>
       <div class="card">
         <h2>🎤 AI 出题</h2>
         <div id="aiBody"></div>
@@ -3043,6 +3079,51 @@ const Quant = {
 
 
 /* ==== 功能：模考 START ==== */
+
+/* 河南省播音与主持类省级统考评分标准（2024 起执行，2024/2025 合格线均为 200）
+   三科各 100 分、总分 300：作品朗读 / 新闻播报 / 话题评述。
+   单科按「五等」评定；总分按 3×单科带宽映射；合格线 200（专科）、本科段专业线 212。 */
+const EXAM = {
+  SUBJECTS: [
+    { key: 'read', name: '作品朗读' },
+    { key: 'news', name: '新闻播报' },
+    { key: 'talk', name: '话题评述' },
+  ],
+  TIERS: [                       // 单科（0–100）五等带宽
+    { min: 90, name: '一等', cls: 't1', desc: '优秀' },
+    { min: 80, name: '二等', cls: 't2', desc: '良好' },
+    { min: 70, name: '三等', cls: 't3', desc: '中等' },
+    { min: 60, name: '四等', cls: 't4', desc: '及格' },
+    { min: 0,  name: '五等', cls: 't5', desc: '待提升' },
+  ],
+  PASS_LINE: 200,                // 省统考专业合格线（过此线校考才有效、方可凭统考录取）
+  UG_LINE: 212,                  // 本科段专业控制线（2025：历史 383 / 物理 406 文化 + 专业 212）
+  MAX: 300,
+
+  /** 单科 0–100 → 五等 */
+  tier(s){
+    const n = Number(s);
+    if (isNaN(n)) return null;
+    return this.TIERS.find(t => n >= t.min) || this.TIERS[this.TIERS.length - 1];
+  },
+  /** 总分 0–300 → 五等（除以 3 套用单科带宽，保持一致） */
+  tierTotal(t){ return this.tier(Number(t) / 3); },
+
+  /** 三项是否都填了 → 合成总分（0–300），否则 undefined */
+  total(rec){
+    const v = ['read', 'news', 'talk'].map(k => rec['score' + k[0].toUpperCase() + k.slice(1)]);
+    if (v.every(x => x !== undefined && x !== null && x !== '')) return v.reduce((a, b) => a + Number(b), 0);
+    return undefined;
+  },
+  /** 总分口径：优先三科合成；旧版只有单分数时退回旧值，避免老数据「消失」 */
+  totalOf(rec){
+    const t = this.total(rec);
+    if (t !== undefined) return t;
+    if (rec && rec.score !== undefined && rec.score !== null && rec.score !== '') return Number(rec.score);
+    return undefined;
+  },
+};
+
 const Exam = {
   PROMPT: '你是播音与主持艺术艺考的命题老师。请基于最近一周的时事热点和热点事件，出 5 道即兴评述考题。每题一行，格式为「1. 题目（后面括号里给一句评述角度提示）」。只输出 5 道题，不要任何其他说明。',
 
@@ -3218,45 +3299,76 @@ const Exam = {
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
     if (!students.length){ box.innerHTML = '<div class="empty">这个班还没有学员</div>'; return; }
 
+    const recs = Store.list('exam_scores').filter(x => x.sheetId === cur);
     const scores = {};
-    Store.list('exam_scores').filter(x => x.sheetId === cur).forEach(x => { scores[x.studentId] = x.score; });
-    const done = students.filter(s => scores[s.id] !== undefined && scores[s.id] !== '');
-    const avg = done.length ? done.reduce((a, s) => a + Number(scores[s.id]), 0) / done.length : null;
+    recs.forEach(x => {
+      scores[x.studentId] = {
+        read: x.scoreRead, news: x.scoreNews, talk: x.scoreTalk,
+        total: EXAM.totalOf(x),
+      };
+    });
+    const done = students.filter(s => scores[s.id] && scores[s.id].total !== undefined);
+    const avg = done.length ? done.reduce((a, s) => a + scores[s.id].total, 0) / done.length : null;
+    const passCnt = done.filter(s => scores[s.id].total >= EXAM.PASS_LINE).length;
 
     box.innerHTML = `
-      <p class="hint" style="margin:0 0 6px">填完自动存，不用点保存。留空表示还没考。</p>
-      ${students.map(s => `<div class="item">
-        <span class="grow">${Util.esc(s.name)}</span>
-        <input type="number" step="0.1" inputmode="decimal" class="ex-score" data-sid="${s.id}"
-               value="${scores[s.id] === undefined ? '' : Util.esc(String(scores[s.id]))}"
-               placeholder="分" style="max-width:108px;text-align:right">
-      </div>`).join('')}`;
-    box.querySelectorAll('.ex-score').forEach(inp => {
-      inp.addEventListener('change', () => Exam.saveScore(inp.dataset.sid, inp.value));
+      <p class="hint" style="margin:0 0 6px">三科各 100 分、自动合成总分（满分 300）。填完自动存，不用点保存。留空表示还没考。</p>
+      ${students.map(s => {
+        const sc = scores[s.id] || {};
+        const rd = sc.read === undefined ? '' : String(sc.read);
+        const nw = sc.news === undefined ? '' : String(sc.news);
+        const tk = sc.talk === undefined ? '' : String(sc.talk);
+        const tot = sc.total;
+        const tier = tot !== undefined ? EXAM.tierTotal(tot) : null;
+        return `<div class="item" style="flex-direction:column;align-items:stretch;gap:0">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="grow">${Util.esc(s.name)}</span>
+            <span class="ex-total">${tot === undefined ? '—' : (tot + ' / 300')}${tier ? `<span class="tier ${tier.cls}">${tier.name}·${tier.desc}</span>` : ''}</span>
+          </div>
+          <div class="ex-trio">
+            <label>朗读<input type="number" step="0.1" min="0" max="100" inputmode="decimal" class="ex-in" data-sid="${s.id}" data-f="read" value="${rd}" placeholder="0–100"></label>
+            <label>播报<input type="number" step="0.1" min="0" max="100" inputmode="decimal" class="ex-in" data-sid="${s.id}" data-f="news" value="${nw}" placeholder="0–100"></label>
+            <label>评述<input type="number" step="0.1" min="0" max="100" inputmode="decimal" class="ex-in" data-sid="${s.id}" data-f="talk" value="${tk}" placeholder="0–100"></label>
+          </div>
+        </div>`;
+      }).join('')}`;
+    box.querySelectorAll('.ex-in').forEach(inp => {
+      inp.addEventListener('change', () => Exam.saveScore(inp.dataset.sid, inp.dataset.f, inp.value));
     });
 
     const sh = this.sheetById(cur);
     if (stat) stat.textContent = `${Util.clsName(clsId)} · ${sh ? sh.name : ''}`
       + ` · 已填 ${done.length}/${students.length}`
-      + (avg === null ? '' : ` · 平均 ${avg.toFixed(1)} 分`);
+      + (avg === null ? '' : ` · 平均 ${avg.toFixed(1)} 分`)
+      + (done.length ? ` · 过线 ${passCnt}/${done.length}` : '');
   },
 
-  saveScore(sid, val){
+  saveScore(sid, field, val){
     const sheetId = this._sheet();
     const sheet = this.sheetById(sheetId);
     if (!sheet || !sid) return;
     const v = String(val).trim();
     const old = Store.list('exam_scores').find(x => x.sheetId === sheetId && x.studentId === sid);
-    if (v === ''){
-      if (old){ Store.softDelete('exam_scores', old.id); this.renderSheet(); }
+    const cur = { read: old && old.scoreRead, news: old && old.scoreNews, talk: old && old.scoreTalk };
+    if (v === ''){ cur[field] = undefined; }
+    else {
+      const n = Number(v);
+      if (isNaN(n) || n < 0 || n > 100) return UI.toast('单科分数填 0–100');
+      cur[field] = n;
+    }
+    const hasAny = cur.read !== undefined || cur.news !== undefined || cur.talk !== undefined;
+    if (!hasAny){
+      if (old) Store.softDelete('exam_scores', old.id);
+      this.renderSheet();
       return;
     }
-    const n = Number(v);
-    if (isNaN(n)) return UI.toast('分数要填数字');
-    if (old && Number(old.score) === n) return;
+    const allThere = cur.read !== undefined && cur.news !== undefined && cur.talk !== undefined;
+    const total = allThere ? (Number(cur.read) + Number(cur.news) + Number(cur.talk)) : undefined;
     Store.upsert('exam_scores', {
-      id: old ? old.id : null, sheetId, clsId: sheet.clsId,
-      studentId: sid, score: n, date: sheet.date, sheetName: sheet.name,
+      id: old ? old.id : null, sheetId, clsId: sheet.clsId, studentId: sid,
+      date: sheet.date, sheetName: sheet.name,
+      scoreRead: cur.read, scoreNews: cur.news, scoreTalk: cur.talk,
+      score: total,
     });
     this.renderSheet();
   },
@@ -3266,11 +3378,21 @@ const Exam = {
     const sheet = this.sheetById(this._sheet());
     if (!sheet) return UI.toast('先选（或新建）一场模考');
     const students = Store.list('students', Util.byName).filter(s => s.classId === sheet.clsId);
-    const scores = {};
-    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => { scores[x.studentId] = x.score; });
-    const rows = [['班级', '场次', '日期', '姓名', '分数'],
-      ...students.map(s => [Util.clsName(sheet.clsId), sheet.name, sheet.date, s.name,
-        scores[s.id] === undefined ? '' : scores[s.id]])];
+    const recs = {};
+    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => { recs[x.studentId] = x; });
+    const rows = [['班级', '场次', '日期', '姓名', '作品朗读', '新闻播报', '话题评述', '总分', '评段', '过线(200)'],
+      ...students.map(s => {
+        const x = recs[s.id];
+        const tot = x ? EXAM.totalOf(x) : undefined;
+        const tier = tot !== undefined ? EXAM.tierTotal(tot) : null;
+        return [Util.clsName(sheet.clsId), sheet.name, sheet.date, s.name,
+          x && x.scoreRead !== undefined ? x.scoreRead : '',
+          x && x.scoreNews !== undefined ? x.scoreNews : '',
+          x && x.scoreTalk !== undefined ? x.scoreTalk : '',
+          tot === undefined ? '' : tot,
+          tier ? (tier.name + '·' + tier.desc) : '',
+          tot === undefined ? '' : (tot >= EXAM.PASS_LINE ? '是' : '否')];
+      })];
     Util.download(`模考成绩-${Util.clsName(sheet.clsId)}-${sheet.name}.csv`, Util.csv(rows));
     const st = document.getElementById('exExpStat');
     if (st) st.textContent = `已导出「${sheet.name}」共 ${students.length} 人`;
@@ -3300,16 +3422,23 @@ const Exam = {
     const sheet = this.sheetById(this._sheet());
     if (!sheet) return UI.toast('先选一场模考');
     const scores = {};
-    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => { scores[x.studentId] = Number(x.score); });
+    Store.list('exam_scores').filter(x => x.sheetId === sheet.id).forEach(x => {
+      const t = EXAM.totalOf(x);
+      if (t !== undefined) scores[x.studentId] = t;
+    });
     const ranked = Store.list('students').filter(s => s.classId === sheet.clsId)
-      .filter(s => !isNaN(scores[s.id]))
+      .filter(s => scores[s.id] !== undefined)
       .map(s => ({ name: s.name, score: scores[s.id] }))
       .sort((a, b) => b.score - a.score);
-    if (!ranked.length) return UI.toast('这一场还没填分');
+    if (!ranked.length) return UI.toast('这一场还没填齐三科');
     const avg = ranked.reduce((a, r) => a + r.score, 0) / ranked.length;
+    const pass = ranked.filter(r => r.score >= EXAM.PASS_LINE).length;
     Util.copy(`【${Util.clsName(sheet.clsId)} · ${sheet.name} 成绩】\n`
-      + `${sheet.date} · 共 ${ranked.length} 人 · 平均 ${avg.toFixed(1)} 分\n\n`
-      + ranked.map((r, i) => `${i + 1}. ${r.name}　${r.score} 分`).join('\n'));
+      + `${sheet.date} · 共 ${ranked.length} 人 · 平均 ${avg.toFixed(1)} 分 · 过合格线(200) ${pass} 人\n\n`
+      + ranked.map((r, i) => {
+          const tier = EXAM.tierTotal(r.score);
+          return `${i + 1}. ${r.name}　${r.score} 分　${tier.name}·${tier.desc}`;
+        }).join('\n'));
   }
 };
 /* ==== 功能：模考 END ==== */
@@ -3560,13 +3689,37 @@ const Student = {
         hwRows.push({ date: h.date, text: h.text, st: !sub ? '未登记' : (sub.done ? '已交' : '未交') });
       });
 
-    /* ── 模考成绩 ── */
-    const scoreOf = {};
-    Store.list('exam_scores').filter(x => x.studentId === sid).forEach(x => { scoreOf[x.sheetId] = x.score; });
+    /* ── 模考成绩（对标河南省播音与主持类统考：三科各100、总分300、五等制） ── */
+    const recOf = {};
+    Store.list('exam_scores').filter(x => x.studentId === sid).forEach(x => { recOf[x.sheetId] = x; });
     const myScores = Store.list('exam_sheets', (a,b) => (a.date || '') < (b.date || '') ? -1 : 1)
       .filter(sh => sh.clsId === s.classId)
-      .map(sh => ({ name: sh.name, date: sh.date, score: scoreOf[sh.id] }))
+      .map(sh => {
+        const x = recOf[sh.id];
+        const total = x ? EXAM.totalOf(x) : undefined;
+        return {
+          name: sh.name, date: sh.date,
+          read: x && x.scoreRead, news: x && x.scoreNews, talk: x && x.scoreTalk,
+          score: total,
+          tier: total !== undefined ? EXAM.tierTotal(total) : null,
+          pass: total !== undefined ? total >= EXAM.PASS_LINE : null,
+          ug: total !== undefined ? total >= EXAM.UG_LINE : null,
+        };
+      })
       .filter(x => x.score !== undefined && x.score !== '');
+    const colorOf = cls => ({ t1:'#3a9d6b', t2:'#4a9ea0', t3:'#c9ab7c', t4:'#d9a441', t5:'#c0392b' }[cls] || 'var(--text-dim)');
+    // 三科强弱：跨所有已填齐的场次求平均，最低者即最薄弱板块
+    const subAvg = { read: [], news: [], talk: [] };
+    myScores.forEach(m => ['read','news','talk'].forEach(k => {
+      if (m[k] !== undefined && m[k] !== '') subAvg[k].push(Number(m[k]));
+    }));
+    const weak = EXAM.SUBJECTS.map(sub => {
+      const arr = subAvg[sub.key];
+      const avg = arr.length ? arr.reduce((a,b) => a + b, 0) / arr.length : null;
+      return { ...sub, avg, tier: avg !== null ? EXAM.tier(avg) : null };
+    });
+    const weakSorted = weak.filter(w => w.avg !== null).slice().sort((a,b) => a.avg - b.avg);
+    const weakest = weakSorted.length ? weakSorted[0] : null;
     const lastFew = myScores.slice(-8);
     let scoreSvg = '';
     if (lastFew.length >= 2){
@@ -3625,11 +3778,46 @@ const Student = {
 
       <div class="card">
         <h2>🎤 模考成绩</h2>
-        ${myScores.length ? `<div class="hero num">${myScores[myScores.length - 1].score}<span class="unit">分 · ${Util.esc(myScores[myScores.length - 1].name)}</span></div>` : ''}
+        ${myScores.length ? (() => {
+          const m = myScores[myScores.length - 1];
+          return `<div class="hero num">${m.score}<span class="unit">分 · ${Util.esc(m.name)}</span></div>
+            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              ${m.tier ? `<span class="tier ${m.tier.cls}">${m.tier.name}·${m.tier.desc}</span>` : ''}
+              ${m.pass ? `<span class="tier pass">已过合格线 200</span>` : `<span class="tier fail">未过合格线 200</span>`}
+              ${m.ug ? `<span class="tier pass">达本科线 212</span>` : ''}
+            </div>`;
+        })() : ''}
         ${scoreSvg ? `<div style="margin-top:12px">${scoreSvg}</div>` : ''}
+
+        ${weakest ? `<div style="margin-top:14px">
+          <p class="hint" style="margin:0 0 6px">三科强弱（近 ${myScores.length} 场平均）</p>
+          <div class="weak">
+            ${weak.map(w => {
+              const pct = w.avg === null ? 0 : Math.round(w.avg);
+              const isWeak = weakest && w.key === weakest.key;
+              return `<div class="row">
+                <span>${w.name}${isWeak ? ' ⚠️' : ''}</span>
+                <span class="bar"><span class="fill" style="width:${pct}%;background:${w.tier ? colorOf(w.tier.cls) : 'var(--text-dim)'}"></span></span>
+                <span class="lab">${w.avg === null ? '—' : w.avg.toFixed(1)}${w.tier ? `<span class="tag tier ${w.tier.cls}">${w.tier.name}</span>` : ''}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <p class="hint" style="margin:10px 0 0">⚠️ 最薄弱板块：<b style="color:var(--text)">${weakest.name}</b>（平均 ${weakest.avg.toFixed(1)} 分${weakest.tier ? '，' + weakest.tier.name + '·' + weakest.tier.desc : ''}）—— 后期可针对性加练。</p>
+        </div>` : ''}
+
         ${myScores.length ? myScores.slice().reverse().map(x =>
-          `<div class="item"><span class="grow">${Util.esc(x.name)}<br><span class="hint" style="display:inline;margin:0">${x.date}</span></span>
-             <b class="num" style="flex-shrink:0">${x.score}</b></div>`).join('')
+          `<div class="item" style="flex-direction:column;align-items:stretch;gap:6px">
+             <div style="display:flex;align-items:center;gap:10px">
+               <span class="grow">${Util.esc(x.name)}<br><span class="hint" style="display:inline;margin:0">${x.date}</span></span>
+               <b class="num" style="flex-shrink:0">${x.score}</b>
+               ${x.tier ? `<span class="tier ${x.tier.cls}">${x.tier.name}</span>` : ''}
+             </div>
+             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+               <span class="hint" style="text-align:center">朗读 ${x.read===undefined?'—':x.read}</span>
+               <span class="hint" style="text-align:center">播报 ${x.news===undefined?'—':x.news}</span>
+               <span class="hint" style="text-align:center">评述 ${x.talk===undefined?'—':x.talk}</span>
+             </div>
+           </div>`).join('')
           : '<div class="empty">还没有模考成绩</div>'}
       </div>
 
