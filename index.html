@@ -745,11 +745,12 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="page-title">量化</div>
       <div class="row">
         <select id="qCls" onchange="Quant.pickCls(this.value)"></select>
-        <select id="qRange" onchange="Quant.render()" style="max-width:130px">
-          <option value="week">本周</option>
-          <option value="month">本月</option>
-          <option value="30">近 30 天</option>
-        </select>
+      </div>
+      <div class="row" style="gap:8px;align-items:center">
+        <span class="hint" style="margin:0;white-space:nowrap">统计区间</span>
+        <input type="date" id="qFrom" onchange="Quant.render()" style="flex:1;min-width:0">
+        <span class="hint" style="margin:0">到</span>
+        <input type="date" id="qTo" onchange="Quant.render()" style="flex:1;min-width:0">
       </div>
       <div class="card wide" id="qScoreCard"></div>
       <div class="card wide">
@@ -761,6 +762,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <button class="btn" onclick="Quant.addCustom()">记一笔</button>
         </div>
         <p class="hint">点按钮就给上面选的班记一笔（记在今天）。要改数量的按钮（迟到按分钟、评述 10~20 这些）点了会先问你。记错了在下面「加扣分记录」里点 ✕ 撤销。名目和分值在设置页「量化细则」里改。</p>
+        <p class="hint" style="margin-top:6px">考勤里标了 <b>迟到 / 病假 / 事假</b>，会按「量化细则」里的考勤分值自动记进下面的记录，不用再来这里点一遍。</p>
+        <button class="btn ghost" style="margin-top:10px" onclick="Quant.syncAllFromAtt()">🔁 按考勤重算本班（补历史 / 改了细则后）</button>
       </div>
       <div class="card wide">
         <h2>📜 加扣分记录 <span class="hint" id="qLogMeta" style="display:inline;margin:0 0 0 auto"></span></h2>
@@ -775,7 +778,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <p class="hint">以班级为单位：班名 + 总分 + 加扣分原因，整段里不出现学生姓名，直接贴班群就行。</p>
       </div>
       <div class="card wide">
-        <h2>📊 本周小结</h2>
+        <h2>📊 本期小结</h2>
         <div id="recapBody"></div>
         <div class="row" style="margin-top:14px">
           <button class="btn" onclick="Quant.makeCard()">生成图卡</button>
@@ -2130,6 +2133,14 @@ const Att = {
     if (rec && rec.status === st){ Store.softDelete(key, rec.id); }   // 再点一下取消
     else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, status: st });
     this.render();
+    this.syncQuant(date);      // 迟到/病假/事假 立刻反映到量化，不用再去量化页点一遍
+  },
+
+  /* 考勤一改，就把这个班这一天的量化扣分重算一遍（考勤是源头，重算幂等，不会重复记） */
+  syncQuant(date){
+    const clsId = Store.get('_attCls');
+    if (!clsId) return;
+    try { if (typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(clsId, date); } catch(e){}
   },
 
   allNormal(){
@@ -2145,6 +2156,7 @@ const Att = {
     });
     UI.toast('已全部标为正常');
     this.render();
+    this.syncQuant(date);
   },
 
   pickDate(v){ Store.set('_attDate', v || Util.today()); this.render(); },
@@ -2758,10 +2770,20 @@ const Quant = {
   },
 
   render(){
+    this.fillRange();                 // 日历区间：没值时默认今天
+    this.migrateAtt();                // 首次打开：把已有考勤补进量化
     this.renderScore();
     this.renderBtns();
     this.renderLog();
     this.renderRecap();
+  },
+
+  /* 统计区间的两个日期框：空则填今天（不再用「本周/本月」，集训、周末课不按日历走） */
+  fillRange(){
+    const f = document.getElementById('qFrom'), t = document.getElementById('qTo');
+    const today = Util.today();
+    if (f && !f.value) f.value = today;
+    if (t && !t.value) t.value = today;
   },
 
   _cls(){
@@ -2912,9 +2934,11 @@ const Quant = {
     el.innerHTML = rows.length ? rows.map(x => `
       <div class="item">
         <span class="hint num" style="margin:0;width:48px;flex-shrink:0">${x.date.slice(5)}</span>
-        <span class="grow">${Util.esc(x.label)}</span>
+        <span class="grow">${Util.esc(x.label)}${x._src === 'att' ? ' <span class="hint" style="display:inline;margin:0">考勤</span>' : ''}</span>
         <b class="num" style="font-size:18px;flex-shrink:0;color:${x.delta > 0 ? '#c25650' : '#2e7d4f'}">${x.delta > 0 ? '+' : ''}${x.delta}</b>
-        <button class="del" onclick="Quant.del('${x.id}')" title="撤销这一笔">✕</button>
+        ${x._src === 'att'
+          ? ''
+          : `<button class="del" onclick="Quant.del('${x.id}')" title="撤销这一笔">✕</button>`}
       </div>`).join('')
       : '<div class="empty">这段没有加减分记录</div>';
   },
@@ -2939,21 +2963,13 @@ const Quant = {
     UI.toast(`已复制 ${parts.length} 个班的公示，直接贴群`);
   },
 
+  /* 统计区间：取日历里选的两个日期（可点日历，也可自己敲），不再用「本周 / 本月」 */
   range(){
-    const mode = document.getElementById('qRange').value;
-    const today = new Date();
-    const to = Util.dateOf(today);
-    let from;
-    if (mode === 'week'){
-      const dow = (today.getDay() + 6) % 7;                  // 周一为一周之始
-      const d = new Date(today); d.setDate(today.getDate() - dow);
-      from = Util.dateOf(d);
-    } else if (mode === 'month'){
-      from = to.slice(0, 8) + '01';
-    } else {
-      const d = new Date(today); d.setDate(today.getDate() - 29);
-      from = Util.dateOf(d);
-    }
+    const fEl = document.getElementById('qFrom'), tEl = document.getElementById('qTo');
+    const today = Util.today();
+    let from = (fEl && fEl.value) || today;
+    let to   = (tEl && tEl.value) || today;
+    if (from > to){ const x = from; from = to; to = x; }      // 起点晚于终点就自动对调
     return { from, to };
   },
 
@@ -2987,18 +3003,57 @@ const Quant = {
     return Object.values(stat).sort((a,b) => b.score - a.score);
   },
 
-  /* ── 本周小结 + 图卡（原「周复盘」，并入量化页） ── */
-  weekDays(){
-    const t = new Date();
-    const dow = (t.getDay() + 6) % 7;
-    const s = new Date(t); s.setDate(t.getDate() - dow);
-    return { from: Util.dateOf(s), to: Util.dateOf(t) };
+  /* ── 考勤 → 量化 ──
+     在「考勤」里把学生标成迟到 / 病假 / 事假，量化里立刻出现对应的扣分，
+     不用再回量化页手动点一遍。考勤是源头，重算天生幂等：
+     先清掉该班该天由考勤生成的记录，再按当前考勤重建，所以反复标也不会重复。
+     分值取自设置页「量化细则」里的 att:{状态}（默认 迟到/事假 −2、病假 −1）。 */
+  syncAtt(clsId, date){
+    if (!clsId || !date) return;
+    Store.list('quant_log')
+      .filter(x => !x._d && x._src === 'att' && x.clsId === clsId && x.date === date)
+      .forEach(x => Store.softDelete('quant_log', x.id));
+    const rules = Store.list('quant_rules');
+    const byStu = {};
+    Store.list('att:' + date).forEach(r => { byStu[r.studentId] = r.status; });
+    Store.list('students').filter(s => s.classId === clsId).forEach(s => {
+      const st = byStu[s.id];
+      if (!st || st === '正常') return;                    // 出勤正常不扣分
+      const r = rules.find(x => x.key === 'att:' + st);
+      if (!r || !r.delta) return;                          // 没有对应细则就不记
+      Store.upsert('quant_log', { clsId, date, label: r.label || st, delta: r.delta, _src: 'att' });
+    });
+  },
+
+  /* 某班所有有考勤的日期全部重算（历史数据 / 改了考勤分值之后） */
+  syncAllAtt(clsId){
+    if (!clsId) return;
+    Object.keys(Store.dump())
+      .filter(k => k.indexOf('att:') === 0)
+      .map(k => k.slice(4))
+      .forEach(d => this.syncAtt(clsId, d));
+  },
+
+  /* 首次打开量化页时，把所有班已有的考勤补进量化（只跑一次） */
+  migrateAtt(){
+    if (Store.get('attQuantMigrated')) return;
+    Store.list('classes').forEach(c => this.syncAllAtt(c.id));
+    Store.set('attQuantMigrated', 1);
+  },
+
+  /* 手动按钮：按考勤重算当前班 */
+  syncAllFromAtt(){
+    const clsId = this._cls();
+    if (!clsId) return UI.toast('先去「名册」建班级');
+    this.syncAllAtt(clsId);
+    UI.toast('已按考勤重算本班量化');
+    this.render();
   },
 
   renderRecap(){
     const el = document.getElementById('recapBody');
     if (!el) return;
-    const { from, to } = this.weekDays();
+    const { from, to } = this.range();
     const days = this.dates(from, to);
     let n = 0;
     const per = {};
@@ -3010,7 +3065,7 @@ const Quant = {
     });
     this._recap = { n, per, from, to };
     const active = days.filter(d => per[d] > 0).length;
-    el.innerHTML = `<div class="hero num">${n}<span class="unit">条本周记录</span></div>
+    el.innerHTML = `<div class="hero num">${n}<span class="unit">条记录（所选区间）</span></div>
       <p class="hint">${from} 到 ${to} · 其中 ${active} 天有登记</p>`;
   },
 
@@ -3033,7 +3088,7 @@ const Quant = {
 
     g.fillStyle = v('--accent') || '#26241f';
     g.font = font(30, 500);
-    g.fillText('砺蕴工作台 · 这一周', pad + 56, 300);
+    g.fillText('砺蕴工作台 · 这一期', pad + 56, 300);
 
     g.fillStyle = v('--text') || '#26241f';
     g.font = font(190, 500);
@@ -3066,7 +3121,7 @@ const Quant = {
     cv.toBlob(b => {
       const url = URL.createObjectURL(b);
       const a = document.createElement('a');
-      a.href = url; a.download = `本周小结-${r.to}.png`;
+      a.href = url; a.download = `量化小结-${r.from}-${r.to}.png`;
       a.click();
       setTimeout(() => {
         URL.revokeObjectURL(url);
