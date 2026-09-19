@@ -26,10 +26,16 @@ const MAX_BYTES = 700 * 1024;          // 受限于边缘函数请求体 1MB
 const SESSION_MS = 60 * 24 * 3600 * 1000;   // 登录状态保留 60 天
 const MIN_PASS = 8;
 
-const SUPER = 'super';
-const ADMIN = 'admin';
-const TEACHER = 'teacher';
-const STAFF = [SUPER, ADMIN];
+const SUPER = 'super';       // 首位教务：什么都能管，包括账号
+const ADMIN = 'admin';       // 教务老师：业务全能，不管账号
+const TEACHER = 'teacher';   // 授课老师：只看自己带的班
+const BOTH = 'both';         // 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在
+/* 数据口径上「算教务」的角色：能拿到全部数据、能写全部数据。
+   both 也算教务（否则 TA 打开考勤/量化会是一片空），只是不能管账号（看 doUsers）。 */
+const STAFF = [SUPER, ADMIN, BOTH];
+/* 建号 / 改身份时允许的身份。super 只能有一个，不在这里 —— 谁也建不出第二个 */
+const ASSIGNABLE = [ADMIN, BOTH, TEACHER];
+const normRole = r => (ASSIGNABLE.indexOf(String(r)) >= 0 ? String(r) : TEACHER);
 
 /* ── 用户名规则 ──
    汉字和字母数字都行：教务、老师更习惯打自己名字，记拼音反而容易忘。
@@ -258,7 +264,7 @@ function sanitizePush(shared, me, serverShared) {
   const src = shared || {};
   if (me.isStaff) {
     const out = Object.assign({}, src);
-    if (me.role === ADMIN) for (const k of SUPER_ONLY_WRITE) delete out[k];
+    if (me.role !== SUPER) for (const k of SUPER_ONLY_WRITE) delete out[k];   // aiKey 只有首位教务能改（教务老师、教务兼授课都不行）
     return out;
   }
 
@@ -418,7 +424,7 @@ async function doUsers(s, me, body) {
     const uid = await hex('u|' + normUser);
     if (await s.get(`auth/${uid}`, { type: 'json' })) return json({ error: '这个用户名已经存在' }, 400);
     const salt = randHex(16);
-    const role = String(body.role) === ADMIN ? ADMIN : TEACHER;   // 不允许再建 super，首位只有一个
+    const role = normRole(body.role);   // 不允许再建 super，首位只有一个
     await s.setJSON(`auth/${uid}`, {
       salt, hash: await hex(pass + '|' + salt), role,
       name: String(body.name || normUser).trim().slice(0, 24),
@@ -438,7 +444,7 @@ async function doUsers(s, me, body) {
     if (body.name !== undefined) target.name = String(body.name || '').trim().slice(0, 24) || target.name;
     if (body.classIds !== undefined) target.classIds = cls;
     if (body.active !== undefined) target.active = !!body.active;
-    if (body.role !== undefined) target.role = String(body.role) === ADMIN ? ADMIN : TEACHER;
+    if (body.role !== undefined) target.role = normRole(body.role);
     target.changedAt = Date.now();
     await s.setJSON(`auth/${id}`, target);
     return json({ ok: true });

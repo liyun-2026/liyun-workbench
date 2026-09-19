@@ -302,5 +302,42 @@ console.log('\n=== 八、用户名规则（汉字 / 全角 / 大小写） ===');
   t('登录时同样按新规则校验', () => eq(lead.status, 400));
 }
 
+console.log('\n=== 九、教务兼授课（both）：两套权限都有 ===');
+{
+  const cBoth = await call({ action: 'users', op: 'create', token: owner, user: 'jiaoshou', pass: 'jiaoshou123', name: '李老师', role: 'both', classIds: ['c1'] });
+  t('能建「教务兼授课」账号', () => eq(cBoth.body.ok, true));
+
+  const lb = await call({ action: 'login', user: 'jiaoshou', pass: 'jiaoshou123' });
+  t('教务兼授课能登录，角色就是 both', () => eq(lb.body.profile.role, 'both'));
+  t('教务兼授课在服务端算教务（能拿全部数据）', () => eq(lb.body.profile.isStaff, true));
+  const bothToken = lb.body.token;
+
+  const p = await call({ action: 'pull', token: bothToken });
+  t('能看到两个班（教务视野，不只是自己带的班）', () => eq(p.body.shared.classes.map(c => c.id).sort(), ['c1', 'c2']));
+  t('能看到全部学生', () => eq(p.body.shared.students.length, 3));
+  t('能看到不是自己带的那个班的考勤', () => ok((p.body.shared['att:2026-09-18'] || []).some(x => x.studentId === 's3')));
+
+  const bad = await call({ action: 'users', op: 'create', token: owner, user: 'jiaoshou2', pass: 'jiaoshou123', name: '怪角色', role: 'boss' });
+  const lb2 = await call({ action: 'login', user: 'jiaoshou2', pass: 'jiaoshou123' });
+  t('乱填的身份一律降级成授课老师（不会冒出野角色）', () => eq(lb2.body.profile.role, 'teacher'));
+
+  t('教务兼授课仍不能建账号（只有首位教务能管账号）', async () => {});
+  const noCreate = await call({ action: 'users', op: 'create', token: bothToken, user: 'somebody', pass: 'somebody123', name: '随便', role: 'teacher' });
+  t('  → 建账号被拒 403', () => eq(noCreate.status, 403));
+  const noUpdate = await call({ action: 'users', op: 'update', token: bothToken, id: t1Id, role: 'admin' });
+  t('  → 改别人身份被拒 403', () => eq(noUpdate.status, 403));
+
+  const keyPush = await call({ action: 'push', token: bothToken, shared: { aiKey: { deepseek: 'sk-hacked' }, classes: [{ id: 'c9', name: '新班', _u: 5 }] } });
+  t('教务兼授课改不了 aiKey（回显的仍是服务端原值，说明没被写进去）', () => eq(keyPush.body.shared.aiKey.deepseek, 'sk-secret-owner'));
+  const ownerAfter = await call({ action: 'pull', token: owner });
+  t('  → 服务端 aiKey 没被改动', () => eq(ownerAfter.body.shared.aiKey.deepseek, 'sk-secret-owner'));
+  t('教务兼授课能正常写业务数据', () => ok((ownerAfter.body.shared.classes || []).some(c => c.id === 'c9')));
+
+  const back = await call({ action: 'users', op: 'update', token: owner, id: cBoth.body.id, role: 'teacher' });
+  const lAfter = await call({ action: 'login', user: 'jiaoshou', pass: 'jiaoshou123' });
+  t('首位教务能把 TA 改回授课老师', () => eq(lAfter.body.profile.role, 'teacher'));
+  t('  → 改回后不再算教务', () => eq(lAfter.body.profile.isStaff, false));
+}
+
 console.log(`\n────────────\n通过 ${pass} 项，失败 ${fail} 项\n`);
 if (fail) process.exit(1);

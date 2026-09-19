@@ -360,6 +360,30 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .dgrid button .ico{font-size:21px;line-height:1}
 .dgrid button.on{border-color:var(--accent)}
 
+/* ── 选身份窗口：建号 / 改身份时，挑「授课老师 / 教务老师 / 教务兼授课」── */
+.picker{position:fixed;inset:0;z-index:100;display:none}
+.picker.on{display:block}
+.picker .mask{position:absolute;inset:0;background:rgba(0,0,0,.42)}
+.picker .sheet{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(470px,92vw);max-height:86%;overflow-y:auto;
+  background:var(--bg);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.22);
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom,0));
+  animation:popIn .18s var(--ease) both;
+}
+@keyframes popIn{from{transform:translate(-50%,-46%) scale(.97);opacity:.4}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.role-opt{
+  display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;
+  border:1px solid var(--line);background:var(--card);border-radius:14px;
+  padding:13px 14px;margin-bottom:10px;font-family:inherit;color:var(--text);cursor:pointer;
+}
+.role-opt:last-child{margin-bottom:0}
+.role-opt.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.role-opt .r-ico{font-size:22px;line-height:1.1;flex-shrink:0}
+.role-opt .r-name{font-size:15px;font-weight:500}
+.role-opt .r-desc{font-size:13px;color:var(--text-dim);line-height:1.55;margin-top:4px}
+.role-opt .r-check{margin-left:auto;flex-shrink:0;color:var(--gold);font-size:15px}
+
 /* ── 登录门：没登录前挡在一切前面（方案 B · 鎏金牌匾） ── */
 .gate{
   position:fixed;inset:0;z-index:80;display:none;
@@ -1024,14 +1048,11 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="tUser" placeholder="登录用户名（如 王磊 或 wanglei）" style="min-width:200px" autocapitalize="off" spellcheck="false">
           <input type="text" id="tName" placeholder="姓名（如：王老师）" style="min-width:150px">
-          <select id="tRole" style="max-width:150px">
-            <option value="teacher">授课老师</option>
-            <option value="admin">教务老师</option>
-          </select>
+          <button class="btn ghost" id="tRoleBtn" onclick="Teachers.openRole()">身份：授课老师 ▾</button>
           <input type="text" id="tPass" placeholder="初始密码（至少 8 位）" style="min-width:180px">
           <button class="btn" onclick="Teachers.create()">建账号</button>
         </div>
-        <p class="hint">先把账号建出来，再到下面列表里点「带班」勾他要带的班。</p>
+        <p class="hint">先把账号建出来，再到下面列表里点「带班」勾他要带的班、点「身份」改 TA 能看哪些页面。</p>
       </div>
       <div class="card wide">
         <h2>🧑‍🏫 账号列表</h2>
@@ -1045,6 +1066,19 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <button class="btn ghost" onclick="Teachers.closeCls()">取消</button>
         </div>
         <p class="hint">不带任何班的老师，登录后看不到名册和录入，只能看通知和上报。</p>
+      </div>
+
+      <!-- 选身份窗口：建号时挑，或列表里点「身份」改 -->
+      <div class="picker" id="rolePick">
+        <div class="mask" onclick="Teachers.closeRole()"></div>
+        <div class="sheet">
+          <h3 style="margin:0 0 4px;font-size:17px;font-weight:500" id="rolePickTitle">这个账号是做什么的？</h3>
+          <p class="hint" style="margin:0 0 14px">决定了 TA 登录后能看到哪些页面，建好后随时还能改。</p>
+          <div id="roleOpts"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn" onclick="Teachers.closeRole()">就这个</button>
+          </div>
+        </div>
       </div>
     </section>
     <!-- ==== 功能：老师管理 END ==== -->
@@ -1662,32 +1696,54 @@ const Greet = {
 };
 
 const App = {
+  /* roles 说明：super 首位教务 / admin 教务老师 / teacher 授课老师 /
+     both 教务兼授课（两套都看得见，见 ROLE_KIND） */
   routes: [
     /* ── 教务端 ── */
-    { id:'home',      icon:'🎯', name:'今日',     roles:['super','admin'], tab:1, onShow: () => Home.render() },
-    { id:'att',       icon:'📋', name:'考勤',     roles:['super','admin'], tab:2, onShow: () => Att.render() },
-    { id:'homework',  icon:'📝', name:'作业',     roles:['super','admin'], tab:3, onShow: () => Homework.render() },
-    { id:'roster',    icon:'👥', name:'名册',     roles:['super','admin'], tab:4, onShow: () => Roster.render() },
-    { id:'profile',   icon:'📇', name:'学员档案', roles:['super','admin','teacher'], onShow: () => Student.render() },
-    { id:'timetable', icon:'🗓️', name:'课表',     roles:['super','admin'], onShow: () => Schedule.render() },
-    { id:'night',     icon:'🌙', name:'晚自习',   roles:['super','admin'], onShow: () => Night.render() },
-    { id:'quant',     icon:'📊', name:'量化',     roles:['super','admin'], onShow: () => Quant.render() },
-    { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin'], onShow: () => Exam.render() },
-    { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin'], onShow: () => Coop.render() },
+    { id:'home',      icon:'🎯', name:'今日',     roles:['super','admin','both'], tab:1, onShow: () => Home.render() },
+    { id:'att',       icon:'📋', name:'考勤',     roles:['super','admin','both'], tab:2, onShow: () => Att.render() },
+    { id:'homework',  icon:'📝', name:'作业',     roles:['super','admin','both'], tab:3, onShow: () => Homework.render() },
+    { id:'roster',    icon:'👥', name:'名册',     roles:['super','admin','both'], tab:4, onShow: () => Roster.render() },
+    { id:'profile',   icon:'📇', name:'学员档案', roles:['super','admin','teacher','both'], onShow: () => Student.render() },
+    { id:'timetable', icon:'🗓️', name:'课表',     roles:['super','admin','both'], onShow: () => Schedule.render() },
+    { id:'night',     icon:'🌙', name:'晚自习',   roles:['super','admin','both'], onShow: () => Night.render() },
+    { id:'quant',     icon:'📊', name:'量化',     roles:['super','admin','both'], onShow: () => Quant.render() },
+    { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
+    { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
-    { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher'], tab:5, onShow: () => Settings.render() },
+    { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher','both'], tab:5, onShow: () => Settings.render() },
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
-    { id:'today',     icon:'🎯', name:'今天',     roles:['teacher'], tab:1, onShow: () => Today.render() },
-    { id:'record',    icon:'✍️', name:'录入今日', roles:['teacher'], tab:2, onShow: () => Record.render() },
-    { id:'myclass',   icon:'👥', name:'我带的班', roles:['teacher'], tab:3, onShow: () => MyClass.render() },
-    { id:'tickets',   icon:'✋', name:'上报与申请', roles:['teacher'], tab:4, onShow: () => Ticket.render() }
+    { id:'today',     icon:'🎯', name:'今天',     roles:['teacher','both'], tab:1, onShow: () => Today.render() },
+    { id:'record',    icon:'✍️', name:'录入今日', roles:['teacher','both'], tab:2, onShow: () => Record.render() },
+    { id:'myclass',   icon:'👥', name:'我带的班', roles:['teacher','both'], tab:3, onShow: () => MyClass.render() },
+    { id:'tickets',   icon:'✋', name:'上报与申请', roles:['teacher','both'], tab:4, onShow: () => Ticket.render() }
   ],
+
+  /* 三种可建的身份。both = 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在 */
+  ROLE_KIND: {
+    teacher: { icon:'🎙️', name:'授课老师',
+      desc:'只管自己带的班：今天上什么课、录入今日情况、我带的班、学员档案（只读）、上报与申请。' },
+    admin:   { icon:'📋', name:'教务老师',
+      desc:'管全班那一摊：今日、考勤、作业、名册、量化、模考、课表、晚自习、协作。不能建/删账号，也不能改 AI 设置。' },
+    both:    { icon:'🎙️📋', name:'教务兼授课',
+      desc:'两套都有：既能管教务那一摊，也能录自己班的情况、发上报。适合又上课又管教务的人（老师管理仍只有您能进）。' },
+  },
+
+  /* 底部标签栏放哪 5 个（手机上最多 5 个）—— 每个角色单独定，因为 both 会撞号 */
+  TAB_ORDER: {
+    super:   ['home','att','homework','roster','settings'],
+    admin:   ['home','att','homework','roster','settings'],
+    teacher: ['today','record','myclass','tickets','settings'],
+    both:    ['home','att','record','myclass','settings']
+  },
 
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
   NAV_ORDER: {
     super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
     admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
+    /* 教务兼授课：先教务那摊（常用的在前），再自己班的授课那摊 */
+    both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','record','myclass','tickets','settings'],
     teacher: ['today','record','myclass','profile','tickets','settings']
   },
 
@@ -1722,7 +1778,10 @@ const App = {
 
     const tabs = document.getElementById('tabs');
     if (tabs){
-      const onTab = list.filter(r => r.tab).sort((a,b) => a.tab - b.tab).slice(0, 5);
+      // 底部 5 个标签按角色单独定（both 会把教务端和老师端的 tab 号撞在一起，不能靠 tab 号排）
+      const want = this.TAB_ORDER[Auth.role()];
+      const onTab = (want ? want.map(id => list.find(r => r.id === id)).filter(Boolean)
+                          : list.filter(r => r.tab).sort((a,b) => a.tab - b.tab)).slice(0, 5);
       tabs.innerHTML = onTab.map(r =>
         `<button data-id="${r.id}" onclick="App.go('${r.id}')">
            <span class="ico">${r.icon}</span>${r.name}
@@ -4088,13 +4147,75 @@ const Teachers = {
   _users: [],
   _editing: null,
 
-  /* 首位教务那行不显示角色括注（他自己知道就行），这里只管 admin / teacher */
-  roleName(r){ return r === 'admin' ? '教务老师' : '授课老师'; },
+  _role: 'teacher',     // 建号窗口里选中的身份
+  _roleFor: null,       // 非空 = 正在给这个账号改身份（而不是新建）
+
+  /* 首位教务那行不显示角色括注（他自己知道就行），这里只管 admin / teacher / both */
+  roleName(r){ return (App.ROLE_KIND[r] || App.ROLE_KIND.teacher).name; },
 
   clsText(u){
-    if (u.role !== 'teacher') return '';
+    if (u.role !== 'teacher' && u.role !== 'both') return '';
     const names = (u.classIds || []).map(id => Util.clsName(id)).filter(Boolean);
     return names.length ? ' · 带 ' + names.join('、') : ' · 还没分班';
+  },
+
+  /* ── 选身份窗口 ── */
+  openRole(id){
+    this._roleFor = id || null;
+    this._role = id
+      ? ((this._users || []).find(x => x.id === id) || {}).role || 'teacher'
+      : this._role;
+    const t = document.getElementById('rolePickTitle');
+    const u = id ? (this._users || []).find(x => x.id === id) : null;
+    if (t) t.textContent = u ? `改「${u.name || u.user}」的身份` : '这个账号是做什么的？';
+    this.paintRoles();
+    document.getElementById('rolePick').classList.add('on');
+  },
+
+  closeRole(){
+    document.getElementById('rolePick').classList.remove('on');
+    this._roleFor = null;
+  },
+
+  paintRoles(){
+    const box = document.getElementById('roleOpts');
+    if (!box) return;
+    const cur = this._role;
+    box.innerHTML = Object.keys(App.ROLE_KIND).map(k => {
+      const r = App.ROLE_KIND[k];
+      const on = k === cur ? ' on' : '';
+      return `<button class="role-opt${on}" onclick="Teachers.pickRole('${k}')">
+        <span class="r-ico">${r.icon}</span>
+        <span style="flex:1;min-width:0">
+          <span class="r-name">${r.name}</span>
+          <span class="r-desc" style="display:block">${r.desc}</span>
+        </span>
+        ${k === cur ? '<span class="r-check">✓</span>' : ''}
+      </button>`;
+    }).join('');
+  },
+
+  pickRole(k){
+    this._role = k;
+    this.paintRoles();
+    if (this._roleFor) this.saveRole(this._roleFor, k);
+    else {
+      const b = document.getElementById('tRoleBtn');
+      if (b) b.textContent = '身份：' + App.ROLE_KIND[k].name + ' ▾';
+    }
+  },
+
+  /** 改已有账号的身份（乐观更新：先改本地，服务端拒绝再回滚） */
+  async saveRole(id, role){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!u || u.role === role) return this.closeRole();
+    const old = u.role;
+    u.role = role; this.paint();
+    try {
+      await Auth.call('users', { op: 'update', id, role });
+      UI.toast('已改成「' + App.ROLE_KIND[role].name + '」');
+      this.closeRole();
+    } catch(e){ u.role = old; this.paint(); UI.toast(e.message); }
   },
 
   async render(){
@@ -4128,6 +4249,7 @@ const Teachers = {
                  ? `<button class="chip chip-on" onclick="Teachers.copyGreet('${u.id}')">复制发给TA</button>`
                  : ''}
                <button class="chip" onclick="Teachers.editCls('${u.id}')">带班</button>
+               <button class="chip" onclick="Teachers.openRole('${u.id}')">身份</button>
                <button class="chip" onclick="Teachers.resetPass('${u.id}')">改密码</button>
                <button class="chip" onclick="Teachers.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
                ${u.active ? '' : `<button class="chip chip-no" onclick="Teachers.remove('${u.id}')">删除</button>`}
@@ -4174,7 +4296,7 @@ const Teachers = {
   async create(){
     const user = canonUser(document.getElementById('tUser').value);
     const name = document.getElementById('tName').value.trim();
-    const role = document.getElementById('tRole').value;
+    const role = this._role || 'teacher';
     const pass = document.getElementById('tPass').value;
     const bad = userErr(user);
     if (bad) return UI.toast(bad);
@@ -4897,7 +5019,9 @@ const Auth = {
   classIds(){ return (this._me && this._me.classIds) || []; },
   roleLabel(){
     if (!this._me) return '';
-    return this.isSuper() ? '首位教务' : (this.isStaff() ? '教务老师' : '授课老师');
+    if (this.isSuper()) return '首位教务';
+    if (this.role() === 'both') return '教务兼授课';
+    return this.isStaff() ? '教务老师' : '授课老师';
   },
 
   /* ── 有没有后台？──
