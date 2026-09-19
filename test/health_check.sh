@@ -8,21 +8,32 @@ DOMAIN="https://liyun2026.top"
 ok=1
 out=()
 
-code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$DOMAIN")
+# 首页: HTTP 状态 + 响应耗时 (耗时 >3s 警告, >8s 严重)
+read -r code elapsed <<<"$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "$DOMAIN")"
 if [ "$code" = "200" ]; then
-  out+=("[正常] 首页 HTTP=200")
+  if awk "BEGIN{exit !($elapsed > 8)}"; then
+    ok=0
+    out+=("[严重] 首页 HTTP=200 但响应耗时 ${elapsed}s (>8s, 通道卡顿)")
+  elif awk "BEGIN{exit !($elapsed > 3)}"; then
+    ok=0
+    out+=("[警告] 首页响应耗时 ${elapsed}s (>3s)")
+  else
+    out+=("[正常] 首页 HTTP=200 耗时 ${elapsed}s")
+  fi
 else
   ok=0
   out+=("[严重] 首页 HTTP=$code (期望 200)")
 fi
 
-hello=$(curl -s --max-time 20 -X POST "$DOMAIN/api/sync" \
+hello=$(curl -s --max-time 20 -w '\n%{time_total}' -X POST "$DOMAIN/api/sync" \
   -H 'content-type: application/json' -d '{"action":"hello"}')
-if printf '%s' "$hello" | grep -q '"ok":true'; then
-  out+=("[正常] 后端探活 hello 正常")
+hello_body="${hello%$'\n'*}"
+hello_time="${hello##*$'\n'}"
+if printf '%s' "$hello_body" | grep -q '"ok":true'; then
+  out+=("[正常] 后端探活 hello 正常 耗时 ${hello_time}s")
 else
   ok=0
-  out+=("[严重] 后端探活 hello 异常: $hello")
+  out+=("[严重] 后端探活 hello 异常: $hello_body")
 fi
 
 title=$(curl -s --max-time 20 "$DOMAIN" | grep -o '<title>[^<]*</title>')
