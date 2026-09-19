@@ -142,7 +142,7 @@ body{
 .side::-webkit-scrollbar{display:none}
 .brand{text-align:center;margin-bottom:14px;flex-shrink:0}
 .brand .logo{font-size:26px;line-height:1}
-.brand .name{font-size:11px;color:var(--sidebar-text);opacity:.85;margin-top:4px;line-height:1.3;word-break:break-all}
+.brand .name{font-size:13px;color:var(--sidebar-text);opacity:.92;margin-top:4px;line-height:1.35;word-break:break-all}
 .nav{display:flex;flex-direction:column;gap:4px}
 .nav button{
   border:none;background:transparent;font-family:inherit;
@@ -162,6 +162,8 @@ body{
 .page.on{display:flex}
 .page-title{font-size:var(--fs-title);font-weight:500;line-height:1.25;letter-spacing:-.01em;margin-bottom:2px}
 .page-sub{font-size:var(--fs-meta);color:var(--text-dim);margin-top:-6px;margin-bottom:2px}
+/* 「今日」旁边的实时时钟：24 时制，tabular-nums 让秒数跳动时不抖 */
+.clock{font-size:.6em;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
 
 /* ==== 卡片 ==== */
 .card{
@@ -413,7 +415,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   .drawer{display:none}
   .brand{text-align:left;padding:0 8px;margin-bottom:22px}
   .brand .logo{font-size:30px}
-  .brand .name{font-size:14px;margin-top:6px;word-break:normal}
+  .brand .name{font-size:15px;margin-top:6px;word-break:normal}
   .nav{gap:2px}
   .nav button{
     display:flex;align-items:center;gap:12px;text-align:left;
@@ -482,8 +484,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   <!-- ==== 侧边栏 START ==== -->
   <aside class="side">
     <div class="brand">
-      <div class="logo">🎙️</div>
-      <div class="name">砺蕴2026</div>
+      <div class="name" id="sideGreet">砺蕴</div>
     </div>
     <nav class="nav" id="nav">
       <!-- 由 App.routes 自动渲染 -->
@@ -495,8 +496,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 
   <!-- ==== 手机顶栏 START ====（只在手机上出现） -->
   <header class="topbar" id="topbar">
-    <span class="t-logo">🎙️</span>
-    <span class="t-name" id="topName">砺蕴2026</span>
+    <span class="t-name" id="topName">砺蕴</span>
     <button class="t-more" onclick="App.drawer(true)">全部功能</button>
   </header>
   <!-- ==== 手机顶栏 END ==== -->
@@ -505,7 +505,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 
     <!-- ==== 功能：今日 START ==== -->
     <section class="page" id="page-home">
-      <div class="page-title">今日</div>
+      <div class="page-title">今日 <span class="clock" id="ckHome"></span></div>
       <div class="page-sub" id="homeSub"></div>
       <div class="card wide">
         <h2>🎯 <span id="cdLabel">统考</span>倒计时</h2>
@@ -996,7 +996,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 
     <!-- ==== 功能：老师今天 START ====（授课老师端首页） -->
     <section class="page" id="page-today">
-      <div class="page-title" id="tdHi">今天</div>
+      <div class="page-title"><span id="tdHi">今天</span> <span class="clock" id="ckToday"></span></div>
       <div class="page-sub" id="tdSub"></div>
       <div class="card wide" id="tdNoticeCard" style="display:none">
         <h2>📣 教务通知</h2>
@@ -1557,6 +1557,55 @@ const UI = {
           teacher 授课老师
    tab    手机底部标签栏的顺序（1-5）。不填就不进标签栏。
    ═══════════════════════════════════════════════════════════ */
+/* ── 左上角问候 + 「今日」时间 ──
+   替掉原来的「🎙️砺蕴2026」：按当下时刻给一句问候（某某老师早上好…）。
+   时段：5–11 早 / 11–13 午 / 13–18 下 / 18–次日 5 晚。
+   名字已经叫「李老师」的就不再叠一个「老师」。 */
+const Greet = {
+  word(d){
+    const h = (d || new Date()).getHours();
+    if (h >= 5 && h < 11) return '早上好';
+    if (h >= 11 && h < 13) return '中午好';
+    if (h >= 13 && h < 18) return '下午好';
+    return '晚上好';
+  },
+
+  text(){
+    const n = Auth.name() || '';
+    const who = n && !/老师$/.test(n) ? n + '老师' : n;
+    return who ? who + '，' + this.word() : this.word();
+  },
+
+  paint(){
+    const t = this.text();
+    for (const id of ['topName', 'sideGreet']){          // 手机顶栏 / 电脑侧栏
+      const el = document.getElementById(id);
+      if (el && el.textContent !== t) el.textContent = t;
+    }
+  },
+
+  clock(d){
+    const p = n => String(n).padStart(2, '0');
+    const t = d || new Date();
+    return p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds());
+  },
+
+  tick(){
+    const c = this.clock();
+    for (const id of ['ckHome', 'ckToday']){             // 教务「今日」/ 老师「今天」
+      const el = document.getElementById(id);
+      if (el && el.textContent !== c) el.textContent = c;
+    }
+    this.paint();                                        // 跨时段时问候语跟着换
+  },
+
+  start(){
+    this.tick();
+    clearInterval(this._t);
+    this._t = setInterval(() => this.tick(), 1000);
+  },
+};
+
 const App = {
   routes: [
     /* ── 教务端 ── */
@@ -1631,8 +1680,7 @@ const App = {
          <span class="ico">${r.icon}</span>${r.name}
        </button>`).join('');
 
-    const tn = document.getElementById('topName');
-    if (tn) tn.textContent = Auth.isStaff() ? '砺蕴2026' : (Auth.name() || '砺蕴2026');
+    Greet.paint();
     this.refreshDots();
   },
 
@@ -1685,6 +1733,7 @@ const App = {
   /** 登录成功后进入工作台 */
   boot(){
     this.renderChrome();
+    Greet.start();                              // 左上角问候 + 今日时钟，每秒走一格
     if (Auth.isStaff()) Settings.initRules();   // 量化占位细则，只有教务这边需要
     const last = Store.get('_lastPage');
     this.go(this.can(last) ? last : this.defaultPage());
@@ -3729,23 +3778,30 @@ const Teachers = {
     const el = document.getElementById('tList');
     if (!el) return;
     const list = this._users || [];
-    el.innerHTML = list.length ? list.map(u => `
-      <div class="item">
-        <span class="grow">
-          ${Util.esc(u.name)} <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>
-          <br><span class="hint" style="display:inline;margin:0">${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}</span>
-        </span>
-        ${u.role === 'super'
-          ? '<span class="chip" style="pointer-events:none">谁都动不了</span>'
-          : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+    const meIsSuper = Auth.isSuper();
+    el.innerHTML = list.length ? list.map(u => {
+      const isSuper = u.role === 'super';
+      /* 首位教务不对外露名：不是他本人看的那一条，只显示「办公室」，
+         也不带用户名、不显示角色括注和管理按钮 —— 这些他自己知道就行 */
+      const shown  = isSuper && !meIsSuper ? '办公室' : (u.name || u.user);
+      const handle = isSuper && !meIsSuper ? '' : ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
+      const sub    = isSuper ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
+      const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
                ${Store.getSecret('greet:' + u.id)
                  ? `<button class="chip chip-on" onclick="Teachers.copyGreet('${u.id}')">复制发给TA</button>`
                  : ''}
                <button class="chip" onclick="Teachers.editCls('${u.id}')">带班</button>
                <button class="chip" onclick="Teachers.resetPass('${u.id}')">改密码</button>
                <button class="chip" onclick="Teachers.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
-             </span>`}
-      </div>`).join('') : '<div class="empty">还没有老师</div>';
+             </span>`;
+      return `<div class="item">
+        <span class="grow">
+          ${Util.esc(shown)}${handle}
+          ${sub ? `<br><span class="hint" style="display:inline;margin:0">${sub}</span>` : ''}
+        </span>
+        ${acts}
+      </div>`;
+    }).join('') : '<div class="empty">还没有老师</div>';
   },
 
   /** 拼一条能直接发给老师的开场文案（含登录地址、用户名、初始密码、加桌面说明） */
