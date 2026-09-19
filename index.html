@@ -3982,6 +3982,7 @@ const Teachers = {
                <button class="chip" onclick="Teachers.editCls('${u.id}')">带班</button>
                <button class="chip" onclick="Teachers.resetPass('${u.id}')">改密码</button>
                <button class="chip" onclick="Teachers.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
+               ${u.active ? '' : `<button class="chip chip-no" onclick="Teachers.remove('${u.id}')">删除</button>`}
              </span>`;
       return `<div class="item">
         <span class="grow">
@@ -4059,6 +4060,17 @@ const Teachers = {
     try {
       await Auth.call('users', { op: 'update', id, active });
       UI.toast(active ? '已启用' : '已停用');
+      this.render();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async remove(id){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!u) return;
+    if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n之前录的数据会保留（不随账号删除），但不再关联到这个账号。此操作不可恢复。')) return;
+    try {
+      await Auth.call('users', { op: 'delete', id });
+      UI.toast('已删除');
       this.render();
     } catch(e){ UI.toast(e.message); }
   },
