@@ -83,6 +83,8 @@ let adminToken, t1Token, t1Id, c2Id;
         { id: 'a1', studentId: 's1', status: '迟到', _u: 10 },
         { id: 'a2', studentId: 's3', status: '正常', _u: 10 },   // s3 在二班，老师不该看到
       ],
+      // 周末班名单（教务端专用，不分班按人记）
+      'wk:2026-09-19': [{ id: 'w1', studentId: 's1', _u: 10 }],
       aiKey: { deepseek: 'sk-secret-owner' },
       tickets: [],
     },
@@ -139,6 +141,7 @@ console.log('\n=== 三、权限隔离（核心）===');
       classes: [{ id: 'c2', name: '被我改的班', _u: 999 }],
       quant_rules: [{ id: 'r1', label: '黑规则', delta: 100, _u: 999 }],
       'att:2026-09-18': [{ id: 'a1', studentId: 's1', status: '正常', _u: 999 }],
+      'wk:2026-09-20': [{ id: 'w2', studentId: 's1', _u: 999 }],   // 周末班名单只有教务能记
       tickets: [{ id: 'tk2', userId: 'someone-else', text: '别人的工单', _u: 999 }],
     },
   });
@@ -150,6 +153,18 @@ console.log('\n=== 三、权限隔离（核心）===');
     ok(check.body.shared.classes.length === 2);
     ok(!(check.body.shared.quant_rules || []).some(r => r.label === '黑规则'));
     eq(check.body.shared['att:2026-09-18'].find(x => x.id === 'a1').status, '迟到');
+  });
+
+  /* 周末班名单（wk:{日期}）：教务端专用，老师既看不到也写不进 */
+  t('老师拉不到周末班名单', () => {
+    eq(p.body.shared['wk:2026-09-19'], undefined);
+  });
+  t('老师写不进周末班名单（服务端没落 w2）', () => {
+    const wk = check.body.shared['wk:2026-09-20'] || [];
+    ok(!wk.some(x => x.id === 'w2'), '老师把周末班名单推到服务端了：' + JSON.stringify(wk));
+  });
+  t('教务能正常读写周末班名单', () => {
+    ok((check.body.shared['wk:2026-09-19'] || []).some(x => x.studentId === 's1'));
   });
 
   const tk = await call({

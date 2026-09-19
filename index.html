@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   ╔══════════════════════════════════════════════════════════════╗
-  ║  砺蕴工作台                                                   ║
+  ║  砺蕴工作系统                                                  ║
   ║  由 不一书个人工作台生成器 (bys-personal-dashboard) 生成       ║
   ╠══════════════════════════════════════════════════════════════╣
   ║  改这个文件时请遵守：                                          ║
@@ -607,6 +607,22 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
         <div id="stuList" style="margin-top:8px"></div>
       </div>
+      <!-- ==== 功能：周末班 START ==== -->
+      <div class="card wide">
+        <h2>🏫 周末班 <span class="hint" style="display:inline;margin:0">（不是人人都要上，勾谁算谁）</span></h2>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="date" id="wkDate" onchange="Weekend.pickDate(this.value)" style="max-width:175px">
+          <span class="hint" id="wkStat" style="margin:0"></span>
+        </div>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="chip" onclick="Weekend.all(1)">本期全部参加</button>
+          <button class="chip" onclick="Weekend.all(0)">本期全部取消</button>
+          <button class="chip" onclick="Weekend.copy()">复制本期名单</button>
+        </div>
+        <div id="wkBody" style="margin-top:8px"></div>
+        <p class="hint">选一个日期就开这一期周末班，系统里<b>所有在册学员</b>都会列出来（不分班）；谁来了点一下打勾，没来的不用管，再点一下取消。名字后面是 TA 累计上过的周末课次数，方便看出谁常上、谁没上过。</p>
+      </div>
+      <!-- ==== 功能：周末班 END ==== -->
       <div class="card wide">
         <h2>⚡ 批量添加学员 <span class="hint" style="display:inline;margin:0">（加进上面选中的班）</span></h2>
         <div class="row" style="justify-content:space-between;align-items:center">
@@ -1010,7 +1026,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 
       <div class="card">
         <p class="hint" style="margin:0;text-align:center">
-          砺蕴工作台 · liyun2026.top
+          砺蕴工作系统 · liyun2026.top
         </p>
       </div>
     </section>
@@ -1423,7 +1439,7 @@ const Store = (() => {
 
     /* ── 备份 ── */
     exportAll(){
-      return { app:'砺蕴工作台', version:2, exportedAt:new Date().toISOString(), data:this.dump() };
+      return { app:'砺蕴工作系统', version:2, exportedAt:new Date().toISOString(), data:this.dump() };
     },
 
     async exportFile(){
@@ -2079,6 +2095,8 @@ const Roster = {
           <button class="del" onclick="Roster.delStu('${s.id}')">✕</button>
         </div>`).join('')
       : '<div class="empty">这个班还没有学员</div>';
+
+    Weekend.render();     // 周末班名单取自全部在册学员，学员有变要跟着重画
   },
 
   pickCls(v){ Store.set('_rosterCls', v); this.render(); },
@@ -2155,9 +2173,118 @@ const Roster = {
     if (!confirm('删除这名学员？TA 的历史记录会保留，但不再出现在名单里。')) return;
     Store.softDelete('students', id);
     this.render();
+    Weekend.render();     // 学员没了，周末班名单要跟着变
   }
 };
 /* ==== 功能：名册 END ==== */
+
+
+/* ==== 功能：周末班 START ==== */
+/* 周末班不是全班一起上：选一个日期开这一期，系统里所有在册学员（不分班）
+   都列出来，谁来点谁。按天分片存 wk:{日期}，跟考勤一个套路 —— 按天存、能撤销。
+   注意别用 hw: 前缀（后端按 hw: 把作业登记过滤给授课老师，会串）。 */
+const Weekend = {
+  key(d){ return 'wk:' + d; },
+
+  /** 当前选中的日期：先用日期框里的，没有就用记住的 / 今天，并回填日期框 */
+  curDate(){
+    const el = document.getElementById('wkDate');
+    if (!el) return Util.today();
+    if (!el.value) el.value = Store.get('_wkDate') || Util.today();
+    return el.value || Util.today();
+  },
+
+  /** 切日期：日期框和记住的日期要一起改，否则 curDate() 读到的还是框里的旧值，会记错期 */
+  pickDate(v){
+    const el = document.getElementById('wkDate');
+    if (el) el.value = v;
+    Store.set('_wkDate', v);
+    this.render();
+  },
+
+  /** 已开过几期（有记录的日期数） */
+  sessionCount(){
+    return Object.keys(Store.dump()).filter(k => k.startsWith('wk:') && Store.list(k).length).length;
+  },
+
+  /** 每人累计上过多少次周末课：所有日期数一遍 */
+  countMap(){
+    const m = {};
+    Object.keys(Store.dump()).forEach(k => {
+      if (!k.startsWith('wk:')) return;
+      Store.list(k).forEach(r => { if (r && r.studentId) m[r.studentId] = (m[r.studentId] || 0) + 1; });
+    });
+    return m;
+  },
+
+  render(){
+    const body = document.getElementById('wkBody');
+    if (!body) return;
+    const d = this.curDate();
+    const marked = new Set(Store.list(this.key(d)).map(r => r.studentId));
+    const cnt = this.countMap();
+    const all = Store.list('students', Util.byName);
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+
+    const stat = document.getElementById('wkStat');
+    if (stat) stat.textContent = all.length
+      ? `${d} · 在册 ${all.length} 人 · 本期参加 ${marked.size} 人 · 未参加 ${all.length - marked.size} 人 · 已开 ${this.sessionCount()} 期`
+      : '系统里还没有学员，先在上面加学员';
+
+    if (!all.length){ body.innerHTML = '<div class="empty">还没有学员，加进来后这里会出现名单</div>'; return; }
+
+    /* 按班分组，本班名单只看自己班，但一个学生跨班也能各自统计 */
+    body.innerHTML = classes.map(c => {
+      const rows = all.filter(s => s.classId === c.id);
+      if (!rows.length) return '';
+      const n = rows.filter(s => marked.has(s.id)).length;
+      return `<div style="margin-bottom:10px">
+        <div class="hint" style="margin:0 0 4px">${Util.esc(c.name)} · 本期 ${n}/${rows.length} 人</div>
+        ${rows.map(s => {
+          const on = marked.has(s.id);
+          return `<div class="item">
+            <span class="grow">${Util.esc(s.name)} <span class="hint" style="display:inline;margin:0">累计 ${cnt[s.id] || 0} 次</span></span>
+            <button class="chip ${on ? 'chip-on' : ''}" onclick="Weekend.mark('${s.id}')">${on ? '✓ 已参加' : '参加'}</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  },
+
+  mark(sid){
+    const d = this.curDate();
+    const key = this.key(d);
+    const rec = Store.list(key).find(r => r.studentId === sid);
+    if (rec) Store.softDelete(key, rec.id);        // 再点一下取消
+    else     Store.upsert(key, { studentId: sid });
+    this.render();
+  },
+
+  all(on){
+    const d = this.curDate();
+    const key = this.key(d);
+    const ids = Store.list('students').map(s => s.id);
+    if (!on){
+      Store.list(key).forEach(r => Store.softDelete(key, r.id));
+    } else {
+      ids.forEach(sid => {
+        if (!Store.list(key).some(r => r.studentId === sid)) Store.upsert(key, { studentId: sid });
+      });
+    }
+    this.render();
+    UI.toast(on ? '本期已全部标记参加' : '本期已全部取消');
+  },
+
+  /** 复制本期参加名单，方便发群里核对 */
+  copy(){
+    const d = this.curDate();
+    const marked = new Set(Store.list(this.key(d)).map(r => r.studentId));
+    const names = Store.list('students', Util.byName).filter(s => marked.has(s.id)).map(s => s.name);
+    if (!names.length) return UI.toast('本期还没有人参加');
+    Util.copy(`【周末班 · ${d}】参加 ${names.length} 人\n` + names.join('、'));
+  }
+};
+/* ==== 功能：周末班 END ==== */
 
 
 /* ==== 功能：考勤 START ==== */
@@ -3242,7 +3369,7 @@ const Quant = {
 
     g.fillStyle = v('--accent') || '#26241f';
     g.font = font(30, 500);
-    g.fillText('砺蕴工作台 · 这一期', pad + 56, 300);
+    g.fillText('砺蕴工作系统 · 这一期', pad + 56, 300);
 
     g.fillStyle = v('--text') || '#26241f';
     g.font = font(190, 500);
@@ -3270,7 +3397,7 @@ const Quant = {
 
     g.fillStyle = v('--text-dim') || '#96918a';
     g.font = font(26);
-    g.fillText('砺蕴工作台 · liyun2026.top', pad + 56, 1010);
+    g.fillText('砺蕴工作系统 · liyun2026.top', pad + 56, 1010);
 
     cv.toBlob(b => {
       const url = URL.createObjectURL(b);
@@ -4268,7 +4395,7 @@ const Teachers = {
   greet(name, user, pass){
     const nm = String(name || user || '').replace(/老师\s*$/, '');   // 去掉结尾可能的「老师」，避免「甲老师老师」叠词
     return `尊敬的${nm}老师：
-您好！您的「砺蕴2026」工作台账号已开通——
+您好！您的「砺蕴2026」工作系统账号已开通——
 登录地址：https://liyun2026.top
 用户名：${user}
 初始密码：${pass}
@@ -4276,11 +4403,11 @@ const Teachers = {
 【登录】
 用手机浏览器打开上面的地址登录，进入后在「设置」里把密码改成您自己的。
 
-【添加到桌面（像 App 一样用，以后不用每次输网址）】
+【添加到桌面】
 · iPhone（Safari）：打开网页后点底部「分享」按钮 → 选「添加到主屏幕」→ 点「添加」。
 · 安卓（Chrome）：打开网页后点右上角「⋮」菜单 → 选「安装应用」或「添加到主屏幕」→ 确认。
 
-使用中有任何问题随时联系我。`;
+使用中有任何问题随时联系办公室。`;
   },
 
   /** 复制建号时存下的欢迎文案，复制完就清掉（密码不该一直躺在本机） */
