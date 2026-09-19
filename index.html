@@ -4054,25 +4054,37 @@ const Teachers = {
     } catch(e){ UI.toast(e.message); }
   },
 
+  /* 停用/启用：先即时改本地并立刻重绘，再异步通知服务端；失败才回滚 */
   async toggle(id, active){
     const u = (this._users || []).find(x => x.id === id);
     if (!active && u && !confirm('停用「' + u.name + '」？\n\nTA 立刻登不进来，但之前录的数据一条不丢。随时可以再启用。')) return;
+    const prev = u ? u.active : null;
+    if (u) u.active = active;
+    this.paint();                                  // 立刻反馈，不再空白「正在读取账号列表…」
     try {
       await Auth.call('users', { op: 'update', id, active });
       UI.toast(active ? '已启用' : '已停用');
-      this.render();
-    } catch(e){ UI.toast(e.message); }
+    } catch(e){
+      if (u) u.active = prev; this.paint();        // 服务端拒绝 → 回滚
+      UI.toast(e.message);
+    }
   },
 
+  /* 删除：先本地移除并立刻重绘，再异步通知服务端；失败才回滚 */
   async remove(id){
     const u = (this._users || []).find(x => x.id === id);
     if (!u) return;
     if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n之前录的数据会保留（不随账号删除），但不再关联到这个账号。此操作不可恢复。')) return;
+    const snap = this._users;
+    this._users = this._users.filter(x => x.id !== id);
+    this.paint();                                  // 立刻从列表消失
     try {
       await Auth.call('users', { op: 'delete', id });
       UI.toast('已删除');
-      this.render();
-    } catch(e){ UI.toast(e.message); }
+    } catch(e){
+      this._users = snap; this.paint();            // 服务端拒绝 → 回滚
+      UI.toast(e.message);
+    }
   },
 
   editCls(id){

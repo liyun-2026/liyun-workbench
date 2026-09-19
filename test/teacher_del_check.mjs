@@ -122,6 +122,34 @@ try {
   await sleep(300);
   await shot(cdp, 'teacher-list-after-delete.png');
 
+  console.log('\n④ 服务端拒绝 → 回滚，老师仍在列表（乐观更新不丢数据）');
+  const rb = await cdp.eval(`(async () => {
+    window.confirm = () => true;
+    const target = Teachers._users.find(u => u.name === '甲老师');
+    const realCall = Auth.call.bind(Auth);
+    Auth.call = async () => { throw new Error('模拟服务端失败'); };   // 让后端调用失败
+    await Teachers.remove(target.id);
+    Auth.call = realCall;
+    await new Promise(r => setTimeout(r, 300));
+    return {
+      stillInList: Teachers._users.some(u => u.id === target.id),
+      rowStillThere: [...document.querySelectorAll('#tList .item')].some(x => x.textContent.indexOf('甲老师') >= 0),
+    };
+  })()`);
+  ok(rb.stillInList, '删除失败时：本地账号列表仍含甲老师（已回滚）');
+  ok(rb.rowStillThere, '删除失败时：列表里甲老师那一行还在（已回滚）');
+
+  console.log('\n⑤ 乐观更新：点删除后立刻不在本地列表（不等服务端往返）');
+  const opt = await cdp.eval(`(async () => {
+    window.confirm = () => true;
+    const t = Teachers._users.find(u => u.name === '甲老师');
+    Teachers.remove(t.id);                          // 不 await
+    const immediatelyGone = !Teachers._users.some(u => u.id === t.id);
+    await new Promise(r => setTimeout(r, 400));      // 等服务端返回
+    return { immediatelyGone, toast: (document.querySelector('.toast') || {}).textContent || '' };
+  })()`);
+  ok(opt.immediatelyGone, '点删除后本地立即移除（无需等服务端往返，卡顿感消失）');
+
   console.log('\n=== 结果：通过 ' + pass + ' / 失败 ' + fail + ' ===');
   if (fail) process.exitCode = 1;
   await devReset();
