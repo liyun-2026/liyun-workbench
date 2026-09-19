@@ -150,6 +150,17 @@ try {
   })()`);
   ok(opt.immediatelyGone, '点删除后本地立即移除（无需等服务端往返，卡顿感消失）');
 
+  console.log('\n⑥ 发给老师的文案：不再叠「老师老师」，「您好」紧接下一行');
+  const g = await cdp.eval(`(() => {
+    const full = Teachers.greet('甲老师', 'teacher_jia', 'aaaabbbb1');   // 名字本身带「老师」
+    const noName = Teachers.greet('', 'teacher_yi', 'aaaabbbb2');        // 没填名字，用用户名
+    return { full, noName };
+  })()`);
+  ok(!/老师老师/.test(g.full), '名字带「老师」时不叠词（无「甲老师老师」）');
+  ok(/^尊敬的甲老师：\n您好！/.test(g.full), '「尊敬的甲老师：」下一行紧接「您好！」（无空行）');
+  ok(!/老师老师/.test(g.noName), '无名字时也不叠词');
+  ok(/^尊敬的teacher_yi老师：\n您好！/.test(g.noName), '无名字时用用户名拼接仍正确');
+
   console.log('\n=== 结果：通过 ' + pass + ' / 失败 ' + fail + ' ===');
   if (fail) process.exitCode = 1;
   await devReset();

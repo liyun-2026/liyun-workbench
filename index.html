@@ -3996,8 +3996,8 @@ const Teachers = {
 
   /** 拼一条能直接发给老师的开场文案（含登录地址、用户名、初始密码、加桌面说明） */
   greet(name, user, pass){
-    return `尊敬的${name || user}老师：
-
+    const nm = String(name || user || '').replace(/老师\s*$/, '');   // 去掉结尾可能的「老师」，避免「甲老师老师」叠词
+    return `尊敬的${nm}老师：
 您好！您的「砺蕴2026」工作台账号已开通——
 登录地址：https://liyun2026.top
 用户名：${user}
