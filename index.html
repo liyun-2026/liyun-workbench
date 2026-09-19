@@ -709,6 +709,16 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     <!-- ==== 功能：作业 START ==== -->
     <section class="page" id="page-homework">
       <div class="page-title">作业布置</div>
+      <div class="card wide">
+        <h2>✅ 今日作业检查</h2>
+        <p class="hint" style="margin:0 0 6px">直接勾今天谁交了、谁没交 —— 不用先布置作业，也能记。</p>
+        <div class="row" style="flex-wrap:wrap">
+          <select id="hkCls" onchange="Homework.pickChkCls(this.value)" style="max-width:180px"></select>
+          <input type="date" id="hkDate" onchange="Homework.pickChkDate(this.value)" style="max-width:170px">
+        </div>
+        <div id="hkBody" style="margin-top:10px"></div>
+        <p class="hint">点「已交 / 未交」就记好了，再点一下取消。记完直接进学员档案的作业统计和量化分。</p>
+      </div>
       <div class="card">
         <h2>➕ 布置作业</h2>
         <p class="hint" style="margin:0 0 6px">布置给哪些班（可多选，点「全部」一次选上所有班）：</p>
@@ -2590,7 +2600,73 @@ const Homework = {
     const dEl = document.getElementById('hwDate');
     if (!dEl.value) dEl.value = Util.today();
     this.renderPick();
+    this.renderChk();
     this.renderList();
+  },
+
+  /* ── 今日作业检查（教务端）──
+     以前想记「今天谁交了、谁没交」，得先布置一条作业再去列表里点「登记」展开，
+     没布置作业就压根没地方点 —— 教务反馈找不到入口，所以单独给一个：选班 + 选日期，名单直接点。
+     ⚠️ 数据落在 hwchk:{日期}，前缀必须是 hwchk: 不能是 hw:
+     后端按「hw:」前缀把作业登记过滤给授课老师，写成 hw: 开头会被当成作业登记、串了。 */
+  chkCls(){ return Store.get('_hkCls'); },
+  chkDate(){ return Store.get('_hkDate') || Util.today(); },
+  pickChkCls(v){ Store.set('_hkCls', v); this.renderChk(); },
+  pickChkDate(v){ Store.set('_hkDate', v || Util.today()); this.renderChk(); },
+
+  renderChk(){
+    const dEl = document.getElementById('hkDate');
+    if (dEl && !dEl.value) dEl.value = this.chkDate();
+    Util.fillCls('hkCls', '_hkCls');
+    const box = document.getElementById('hkBody');
+    if (!box) return;
+    const clsId = this.chkCls(), date = this.chkDate();
+    if (!clsId){ box.innerHTML = '<div class="empty">先在「名册」里建一个班</div>'; return; }
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    if (!students.length){ box.innerHTML = '<div class="empty">这个班还没有学员</div>'; return; }
+    const chk = {};
+    Store.list('hwchk:' + date).forEach(x => { chk[x.studentId] = x.done; });
+    let done = 0, miss = 0;
+    students.forEach(s => { if (chk[s.id] === 1) done++; else if (chk[s.id] === 0) miss++; });
+    box.innerHTML =
+      `<p class="hint" style="margin:0 0 8px">${Util.esc(Util.clsName(clsId))} · ${date} · ${students.length} 人 ·
+         已交 <b class="num">${done}</b> · 未交 <b class="num">${miss}</b> · 未登记 ${students.length - done - miss}</p>` +
+      students.map(s => {
+        const v = chk[s.id];
+        return `<div class="item">
+          <span class="grow">${Util.esc(s.name)}</span>
+          <button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Homework.markChk('${s.id}',1)">已交</button>
+          <button class="chip ${v === 0 ? 'chip-no' : ''}" onclick="Homework.markChk('${s.id}',0)">未交</button>
+        </div>`;
+      }).join('');
+  },
+
+  markChk(sid, done){
+    const s = Store.list('students').find(x => x.id === sid);
+    if (!s) return;
+    const date = this.chkDate(), key = 'hwchk:' + date;
+    const rec = Store.list(key).find(x => x.studentId === sid);
+    if (rec && rec.done === done){ Store.softDelete(key, rec.id); }   // 再点一下 = 取消
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, classId: s.classId, date, done });
+    this.renderChk();
+  },
+
+  /** 一人一份的作业流水：同一天以「今日作业检查」为准，没检查才按各条作业的登记算（不重复计分） */
+  flow(sid, clsId){
+    const byDate = {};
+    Store.list('homework').filter(h => h.clsId === clsId).forEach(h => {
+      const sub = Store.list('hw:' + h.id).find(x => x.studentId === sid);
+      if (sub) (byDate[h.date] = byDate[h.date] || []).push({ date: h.date, text: h.text, done: sub.done });
+    });
+    let dates = [];
+    try { dates = Object.keys(Store.dump()).filter(k => k.indexOf('hwchk:') === 0).map(k => k.slice(6)); } catch(e){}
+    const out = [];
+    [...new Set(Object.keys(byDate).concat(dates))].sort().forEach(d => {
+      const c = Store.list('hwchk:' + d).find(x => x.studentId === sid && (!clsId || x.classId === clsId));
+      if (c) out.push({ date: d, text: '今日作业', done: c.done, src: 'chk' });
+      else (byDate[d] || []).forEach(x => out.push(Object.assign({ src: 'hw' }, x)));
+    });
+    return out;
   },
 
   /** 班级多选 chips：默认选住上次用的那个班，没有就全选 */
@@ -3004,7 +3080,20 @@ const Quant = {
     });
     Store.list('homework').forEach(hw => {
       if (hw.clsId !== clsId || hw.date < from || hw.date > to) return;
-      Store.list('hw:' + hw.id).forEach(x => bump(x.studentId, x.done ? 'hw:已交' : 'hw:未交', 1));
+      // 当天做过「今日作业检查」的，以检查为准 —— 检查是「今天到底交没交」的定论，别和作业登记重复计分
+      const checked = {};
+      Store.list('hwchk:' + hw.date).forEach(x => { if (x.classId === clsId) checked[x.studentId] = x.done; });
+      Store.list('hw:' + hw.id).forEach(x => {
+        if (checked[x.studentId] !== undefined) return;
+        bump(x.studentId, x.done ? 'hw:已交' : 'hw:未交', 1);
+      });
+    });
+    /* 「今日作业检查」本身：可能那天根本没布置作业，也得算进量化 */
+    this.dates(from, to).forEach(d => {
+      Store.list('hwchk:' + d).forEach(x => {
+        if (x.classId !== clsId) return;
+        bump(x.studentId, x.done ? 'hw:已交' : 'hw:未交', 1);
+      });
     });
     return Object.values(stat).sort((a,b) => b.score - a.score);
   },
@@ -3739,15 +3828,13 @@ const Student = {
       if (r.st === '过') nightOk++; else if (r.st === '未过') nightNo++;
     });
 
-    /* ── 作业 ── */
-    const hwRows = [];
+    /* ── 作业：各条作业的登记 + 「今日作业检查」合成一份流水（同一天以检查为准） ── */
     let hwDone = 0, hwMiss = 0;
-    Store.list('homework', (a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
-      .filter(h => h.clsId === s.classId)
-      .forEach(h => {
-        const sub = Store.list('hw:' + h.id).find(x => x.studentId === sid);
-        if (sub){ if (sub.done) hwDone++; else hwMiss++; }
-        hwRows.push({ date: h.date, text: h.text, st: !sub ? '未登记' : (sub.done ? '已交' : '未交') });
+    const hwRows = Homework.flow(sid, s.classId)
+      .sort((a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
+      .map(x => {
+        if (x.done) hwDone++; else hwMiss++;
+        return { date: x.date, text: x.text, st: x.done ? '已交' : '未交', src: x.src };
       });
 
     /* ── 模考成绩（对标河南省播音与主持类统考：三科各100、总分300、五等制） ── */
@@ -3831,7 +3918,7 @@ const Student = {
         <h2>📝 作业</h2>
         ${hwRows.length ? hwRows.slice(0, 12).map(h =>
           `<div class="item">
-             <span class="grow">${Util.esc(h.text)}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
+             <span class="grow">${h.src === 'chk' ? '<b>今日作业检查</b>' : Util.esc(h.text)}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
              <span class="chip ${h.st === '未交' ? 'chip-no' : (h.st === '已交' ? 'chip-on' : '')}" style="pointer-events:none">${h.st}</span>
            </div>`).join('')
           : '<div class="empty">这个班还没布置过作业</div>'}
@@ -4330,13 +4417,22 @@ const Record = {
           <b style="font-weight:500">${Util.esc(s.name)}</b>
           <span class="hint" style="margin:0">${(r.state || r.perf || r.hw) ? '已记' : ''}</span>
         </div>
-        ${hw.length ? `<div class="row" style="flex-wrap:wrap">
+        ${hw.length ? `<div style="display:flex;gap:8px;align-items:flex-start">
           <span class="hint" style="margin:0;flex-shrink:0;width:34px">作业</span>
-          ${hw.slice(0, 3).map(h => {
-            const v = hwState[h.id + '|' + s.id];
-            return `<button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Record.markHw('${h.id}','${s.id}',1)">交了</button>
-                    <button class="chip ${v === 0 ? 'chip-no' : ''}" onclick="Record.markHw('${h.id}','${s.id}',0)">没交</button>`;
-          }).join('')}
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+            ${hw.slice(0, 3).map(h => {
+              const v = hwState[h.id + '|' + s.id];
+              const full = h.text || '作业';
+              const nm = full.length > 12 ? full.slice(0, 12) + '…' : full;   // 多条作业时标出是哪条，否则看着就是重复的「交了/没交」
+              return `<div class="row" style="flex-wrap:wrap;gap:6px">
+                <span class="hint" style="margin:0;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+                      title="${Util.esc(full)}">${Util.esc(nm)}</span>
+                <button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Record.markHw('${h.id}','${s.id}',1)">交了</button>
+                <button class="chip ${v === 0 ? 'chip-no' : ''}" onclick="Record.markHw('${h.id}','${s.id}',0)">没交</button>
+              </div>`;
+            }).join('')}
+            ${hw.length > 3 ? `<span class="hint" style="margin:0">…还有 ${hw.length - 3} 条作业</span>` : ''}
+          </div>
         </div>` : ''}
         <div class="row" style="flex-wrap:wrap">
           <span class="hint" style="margin:0;flex-shrink:0;width:34px">状态</span>
