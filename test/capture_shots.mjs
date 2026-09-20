@@ -296,6 +296,12 @@ try {
     await new Promise(r => setTimeout(r, 200));
     const g = document.getElementById('gate');
     if (g){ g.classList.add('on'); }
+    /* 上面刚用张伟登过录，输入框里会留着他的名字 —— 给手册用的登录页截图要空的，
+       否则看着像「只有张伟能登」。顺便把「本机预览」那行提示藏掉。 */
+    document.getElementById('gUser').value = '';
+    document.getElementById('gPass').value = '';
+    const n = document.getElementById('gNote');
+    if (n) n.style.display = 'none';
     return 1;
   })()`);
   await sleep(600);

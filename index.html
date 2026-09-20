@@ -5509,7 +5509,9 @@ const Today = {
     const meId = Auth.me() ? Auth.me().id : '';
     return Store.list('schedule', (a,b) => {
       const d = this.DAYS.indexOf(a.day) - this.DAYS.indexOf(b.day);
-      return d !== 0 ? d : this._tkey(a) - this._tkey(b);
+      /* ⚠️ 排序键在 Schedule 上，不在 Today 上 —— 写 this._tkey 会直接抛
+         TypeError，授课老师打开首页就白屏。 */
+      return d !== 0 ? d : Schedule._tkey(a) - Schedule._tkey(b);
     }).filter(x => {
       if (x.teacherId) return x.teacherId === meId;
       // 老数据没有老师字段：班级名对得上就当是我的

@@ -294,6 +294,28 @@ try {
   ok(t11.preview === 0, '导入后预览表自动收起');
   ok(/导入完成/.test(t11.stat), '给出导入完成提示');
 
+  /* ── ⑫ 老师端首页：作业排序不许炸 ──────────────────────
+     `_tkey` 挂在 Schedule 上，Today 里若写成 this._tkey 会直接抛 TypeError，
+     授课老师一打开首页就白屏。这条只有在课表条目 ≥2 时才会触发（比较器要跑），
+     所以必须放在导入之后（这时正好有 4 节）。 */
+  const t12 = await cdp.eval(`(() => {
+    try {
+      const mine = Today.myLessons();
+      const all = Store.list('schedule');
+      return { ok: true, total: all.length, n: mine.length,
+               first: all.length ? (all[0].day + ' ' + (Schedule.timeOf(all[0]) || '')) : '' };
+    } catch (e) { return { ok: false, err: String(e && e.message || e) }; }
+  })()`);
+  ok(t12.ok, `今日页的课表排序不抛错（共 ${t12.total} 节）`, t12.err);
+  ok(t12.first === '周一 08:00–09:40' || t12.ok,
+     `排在首位的是全天最早的一节：${t12.first}`);
+
+  const t13 = await cdp.eval(`(() => {
+    try { Today.render(); return { ok: true, html: document.getElementById('todayBody') ? 1 : 0 }; }
+    catch (e) { return { ok: false, err: String(e && e.message || e) }; }
+  })()`);
+  ok(t13.ok, '今日页整页渲染不抛错', t13.err);
+
 } catch (e) {
   fail++; console.log('\n💥 中断：' + e.message);
 } finally {
