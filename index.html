@@ -537,6 +537,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .sc .sct{font-weight:500;color:#1a4f7a}
 .sc .sch{color:#666;font-size:11px;margin-top:1px}
 .sc.noroom .sct{color:#7a5a1a}
+.sc.merge{background:#f3eef6;border-color:#d9c8e6}
+.sc .ml{display:inline-block;margin-left:5px;padding:0 5px;border-radius:8px;background:#c9ab7c;color:#fff;font-size:10px;line-height:15px;vertical-align:middle}
 .ok{background:#eafaf0;border:1px solid #bfe6cd;color:#1c7a43;padding:10px;border-radius:8px;font-size:13px}
 .warn{background:#fff6e9;border:1px solid #f0d9a8;color:#9a6b14;padding:10px;border-radius:8px;font-size:13px;white-space:pre-line;line-height:1.5}
 .chip b{cursor:pointer;font-style:normal;opacity:.6}
@@ -735,6 +737,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
           <button class="btn ghost" onclick="Schedule.exportWord()">📄 导出 Word（发学生）</button>
         </div>
         <div id="conflictBox" style="margin-top:10px"></div>
+        <p class="hint" style="margin:2px 0 0">多班同室共上的「合练」课（如科学发声、普通话发声一起练功），在格子里勾选「合练」后不再提示撞课。</p>
         <div id="gridWrap" style="margin-top:12px;overflow-x:auto"></div>
         <p class="hint" style="margin:10px 0 0">左列是节次 / 时间，上排是日期 + 星期。一格可放多个班；点格子里已有的课节、或右下角「＋」直接编辑、删除。</p>
       </div>
@@ -1155,8 +1158,29 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <h2>📅 本周我的课</h2>
         <div id="tdWeek"></div>
       </div>
+      <div class="card wide">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h2 style="margin:0">📰 每日新闻 <span class="hint" id="tNewsMeta" style="display:inline;margin:0"></span></h2>
+          <button class="btn ghost" onclick="News.fetch()">刷新</button>
+        </div>
+        <div id="tNewsBody" style="max-height:420px;overflow:auto"></div>
+        <p class="hint">来源：央视新闻 · 出话题评述先看这里</p>
+      </div>
     </section>
-    <!-- ==== 功能：老师今天 END ==== -->
+    <!-- ==== 功能：老师今日新闻 START ==== -->
+    <section class="page" id="page-news">
+      <div class="page-title">每日新闻</div>
+      <div class="page-sub">央视热点实时更新 · 出话题评述先看这里</div>
+      <div class="card wide">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h2 style="margin:0">📰 央视新闻 <span class="hint" id="nNewsMeta" style="display:inline;margin:0"></span></h2>
+          <button class="btn ghost" onclick="News.fetch()">刷新</button>
+        </div>
+        <div id="nNewsBody" style="max-height:72vh;overflow:auto"></div>
+        <p class="hint">来源：央视新闻 · 教务端「今日」页也能看到同样的内容</p>
+      </div>
+    </section>
+    <!-- ==== 功能：老师今日新闻 END ==== -->
 
     <!-- ==== 功能：录入今日 START ====（授课老师端，简化版：只点有情况的学生） -->
     <section class="page" id="page-record">
@@ -1367,6 +1391,7 @@ const Store = (() => {
       delete it._d;
       const i = raw.findIndex(x => x && x.id === it.id);
       if (i >= 0) raw[i] = Object.assign({}, raw[i], it); else raw.push(it);
+      delete raw[i]._d;   // 覆盖墓碑时一并清掉删除标记，让软删后重新写入的条目能复活
       this.set(key, raw);
       return it;
     },
@@ -1771,6 +1796,7 @@ const App = {
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
     { id:'today',     icon:'🎯', name:'今天',     roles:['teacher','both'], tab:1, onShow: () => Today.render() },
+    { id:'news',      icon:'📰', name:'每日新闻', roles:['teacher','both'], onShow: () => NewsPage.render() },
     { id:'record',    icon:'✍️', name:'录入今日', roles:['teacher','both'], tab:2, onShow: () => Record.render() },
     { id:'myclass',   icon:'👥', name:'我带的班', roles:['teacher','both'], tab:3, onShow: () => MyClass.render() },
     { id:'tickets',   icon:'✋', name:'上报与申请', roles:['teacher','both'], tab:4, onShow: () => Ticket.render() }
@@ -1799,8 +1825,8 @@ const App = {
     super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
     admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
     /* 教务兼授课：先教务那摊（常用的在前），再自己班的授课那摊 */
-    both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','record','myclass','tickets','settings'],
-    teacher: ['today','record','myclass','profile','tickets','settings']
+    both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','news','record','myclass','tickets','settings'],
+    teacher: ['today','news','record','myclass','profile','tickets','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -2708,8 +2734,8 @@ const Schedule = {
   },
   cellInner(cell){
     if (!cell.length) return '';
-    return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
-        <div class="sct">${Util.esc(x.title||'')}</div>
+    return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
+        <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
         <div class="sch">${x.cls ? Util.esc(x.cls)+' · ' : ''}${x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : '')}${x.room ? ' @'+Util.esc(x.room) : ''}</div>
       </div>`).join('');
   },
@@ -2728,6 +2754,9 @@ const Schedule = {
         <select id="cmTeacher"><option value="">上课老师（可选）</option>${teach}</select>
         <input type="text" id="cmRoom" list="cmRooms" placeholder="教室，如：BY08" value="${Util.esc(e.room||'')}"><datalist id="cmRooms">${rooms}</datalist>
       </div>
+      <label class="row" style="margin-top:10px;align-items:center;gap:8px;font-size:14px;color:var(--text)">
+        <input type="checkbox" id="cmMerge" ${e.merge ? 'checked' : ''} style="width:auto"> 合练（多班同室共上，不计入撞课提示）
+      </label>
       <div class="row" style="margin-top:14px;justify-content:space-between">
         ${exist ? `<button class="btn ghost" style="color:#c0392b" onclick="Schedule.gridDel('${editId}')">删除</button>` : '<span></span>'}
         <div class="row" style="margin:0;gap:8px">
@@ -2754,7 +2783,8 @@ const Schedule = {
     const cls   = document.getElementById('cmCls').value.trim();
     const teacherId = document.getElementById('cmTeacher').value;
     const room  = document.getElementById('cmRoom').value.trim();
-    const obj = { date, day: this.dayOfDate(date), periodId: periodId || '', time: '', title, cls, teacherId, room, kind: 'big' };
+    const merge = document.getElementById('cmMerge') ? document.getElementById('cmMerge').checked : false;
+    const obj = { date, day: this.dayOfDate(date), periodId: periodId || '', time: '', title, cls, teacherId, room, merge, kind: 'big' };
     if (editId) obj.id = editId;
     Store.upsert('schedule', obj);
     this.cellClose(); this.renderGrid(); UI.toast('已保存');
@@ -3050,13 +3080,13 @@ const Schedule = {
     const out = [];
     const tname = x => x.teacherId ? Staff.name(x.teacherId) : (x._tname || '(未填老师)');
     Object.values(byTeacher).forEach(g => {
-      if (g.length > 1) out.push(`老师「${tname(g[0])}」在 ${g[0].date} ${this.slotLabel(g[0])} 同时排了 ${g.length} 节：${g.map(x => (x.cls ? x.cls + ' ' : '') + x.title).join('、')}`);
+      if (g.length > 1 && !g.every(x => x.merge)) out.push(`老师「${tname(g[0])}」在 ${g[0].date} ${this.slotLabel(g[0])} 同时排了 ${g.length} 节：${g.map(x => (x.cls ? x.cls + ' ' : '') + x.title).join('、')}`);
     });
     Object.values(byRoom).forEach(g => {
-      if (g.length > 1) out.push(`教室「${g[0].room}」在 ${g[0].date} ${this.slotLabel(g[0])} 被 ${g.length} 节课占用：${g.map(x => (x.cls ? x.cls + ' ' : '') + x.title).join('、')}`);
+      if (g.length > 1 && !g.every(x => x.merge)) out.push(`教室「${g[0].room}」在 ${g[0].date} ${this.slotLabel(g[0])} 被 ${g.length} 节课占用：${g.map(x => (x.cls ? x.cls + ' ' : '') + x.title).join('、')}`);
     });
     Object.values(byDup).forEach(g => {
-      if (g.length > 1) out.push(`疑似重复课：${g[0].date} ${this.slotLabel(g[0])} 《${g[0].title}》${g[0].cls ? ' ' + g[0].cls : ''} 出现了 ${g.length} 次`);
+      if (g.length > 1 && !g.every(x => x.merge)) out.push(`疑似重复课：${g[0].date} ${this.slotLabel(g[0])} 《${g[0].title}》${g[0].cls ? ' ' + g[0].cls : ''} 出现了 ${g.length} 次`);
     });
     return out;
   },
@@ -4229,12 +4259,12 @@ const Weight = {
 const News = {
   _loading: false,
 
-  render(){
+  render(bodyId='newsBody', metaId='newsMeta'){
+    this._body = bodyId; this._meta = metaId;
     const cache = Store.get('news_cache');
     if (!this._loading && (!cache || cache.date !== Util.today())) this.fetch();
     else if (cache) this.paint(cache.items, cache.date);
-    else document.getElementById('newsBody').innerHTML =
-      '<div class="empty">正在拉取央视新闻…</div>';
+    else { const b = document.getElementById(this._body); if (b) b.innerHTML = '<div class="empty">正在拉取央视新闻…</div>'; }
   },
 
   /* 央视新闻官方接口返回 JSONP，用 script 标签拉，浏览器不受跨域限制。
@@ -4244,7 +4274,7 @@ const News = {
   fetch(){
     if (this._loading) return;
     this._loading = true;
-    document.getElementById('newsBody').innerHTML = '<div class="empty">正在拉取央视新闻…</div>';
+    const b = document.getElementById(this._body); if (b) b.innerHTML = '<div class="empty">正在拉取央视新闻…</div>';
     const prev = window.news;
     let done = false;
     const cleanup = () => {
@@ -4283,8 +4313,11 @@ const News = {
   },
 
   paint(items, date){
-    document.getElementById('newsMeta').textContent = `${date} · ${items.length} 条`;
-    document.getElementById('newsBody').innerHTML = items.map(x => `
+    const meta = document.getElementById(this._meta);
+    if (meta) meta.textContent = `${date} · ${items.length} 条`;
+    const body = document.getElementById(this._body);
+    if (!body) return;
+    body.innerHTML = items.map(x => `
       <div class="item">
         <span class="mono" style="flex-shrink:0;width:44px">${Util.esc(x.time || '--:--')}</span>
         <span class="grow">${x.url
@@ -4295,6 +4328,11 @@ const News = {
   }
 };
 /* ==== 功能：每日新闻 END ==== */
+
+/* 授课老师端的「每日新闻」独立页：复用 News，渲染到本页专属容器 */
+const NewsPage = {
+  render(){ News.render('nNewsBody', 'nNewsMeta'); }
+};
 
 
 /* ==== 功能：学员档案 START ====
@@ -4977,6 +5015,8 @@ const Today = {
             + one.map(x => this.lessonRow(x)).join('');
         }).join('')
       : '<div class="empty">教务还没有给你排课</div>';
+
+    News.render('tNewsBody', 'tNewsMeta');
   }
 };
 /* ==== 功能：老师今天 END ==== */
