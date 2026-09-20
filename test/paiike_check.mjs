@@ -176,6 +176,9 @@ try {
   ok(t4.gridStart === '2026-07-10' && t4.gridDays === '14', '大课表自动对准这段时间（14 天）');
   ok(t4.sample.split('/').length === 5, '同一天排满了模板里的 5 节课');
 
+  /* 生成后会弹一条「排课完成」提示，等它自己消失再拍 ——
+     这张图要进使用手册，飘着的提示会像渲染出错。 */
+  await sleep(2600);
   await cdp.eval(`document.getElementById('gridWrap').scrollIntoView({ block: 'center' }); 'ok';`);
   await sleep(400);
   await shot(cdp, 'paike_2_grid.png');
