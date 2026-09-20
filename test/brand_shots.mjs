@@ -1,5 +1,5 @@
 /**
- * 门头方案出图：把 Brand 的三套写法（?brand=A|B|D）在电脑与手机上各拍一遍，
+ * 门头出图：把定稿的 A 竖式门头在电脑与手机上、浅色与深色各拍一遍，
  * 供挑选。顺带把设置页页脚署名也拍进来。
  *
  *   node test/brand_shots.mjs            # 落到 test/.shots/brand/
@@ -25,7 +25,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots', 'brand');
 const SUPER = { user: '__brandtest__', pass: 'brandshot2026' };
-const ALL = ['A', 'B', 'D'];
+const ALL = ['A'];   // 2026-09-20 定稿：只剩 A 竖式
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
@@ -83,10 +83,10 @@ const view = (cdp, o) => cdp.send('Emulation.setDeviceMetricsOverride',
 const DESK = { width: 1440, height: 900, dsf: 2, mobile: false };
 const MOB  = { width: 390, height: 844, dsf: 2, mobile: true };
 
-/** 打开某个方案，等页面把门头装配完 */
+/** 打开页面，等门头装配完 */
 async function open(cdp, brand){
   const loaded = cdp.once('Page.loadEventFired');
-  await cdp.send('Page.navigate', { url: `${BASE}/index.html?brand=${brand}` });
+  await cdp.send('Page.navigate', { url: `${BASE}/index.html` });
   await loaded;
   await waitFor(() => cdp.eval(`!!document.getElementById('gBrand') && document.getElementById('gBrand').children.length > 0`),
     { what: '门头装配', tries: 40, gap: 200 });

@@ -29,8 +29,7 @@ const PORT = Number(process.argv[2] || 5351);
 const DBG = PORT + 1;
 const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const ALL = ['A', 'B', 'D'];          // 竖排（A/D）才有「四个字对中轴」这条要求
-const VERT = ['A', 'D'];
+const ALL = ['A'];                    // 2026-09-20 定稿：只剩 A 竖式，B 横式 / D 深色已删
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (u, o = {}) => fetch(u, { ...o, signal: AbortSignal.timeout(8000) });
@@ -83,20 +82,17 @@ const MEASURE = `(function(){
                   brand.getBoundingClientRect().width / 2 - axis) * 10) / 10,
                 wrapW: Math.round(gate.querySelector('.wrap').getBoundingClientRect().width),
                 formW: Math.round(gate.querySelector('.g-form').getBoundingClientRect().width),
-                kids: [], hasArt: false, orgBand: null, dark: gate.classList.contains('dark') };
+                kids: [], halo: false, imprint: false, orgBand: null };
   brand.querySelectorAll(':scope > *').forEach(el => {
     const b = rect(el);
     b.cls = el.tagName === 'IMG' ? 'badge' : String(el.className || el.tagName);
     out.kids.push(b);
   });
   const bi = brand.querySelector('.bi'), ly = brand.querySelector('.ly');
-  /* 竖排（A/D）横着一条长金线；横式（B）是两道竖线，尺度要求不一样 */
-  const hrule = brand.querySelector('.b-rule'), vrule = brand.querySelector('.b-vrule');
+  const hrule = brand.querySelector('.b-rule');
   out.badge = bi ? rect(bi) : null;
   out.rule = hrule ? rect(hrule) : null;
-  out.vrule = vrule ? rect(vrule) : null;
   out.ly = ly ? rect(ly) : null;
-  out.lock = brand.querySelector('.b-lock') ? rect(brand.querySelector('.b-lock')) : null;
   /* 「博艺教育」那一行在 y 上的范围：.b-org 的首行占上 55%（下面还跟着英文小字） */
   const org = brand.querySelector('.b-org');
   if (org){
@@ -104,8 +100,13 @@ const MEASURE = `(function(){
     out.orgBand = { top: Math.round(r.top), bottom: Math.round(r.top + r.height * 0.55),
                     text: (org.textContent || '').trim().slice(0, 8) };
   }
+  /* ::after 是暖金晕（宽屏才有）；::before 是那枚虚化的机构徽章印记 —— 用户定稿要去掉，
+     所以这里两个都量：halo 宽屏必须出现，imprint 任何时候都不许出现。 */
+  const af = getComputedStyle(gate, '::after');
   const bf = getComputedStyle(gate, '::before');
-  out.hasArt = !!bf.backgroundImage && bf.backgroundImage !== 'none';
+  const hasBg = v => !!v && v !== 'none';
+  out.halo = out.vw >= 900 && hasBg(af.backgroundImage);
+  out.imprint = hasBg(bf.backgroundImage) || hasBg(bf.content) && hasBg(bf.background);
   return out;
 })()`;
 
@@ -142,8 +143,8 @@ const view = (cdp, o) => cdp.send('Emulation.setDeviceMetricsOverride',
 const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1440, height: 900, mobile: false };
 
-async function openGate(cdp, brand){
-  await cdp.send('Page.navigate', { url: `${BASE}/index.html?brand=${brand}` });
+async function openGate(cdp){
+  await cdp.send('Page.navigate', { url: `${BASE}/index.html` });
   await sleep(2200);
   await cdp.eval(`(() => { const s = document.getElementById('splash'); if (s) s.remove();
                           document.getElementById('gate').classList.add('on'); return 'ok'; })()`);
@@ -179,19 +180,18 @@ try {
   head('① 手机 390×844 · 门头对中');
   await view(cdp, MOB);
   for (const b of ALL){
-    const m = await openGate(cdp, b);
+    const m = await openGate(cdp);
     const badBox = m.kids.filter(x => Math.abs(x.off) > 1);
-    ok(m.kids.length >= 1, `${b}：门头装出来了（${m.kids.length} 块）`);
+    ok(m.kids.length === 5, `${b}：门头五块层次齐备 —— 徽章 / 机构名 / 金线 / 字标 / 系统名（${m.kids.length} 块）`);
+    ok(m.kids.map(x => x.cls).join('|') === 'badge|b-org|b-rule|ly|b-sys',
+       `${b}：自上而下顺序正确（${m.kids.map(x => x.cls).join(' → ')}）`);
     ok(badBox.length === 0, `${b}：每一块都压在中轴上（±1px）`, badBox.map(x => x.cls + ' 偏 ' + x.off).join('，'));
-    if (VERT.indexOf(b) >= 0){
-      ok(m.ink && !m.ink.none, `${b}：截屏里量到了「${m.orgBand.text}」的墨迹`);
-      ok(m.ink && Math.abs(m.ink.off) <= 1,
-        `${b}：「${m.orgBand.text}」四个字正对中轴（像素实测）`,
-        m.ink ? '墨迹偏 ' + m.ink.off + 'px，宽 ' + m.ink.ink : '没量到墨迹');
-    } else {
-      ok(m.lock && Math.abs(m.lock.off) <= 1, 'B：整块横印压在中轴上', m.lock ? '偏 ' + m.lock.off : '');
-    }
-    ok(m.hasArt === false, `${b}：窄屏不铺背景徽章印记（省得糊住门头）`);
+    ok(m.ink && !m.ink.none, `${b}：截屏里量到了「${m.orgBand.text}」的墨迹`);
+    ok(m.ink && Math.abs(m.ink.off) <= 1,
+      `${b}：「${m.orgBand.text}」四个字正对中轴（像素实测）`,
+      m.ink ? '墨迹偏 ' + m.ink.off + 'px，宽 ' + m.ink.ink : '没量到墨迹');
+    ok(m.halo === false, `${b}：窄屏不铺背景装饰（省得糊住门头）`);
+    ok(m.imprint === false, `${b}：背景没有徽章印记（用户定稿去掉）`);
     ok(!m.scrolls, `${b}：登录门没有多余的可滚高度（多了会顶出滚动条，整块牌子就左偏）`);
     ok(Math.abs(m.brandMidOff) <= 1, `${b}：整块门头正对页中轴`, '偏 ' + m.brandMidOff + 'px');
   }
@@ -200,25 +200,20 @@ try {
   head('② 电脑 1440×900 · 牌匾尺度');
   await view(cdp, DESK);
   for (const b of ALL){
-    const m = await openGate(cdp, b);
-    const vert = VERT.indexOf(b) >= 0;
-    console.log(`     ${b}  徽章 ${m.badge ? m.badge.w : '-'}  金线 ${vert ? (m.rule ? m.rule.w : '-') : (m.vrule ? m.vrule.h : '-')}  字标 ${m.ly ? m.ly.w : '-'}  表单 ${m.formW}`);
-    ok(m.badge && m.badge.w >= (vert ? 110 : 88),
-       `${b}：徽章在电脑上放到 ${m.badge ? m.badge.w : '?'}px（≥${vert ? 110 : 88}）`);
-    ok(m.ly && m.ly.w >= (vert ? 260 : 240),
-       `${b}：行书字标放到 ${m.ly ? m.ly.w : '?'}px（≥${vert ? 260 : 240}）`);
-    if (vert) ok(m.rule && m.rule.w >= 500,
-      `${b}：金线拉长到 ${m.rule ? m.rule.w : '?'}px（≥500，气派就靠这一条）`);
-    else ok(m.vrule && m.vrule.h >= 56, `${b}：金竖线加高到 ${m.vrule ? m.vrule.h : '?'}px（≥56）`);
+    const m = await openGate(cdp);
+    console.log(`     ${b}  徽章 ${m.badge ? m.badge.w : '-'}  金线 ${m.rule ? m.rule.w : '-'}  字标 ${m.ly ? m.ly.w : '-'}  表单 ${m.formW}`);
+    ok(m.badge && m.badge.w >= 110, `${b}：徽章在电脑上放到 ${m.badge ? m.badge.w : '?'}px（≥110）`);
+    ok(m.ly && m.ly.w >= 260, `${b}：行书字标放到 ${m.ly ? m.ly.w : '?'}px（≥260）`);
+    ok(m.rule && m.rule.w >= 500,
+       `${b}：金线拉长到 ${m.rule ? m.rule.w : '?'}px（≥500，气派就靠这一条）`);
     ok(m.formW <= 420 && m.formW >= 300, `${b}：表单仍是 ${m.formW}px 的窄栏（300~420）`);
     const badBox = m.kids.filter(x => Math.abs(x.off) > 1);
     ok(badBox.length === 0, `${b}：每一块都压在中轴上（±1px）`, badBox.map(x => x.cls + ' 偏 ' + x.off).join('，'));
-    if (VERT.indexOf(b) >= 0){
-      ok(m.ink && Math.abs(m.ink.off) <= 1,
-        `${b}：「${m.orgBand.text}」四个字正对中轴（像素实测）`,
-        m.ink ? '墨迹偏 ' + m.ink.off + 'px，宽 ' + m.ink.ink : '没量到墨迹');
-    }
-    ok(m.hasArt === true, `${b}：宽屏铺上了背景徽章印记`);
+    ok(m.ink && Math.abs(m.ink.off) <= 1,
+      `${b}：「${m.orgBand.text}」四个字正对中轴（像素实测）`,
+      m.ink ? '墨迹偏 ' + m.ink.off + 'px，宽 ' + m.ink.ink : '没量到墨迹');
+    ok(m.halo === true, `${b}：宽屏铺上了暖金晕（背景唯一的装饰）`);
+    ok(m.imprint === false, `${b}：背景没有徽章印记（用户定稿去掉）`);
     ok(!m.scrolls, `${b}：登录门没有多余的可滚高度（多了会顶出滚动条，整块牌子就左偏）`);
     ok(Math.abs(m.brandMidOff) <= 1, `${b}：整块门头正对页中轴`, '偏 ' + m.brandMidOff + 'px');
   }

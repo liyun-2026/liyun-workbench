@@ -294,15 +294,21 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
       assert(!/账号由教务创建，没有自助注册。<br>/.test(html), '登录按钮下的两行说明该删掉');
     });
 
-    t('品牌门头：博艺徽章 + 砺蕴字标，A / B / D 三套齐备（C 已去掉）', () => {
-      ['A', 'B', 'D'].forEach(k =>
-        assert(new RegExp("'" + k + "'").test(html), 'Brand 里少了 ' + k + ' 这一套写法'));
-      assert(/ALL:\s*\['A', 'B', 'D'\]/.test(html), 'Brand.ALL 该列 A / B / D 三套');
-      assert(!/brand-c/.test(html), 'C 已经去掉，不该再残留 brand-c');
-      assert(!/gCorner/.test(html), 'C 专用的小印挂点该一并清掉');
-      assert(/@media\s*\(min-width:900px\)[\s\S]{0,700}?\.gate::after/.test(html),
-        '宽屏登录页该单独有一版：居中卡片 + 背后的徽章印记');
-      assert(/assets\/boyi-512\.png/.test(html), '博艺徽章素材该被引用');
+    t('品牌门头：博艺徽章 + 砺蕴字标，只此一套（B/C/D 均已去掉）', () => {
+      assert(/const Brand = \{/.test(html), 'Brand 模块该在');
+      assert(/classList\.add\('brand-a'\)/.test(html), '门头该挂 brand-a');
+      ['brand-b', 'brand-c', 'brand-d', 'gCorner', 'pickbar'].forEach(x =>
+        assert(!new RegExp(x).test(html), x + ' 已删除，不该再残留'));
+      assert(!/ALL:\s*\[/.test(html) && !/picker\s*\(\)\s*\{/.test(html) &&
+             !/q\.get\('pick'\)/.test(html), '多套切换机制该一并撤掉');
+      assert(/@media\s*\(min-width:900px\)[\s\S]{0,900}?\.gate::after/.test(html),
+        '宽屏登录页该单独有一版（放大的牌匾 + 暖金晕）');
+      assert(/@media\s*\(min-width:900px\)[\s\S]{0,1500}?scrollbar-gutter:stable/.test(html),
+        '宽屏登录门该有 scrollbar-gutter，否则滚动条一出现整块牌匾就左偏');
+      assert(!/boyi-512\.png[^)]*\)[^;]*opacity:\s*\.0[4-9]/i.test(html),
+        '背景那枚虚化徽章印记已按用户意见去掉，不该再压回屏幕');
+      assert(/'assets\/boyi-' \+ f \+ '\.png'/.test(html),
+        '徽章该按显示尺寸就近取图（Brand.pic）');
       fs.readdirSync(path.join(dir, 'assets')).forEach(f => {
         if (/^boyi-\d+\.png$/.test(f))
           assert(fs.statSync(path.join(dir, 'assets', f)).size > 1000, '徽章素材是空的：' + f);
