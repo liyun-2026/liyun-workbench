@@ -3133,14 +3133,20 @@ const Schedule = {
       : '<option value="">先配作息时间</option>';
     const teach = Staff.teachers().map(u =>
       `<option value="${u.id}"${r.teacherId === u.id ? ' selected' : ''}>${Util.esc(u.name)}</option>`).join('');
+    const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    const clsOpts = classes.map(c =>
+      `<option value="${Util.esc(c.name)}"${(r.cls||'') === c.name ? ' selected' : ''}>${Util.esc(c.name)}</option>`).join('');
+    const roomList = this.rooms();
+    const roomOpts = roomList.map(rm =>
+      `<option value="${Util.esc(rm.name)}"${(r.room||'') === rm.name ? ' selected' : ''}>${Util.esc(rm.name)}</option>`).join('');
     const onlyOpts = [''].concat(this.PPDAYS).map(d =>
       `<option value="${d}"${(r.only || '') === d ? ' selected' : ''}>${d || '每天'}</option>`).join('');
     return `<div class="pprow" oninput="Schedule.ppSaveRowsSoon()" onchange="Schedule.ppSaveRowsSoon()">
       <select class="pp-period" title="节次">${perOpts}</select>
-      <input class="pp-cls" placeholder="班级 / 板块" value="${Util.esc(r.cls || '')}">
+      <select class="pp-cls" title="班级（从名册选）"><option value="">班级 / 板块</option>${clsOpts}</select>
       <input class="pp-title" placeholder="上课内容" value="${Util.esc(r.title || '')}">
       <select class="pp-teacher" title="上课老师（可不填）"><option value="">老师</option>${teach}</select>
-      <input class="pp-room" placeholder="教室" value="${Util.esc(r.room || '')}">
+      <select class="pp-room" title="教室（从已设教室选）"><option value="">教室</option>${roomOpts}</select>
       <select class="pp-only" title="限定周几">${onlyOpts}</select>
       <label><input type="checkbox" class="pp-merge"${r.merge ? ' checked' : ''}>合练</label>
       <button class="del" title="删掉这行" onclick="this.closest('.pprow').remove();Schedule.ppSaveRows();Schedule.ppPreview()">✕</button>
