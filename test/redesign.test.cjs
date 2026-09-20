@@ -288,9 +288,22 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
     t('登录门干净：标题就是书法「砺蕴」，提示只写「用户名」，按钮下不放说明文字', () => {
       const m = html.match(/id="gUser"[^>]*placeholder="([^"]+)"/);
       assert(m && m[1] === '用户名', '提示应只写「用户名」（2026-09-18 用户要求删掉括号说明）：' + (m && m[1]));
-      assert(html.includes('g-logo') && /assets\/logo-liyun\.png/.test(html), '登录门该用书法标志图');
+      assert(html.includes('id="gBrand"') && /assets\/logo-liyun\.png/.test(html),
+        '登录门头该由 Brand 装配书法字标（砺蕴字标走 CSS 遮罩上色）');
       assert(!/第一次使用：填一个用户名/.test(html), '「第一次使用…首位教务」这句该删掉');
       assert(!/账号由教务创建，没有自助注册。<br>/.test(html), '登录按钮下的两行说明该删掉');
+    });
+
+    t('品牌门头：博艺徽章 + 砺蕴字标，四套写法齐备', () => {
+      ['A', 'B', 'C', 'D'].forEach(k =>
+        assert(new RegExp("'" + k + "'").test(html), 'Brand 里少了 ' + k + ' 这一套写法'));
+      assert(/ALL:\s*\['A', 'B', 'C', 'D'\]/.test(html), 'Brand.ALL 该列全四套');
+      assert(/assets\/boyi-512\.png/.test(html), '博艺徽章素材该被引用');
+      fs.readdirSync(path.join(dir, 'assets')).forEach(f => {
+        if (/^boyi-\d+\.png$/.test(f))
+          assert(fs.statSync(path.join(dir, 'assets', f)).size > 1000, '徽章素材是空的：' + f);
+      });
+      assert(!/filter:\s*(brightness|hue-rotate)\(/.test(html), '徽章不许加滤镜改色（那是机构的资产）');
     });
 
     t('前后端是同一套规则：正则与长度上限逐字比对', () => {
