@@ -78,6 +78,9 @@ const MEASURE = `(function(){
   const rect = el => { const r = el.getBoundingClientRect();
     return { w: Math.round(r.width * 10) / 10, h: Math.round(r.height * 10) / 10, off: off(r), top: r.top, bottom: r.bottom }; };
   const out = { axis: Math.round(axis), vw: innerWidth, vh: innerHeight,
+                scrolls: gate.scrollHeight > gate.clientHeight + 1,
+                brandMidOff: Math.round((brand.getBoundingClientRect().left +
+                  brand.getBoundingClientRect().width / 2 - axis) * 10) / 10,
                 wrapW: Math.round(gate.querySelector('.wrap').getBoundingClientRect().width),
                 formW: Math.round(gate.querySelector('.g-form').getBoundingClientRect().width),
                 kids: [], hasArt: false, orgBand: null, dark: gate.classList.contains('dark') };
@@ -189,6 +192,8 @@ try {
       ok(m.lock && Math.abs(m.lock.off) <= 1, 'B：整块横印压在中轴上', m.lock ? '偏 ' + m.lock.off : '');
     }
     ok(m.hasArt === false, `${b}：窄屏不铺背景徽章印记（省得糊住门头）`);
+    ok(!m.scrolls, `${b}：登录门没有多余的可滚高度（多了会顶出滚动条，整块牌子就左偏）`);
+    ok(Math.abs(m.brandMidOff) <= 1, `${b}：整块门头正对页中轴`, '偏 ' + m.brandMidOff + 'px');
   }
 
   /* ── ② 电脑：牌匾要够大，但表单不能被拉宽 ── */
@@ -214,6 +219,8 @@ try {
         m.ink ? '墨迹偏 ' + m.ink.off + 'px，宽 ' + m.ink.ink : '没量到墨迹');
     }
     ok(m.hasArt === true, `${b}：宽屏铺上了背景徽章印记`);
+    ok(!m.scrolls, `${b}：登录门没有多余的可滚高度（多了会顶出滚动条，整块牌子就左偏）`);
+    ok(Math.abs(m.brandMidOff) <= 1, `${b}：整块门头正对页中轴`, '偏 ' + m.brandMidOff + 'px');
   }
 
   /* ── ③ 矮屏：牌匾比屏幕高时也不许被顶掉顶部 ── */

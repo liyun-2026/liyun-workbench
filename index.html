@@ -672,20 +672,29 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   /* ⚠️ 用 flex 居中 + 子项 margin:auto，不要用 align-items:center ——
      牌匾比屏幕高时（矮笔记本 / 横屏手机），align-items:center 会把顶部
      推到视口外且滚不上去；margin:auto 在空间不足时会自动塌成 0，正常滚动。 */
+  /* ⚠️ 两个坑，都会让整块牌匾肉眼可见地偏左：
+     ① 背景那两枚装饰层原本是 position:absolute，比视口高出 20px，
+        给登录门平白撑出 20px 可滚高度 → 出现滚动条 → 内容改按
+        「视口宽 − 15px」居中 → 整块牌匾左偏 7.5px（实测）。
+        改 position:fixed：固定定位的盒子不计入祖先的可滚动溢出。
+     ② 矮屏上牌匾本身就可能比视口高，滚动条一出现又会左偏。
+        scrollbar-gutter:stable both-edges 让两侧各留一条等宽空白，
+        滚动条来不来都不影响居中。 */
   .gate.on{display:flex}
+  .gate{scrollbar-gutter:stable both-edges}
   .gate .wrap{margin:auto}
 
   /* 尺寸一律跟着屏高走：1440×900 上是满幅大气派，768 高的笔记本上自动收一档，
      不会挤成一条、也不会顶出屏幕（--r 那套 calc 不行，CSS 不允许长度除长度）。 */
   /* 背景两层：整枚徽章印记（要看得见一整枚，不是中间一圈）＋ 徽章后的暖金晕 */
   .gate::before{
-    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    content:'';position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     width:min(1000px,86vw,86vh);height:min(1000px,86vw,86vh);
     background:url(assets/boyi-512.png) no-repeat center / contain;
     opacity:.045;filter:blur(2px);pointer-events:none;
   }
   .gate::after{
-    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    content:'';position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
     width:940px;height:940px;pointer-events:none;
     background:radial-gradient(circle,
       rgba(201,171,124,.15) 0%, rgba(201,171,124,.055) 44%, rgba(201,171,124,0) 70%);
