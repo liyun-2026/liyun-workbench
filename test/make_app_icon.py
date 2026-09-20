@@ -1,51 +1,50 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-砺蕴工作系统 —— 手机桌面图标生成器（纯图形版）
+"""砺蕴 工作系统 —— 手机桌面图标生成器（纯图形版 · 定案）
 
-用户的两条硬要求：① 不要文字，要图形；② 要有质感、不老气。
-「砺」字标、金盘三柱、以及一系列几何尝试都被否掉了，最后收敛到下面这条路线。
+设计依据：名字本身
+==================
+  砺 = 磨刀石。《说文》「砺，䃺也」。一块粗粝的石头，把刀刃磨出锋芒。
+  蕴 = 积聚、蕴藏。《说文》「蕴，积也」。藏在里面、慢慢积起来、不外露。
+  合起来是同一件事的两面 —— **外面磨砺，里面蕴养**。
 
-定版路线：**暖墨盘 + 一道金色行书笔触**
---------------------------------------
-盘＝「砺」的本义（磨石），笔触＝「破石出声」的那一声。
-用户唯一点头过的是「米白底 + 墨盘」这个组合，所以浅底是默认色调；
-深底（暖墨底 + 金盘）整套自动互换，是备选。
+对一家播音主持艺考中心，这就是「练声练气」与「文化底蕴」的关系。
+把两字同时讲透的是《礼记·学记》：**玉不琢，不成器**（琢＝砺，玉＝蕴），
+而系统本来的品牌故事就写着四个字：**破石出声**。
 
-⚠️ 这一轮最关键的一条经验：**笔触必须「头厚尾细」**
-  · 两头尖、中段最厚的对称形状（月牙 / 叶形）—— 人眼一律读成「叶子」「刀片」「豆子」，
-    连试五版都是这个结果。
-  · 改成**起笔按下去、收笔提起来**（mode='head'）之后，立刻变成一笔行书，也像浪头。
-  · 同理，等宽直棒会被读成柱状图 / 信号格（最老那版金盘三柱就是这么过时的）。
+所以图形只有一个主角：
+    一块石，被磨开一面 —— **磨面就是「砺」，露出来的金就是「蕴」。**
+
+定版 = 「磨面」
+--------------
+不把切面藏在石头里头（那样轮廓还是完整的圆，读出来是饼图 / 月相），
+而是让石头**真的被磨掉一面**：轮廓上留一段笔直的磨面，磨面泛金。
+石头被磨过，形状上是看得出来的 —— 这就是「砺」。
+
+三条渲染经验（改之前先读）
+--------------------------
+  ① **环境光遮蔽（AO）不能省。** 平面的金色块靠「贴着切口压暗一点点」
+     才读得出是一个**有厚度的切面**，否则只是一张色纸。
+  ② **石身要用离轴径向渐变**（光自右上），不是竖向渐变。一块真正的石头
+     是有体积的；死平的黑块正是「旧」的来源。
+  ③ **墨不能是纯黑**，要暖褐灰（默认 hi 70,62,52 → lo 32,29,25）。
+     纯黑压在米白上显旧，暖褐灰才和「极简·暖」这套调子对得上。
+     ⚠️ 同时注意：macOS 上 PIL 画曲线必须**每段显式画四边形 + 节点补圆头**，
+     用 ImageDraw.line(width=) 会在拐点留缺口，渲染成一圈毛刺。
 
 尺寸规矩（很重要，别乱改）
 --------------------------
-  · maskable 安全圆半径 = 0.40 × 边长。Android 按圆形裁切，凡「必须看得见」的图形
-    都要落在这个圆里。⚠️ 盘做到 0.368 之后只剩 0.03 余量 —— 所以**任何「盘外长出来的
-    东西」都必然超标**，笔触一律 intersect(disc) 裁在盘内。
+  · maskable 安全圆半径 = 0.400 × 边长。Android 按圆形裁切，凡「必须看得见」
+    的图形都要落在这个圆里。
   · 安全自检用**图形层自己的 alpha** 算最远半径 —— 不能拿合成图算：
     底色不透明，合成图会把整张画布都当墨迹，得出 0.707 的假警报。
 
-坐标约定
---------
-所有几何一律用 0~1 归一化坐标描述，画的时候再乘宽度 —— 换尺寸不用重算。
-
-候选一览（--list 可打印）
-------------------------
-  甲组 1–6：其他方向（浪分双色 / 盘·开口 / 破·飞片 / 对称月牙(反面参照) /
-             石与升浪(轻) / 一笔·墨锋）
-  乙组 g–l：笔触选形（同一枚盘，只换弧势与哪一头厚）—— **主推**
-     g 头厚尾细·立      ⭐ 当前定版
-     h 头厚尾细·长锋    i 头厚尾细·上卷    j 头厚尾细·横
-     k 细头粗尾(对照)   l 两头尖(对照)
-
 用法
 ----
-  python3 test/make_app_icon.py                    # 出四张对比图（不改正式图标）
-  python3 test/make_app_icon.py --pick=g           # 用 g 出正式图标（浅底）
-  python3 test/make_app_icon.py --pick=i --dark    # 用 i 的深底版
-  出正式图标会同时写 icon.png(512) / icon-192.png / apple-touch-icon.png(180)，
-  ⚠️ 换图标后记得把 sw.js 的 VERSION 提一档，否则预缓存里还是旧图。
+  python3 test/make_app_icon.py                  # 出对比图（不改正式图标）
+  python3 test/make_app_icon.py --pick=m         # 用「磨面」出正式图标（浅底）
+  python3 test/make_app_icon.py --pick=m --dark  # 深底版
+  换图标后 ⚠️ 必须把 sw.js 的 VERSION 提一档，否则预缓存里还是旧图。
 """
 import sys, os
 import numpy as np
@@ -58,10 +57,10 @@ REVIEW = os.path.join(ROOT, '预览')          # 挑选用的对比图放这儿�
 GOLD = (201, 171, 124)      # --gold #c9ab7c
 GOLD_HI = (236, 214, 174)
 GOLD_LO = (170, 137, 89)
-DEEP_HI = (206, 172, 116)   # 浅底上用的金：比 --gold 深一档，压在米白上才不发飘
-DEEP_LO = (163, 128, 78)
-INK_TOP = (40, 37, 33)      # 暖墨（上）
-INK_BOT = (22, 20, 16)      # 暖墨（下）
+DEEP_HI = (250, 232, 196)   # 磨面（浅底）：靠切口那一侧
+DEEP_LO = (166, 130, 80)
+INK_TOP = (40, 37, 33)
+INK_BOT = (22, 20, 16)
 CREAM = (247, 246, 243)
 CREAM_2 = (237, 233, 226)
 DARKTEXT = (38, 36, 31)
@@ -102,6 +101,37 @@ def ink_grad(W):
     return v_grad(W, INK_TOP, INK_BOT)
 
 
+def shade_ink(W, tone='light'):
+    """**石身材质**：离轴径向渐变（光自右上）。
+
+    一块真正的石头是有体积的 —— 死平的黑块正是「旧」的来源。
+    暖墨（不是纯黑）压在米白上才和「极简·暖」的调子对得上。
+    """
+    yy, xx = np.mgrid[0:W, 0:W].astype(float)
+    d = np.hypot((xx - W * 0.660) / (W * 0.98), (yy - W * 0.320) / (W * 0.82))
+    t = np.clip(d, 0, 1) ** 1.5
+    hi, lo = ((70, 62, 52), (32, 29, 25)) if tone == 'light' else ((32, 29, 24), (11, 10, 8))
+    hi, lo = np.array(hi, float), np.array(lo, float)
+    g = hi[None, None, :] * (1 - t[..., None]) + lo[None, None, :] * t[..., None]
+    return Image.fromarray(g.clip(0, 255).astype(np.uint8), 'RGB').convert('RGBA')
+
+
+def shade_face(W, ang, d, tone='light'):
+    """**磨面材质**：自切口向外由亮转深（光是从磨开的那道缝里透出来的），
+    再叠一层**贴着切口的 AO**。
+
+    ⚠️ AO 不能省 —— 平面的金色块靠「贴着切口压暗一点点」才读得出是一个
+    有厚度的切面，否则只是一张色纸。
+    """
+    f = field(W, ang, d, 0.010)
+    t = np.clip(f / 0.30, 0, 1) ** 1.05
+    hi, lo = np.array(DEEP_HI, float), np.array(DEEP_LO, float)
+    g = hi[None, None, :] * (1 - t[..., None]) + lo[None, None, :] * t[..., None]
+    ao = 1.0 - 0.30 * np.exp(-np.clip(f, 0, None) / 0.045)
+    g = g * ao[..., None]
+    return Image.fromarray(g.clip(0, 255).astype(np.uint8), 'RGB').convert('RGBA')
+
+
 # ───────────────────────── 基础绘制 ─────────────────────────
 def circle_mask(W, cx, cy, r):
     m = Image.new('L', (W, W), 0)
@@ -114,8 +144,8 @@ def stroke_mask(W, pts, width, caps=True):
 
     ⚠️ 别用 `ImageDraw.line(width=w)` —— 曲线采样成上百段小折线之后，
     PIL 把每一段各画成一个独立四边形，拐点处留下细缺口，渲染出来
-    是一圈毛刺（第一版就是这么废的）。正确做法：**每段显式画四边形，
-    再在每个节点补一个半径 = w/2 的圆** —— 圆接头，天然无缺口。
+    是一圈毛刺。正确做法：**每段显式画四边形，再在每个节点补一个半径
+    = w/2 的圆** —— 圆接头，天然无缺口。
     """
     m = Image.new('L', (W, W), 0)
     d = ImageDraw.Draw(m)
@@ -141,26 +171,6 @@ def polygon_mask(W, pts):
     return m
 
 
-def blade(W, t0, t1, c_out, c_in, n=110):
-    """一片**锥形浪叶**：两端收成尖，中段最厚。
-
-    做法＝两条二次贝塞尔围成的闭区域 —— 外弧从 t0 走到 t1，内弧从 t1 走回 t0，
-    两条的控制点错开多少，中段就有多厚。这是画「浪 / 帆 / 声」这类
-    上冲形状最稳的基本形：一根等宽的棒子没有方向感，锥形的才有。
-    参数一律用 0~1 归一化坐标。
-    """
-    S = lambda p: (p[0] * W, p[1] * W)
-    pts = quad(S(t0), S(c_out), S(t1), n) + quad(S(t1), S(c_in), S(t0), n)
-    return polygon_mask(W, pts)
-
-
-def blade_w(W, t0, t1, c_out, c_in):
-    """同上，返回中段最厚处的大致厚度（归一化），用来守「≥0.11」这条线。"""
-    mx = abs(c_out[0] - c_in[0]) * 0.5
-    my = abs(c_out[1] - c_in[1]) * 0.5
-    return (mx * mx + my * my) ** 0.5
-
-
 def arc_mask(W, cx, cy, r, a0, a1, width, round_caps=True):
     """粗圆弧。角度制：0°＝右，顺时针为正（屏幕 y 向下）。圆头另补两个圆。"""
     m = Image.new('L', (W, W), 0)
@@ -177,7 +187,7 @@ def arc_mask(W, cx, cy, r, a0, a1, width, round_caps=True):
 
 
 def rrect_mask(W, cx, cy, w, h, rad, ang=0.0):
-    """圆角矩形，可整体旋转（度，逆时针为正）。画在 3 倍画布上再转，免得转出来缺角。"""
+    """圆角矩形，可整体旋转（度，逆时针为正）。"""
     S = W * 3
     C = S / 2.0
     m = Image.new('L', (S, S), 0)
@@ -201,6 +211,16 @@ def quad(p0, p1, p2, n=120):
     for t in np.linspace(0, 1, n):
         out.append(((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
                     (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]))
+    return out
+
+
+def cubic(p0, p1, p2, p3, n=110):
+    """三次贝塞尔采样成折线。"""
+    out = []
+    for t in np.linspace(0, 1, n):
+        u = 1 - t
+        out.append((u**3 * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t**3 * p3[0],
+                    u**3 * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t**3 * p3[1]))
     return out
 
 
@@ -239,81 +259,8 @@ def far_radius(W, mask):
     return float(np.max(np.hypot(xs - c, ys - c))) / W
 
 
-def warp(mask, W, ang=0.0, dx=0.0, dy=0.0):
-    """把 mask 绕画布中心转 ang 度、再平移 (dx,dy)×边长。"""
-    S = W * 3
-    big = Image.new('L', (S, S), 0)
-    big.paste(mask, (W, W))
-    if ang:
-        big = big.rotate(ang, resample=Image.BICUBIC, center=(S / 2, S / 2))
-    if dx or dy:
-        big = big.transform((S, S), Image.AFFINE,
-                            (1, 0, -dx * W, 0, 1, -dy * W), resample=Image.BICUBIC)
-    return big.crop((W, W, 2 * W, 2 * W))
-
-
-def leaf(W, bx, base_y, height, curl=0.105, lean=0.190, thick=0.118, bulge=0.56):
-    """一片自 (bx, base_y) 起、向上扬起并微微右倾的**锥形浪叶**。
-
-    thick 是中段最厚处（归一化）—— 图标里**别低于 0.11**，
-    再细在 60px 桌面上就断成一缕烟了。
-    """
-    t0 = (bx, base_y)
-    t1 = (bx + curl, base_y - height)
-    my = base_y - height * bulge
-    c_out = (bx - lean, my)
-    c_in = (bx - lean + thick * 2.0, my + 0.012)
-    return blade(W, t0, t1, c_out, c_in)
-
-
-def cubic(p0, p1, p2, p3, n=110):
-    """三次贝塞尔采样成折线。"""
-    out = []
-    for t in np.linspace(0, 1, n):
-        u = 1 - t
-        out.append((u**3 * p0[0] + 3 * u * u * t * p1[0] + 3 * u * t * t * p2[0] + t**3 * p3[0],
-                    u**3 * p0[1] + 3 * u * u * t * p1[1] + 3 * u * t * t * p2[1] + t**3 * p3[1]))
-    return out
-
-
-def side_poly(pts, direction):
-    """把一条曲线变成「曲线某一侧的全部区域」的闭合多边形（方向 'L' / 'R'）。"""
-    far = -3.0 * 1e4 if direction == 'L' else 3.0 * 1e4
-    return list(pts) + [(far, pts[-1][1]), (far, pts[0][1])]
-
-
-def split_by(mask, W, cl, gap):
-    """用一条曲线 cl（像素点列）把 mask 切成两片，中间留 gap 宽的空隙。
-
-    做法是把曲线**各向左右平移 gap/2**，两侧各取一次 —— 这样两片之间
-    天然留出一道等宽的缝，且都是干净的原轮廓，不需要做腐蚀。
-    返回 (左片, 右片)。
-    """
-    return split_var(mask, W, cl, gap, gap)
-
-
-def split_var(mask, W, cl, gap0, gap1):
-    """同上，但缝宽沿曲线从 gap0（起点）渐变到 gap1（终点）。
-
-    锥形缝是要点：等宽缝看着像「切了一刀」，下细上宽的缝才像「顶开的」。
-    """
-    n = max(1, len(cl) - 1)
-    a, b = [], []
-    for i, (x, y) in enumerate(cl):
-        g = (gap0 + (gap1 - gap0) * i / n) * W / 2
-        a.append((x - g, y))
-        b.append((x + g, y))
-    L = intersect(mask, polygon_mask(W, side_poly(a, 'L')))
-    R = intersect(mask, polygon_mask(W, side_poly(b, 'R')))
-    return L, R
-
-
 def band_poly(cl, wfun):
-    """把一条中心线加一个「宽度随参数变化」的函数，铺成闭合多边形。
-
-    这是画**行书笔触**的正解：等宽棒子没有起收笔，对称月牙又会被读成豆子 / 叶子；
-    只有「两端收尖、中段饱满、弧势连贯」的一条带，才像一笔写出来的东西。
-    """
+    """把一条中心线加一个「宽度随参数变化」的函数，铺成闭合多边形。"""
     out, inn = [], []
     n = len(cl) - 1
     for i, (x, y) in enumerate(cl):
@@ -328,206 +275,185 @@ def band_poly(cl, wfun):
     return out + inn[::-1]
 
 
-def sstroke(W, ctrl, wmax, mode='head', p=1.5, asym=1.25, sharp=0.75, n=150):
+def sstroke(W, ctrl, wmax, mode='head', p=1.5, n=150):
     """一笔行书：沿三次贝塞尔走一条变宽带。ctrl 是四个归一化控制点。
 
-    mode 决定「哪一头厚」，这一条决定读出来像什么：
-      'head' 头厚尾细 —— 起笔按下去、收笔提出去。**像一笔，也像浪头**（推荐）
-      'tail' 头细尾厚 —— 反向
-      'leaf' 两头收、中段最厚 —— 会被读成叶子 / 刀片（6 号之前的失败原因）
+    mode='head' 头厚尾细（像一笔，也像浪头）；'tail' 反向；'leaf' 两头尖
+    （⚠️ 两头尖的形状人眼一律读成叶子 / 刀片，别用）。
     """
     cl = cubic((ctrl[0][0] * W, ctrl[0][1] * W), (ctrl[1][0] * W, ctrl[1][1] * W),
                (ctrl[2][0] * W, ctrl[2][1] * W), (ctrl[3][0] * W, ctrl[3][1] * W), n)
-    if mode == 'head':
-        wf = lambda t: (1 - t) ** p
-    elif mode == 'tail':
-        wf = lambda t: t ** p
-    else:
-        wf = lambda t: max(0.0, np.sin(np.pi * t ** asym)) ** sharp
+    wf = (lambda t: (1 - t) ** p) if mode == 'head' else (lambda t: t ** p)
     m = polygon_mask(W, band_poly(cl, lambda t: wmax * W * wf(t)))
-    if mode in ('head', 'tail'):
-        # 厚的那一头补一个圆头 —— 否则是个平口，像被切断的刀片
-        r = wmax * W / 2
-        x, y = (cl[0] if mode == 'head' else cl[-1])
-        cap = Image.new('L', (W, W), 0)
-        ImageDraw.Draw(cap).ellipse([x - r, y - r, x + r, y + r], fill=255)
-        m = union(m, cap)
-    return m
+    r = wmax * W / 2
+    x, y = (cl[0] if mode == 'head' else cl[-1])
+    cap = Image.new('L', (W, W), 0)
+    ImageDraw.Draw(cap).ellipse([x - r, y - r, x + r, y + r], fill=255)
+    return union(m, cap)
 
 
-# ───────────────────────── 候选 ─────────────────────────
-# 图层语义：'ink' = 墨色，'gold' = 金色。浅底 → 墨色图形 + 金色点子；
-# 深底整套互换（墨盘变金盘），所以色调是色调、几何是几何，互不污染。
-DISC_R = 0.368          # 圆盘半径：盘是主角，能大就大（安全上限 0.400）
+# ───────────────────── 石头：卵石 与 磨面 ─────────────────────
+def pebble(W, r=0.354, cx=0.5, cy=0.5, a=0.082, b=0.044, phi=-0.70, psi=1.75, n=480):
+    """**有机卵石**：半径随角度做两级微弱起伏的圆。
 
-
-def stroke_mark(ctrl, wmax, mode='head', p=1.5, negative=False, R=DISC_R):
-    """墨盘 + 一道行书笔触；negative=True 时把笔触挖成负空间、单色墨。"""
-    def fn(W):
-        d = circle_mask(W, W * 0.5, W * 0.5, W * R)
-        s = intersect(d, sstroke(W, ctrl, wmax, mode, p))   # 笔触裁在盘内，别探出盘缘
-        return [(punched(d, s), 'ink')] if negative else [(d, 'ink'), (s, 'gold')]
-    return fn
-
-
-# ── 甲组：其他方向（给「不要圆盘」「要双色」的取向一个出口）──
-def mark_1(W):
-    """浪分双色：圆盘被一道**下细上宽的浪形缝**分开 —— 左下留墨（砺石），右上透金（升）。
-
-    缝宽从 0.018 渐开到 0.104：起点几乎接上、终点张开成浪 ——
-    所以看着是「一道浪把石头顶开」，而不是「切了一刀」。
+    为什么不直接用正圆：正圆是最没性格的形，和满屏的 App 图标撞脸，
+    而且「圆＋一条直线」读出来就是饼图 / 月相（前几轮全栽在这儿）。
+    卵石是天然被水磨过的石头 —— 它本身就是「砺」的产物。
+    a/b 控制在 8% / 4% 以内，起伏太大会变成土豆。
     """
-    d = circle_mask(W, W * 0.5, W * 0.5, W * DISC_R)
-    cl = quad((0.430 * W, 0.980 * W), (0.360 * W, 0.450 * W), (0.660 * W, 0.020 * W), 120)
-    L, R = split_var(d, W, cl, 0.018, 0.104)
-    return [(L, 'ink'), (R, 'gold')]
+    th = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    R = r * W * (1 + a * np.cos(2 * th + phi) + b * np.cos(3 * th + psi))
+    X, Y = cx * W, cy * W
+    return polygon_mask(W, [(X + np.cos(t) * rr, Y + np.sin(t) * rr)
+                            for t, rr in zip(th, R)])
 
 
-def mark_2(W):
-    """盘 · 开口：盘内一道锥形负空间，自盘底起、向上把盘顶开一道口。"""
-    d = circle_mask(W, W * 0.5, W * 0.5, W * DISC_R)
-    cut = blade(W, (0.422, 0.700), (0.628, 0.120), (0.300, 0.430), (0.520, 0.395))
-    return [(punched(d, cut), 'ink')]
+def field(W, ang_deg, d, curve=0.0, width=0.90):
+    """**切面场**（归一化）：正值＝在切口外侧。
+
+    ang_deg 用屏幕坐标：-90 = 正上；-50 ≈ 右上。
+    curve>0 → 边界朝石心凹进去（磨出来的弧势）；curve=0 → 一刀直口。
+    返回带符号的距离场，做 AO 和磨面渐变都要用它。
+    """
+    a = np.radians(ang_deg)
+    nx, ny = np.cos(a), np.sin(a)
+    yy, xx = np.mgrid[0:W, 0:W].astype(float)
+    u = ((xx - W / 2) * nx + (yy - W / 2) * ny) / W
+    if curve:
+        tx, ty = -ny, nx
+        v = ((xx - W / 2) * tx + (yy - W / 2) * ty) / W
+        u = u + curve * (1 - np.clip((v / width) ** 2, 0, 1))
+    return u - d
 
 
-def mark_3(W):
-    """破 · 飞片：圆盘被咬掉一片，那一片错开飞向右上。"""
-    d = circle_mask(W, W * 0.478, W * 0.518, W * 0.352)
-    bite = blade(W, (0.470, 0.920), (0.650, 0.215), (0.398, 0.470), (0.590, 0.435))
-    return [(union(punched(d, bite), shift(intersect(d, bite), W * 0.050, -W * 0.046)), 'ink')]
+def mask_of(f, W):
+    return Image.fromarray((f > 0).astype(np.uint8) * 255, 'L')
 
 
-def mark_4(W):
-    """金浪嵌盘（对照）：对称月牙 —— 留着当反面参照，60px 会被读成豆子 / 叶子。"""
-    d = circle_mask(W, W * 0.5, W * 0.5, W * DISC_R)
-    wave = blade(W, (0.438, 0.760), (0.628, 0.178), (0.302, 0.440), (0.522, 0.404))
-    return [(d, 'ink'), (wave, 'gold')]
+def mark_grind(W, d_in=0.062, d_out=0.172, ang=-50, curve=0.012):
+    """**磨面（定版）**：石被磨掉一面，轮廓上留一段笔直的磨面，磨面泛金。
+
+    石头被磨过，形状上是看得出来的 —— 这就是「砺」。
+    磨面太窄读成「一道高光」，太宽又不像石头；0.062→0.172 是试出来的档。
+    """
+    st = pebble(W, 0.354)
+    outer = mask_of(field(W, ang, d_out, curve), W)
+    inner = mask_of(field(W, ang, d_in, curve), W)
+    return [(punched(st, inner), 'ink'), (punched(intersect(st, inner), outer), 'gold')]
 
 
-def mark_5(W):
-    """石与升浪（轻）：一枚小墨石 ＋ 一道古铜金大浪 —— 主体是金，不是一大坨墨。"""
-    stone = circle_mask(W, W * 0.338, W * 0.678, W * 0.120)
-    wave = blade(W, (0.412, 0.700), (0.700, 0.185), (0.268, 0.440), (0.500, 0.400))
-    return [(stone, 'ink'), (wave, 'gold')]
+def mark_slice(W, d=0.098, ang=-50, curve=0.012):
+    """**剖面**（备选）：金面藏在石内，轮廓还是完整的卵石 —— 更含蓄、更像标志。"""
+    st = pebble(W, 0.352)
+    f = mask_of(field(W, ang, d, curve), W)
+    return [(punched(st, f), 'ink'), (intersect(st, f), 'gold')]
 
 
-def mark_6(W):
-    """一笔 · 墨锋：笔触做负空间、单色墨 —— 最克制的一版。"""
-    d = circle_mask(W, W * 0.5, W * 0.5, W * DISC_R)
-    s = sstroke(W, [(0.420, 0.852), (0.334, 0.600), (0.470, 0.430), (0.566, 0.184)],
-                0.196, 'head', 1.5)
-    return [(punched(d, s), 'ink')]
+def mark_grind_narrow(W):
+    """磨面 · 窄：磨面最窄，最含蓄。"""
+    return mark_grind(W, 0.094, 0.150)
 
 
-# ── 乙组：笔触选形（本轮主推）—— 同一枚盘，只换这一笔的「弧势」与「哪一头厚」──
-STUDY = [
-    ('g', ('头厚尾细 · 立', '起笔按下去、收笔提起来，最像一笔，也最像浪头'),
-     [(0.420, 0.852), (0.334, 0.600), (0.470, 0.430), (0.566, 0.184)], 0.196, 'head', 1.5),
-    ('h', ('头厚尾细 · 长锋', '同一笔拉长，尾锋扫得更远'),
-     [(0.398, 0.870), (0.286, 0.584), (0.520, 0.396), (0.664, 0.158)], 0.180, 'head', 1.7),
-    ('i', ('头厚尾细 · 上卷', '尾锋向左上卷回去 —— 浪头翻卷的样子'),
-     [(0.446, 0.860), (0.330, 0.560), (0.648, 0.424), (0.548, 0.188)], 0.190, 'head', 1.4),
-    ('j', ('头厚尾细 · 横', '同一笔放横，像一道掠过的笔势'),
-     [(0.298, 0.360), (0.372, 0.618), (0.612, 0.660), (0.700, 0.436)], 0.196, 'head', 1.5),
-    ('k', ('细头粗尾', '反过来：起笔轻、收笔重（当对照）'),
-     [(0.420, 0.196), (0.470, 0.430), (0.334, 0.600), (0.420, 0.852)], 0.196, 'tail', 1.5),
-    ('l', ('两头尖（对照）', '就是 6 号那种对称叶 —— 会被读成叶子 / 刀片'),
-     [(0.372, 0.812), (0.268, 0.560), (0.520, 0.330), (0.668, 0.212)], 0.152, 'leaf', 1.3),
-]
+def mark_grind_wide(W):
+    """磨面 · 宽：磨面更宽，金多一分。"""
+    return mark_grind(W, 0.006, 0.190)
 
-MET = ['1', '2', '3', '4', '5', '6']
-BRUSH = [k for k, _, _, _, _, _ in STUDY]
 
-MARKS = {}
-MARKS.update({k: globals()['mark_' + k] for k in MET})
-MARKS.update({k: stroke_mark(c, w, m, p) for k, _, c, w, m, p in STUDY})
-
-TITLES = {
-    '1': ('浪分双色', '浪形缝把盘分开：左下墨石、右上透金'),
-    '2': ('盘·开口', '盘内锥形负空间，向上把盘顶开'),
-    '3': ('破·飞片', '盘被咬掉一片，那一片错开飞向右上'),
-    '4': ('对称月牙（反面参照）', '一样的盘子换对称形 —— 会被读成豆子'),
-    '5': ('石与升浪（轻）', '一枚小墨石 ＋ 一道古铜金大浪'),
-    '6': ('一笔 · 墨锋', '笔触做负空间、单色墨 — 最克制'),
+VARIANTS = {
+    'm': ('磨面 ⭐', '石被磨掉一面，轮廓上留一段笔直的磨面', mark_grind, (-50, 0.062)),
+    's': ('剖面', '金面藏在石内，轮廓完整 —— 更含蓄', mark_slice, (-50, 0.098)),
+    'n': ('磨面 · 窄', '磨面最窄，最含蓄', mark_grind_narrow, (-50, 0.094)),
+    'w': ('磨面 · 宽', '磨面更宽，金多一分', mark_grind_wide, (-50, 0.006)),
 }
-TITLES.update({k: v for k, v, _, _, _, _ in STUDY})
-TAGS = MET + BRUSH
+TAGS = list(VARIANTS)
 
 
+# ───────────────────── 合成 ─────────────────────
 def render_layers(W, tag, tone):
-    """把某候选渲染成 (RGBA 图形层, 最远半径, 合并 alpha)。候选返回 [(alpha,'ink'|'gold'),…]。
+    """把某候选渲染成 (RGBA 图形层, 最远半径, 合并 alpha)。
 
-    色调只决定「哪种色号用在墨上、哪种用在金上」：浅底 = 墨色图形 + 金色点子；
-    深底整套互换 —— 几何与色调彻底解耦，换色不用重画。
+    色调只决定「哪种色号用在石上、哪种用在磨面上」：
+    浅底 = 暖墨石 + 古铜金磨面；深底整套互换 —— 几何与色调彻底解耦。
     """
-    layers = MARKS[tag](W)
+    ang, d = VARIANTS[tag][3]
+    layers = VARIANTS[tag][2](W)
     allm = None
     base = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     for alpha, kind in layers:
         allm = alpha if allm is None else union(allm, alpha)
-        if tone == 'light':
-            color = ink_grad(W) if kind == 'ink' else gold_grad(W, DEEP_HI, DEEP_LO)
-        else:
-            color = gold_grad(W) if kind == 'ink' else ink_grad(W)
-        color.putalpha(alpha)
-        base = Image.alpha_composite(base, color)
+        stone = shade_ink(W, tone)
+        face = shade_face(W, ang, d, tone)
+        col = (stone if kind == 'ink' else face) if tone == 'light' else \
+              (face if kind == 'ink' else stone)
+        col.putalpha(alpha)
+        base = Image.alpha_composite(base, col)
     return base, far_radius(W, allm), allm
 
 
-def compose(size, tag, tone='light'):
+def compose(size, tag, tone='light', rounded=False):
     W = size * SS
     layer, r, allm = render_layers(W, tag, tone)
     cv = ground(W, tone).convert('RGBA')
 
-    # 极轻的落影：让盘在米白底上「浮起来」一丁点。
-    # 不是装饰 —— 一片纯平的大黑块正是「旧」的主要来源之一。
+    # 极轻的落影：让石头在底上「浮起来」一丁点。不是装饰 ——
+    # 一片纯平的大色块正是「旧」的主要来源之一。
     sh = allm.filter(ImageFilter.GaussianBlur(W * 0.020))
-    sh = sh.point(lambda v: int(v * (0.15 if tone == 'light' else 0.30)))
+    sh = sh.point(lambda v: int(v * (0.16 if tone == 'light' else 0.34)))
     sc = Image.new('RGBA', (W, W), (28, 24, 18, 255))
     sc.putalpha(sh)
     plate = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     plate.paste(sc, (0, int(W * 0.013)))
     cv.alpha_composite(plate)
     cv.alpha_composite(layer)
+
+    if rounded:      # 套 iOS 那种圆角方：半径 ≈ 22.4%
+        m = Image.new('L', (W, W), 0)
+        ImageDraw.Draw(m).rounded_rectangle([0, 0, W - 1, W - 1], radius=W * 0.224, fill=255)
+        cv.putalpha(m)
+        return cv.resize((size, size), Image.LANCZOS).convert('RGBA'), r
     return cv.convert('RGB').resize((size, size), Image.LANCZOS), r
 
 
 # ───────────────────────── 出图 ─────────────────────────
-def contact_sheet(tags, tone, title, subtitle, stem):
-    cols = 3
+def contact_sheet(tags, tone, stem, title, sub):
+    cols = 4
     rows = (len(tags) + cols - 1) // cols
-    cw, ch = 380, 438
-    W, H = 40 * 2 + cols * cw, 172 + rows * ch + 330
+    cw, ch = 380, 536
+    W, H = 40 * 2 + cols * cw, 170 + rows * ch + 330
     cv = Image.new('RGB', (W, H), (233, 230, 224))
     d = ImageDraw.Draw(cv)
-    f = ImageFont.truetype(ZH_FONT, 28)
-    ft = ImageFont.truetype(ZH_FONT, 22)
+    f = ImageFont.truetype(ZH_FONT, 29)
+    ft = ImageFont.truetype(ZH_FONT, 23)
     fs = ImageFont.truetype(ZH_FONT, 17)
 
     d.text((40, 26), title, font=f, fill=DARKTEXT)
-    d.text((40, 70), subtitle, font=fs, fill=(112, 106, 98))
+    d.text((40, 72), sub, font=fs, fill=(112, 106, 98))
 
     for i, tag in enumerate(tags):
-        x = 40 + (i % cols) * cw
-        y = 118 + (i // cols) * ch
-        im, r = compose(300, tag, tone)
-        cv.paste(im, (x, y))
-        name, desc = TITLES[tag]
-        d.text((x, y + 314), f'{tag} · {name}', font=ft, fill=DARKTEXT)
-        d.text((x, y + 346), desc, font=fs, fill=(112, 106, 98))
-        d.text((x, y + 372), f'最远半径 {r:.3f} / 上限 {SAFE:.3f} ' +
+        x, y = 40 + (i % cols) * cw, 126 + (i // cols) * ch
+        big, r = compose(272, tag, tone)
+        cv.paste(big, (x + 54, y))
+        xx = x
+        for px in (120, 76, 60, 44):      # 套上圆角方遮罩，按真机图标大小看
+            im, _ = compose(px, tag, tone, rounded=True)
+            cv.paste(im, (xx, y + 292 + (120 - px) // 2), im)
+            xx += px + 14
+        name, desc = VARIANTS[tag][0], VARIANTS[tag][1]
+        d.text((x, y + 428), f'{tag} · {name}', font=ft, fill=DARKTEXT)
+        d.text((x, y + 460), desc, font=fs, fill=(112, 106, 98))
+        d.text((x, y + 488), f'最远半径 {r:.3f} / 上限 {SAFE:.3f} ' +
                ('✅' if r <= SAFE else '❌'), font=fs,
                fill=(70, 100, 70) if r <= SAFE else (170, 60, 60))
 
-    y0 = 118 + rows * ch + 18
+    y0 = 126 + rows * ch + 18
     d.text((40, y0), '桌面真实大小（手机上就这么大 —— 唯一算数的检验标准）',
            font=ft, fill=DARKTEXT)
     for row, px in enumerate((120, 76, 60, 44, 32)):
-        y = y0 + 44 + row * (px + 16)
+        y = y0 + 46 + row * (px + 16)
         d.text((38, y + px // 2 - 9), f'{px}px', font=fs, fill=(120, 114, 106))
         for i, tag in enumerate(tags):
             im, _ = compose(px, tag, tone)
-            cv.paste(im, (118 + i * (max(px, 44) + 42), y))
+            cv.paste(im, (118 + i * (max(px, 44) + 40), y))
 
     os.makedirs(REVIEW, exist_ok=True)
     p = os.path.join(REVIEW, f'{stem}_{tone}.png')
@@ -540,9 +466,7 @@ def main():
     for a in sys.argv[1:]:
         if a.startswith('--pick='):
             pick = a.split('=', 1)[1]
-        elif a == '--tone=':
-            dark = a.split('=', 1)[1] == 'dark'
-        elif a == '--dark':
+        elif a in ('--dark', '--tone=dark'):
             dark = True
         elif a == '--no-sheet':
             sheet = False
@@ -554,23 +478,17 @@ def main():
         ok = r <= SAFE
         if not ok:
             bad.append(t)
-        print(f'  {t} {TITLES[t][0]:<4} {r:.3f}  ' + ('✅' if ok else '❌ 超出安全圆'))
+        print(f'  {t} {VARIANTS[t][0]:<8} {r:.3f}  ' + ('✅' if ok else '❌ 超出安全圆'))
 
     if sheet:
         for tone in ('light', 'dark'):
-            print(f'\n【笔触选形 · 主推】{tone}:',
-                  contact_sheet(BRUSH, tone,
-                                '砺蕴工作系统 · 桌面图标 · 笔触选形（纯图形 · 无文字）',
-                                '同一枚盘、同一道行书笔触，只换弧势与起收笔 —— 挑最顺眼的一道',
-                                '图标_笔触'))
-            print(f'【其他方向 · 陪跑】{tone}:',
-                  contact_sheet(MET, tone,
-                                '砺蕴工作系统 · 桌面图标 · 其他方向',
-                                '给「不要圆盘」「要双色」「要更轻」的取向各留一个出口',
-                                '图标_候选'))
+            print(contact_sheet(
+                TAGS, tone, '图标_定版',
+                f'砺蕴 · 桌面图标 · 定版（纯图形 · {tone}）',
+                '砺＝磨石，蕴＝藏。一块石被磨开一面 —— 磨面就是「砺」，露出的金就是「蕴」。'))
 
     if pick:
-        if pick not in MARKS:
+        if pick not in VARIANTS:
             print('未知版本', pick)
             sys.exit(2)
         tone = 'dark' if dark else 'light'
@@ -583,7 +501,7 @@ def main():
             im, _ = compose(px, pick, tone)
             im.convert('RGB').save(os.path.join(ROOT, name))
             made.append(name)
-        print(f'\n正式图标 = {pick} · {TITLES[pick][0]}（{tone}）')
+        print(f'\n正式图标 = {pick} · {VARIANTS[pick][0]}（{tone}）')
         print('写出：', '、'.join(made))
 
     if bad:
