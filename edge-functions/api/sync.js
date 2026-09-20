@@ -77,6 +77,7 @@ const TEACHER_READ = {
   periods:          null,
   schedule:         null,
   schedule_archive: null,
+  rooms:            null,
   exams:            null,
   quant_rules:      null,
   notices:          null,
