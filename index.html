@@ -2500,8 +2500,27 @@ const Schedule = {
   DAYS: ['周一','周二','周三','周四','周五','周六','周日'],
 
   /* ── 作息时间：全校统一配置，加课时选节次，不用每次填时间 ── */
+  /* 把「HH:MM」折成当天分钟数，用于节次排序。
+     ⚠️ 课表下午常写成 12 小时制（如 02:50 表示 14:50），若按字符串排，
+     「02:50」会跑到「08:50」前面，下午课就被顶到上午上头。
+     所以 01:00~06:59 一律当下午，+12 小时。 */
+  _tmin(t){
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(t || ''));
+    if (!m) return 99999;
+    let h = +m[1];
+    if (h >= 1 && h <= 6) h += 12;
+    return h * 60 + (+m[2]);
+  },
   periods(){
-    return Store.list('periods', (a,b) => (a.start||'') > (b.start||'') ? 1 : -1);
+    return Store.list('periods', (a,b) => this._tmin(a.start) - this._tmin(b.start));
+  },
+  /** 一条课的时间排序键（取时间串里第一个 HH:MM，同样把下午 12 小时制折成 24 小时） */
+  _tkey(item){
+    const m = /(\d{1,2}):(\d{2})/.exec(this.timeOf(item) || '');
+    if (!m) return 99999;
+    let h = +m[1];
+    if (h >= 1 && h <= 6) h += 12;
+    return h * 60 + (+m[2]);
   },
 
   /** 一节课显示用的时间：优先自己的时间（小课自定义），否则查节次 */
@@ -2756,7 +2775,7 @@ const Schedule = {
   renderKind(kind, boxId, emptyText){
     const items = Store.list('schedule', (a,b) => {
       const d = this.DAYS.indexOf(a.day) - this.DAYS.indexOf(b.day);
-      return d !== 0 ? d : (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1;
+      return d !== 0 ? d : this._tkey(a) - this._tkey(b);
     }).filter(x => (x.kind || 'big') === kind);   // 旧数据没有 kind，按大课算
 
     document.getElementById(boxId).innerHTML = items.length
@@ -2801,7 +2820,7 @@ const Schedule = {
     const lines = [];
     days.forEach(day => {
       items.filter(x => (x.day || '') === day && x.title)
-        .sort((a,b) => (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1)
+        .sort((a,b) => this._tkey(a) - this._tkey(b))
         .forEach(x => {
           const who = x.kind === 'small' ? (x.stu ? '学员 ' + x.stu + ' · ' : '') : (x.cls ? x.cls + ' · ' : '');
           lines.push(`${day} ${this.timeOf(x) || '--:--'} ${this.periodLabel(x)} | ${who}${x.title}`);
@@ -4897,7 +4916,7 @@ const Today = {
     const meId = Auth.me() ? Auth.me().id : '';
     return Store.list('schedule', (a,b) => {
       const d = this.DAYS.indexOf(a.day) - this.DAYS.indexOf(b.day);
-      return d !== 0 ? d : (this.timeOf(a) || '') > (this.timeOf(b) || '') ? 1 : -1;
+      return d !== 0 ? d : this._tkey(a) - this._tkey(b);
     }).filter(x => {
       if (x.teacherId) return x.teacherId === meId;
       // 老数据没有老师字段：班级名对得上就当是我的
