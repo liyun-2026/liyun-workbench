@@ -294,10 +294,14 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
       assert(!/账号由教务创建，没有自助注册。<br>/.test(html), '登录按钮下的两行说明该删掉');
     });
 
-    t('品牌门头：博艺徽章 + 砺蕴字标，四套写法齐备', () => {
-      ['A', 'B', 'C', 'D'].forEach(k =>
+    t('品牌门头：博艺徽章 + 砺蕴字标，A / B / D 三套齐备（C 已去掉）', () => {
+      ['A', 'B', 'D'].forEach(k =>
         assert(new RegExp("'" + k + "'").test(html), 'Brand 里少了 ' + k + ' 这一套写法'));
-      assert(/ALL:\s*\['A', 'B', 'C', 'D'\]/.test(html), 'Brand.ALL 该列全四套');
+      assert(/ALL:\s*\['A', 'B', 'D'\]/.test(html), 'Brand.ALL 该列 A / B / D 三套');
+      assert(!/brand-c/.test(html), 'C 已经去掉，不该再残留 brand-c');
+      assert(!/gCorner/.test(html), 'C 专用的小印挂点该一并清掉');
+      assert(/@media\s*\(min-width:900px\)[\s\S]{0,700}?\.gate::after/.test(html),
+        '宽屏登录页该单独有一版：居中卡片 + 背后的徽章印记');
       assert(/assets\/boyi-512\.png/.test(html), '博艺徽章素材该被引用');
       fs.readdirSync(path.join(dir, 'assets')).forEach(f => {
         if (/^boyi-\d+\.png$/.test(f))

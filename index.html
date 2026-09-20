@@ -387,10 +387,8 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   min-height:100%;position:relative;
   display:flex;flex-direction:column;box-sizing:border-box;
 }
-/* 门头四套写法，见文件末尾 Brand 模块；这里只管版式 */
+/* 门头三套写法，见文件末尾 Brand 模块；这里只管版式 */
 .gate .g-brand{display:flex;align-items:center;justify-content:center}
-.gate .g-corner{position:absolute;top:calc(22px + env(safe-area-inset-top,0));right:24px}
-.gate .g-corner .bi{width:46px;height:46px}
 .gate .b-rule{flex:0 0 auto;width:62px;height:1px;background:var(--gold);display:block}
 .gate .g-tagline{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;letter-spacing:4px}
 .gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:8px;margin-bottom:30px;min-height:20px}
@@ -570,8 +568,10 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
    · 博艺徽章是机构的原始资产，蓝白配色。深浅色都不改色、不加滤镜、
      不描边 —— 换色就不是人家的 logo 了。
    · 砺蕴行书字标走 CSS 遮罩上色，永远取 --gold，主题切换自动跟随。
-   · 门头共四套写法（A 竖式 / B 横式 / C 砺蕴为主 / D 深色鎏金），
-     用 ?brand=X 切换，?pick=1 打开切换条。见文件末尾 Brand 模块。
+   · 门头共三套写法（A 竖式 / B 横式 / D 深色鎏金），各吸收了另外两套的长处：
+     A 取 B 的英文小字行与 D 的完整层次；B 取 A 的整齐对齐与 D 的英文行；
+     D 取 A 的竖排层次、B 的两行锁定，再把整屏压成深暖底。
+     用 ?brand=A|B|D 切换，?pick=1 打开切换条。见文件末尾 Brand 模块。
    ══════════════════════════════════════════════════════════════════ */
 .bi{display:block;flex:0 0 auto;border-radius:50%;user-select:none;-webkit-user-drag:none}
 .ly{
@@ -589,49 +589,54 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .side .brand .b-row.wide{justify-content:space-between}
 .side .brand .bi{width:34px;height:34px}
 .side .brand .ly{width:104px;height:37px}
+.side .brand .b-line{display:flex;align-items:center;gap:9px;min-width:0}
+.side .brand .b-vrule{width:1px;height:25px;background:var(--gold);opacity:.85;flex:0 0 auto}
+/* D 的侧栏：门头嵌成一块深色门牌，呼应登录那一屏 */
+.brand-d .side .brand .b-plate{
+  background:#1E1C18;border-radius:10px;padding:10px 11px;
+  display:flex;align-items:center;gap:10px;
+}
+.brand-d .side .brand .b-plate .b-org{color:#F1EEE8}
+.brand-d .side .brand .b-plate .b-sys{color:#A69F94}
 .side .greet{
   flex:0 0 auto;font-size:12px;color:var(--sidebar-text);opacity:.92;
   padding:11px 8px 0;margin-bottom:14px;line-height:1.45;word-break:break-all;
 }
 
-/* ── ② 登录门头 · A 竖式（徽章在上，字标在下，庄重）── */
+/* ── ② 登录门头 · A 竖式（居中竖排，层次最全）── */
 .brand-a .g-brand{flex-direction:column}
-.brand-a .g-brand>.bi{width:78px;height:78px}
-.brand-a .g-brand .b-org{font-size:17px;letter-spacing:7px;text-indent:7px;margin-top:15px}
-.brand-a .g-brand .b-rule{margin:17px 0}
-.brand-a .g-brand .ly{width:172px;height:61px}
+.brand-a .g-brand>.bi{width:84px;height:84px}
+.brand-a .g-brand .b-org{font-size:17px;letter-spacing:7px;text-indent:7px;margin-top:16px}
+.brand-a .g-brand .b-org i{font-size:9px;letter-spacing:4.2px;margin-top:5px}
+.brand-a .g-brand .b-rule{width:104px;margin:18px 0}
+.brand-a .g-brand .ly{width:176px;height:62px}
+.brand-a .g-brand .b-sys{font-size:11px;letter-spacing:5.5px;text-indent:5.5px;margin-top:12px}
 
-/* ── ③ 登录门头 · B 横式（两行都横着排，像一枚横印）── */
-.brand-b .g-brand{flex-direction:column;gap:19px}
-.brand-b .g-brand .b-lock{display:flex;align-items:center;gap:14px}
-.brand-b .g-brand .b-lock>.bi{width:58px;height:58px}
-.brand-b .g-brand .b-vrule{width:1px;height:34px;background:var(--gold);opacity:.85}
-.brand-b .g-brand .b-org{font-size:16px;letter-spacing:3px;text-align:left}
-.brand-b .g-brand .ly{width:142px;height:50px}
-
-/* ── ④ 登录门头 · C 砺蕴为主（博艺缩成一枚小印收在角上）── */
-.brand-c .g-brand{flex-direction:column}
-.brand-c .g-brand .ly{width:196px;height:70px}
-.brand-c .g-brand .b-sys{font-size:12px;letter-spacing:6.5px;text-indent:6.5px;color:var(--text-dim);margin-top:13px}
+/* ── ③ 登录门头 · B 横式（两行左对齐成一块，整体居中，像一枚横印）── */
+.brand-b .g-brand{flex-direction:column}
+.brand-b .g-brand .b-lock{display:flex;flex-direction:column;gap:20px;align-items:flex-start}
+.brand-b .g-brand .b-line{display:flex;align-items:center;gap:17px}
+.brand-b .g-brand .b-line>.bi{width:62px;height:62px}
+.brand-b .g-brand .b-vrule{width:1px;height:44px;background:var(--gold);opacity:.9;flex:0 0 auto}
+.brand-b .g-brand .ly{width:156px;height:55px}
+.brand-b .g-brand .b-org{font-size:17px;letter-spacing:4px;text-align:left}
+.brand-b .g-brand .b-org i{font-size:9px;letter-spacing:3.4px;margin-top:4px}
+.brand-b .g-brand .b-org.sm{font-size:13px;letter-spacing:3px}
+.brand-b .g-brand .b-org.sm i{font-size:8.5px;letter-spacing:2.8px}
 
 /* ── ⑤ 登录门头 · D 深色鎏金（照 PPT 封面那块门头）── */
 .gate.dark{background:linear-gradient(135deg,#1E1C18 0%,#2A2721 55%,#1E1C18 100%)}
-.gate.dark::after{
-  content:'';position:absolute;right:-110px;top:30px;width:460px;height:460px;
-  background:url(assets/boyi-512.png) no-repeat center / contain;
-  opacity:.07;filter:blur(7px);pointer-events:none;
-}
 .gate.dark .wrap{position:relative;z-index:1}
 .gate.dark{--text:#F6F5F2;--text-dim:#A69F94;--card:#26231F;--line:#3A362F}
 .gate.dark .g-form .btn{color:#1E1C18}
 .gate.dark .g-form input::placeholder{color:#7A736A}
 .brand-d .g-brand{flex-direction:column}
-.brand-d .g-brand>.bi{width:96px;height:96px}
+.brand-d .g-brand>.bi{width:88px;height:88px}
 .brand-d .g-brand .b-org{font-size:18px;letter-spacing:7px;text-indent:7px;margin-top:16px}
-.brand-d .g-brand .b-org i{font-size:10px;letter-spacing:4px;margin-top:4px}
-.brand-d .g-brand .b-rule{margin:15px 0}
-.brand-d .g-brand .ly{width:178px;height:63px}
-.brand-d .g-brand .b-sys{font-size:12px;letter-spacing:5.5px;text-indent:5.5px;margin-top:11px}
+.brand-d .g-brand .b-org i{font-size:9.5px;letter-spacing:4.4px;margin-top:5px}
+.brand-d .g-brand .b-rule{width:124px;margin:17px 0}
+.brand-d .g-brand .ly{width:180px;height:63px}
+.brand-d .g-brand .b-sys{font-size:11px;letter-spacing:5.5px;text-indent:5.5px;margin-top:12px}
 
 /* ── ⑥ 预览用的门头切换条（只在 ?pick=1 时出现）── */
 .pickbar{
@@ -649,6 +654,29 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 .pickbar button.on{background:var(--gold);border-color:var(--gold);color:#1E1C18;font-weight:600}
 .pickbar .p-gate{margin-left:3px;border-color:var(--gold);color:var(--gold)}
+
+/* ── ⑦ 宽屏（电脑）的登录页 ────────────────────────────────────
+   手机上是整屏竖排；到了电脑上，整屏一条窄栏会把左右留成一片空白。
+   这里给宽屏单独一版：居中的一张卡片，背后压一枚虚化的机构徽章印记，
+   两侧的空就变成了背景。窄屏完全不受影响。 */
+@media (min-width:900px){
+  .gate.on{display:flex;align-items:center;justify-content:center}
+  .gate::after{
+    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:720px;height:720px;                     /* 整枚都要看得见，别只露中间一圈 */
+    background:url(assets/boyi-512.png) no-repeat center / contain;
+    opacity:.04;filter:blur(2px);pointer-events:none;
+  }
+  .gate.dark::after{opacity:.06}
+  .gate .wrap{
+    max-width:472px;width:472px;min-height:0;position:relative;z-index:1;
+    padding:56px 52px 30px;background:var(--card);
+    border:1px solid var(--line);border-radius:20px;
+    box-shadow:0 20px 56px rgba(72,62,44,.11);
+  }
+  .gate.dark .wrap{box-shadow:0 22px 60px rgba(0,0,0,.5)}
+  .gate .g-foot{position:static;margin-top:30px;padding-bottom:4px}
+}
 </style>
 </head>
 <body>
@@ -1404,7 +1432,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 <div class="gate" id="gate">
   <div class="g-top"></div>
   <div class="wrap">
-    <div class="g-corner" id="gCorner"></div>
     <div class="g-brand" id="gBrand"></div>
     <div class="g-tagline">博学宏才 · 艺德卓绝</div>
     <div class="g-sub" id="gSub"></div>
@@ -6533,8 +6560,8 @@ const Sync = {
    ══════════════════════════════════════════════════════════════════ */
 const Brand = {
   V: 'A',
-  ALL: ['A', 'B', 'C', 'D'],
-  NAME: { A: '竖式', B: '横式', C: '砺蕴为主', D: '深色' },
+  ALL: ['A', 'B', 'D'],
+  NAME: { A: '竖式', B: '横式', D: '深色' },
 
   /** 徽章位图按显示尺寸就近取，别拿 512 缩到 22px —— 缩得越小越糊 */
   pic(px){
@@ -6560,11 +6587,9 @@ const Brand = {
     document.body.classList.add('brand-' + v.toLowerCase());
     document.body.setAttribute('data-brand', v);
 
-    // ① 登录门头 + 它右上角那枚小印（只有 C 用得上）
+    // ① 登录门头
     const gb = document.getElementById('gBrand');
     if (gb) gb.innerHTML = this.gate(v);
-    const gc = document.getElementById('gCorner');
-    if (gc) gc.innerHTML = v === 'C' ? this.bi(46) : '';
     const gate = document.getElementById('gate');
     if (gate) gate.classList.toggle('dark', v === 'D');
 
@@ -6576,29 +6601,24 @@ const Brand = {
     const tb = document.getElementById('topBrand');
     if (tb) tb.innerHTML = this.top(v);
 
-    // ④ 门脚与设置页署名 —— 选 C 时「博艺教育」只剩这里一个落款位
+    // ④ 门脚与设置页署名
     const gf = document.getElementById('gFoot');
-    if (gf) gf.textContent = v === 'C' ? '博艺教育出品 · LIYUN WORKBENCH' : '博艺教育 · LIYUN WORKBENCH';
-
+    if (gf) gf.textContent = '博艺教育 · LIYUN WORKBENCH';
     const fb = document.getElementById('footBrand');
-    if (fb) fb.textContent = (v === 'C' ? '砺蕴工作系统 · 博艺教育出品' : '博艺教育 · 砺蕴工作系统') + ' · liyun2026.top';
+    if (fb) fb.textContent = '博艺教育 · 砺蕴工作系统 · liyun2026.top';
   },
 
   gate(v){
-    if (v === 'A') return this.bi(78) +
-      '<div class="b-org">博艺教育</div>' +
-      '<span class="b-rule"></span>' +
-      '<div class="ly"></div>';
+    /* B：两行各自「徽章 / 字标 + 金竖线 + 名称」，左边缘对齐成一块，整体居中 */
+    if (v === 'B') return '<div class="b-lock">' +
+        '<div class="b-line">' + this.bi(62) + '<span class="b-vrule"></span>' +
+          '<div class="b-org">博艺教育<i>BOYI EDUCATION</i></div></div>' +
+        '<div class="b-line"><div class="ly"></div><span class="b-vrule"></span>' +
+          '<div class="b-org sm">砺蕴工作系统<i>LIYUN WORKBENCH</i></div></div>' +
+      '</div>';
 
-    if (v === 'B') return '<div class="b-lock">' + this.bi(58) + '<span class="b-vrule"></span>' +
-        '<div class="b-org">博艺教育<i>BOYI EDUCATION</i></div></div>' +
-      '<div class="b-lock"><div class="ly"></div><span class="b-vrule"></span>' +
-        '<div class="b-org">砺蕴工作系统<i>LIYUN WORKBENCH</i></div></div>';
-
-    if (v === 'C') return '<div class="ly"></div>' +
-      '<div class="b-sys">砺蕴工作系统</div>';
-
-    return this.bi(96) +
+    /* A 与 D 同一套竖排层次，只差徽章大小与底色（D 整屏深暖底＋鎏金） */
+    return this.bi(v === 'D' ? 88 : 84) +
       '<div class="b-org">博艺教育<i>BOYI EDUCATION</i></div>' +
       '<span class="b-rule"></span>' +
       '<div class="ly"></div>' +
@@ -6606,25 +6626,21 @@ const Brand = {
   },
 
   side(v){
-    if (v === 'C') return '<div class="b-row wide"><div class="ly"></div>' + this.bi(22) + '</div>' +
-      '<div class="b-sys" style="margin-top:8px">砺蕴工作系统</div>';
-
-    if (v === 'B') return '<div class="b-row">' + this.bi(30) +
-      '<div class="b-org">博艺教育</div></div>' +
+    if (v === 'B') return '<div class="b-line">' + this.bi(30) + '<span class="b-vrule"></span>' +
+        '<div class="b-org">博艺教育</div></div>' +
       '<div class="ly" style="margin-top:12px"></div>';
 
-    return '<div class="b-row">' + this.bi(32) +
+    const inner = this.bi(32) +
       '<div><div class="b-org">博艺教育</div>' +
-      '<div class="b-sys" style="margin-top:3px">砺蕴工作系统</div></div></div>';
+      '<div class="b-sys" style="margin-top:3px">砺蕴工作系统</div></div>';
+    /* D 在侧栏里嵌一块深色门牌，让深色方案进站后也认得出来 */
+    return v === 'D' ? '<div class="b-plate">' + inner + '</div>'
+                     : '<div class="b-row">' + inner + '</div>';
   },
 
-  top(v){
-    return v === 'C'
-      ? '<div class="ly" style="width:56px;height:20px"></div>'
-      : this.bi(22);
-  },
+  top(){ return this.bi(22); },
 
-  /** ?pick=1 时的门头切换条：随手翻四套写法，还能临时掀开登录页看 */
+  /** ?pick=1 时的门头切换条：随手翻三套写法，还能临时掀开登录页看 */
   picker(){
     const bar = document.createElement('div');
     bar.className = 'pickbar';

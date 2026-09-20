@@ -1,5 +1,5 @@
 /**
- * 门头方案出图：把 Brand 的四套写法（?brand=A|B|C|D）在电脑与手机上各拍一遍，
+ * 门头方案出图：把 Brand 的三套写法（?brand=A|B|D）在电脑与手机上各拍一遍，
  * 供挑选。顺带把设置页页脚署名也拍进来。
  *
  *   node test/brand_shots.mjs            # 落到 test/.shots/brand/
@@ -25,7 +25,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots', 'brand');
 const SUPER = { user: '__brandtest__', pass: 'brandshot2026' };
-const ALL = ['A', 'B', 'C', 'D'];
+const ALL = ['A', 'B', 'D'];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
@@ -136,6 +136,10 @@ try {
   if (!lg.ok) throw new Error('登录失败：' + (lg.err || ''));
   console.log('\n② 已登录，角色：' + lg.role);
 
+  /* 出图用的是一次性账号 __brandtest__，问候语会显示成「__brandtest__老师，下午好」，
+     放在给用户挑门头的图里很难看。只改内存里的显示名（账号本身不动，用完即清）。 */
+  await cdp.eval(`(() => { if (Auth._me) { Auth._me.name = '教务老师'; Greet.paint(); } return 'ok'; })()`);
+
   await cdp.eval(`(async () => {
     const today = Util.today();
     const c1 = Store.upsert('classes', { name: '砺蕴一班' });
@@ -208,6 +212,10 @@ try {
   await sleep(400);
   for (const b of ALL){
     await open(cdp, b);
+    await cdp.eval(`document.getElementById('gate').classList.add('on')`);
+    await sleep(600);
+    await shot(cdp, `d-gate-${b}-dark.png`);
+    await cdp.eval(`document.getElementById('gate').classList.remove('on')`);
     await cdp.eval(`App.go('home')`);
     await sleep(1300);
     await shot(cdp, `d-app-${b}-dark.png`);
