@@ -102,11 +102,13 @@ try {
   console.log('\n【2/5】起真 Chrome（无头）…');
   profile = await mkdtemp(path.join(tmpdir(), 'news-chrome-'));
   chrome = spawn(CHROME, [
-    '--headless=new', `--remote-debugging-port=${CDP}`, `--user-data-dir=${profile}`,
+    // ⚠️ --no-sandbox 不能省（宿主沙箱里 Chrome 自带沙箱起不来，进程秒退、CDP 等不到）
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+    `--remote-debugging-port=${CDP}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--no-default-browser-check', '--disable-extensions', 'about:blank',
   ], { stdio: 'ignore' });
   const target = await waitFor(async () => {
-    const list = await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json();
+    const list = await (await fetch(`http://127.0.0.1:${CDP}/json/list`, { signal: AbortSignal.timeout(1500) })).json();
     return list.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
   }, { what: 'Chrome 调试端口', tries: 40 });
   cdp = await Cdp.connect(target.webSocketDebuggerUrl);

@@ -39,7 +39,13 @@ class Cdp {
   constructor(ws) { this.ws = ws; this.id = 0; this.waiting = new Map(); this.events = new Map(); }
   static async connect(url) {
     const ws = new WebSocket(url);
-    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = () => rej(new Error('CDP 连不上')); });
+    await new Promise((res, rej) => {
+      // ⚠️ 必须自带超时：Chrome 没起来时 WS 握手会一直挂着，
+      //    既不会 open 也不会 error，脚本就永远停在那一行（曾卡 14 分钟无输出）
+      const t = setTimeout(() => rej(new Error('CDP 接管超时（5s）：' + url)), 5000);
+      ws.onopen = () => { clearTimeout(t); res(); };
+      ws.onerror = () => { clearTimeout(t); rej(new Error('CDP 连不上')); };
+    });
     const c = new Cdp(ws);
     ws.onmessage = ev => {
       const m = JSON.parse(ev.data);
@@ -76,13 +82,17 @@ async function openChrome(cdpPort) {
   const profile = await mkdtemp(path.join(tmpdir(), 'feat-chrome-'));
   profiles.push(profile);
   const chrome = spawn(CHROME, [
-    '--headless=new', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
+    // ⚠️ --no-sandbox 不能省：Chrome 自带的沙箱在宿主沙箱里起不来
+    //    （"sandbox initialization failed: Operation not permitted"），
+    //    进程会秒退，CDP 端口永远等不到 → 脚本静默卡死在登录那一步
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+    `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
     '--no-first-run', '--no-default-browser-check', '--disable-extensions',
     '--no-proxy-server', 'about:blank',
   ], { stdio: 'ignore', env: { ...process.env, NO_PROXY: '*' } });
   chromes.push(chrome);
   const target = await waitFor(async () => {
-    const list = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
+    const list = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`, { signal: AbortSignal.timeout(1500) })).json();
     return list.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
   }, { what: `Chrome 调试端口 ${cdpPort}`, tries: 40 });
   const c = await Cdp.connect(target.webSocketDebuggerUrl);
