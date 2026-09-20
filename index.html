@@ -543,6 +543,39 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .warn{background:#fff6e9;border:1px solid #f0d9a8;color:#9a6b14;padding:10px;border-radius:8px;font-size:13px;white-space:pre-line;line-height:1.5}
 .chip b{cursor:pointer;font-style:normal;opacity:.6}
 .chip b:hover{opacity:1}
+
+/* ── 排课台：一行 = 一节课的模板行 ── */
+.pprow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px dashed var(--line)}
+.pprow:last-child{border-bottom:none}
+.pprow input,.pprow select{width:auto;padding:5px 8px;font-size:16px;border-radius:7px}
+.pprow .pp-period{max-width:162px}
+.pprow .pp-cls{max-width:110px}
+.pprow .pp-title{flex:1 1 140px;min-width:140px}
+.pprow .pp-teacher{max-width:112px}
+.pprow .pp-room{max-width:88px}
+.pprow .pp-only{max-width:110px}
+.pprow label{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-dim);white-space:nowrap;margin:0}
+.pprow label input{width:auto;padding:0;margin:0}
+.pprow .del{color:var(--text-dim);font-size:15px;background:none;border:none;padding:0 4px;cursor:pointer;flex:0 0 auto}
+.pprow .del:hover{color:#c25650}
+.ppweek .chip{cursor:pointer;user-select:none}
+.ppstat{margin-top:10px}
+.ppstat .sum{font-size:13px;line-height:1.7}
+
+/* ── 导入预览表：解析结果先摆出来让人过目 ── */
+.imptbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px}
+.imptbl th,.imptbl td{border:1px solid var(--line);padding:3px 4px}
+.imptbl th{background:#c9ab7c;color:#222;font-weight:500;padding:5px 4px;white-space:nowrap}
+.imptbl td input{padding:4px 6px;font-size:16px;border-radius:5px}
+.imptbl td:nth-child(1){width:146px}
+.imptbl td:nth-child(2){width:140px}
+.imptbl td:nth-child(3){width:100px}
+.imptbl td:nth-child(4){min-width:180px}
+.imptbl td:nth-child(5){width:104px}
+.imptbl td:nth-child(6){width:88px}
+.imptbl td:last-child{width:34px;text-align:center}
+.imptbl .del{color:var(--text-dim);background:none;border:none;font-size:14px;cursor:pointer}
+.imptbl .del:hover{color:#c25650}
 </style>
 </head>
 <body>
@@ -720,15 +753,48 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
       </div>
       <div class="card wide">
+        <h2>🧩 排课台 <span class="hint" style="display:inline;margin:0">（定一次，铺满整期）</span></h2>
+        <p class="hint" style="margin:0 0 10px">选好时间段和上课日，再把「每个上课日上什么」写成几行 —— 系统一次把整期的课表排出来，不用一天一天点。</p>
+        <div class="row" style="flex-wrap:wrap;gap:10px;align-items:flex-end">
+          <label class="hint" style="margin:0">开始 <input type="date" id="ppFrom" style="max-width:160px"></label>
+          <label class="hint" style="margin:0">结束 <input type="date" id="ppTo" style="max-width:160px"></label>
+          <button class="btn ghost" onclick="Schedule.ppQuickRange(14)">两周</button>
+          <button class="btn ghost" onclick="Schedule.ppQuickRange(30)">一个月</button>
+        </div>
+        <div class="row ppweek" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="hint" style="margin:0">上课日</span>
+          <span id="ppWeek" class="row" style="display:inline-flex;gap:6px;margin:0;flex-wrap:wrap"></span>
+          <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppWeekAll(true)">全选</button>
+          <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppWeekAll(false)">清空</button>
+        </div>
+        <div style="margin-top:14px">
+          <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <span class="hint" style="margin:0">每个上课日上什么（一行 = 一节课；一格放几个班就写「BY05/BY06」）</span>
+            <span class="row" style="margin:0;gap:8px;flex-wrap:wrap">
+              <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppAddRow()">＋ 加一行</button>
+              <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppFillPeriods()">按节次铺满</button>
+              <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppClearRows()">清空</button>
+            </span>
+          </div>
+          <div id="ppRows" style="margin-top:6px"></div>
+        </div>
+        <div id="ppStat" class="ppstat"></div>
+        <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="Schedule.ppPreview()">🔍 预览会排出什么</button>
+          <button class="btn" onclick="Schedule.ppGenerate(false)">⚡ 生成整期课表</button>
+          <button class="btn ghost" onclick="Schedule.ppGenerate(true)">♻️ 清空该区间后重排</button>
+        </div>
+        <p class="hint" style="margin:8px 0 0">「生成」只补空格子，不动你已经排好的课；「清空该区间后重排」会先把这段时间的旧课表存进「往期课表」，再整段重排。</p>
+      </div>
+      <div class="card wide">
         <div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
           <h2 style="margin:0">🗓️ 大课表 <span class="hint" style="display:inline;margin:0">（点格子直接排 / 改）</span></h2>
           <div class="row" style="margin:0;gap:8px;flex-wrap:wrap;align-items:flex-end">
             <label class="hint" style="margin:0">起始日 <input type="date" id="gridStart" style="max-width:160px"></label>
             <label class="hint" style="margin:0">共
-              <select id="gridDays" style="max-width:64px">
-                <option>5</option><option selected>7</option><option>8</option><option>10</option><option>14</option>
-              </select> 天</label>
+              <input type="number" id="gridDays" min="1" max="62" value="7" style="max-width:70px"> 天</label>
             <button class="btn ghost" onclick="Schedule.applyRange()">刷新</button>
+            <button class="btn ghost" onclick="Schedule.showWholeTerm()">看整期</button>
           </div>
         </div>
         <div class="row" style="margin:10px 0 0;gap:8px;flex-wrap:wrap">
@@ -761,26 +827,27 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <div id="schSmallBody" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
-        <h2>📥 导入课表</h2>
+        <h2>📥 导入课表文字 <span class="hint" style="display:inline;margin:0">（本机解析，不联网、不花钱）</span></h2>
         <div class="row" style="justify-content:space-between;align-items:center">
-          <span class="hint" style="margin:0">拍课表照片 / 传图片、txt、docx，识别出来检查一遍再导入</span>
+          <span class="hint" style="margin:0">拍课表照片 / 传图片、txt、docx，识别出来核对一遍再解析</span>
           <button class="btn ghost" onclick="document.getElementById('schFile').click()">📄 选文件识别</button>
         </div>
         <input type="file" id="schFile" accept="image/*,.txt,.docx" style="display:none" onchange="Schedule.importFile(this)">
         <p class="hint" id="impStat" style="margin:6px 0 0"></p>
-        <textarea id="impText" placeholder="识别出的课表文字会出现在这里，可以直接改。点「AI 解析导入」自动变成课表；没有 AI key 也能在这里核对后手动加。" style="margin-top:8px;min-height:110px"></textarea>
+        <textarea id="impText" placeholder="把课表文字贴在这里（从 Excel 直接复制最好，一行一节课）。形如：&#10;7月10日 周五&#10;08:00-09:40 即兴评述 BY05 [BY08]&#10;10:00-11:40 形体 BY06" style="margin-top:8px;min-height:120px"></textarea>
         <details style="margin-top:8px">
-          <summary class="hint" style="cursor:pointer">AI 解析指令（可改，默认已按集训课表调好）</summary>
-          <textarea id="impInstr" style="margin-top:6px;min-height:90px;font-size:12px;line-height:1.4"></textarea>
-          <p class="hint" style="margin:4px 0 0">DeepSeek key 在「设置」页最下方；解析就是把这段指令 + 上面的课表文字一起发给它。系统会按教师档案里的姓名自动把老师匹配上。</p>
+          <summary class="hint" style="cursor:pointer">能认出来什么（点开看）</summary>
+          <p class="hint" style="margin:6px 0 0">解析完全在本机跑，不上传、不花钱。能认：日期（7月10日 / 7-10 / 2026-07-10）、时间（08:00-09:40）、班级（BY05 或名册里的班名）、教室（方括号里的 BY08）、老师姓名（自动匹配教师档案）。<br>
+          认不准也没关系 —— 解析结果会先进一张可以逐格修改的表，你核对完再点导入。</p>
         </details>
         <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px;align-items:center">
           <label class="hint" style="margin:0">年份 <input type="number" id="impYear" value="2026" min="2020" max="2035" style="max-width:80px"></label>
-          <button class="btn" onclick="Schedule.aiImport()">🤖 AI 解析并替换本周课表</button>
+          <button class="btn" onclick="Schedule.parseLocal()">🔎 解析（本机）</button>
           <button class="btn ghost" onclick="Schedule.archiveText()">原文存入往期</button>
           <button class="btn ghost" onclick="Schedule.clearImport()">清空</button>
         </div>
-        <p class="hint">AI 解析需要设置页里的 DeepSeek key；替换前本周课表会自动存进「往期课表」。导入的课表若带老师姓名，会自动匹配到教师档案里的账号。</p>
+        <div id="impPreview"></div>
+        <p class="hint" id="impNote" style="margin:8px 0 0">导入是整表替换：现有课表会先自动存进「往期课表」。若只是想补几节，直接在「大课表」里点格子加，或去上面的「排课台」整段重排。</p>
       </div>
       <div class="card wide">
         <h2>🗄️ 往期课表</h2>
@@ -1167,6 +1234,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
         <p class="hint">来源：央视新闻 · 出话题评述先看这里</p>
       </div>
     </section>
+    <!-- ==== 功能：老师今天 END ==== -->
     <!-- ==== 功能：老师今日新闻 START ==== -->
     <section class="page" id="page-news">
       <div class="page-title">每日新闻</div>
@@ -1390,8 +1458,12 @@ const Store = (() => {
       it._u = now();
       delete it._d;
       const i = raw.findIndex(x => x && x.id === it.id);
-      if (i >= 0) raw[i] = Object.assign({}, raw[i], it); else raw.push(it);
-      delete raw[i]._d;   // 覆盖墓碑时一并清掉删除标记，让软删后重新写入的条目能复活
+      if (i >= 0){
+        raw[i] = Object.assign({}, raw[i], it);
+        delete raw[i]._d;   // 覆盖墓碑时一并清掉删除标记，让软删后重新写入的条目能复活
+      } else {
+        raw.push(it);       // 新增：raw[i] 是越界的 undefined，绝不能在这里动它
+      }
       this.set(key, raw);
       return it;
     },
@@ -2528,24 +2600,24 @@ const Schedule = {
   /* ── 作息时间：全校统一配置，加课时选节次，不用每次填时间 ── */
   /* 把「HH:MM」折成当天分钟数，用于节次排序。
      ⚠️ 课表下午常写成 12 小时制（如 02:50 表示 14:50），若按字符串排，
-     「02:50」会跑到「08:50」前面，下午课就被顶到上午上头。
-     所以 01:00~06:59 一律当下午，+12 小时。 */
+     「02:50」会跑到「08:50」前面，下午课就被顶到上午上头 → 01:00~05:59 当下午，+12 小时。
+     ⚠️ 但 06:30 的早功是实打实的清晨，不能跟着 +12，否则早功会被排到全天最后。 */
   _tmin(t){
     const m = /^(\d{1,2}):(\d{2})/.exec(String(t || ''));
     if (!m) return 99999;
     let h = +m[1];
-    if (h >= 1 && h <= 6) h += 12;
+    if (h >= 1 && h <= 5) h += 12;
     return h * 60 + (+m[2]);
   },
   periods(){
     return Store.list('periods', (a,b) => this._tmin(a.start) - this._tmin(b.start));
   },
-  /** 一条课的时间排序键（取时间串里第一个 HH:MM，同样把下午 12 小时制折成 24 小时） */
+  /** 一条课的时间排序键（取时间串里第一个 HH:MM，下午 12 小时制同样折成 24 小时） */
   _tkey(item){
     const m = /(\d{1,2}):(\d{2})/.exec(this.timeOf(item) || '');
     if (!m) return 99999;
     let h = +m[1];
-    if (h >= 1 && h <= 6) h += 12;
+    if (h >= 1 && h <= 5) h += 12;
     return h * 60 + (+m[2]);
   },
 
@@ -2573,8 +2645,8 @@ const Schedule = {
     this.renderPeriodSels();
     this.renderStudents();
     this.renderTeachers();
-    this.initInstr();
     this.renderRooms();
+    this.renderPp();
     this.renderGrid();
     this.renderSmall();
     this.renderArch();
@@ -2593,6 +2665,7 @@ const Schedule = {
         sel.innerHTML = html;
         if (keep && list.some(u => u.id === keep)) sel.value = keep;
       });
+      this.ppRefreshTeachers();   // 排课台的行里也有老师下拉
     };
     const clsHtml = Store.list('classes', (a,b) => (a.name || '') > (b.name || '') ? 1 : -1)
       .map(c => `<option value="${Util.esc(c.name)}">`).join('');
@@ -2674,7 +2747,7 @@ const Schedule = {
     let start = Store.get('_schStart');
     if (!start || !/^\d{4}-\d{2}-\d{2}$/.test(start)) start = Util.today();
     let days = parseInt(Store.get('_schDays') || '7', 10);
-    if (!(days >= 1 && days <= 14)) days = 7;
+    if (!(days >= 1 && days <= 62)) days = 7;   // 上限 62 天，够看一整期集训
     return { start, days };
   },
   dateCols(){
@@ -2694,10 +2767,6 @@ const Schedule = {
     if (s) Store.set('_schStart', s);
     if (d) Store.set('_schDays', d);
     this.renderGrid();
-  },
-  initInstr(){
-    const t = document.getElementById('impInstr');
-    if (t && !t.value.trim()) t.value = this.defaultInstr;
   },
   renderGrid(){
     const sEl = document.getElementById('gridStart');
@@ -2790,6 +2859,279 @@ const Schedule = {
     this.cellClose(); this.renderGrid(); UI.toast('已保存');
   },
   gridDel(id){ Store.softDelete('schedule', id); this.cellClose(); this.renderGrid(); },
+
+  /* ══════════ 排课台：定一次模板，一次铺满整期 ══════════
+     三件事：① 时间段（开始/结束）② 上课日（周几多选）
+             ③ 模板行（一行 = 每个上课日的一节课）
+     生成时按日期展开，再按每行的「仅限周几」筛一遍。
+     预览和生成共用 ppPlan()，看到的数字就是会排出来的数字。 */
+  PPDAYS: ['周一','周二','周三','周四','周五','周六','周日'],
+
+  ppPlus(dateStr, n){
+    const d = new Date(String(dateStr) + 'T00:00:00');
+    if (isNaN(d.getTime())) return dateStr;
+    d.setDate(d.getDate() + n);
+    return Util.dateOf(d);
+  },
+  ppQuickRange(n){
+    const f = document.getElementById('ppFrom');
+    if (!f.value) f.value = Util.today();
+    document.getElementById('ppTo').value = this.ppPlus(f.value, n);
+    this.ppPreview();
+  },
+
+  renderPp(){
+    const f = document.getElementById('ppFrom');
+    const t = document.getElementById('ppTo');
+    if (!f || !t) return;
+    if (!f.value) f.value = Store.get('_ppFrom') || Store.get('_schStart') || Util.today();
+    if (!t.value) t.value = Store.get('_ppTo') || this.ppPlus(f.value, 13);
+    this.renderPpWeek();
+    this.renderPpRows();
+  },
+
+  /* ── 上课日多选 ── */
+  renderPpWeek(){
+    const box = document.getElementById('ppWeek');
+    if (!box) return;
+    let sel = Store.get('_ppWeek');
+    if (!Array.isArray(sel) || !sel.length) sel = this.PPDAYS.slice(0, 6);   // 默认周一到周六
+    box.innerHTML = this.PPDAYS.map(d =>
+      `<span class="chip${sel.includes(d) ? ' chip-on' : ''}" data-d="${d}" onclick="Schedule.ppToggleDay(this)">${d}</span>`
+    ).join('');
+  },
+  ppPickedDays(){
+    return Array.from(document.querySelectorAll('#ppWeek .chip.chip-on')).map(el => el.dataset.d);
+  },
+  ppToggleDay(el){
+    el.classList.toggle('chip-on');
+    Store.set('_ppWeek', this.ppPickedDays());
+    this.ppPreview();
+  },
+  ppWeekAll(on){
+    document.querySelectorAll('#ppWeek .chip').forEach(el => el.classList.toggle('chip-on', !!on));
+    Store.set('_ppWeek', this.ppPickedDays());
+    this.ppPreview();
+  },
+
+  /* ── 模板行 ── */
+  ppRowHTML(r){
+    r = r || {};
+    const ps = this.periods();
+    const perOpts = ps.length
+      ? ps.map(p => `<option value="${p.id}" title="${Util.esc(p.start)}–${Util.esc(p.end)}"${r.periodId === p.id ? ' selected' : ''}>${Util.esc(p.name)} ${Util.esc(p.start)}</option>`).join('')
+      : '<option value="">先配作息时间</option>';
+    const teach = Staff.teachers().map(u =>
+      `<option value="${u.id}"${r.teacherId === u.id ? ' selected' : ''}>${Util.esc(u.name)}</option>`).join('');
+    const onlyOpts = [''].concat(this.PPDAYS).map(d =>
+      `<option value="${d}"${(r.only || '') === d ? ' selected' : ''}>${d || '每天'}</option>`).join('');
+    return `<div class="pprow" oninput="Schedule.ppSaveRowsSoon()" onchange="Schedule.ppSaveRowsSoon()">
+      <select class="pp-period" title="节次">${perOpts}</select>
+      <input class="pp-cls" placeholder="班级 / 板块" value="${Util.esc(r.cls || '')}">
+      <input class="pp-title" placeholder="上课内容" value="${Util.esc(r.title || '')}">
+      <select class="pp-teacher" title="上课老师（可不填）"><option value="">老师</option>${teach}</select>
+      <input class="pp-room" placeholder="教室" value="${Util.esc(r.room || '')}">
+      <select class="pp-only" title="限定周几">${onlyOpts}</select>
+      <label><input type="checkbox" class="pp-merge"${r.merge ? ' checked' : ''}>合练</label>
+      <button class="del" title="删掉这行" onclick="this.closest('.pprow').remove();Schedule.ppSaveRows();Schedule.ppPreview()">✕</button>
+    </div>`;
+  },
+  renderPpRows(){
+    const box = document.getElementById('ppRows');
+    if (!box) return;
+    let rows = Store.get('_ppTpl');
+    if (!Array.isArray(rows) || !rows.length) rows = this.ppDefaultRows();
+    box.innerHTML = rows.map(r => this.ppRowHTML(r)).join('');
+  },
+  /** 头一次进来，按作息时间给一组空行，省得从零加 */
+  ppDefaultRows(){
+    const ps = this.periods();
+    return ps.length ? ps.slice(0, 6).map(p => ({ periodId: p.id })) : [{}];
+  },
+  ppAddRow(){
+    document.getElementById('ppRows').insertAdjacentHTML('beforeend', this.ppRowHTML({}));
+  },
+  ppFillPeriods(){
+    const ps = this.periods();
+    if (!ps.length) return UI.toast('先去上面配好作息时间');
+    const box = document.getElementById('ppRows');
+    const cur = Array.from(box.querySelectorAll('.pprow .pp-period')).map(el => el.value);
+    let n = 0;
+    ps.forEach(p => {
+      if (cur.includes(p.id)) return;
+      box.insertAdjacentHTML('beforeend', this.ppRowHTML({ periodId: p.id }));
+      n++;
+    });
+    UI.toast(n ? `补了 ${n} 行节次` : '每个节次都已经有行了');
+    this.ppPreview();
+  },
+  ppClearRows(){
+    if (!confirm('清空下面的模板行？')) return;
+    Store.set('_ppTpl', [{}]);
+    document.getElementById('ppRows').innerHTML = this.ppRowHTML({});
+    this.ppPreview();
+  },
+  /** 排课台的老师和课表其它下拉同源；Staff 异步到位后只刷下拉，不重建行（否则会把正在填的内容冲掉） */
+  ppRefreshTeachers(){
+    const list = Staff.teachers();
+    if (!list.length) return;
+    document.querySelectorAll('#ppRows .pp-teacher').forEach(sel => {
+      const keep = sel.value;
+      sel.innerHTML = '<option value="">老师</option>'
+        + list.map(u => `<option value="${u.id}">${Util.esc(u.name)}</option>`).join('');
+      if (keep && list.some(u => u.id === keep)) sel.value = keep;
+    });
+  },
+
+  /* ── 读表 / 算表 ── */
+  ppCollect(){
+    const fromEl = document.getElementById('ppFrom'), toEl = document.getElementById('ppTo');
+    return {
+      from: fromEl ? fromEl.value : '',
+      to: toEl ? toEl.value : '',
+      days: this.ppPickedDays(),
+      rows: Array.from(document.querySelectorAll('#ppRows .pprow')).map(el => ({
+        periodId: el.querySelector('.pp-period').value,
+        cls:   el.querySelector('.pp-cls').value.trim(),
+        title: el.querySelector('.pp-title').value.trim(),
+        teacherId: el.querySelector('.pp-teacher').value,
+        room:  el.querySelector('.pp-room').value.trim(),
+        only:  el.querySelector('.pp-only').value,
+        merge: el.querySelector('.pp-merge').checked
+      }))
+    };
+  },
+  ppSaveRows(){
+    const arr = Array.from(document.querySelectorAll('#ppRows .pprow')).map(el => ({
+      periodId: el.querySelector('.pp-period').value,
+      cls: el.querySelector('.pp-cls').value.trim(),
+      title: el.querySelector('.pp-title').value.trim(),
+      teacherId: el.querySelector('.pp-teacher').value,
+      room: el.querySelector('.pp-room').value.trim(),
+      only: el.querySelector('.pp-only').value,
+      merge: el.querySelector('.pp-merge').checked
+    }));
+    Store.set('_ppTpl', arr.length ? arr : [{}]);
+  },
+  /** 边填边存：连打字时只在停手 400ms 后写一次 */
+  _ppTimer: null,
+  ppSaveRowsSoon(){
+    clearTimeout(this._ppTimer);
+    this._ppTimer = setTimeout(() => this.ppSaveRows(), 400);
+  },
+  ppDates(from, to){
+    const out = [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) return out;
+    if (to < from) return out;
+    const a = new Date(from + 'T00:00:00'), b = new Date(to + 'T00:00:00');
+    const n = Math.round((b - a) / 864e5);
+    if (n < 0 || n > 400) return out;
+    for (let i = 0; i <= n; i++){
+      const d = new Date(a); d.setDate(a.getDate() + i);
+      out.push(Util.dateOf(d));
+    }
+    return out;
+  },
+  /** 按模板算出「将要排出来的每一节课」——预览与生成共用，看到的数就是会排的数 */
+  ppPlan(){
+    const { from, to, days, rows } = this.ppCollect();
+    const use = rows.filter(r => r.title && (!r.only || days.includes(r.only)));
+    const out = [];
+    this.ppDates(from, to).forEach(ds => {
+      const wd = '周' + this.dayOfDate(ds);
+      if (!days.includes(wd)) return;
+      use.forEach(r => {
+        if (r.only && r.only !== wd) return;
+        out.push({
+          date: ds, day: wd, periodId: r.periodId || '', time: '',
+          title: r.title, cls: r.cls, teacherId: r.teacherId, room: r.room,
+          merge: r.merge, kind: 'big'
+        });
+      });
+    });
+    return out;
+  },
+
+  ppPreview(){
+    const box = document.getElementById('ppStat');
+    if (!box) return;
+    const { from, to, days, rows } = this.ppCollect();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || to < from)
+      return void (box.innerHTML = '<div class="warn">先把「开始 / 结束」日期填对（结束不能早于开始）。</div>');
+    if (!days.length)
+      return void (box.innerHTML = '<div class="warn">至少勾一个「上课日」。</div>');
+    if (!rows.some(r => r.title))
+      return void (box.innerHTML = '<div class="warn">下面的模板行还是空的：填上「上课内容」，一节课才成立。</div>');
+
+    const plan = this.ppPlan();
+    const used = this.ppDates(from, to).filter(d => days.includes('周' + this.dayOfDate(d)));
+    if (!plan.length)
+      return void (box.innerHTML = '<div class="warn">按现在的设置排不出课：看看「仅限周几」是不是都没落在勾选的上课日里。</div>');
+
+    const exist = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
+    const existKey = new Set(exist.map(x => x.date + '#' + (x.periodId || '') + '#' + (x.cls || '')));
+    const dup = plan.filter(x => existKey.has(x.date + '#' + (x.periodId || '') + '#' + (x.cls || ''))).length;
+    const conf = this.conflictsOf(exist.concat(plan));
+
+    box.innerHTML = `<div class="ok sum">
+      ✅ 将排出 <b>${plan.length}</b> 节课，落在 <b>${used.length}</b> 天里（${used[0]} ~ ${used[used.length - 1]}）。
+      ${dup ? `<br>其中 <b>${dup}</b> 节那个格子已经排了课 —— 点「生成」会自动跳过，想整段覆盖就用「清空该区间后重排」。` : ''}
+      ${conf.length ? `<br>⚠️ 扫出 ${conf.length} 处可能是撞课：<br>${conf.slice(0, 8).map(x => '· ' + Util.esc(x)).join('<br>')}${conf.length > 8 ? '<br>…' : ''}` : ''}
+    </div>`;
+  },
+
+  /* ── 生成 ── */
+  ppGenerate(clearFirst){
+    const { from, to } = this.ppCollect();
+    const plan = this.ppPlan();
+    if (!plan.length){ this.ppPreview(); return UI.toast('还没有可生成的课，先看下面的提示'); }
+
+    const existAll = Store.list('schedule').filter(x =>
+      (x.kind || 'big') === 'big' && x.date >= from && x.date <= to);
+
+    if (clearFirst && existAll.length){
+      if (!confirm(`「${from} ~ ${to}」这段时间已经有 ${existAll.length} 节课。\n\n会先把它们整段存进「往期课表」，再用新排的覆盖。继续吗？`)) return;
+      this.archiveCurrent();
+      existAll.forEach(x => Store.softDelete('schedule', x.id));
+    }
+
+    const conf = this.conflictsOf(
+      Store.list('schedule').filter(x => (x.kind || 'big') === 'big').concat(plan));
+    if (conf.length && !confirm(`扫出 ${conf.length} 处可能是撞课：\n\n${conf.slice(0, 5).map(x => '· ' + x).join('\n')}${conf.length > 5 ? '\n…' : ''}\n\n仍然生成吗？`)) return;
+
+    const existKey = new Set(existAll.map(x => x.date + '#' + (x.periodId || '') + '#' + (x.cls || '')));
+    let n = 0, skip = 0;
+    plan.forEach(x => {
+      if (!clearFirst && existKey.has(x.date + '#' + (x.periodId || '') + '#' + (x.cls || ''))){ skip++; return; }
+      Store.upsert('schedule', x);
+      n++;
+    });
+
+    // 排完把大课表对准这段时间，抬头就能看见结果
+    const span = this.ppDates(from, to).length;
+    Store.set('_schStart', from);
+    Store.set('_schDays', String(Math.min(62, Math.max(1, span))));
+    Store.set('_ppFrom', from);
+    Store.set('_ppTo', to);
+    this.ppSaveRows();
+
+    this.render();
+    const box = document.getElementById('ppStat');
+    if (box) box.innerHTML = `<div class="ok sum">✅ 生成完成：新排 <b>${n}</b> 节${skip ? `，跳过已有 <b>${skip}</b> 节` : ''}。下面「大课表」已对准这段时间。</div>`;
+    UI.toast(`排课完成：${n} 节`);
+  },
+
+  /** 大课表一键拉到整期 */
+  showWholeTerm(){
+    const f = document.getElementById('ppFrom'), t = document.getElementById('ppTo');
+    if (!f || !t) return;
+    const dates = this.ppDates(f.value, t.value);
+    if (!dates.length) return UI.toast('先在排课台里把开始、结束日期填对');
+    Store.set('_schStart', f.value);
+    Store.set('_schDays', String(Math.min(62, dates.length)));
+    this.renderGrid();
+    UI.toast(`已切到 ${dates.length} 天`);
+  },
 
   /** 教师姓名 → 档案里的账号 id（用于导入时自动匹配） */
   teacherMatch(name){
@@ -2893,118 +3235,227 @@ const Schedule = {
     document.getElementById('impStat').textContent = '';
   },
 
-  defaultInstr: `你是排课助手。把课表文字解析成 JSON。
-课表通常是：第一行是日期列（如「7月10日 周五」），下面每行是一个时间段，单元格里是"HH:MM-HH:MM 课程内容[教室]"或"HH:MM-HH:MM 课程内容"，同一天可能分多个班级块（班名如 BY05、BY06）。
-输出：
-{"year":2026,
- "periods":[{"name":"节次名或时间范围","start":"HH:MM","end":"HH:MM"}],
- "big":[{"date":"2026-07-10","period":"对应 periods 里的 name","time":"","title":"上课内容","cls":"班级/板块（如 BY05）","room":"教室代码（如 BY08，没有就空）","teacher":"上课老师姓名（没有就空）"}],
- "small":[{"date":"2026-07-10","period":"","time":"HH:MM-HH:MM","stu":"学员姓名","title":"上课内容","teacher":""}]}
-规则：date 必须是 ISO 日期（YYYY-MM-DD），年份用我给的年份；period 必须是 periods 里某个 name（要是时间范围就填那个范围字符串，如「08:50-09:10」）；班级集体课归 big，一对一/辅导归 small；教室代码通常是方括号里的 BYxx；只输出 JSON，不要任何解释。`,
+  /* ══════════ 导入：本机规则解析（不联网、不花钱） ══════════
+     把文字一行行拆开，抠出「日期 / 时间 / 班级 / 教室 / 老师 / 内容」。
+     解析器不可能全对，所以结果不直接落库 —— 先摆进一张每格都能改的
+     预览表，人看过、改过，再点确认导入。 */
+  _impRows: null,
 
-  async aiImport(){
-    const key = Store.getSecret('deepseek');
-    if (!key) return UI.toast('先去设置页配 DeepSeek key，配好后就能一键解析');
-    const text = document.getElementById('impText').value.trim();
-    if (!text) return UI.toast('先传文件识别，或直接粘贴课表文字');
-    const year = (document.getElementById('impYear').value || '2026').trim();
-    const instr = (document.getElementById('impInstr').value || this.defaultInstr).trim();
-    const stat = document.getElementById('impStat');
-    stat.textContent = 'AI 正在解析课表…';
-    try {
-      const r = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type':'application/json', Authorization: 'Bearer ' + key },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [{ role:'user', content: instr + '\n\n课表年份按 ' + year + '。课表原文：\n' + text }],
-          temperature: 0.2, stream: false
-        })
-      });
-      if (r.status === 401) throw new Error('key 好像不对，去设置里检查一下');
-      if (r.status === 402) throw new Error('额度用完了，去 DeepSeek 控制台充值');
-      if (!r.ok) throw new Error('接口暂时用不了（' + r.status + '），过会儿再试');
-      const j = await r.json();
-      const raw = (j.choices?.[0]?.message?.content || '').trim();
-      const m = raw.match(/\{[\s\S]*\}/);
-      if (!m) throw new Error('AI 没返回能用的 JSON，再试一次');
-      this.applyImported(JSON.parse(m[0]), year);
-    } catch(e){
-      stat.textContent = e.message;
-      UI.toast(e.message);
-    }
+  /** 抠日期：2026-07-10 / 7月10日 / 7-10 / 7/10 */
+  _textDate(s, year){
+    s = String(s == null ? '' : s);
+    let m = s.match(/(\d{4})\s*[-\/.]\s*(\d{1,2})\s*[-\/.]\s*(\d{1,2})/);
+    if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+    m = s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
+    if (m) return year + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+    m = s.match(/(\d{1,2})\s*[-\/]\s*(\d{1,2})/);
+    if (m && +m[1] >= 1 && +m[1] <= 12 && +m[2] >= 1 && +m[2] <= 31)
+      return year + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
+    return '';
   },
 
-  /** 把 AI 解析结果落库：旧课表先归档，再整表替换 */
-  applyImported(data, year){
-    const stat = document.getElementById('impStat');
-    const periods = Array.isArray(data.periods) ? data.periods : [];
-    const big = Array.isArray(data.big) ? data.big : [];
-    const small = Array.isArray(data.small) ? data.small : [];
-    if (!big.length && !small.length) throw new Error('解析出 0 节课，检查下原文再试');
+  /** 抠时间范围：08:00-09:40 / 8：00~9：40 / 08:00至09:40 */
+  _textTime(s){
+    const m = String(s == null ? '' : s)
+      .match(/(\d{1,2})\s*[:：]\s*(\d{1,2})\s*[-–—~～至到]\s*(\d{1,2})\s*[:：]\s*(\d{1,2})/);
+    if (!m) return null;
+    const pad = n => String(n).padStart(2, '0');
+    return { start: pad(m[1]) + ':' + pad(m[2]), end: pad(m[3]) + ':' + pad(m[4]), full: m[0] };
+  },
 
-    // 新节次先补进作息时间（同名跳过）。节次名允许直接用时间范围（如「08:50-09:10」）
-    let newPer = 0;
-    periods.forEach(p => {
-      if (!p.name || !p.start) return;
-      if (this.periods().some(x => x.name === p.name)) return;
-      Store.upsert('periods', { name: p.name, start: p.start, end: p.end || p.start });
-      newPer++;
+  /** 抠一格的班级 / 教室 / 老师 / 学员 / 内容 */
+  parseCell(cell, known, knownTeacher){
+    let s = String(cell == null ? '' : cell);
+    const t = this._textTime(s);
+    if (t) s = s.replace(t.full, ' ');
+
+    let room = '';
+    const rm = s.match(/[\[【(（]\s*([^\]】)）]{1,14})\s*[\]】)）]/);
+    if (rm){ room = rm[1].trim(); s = s.replace(rm[0], ' '); }
+
+    let cls = '';
+    const by = s.match(/\b(BY\s*\d{1,3})\b/i);
+    if (by){ cls = by[1].replace(/\s+/g, ''); s = s.replace(by[0], ' '); }
+    if (!cls){
+      const hit = (known || []).find(n => n && s.indexOf(n) >= 0);
+      if (hit){ cls = hit; s = s.replace(hit, ' '); }
+    }
+
+    let teacher = '';
+    const th = (knownTeacher || []).find(n => n && s.indexOf(n) >= 0);
+    if (th){ teacher = th; s = s.replace(th, ' '); }
+
+    let stu = '';
+    const st = s.match(/(?:学员|学生)\s*[:：]?\s*([\u4e00-\u9fa5]{2,4})/);
+    if (st){ stu = st[1]; s = s.replace(st[0], ' '); }
+
+    const title = s.replace(/^[\s\-–—,，、:：|/]+/, '')
+                   .replace(/[\s\-–—,，、:：|/]+$/, '')
+                   .replace(/\s{2,}/g, ' ').trim();
+    const small = /一对一|小课|辅导|单独|私教/.test(title) || !!stu;
+    return { time: t ? t.start + '-' + t.end : '', room, cls, teacher, stu, title, small };
+  },
+
+  /** 课表文字 → 条目数组（只返回，不落库） */
+  parseRows(text, year){
+    const out = [];
+    const known = Store.list('classes').map(c => (c.name || '').trim()).filter(Boolean);
+    const knownTeacher = (Staff.teachers() || []).map(u => u.name).filter(Boolean);
+    let colDates = null, curDate = '';
+
+    String(text || '').split(/\r?\n/).forEach(rawLine => {
+      const line = rawLine.replace(/\u3000/g, ' ').replace(/\s+$/, '');
+      if (!line.trim()) return;
+
+      const hasTab = line.indexOf('\t') >= 0;
+      const cells = hasTab ? line.split('\t').map(s => s.trim()) : [line.trim()];
+      const anyTime = cells.some(c => this._textTime(c));
+      const dateHits = cells.map(c => this._textDate(c, year));
+
+      // 整行都是日期、没有时间 → 列头。归一成「课程列 → 日期」：
+      // 从 Excel 复制时左上角那格常是空的，日期列天然和课程列对齐；
+      // 纯文字贴的则以日期开头，要往后错一位。统一成同一种索引，下面才好取。
+      if (!anyTime && dateHits.some(Boolean)){
+        colDates = dateHits.slice(dateHits[0] ? 0 : 1);
+        curDate = colDates.find(Boolean) || curDate;
+        return;
+      }
+
+      // 表格里第 0 格是「时间 / 节次」标签，它代表这一行的时间，不是一节课
+      let rowTime = null, start = 0;
+      if (hasTab && colDates && cells.length > 1){
+        rowTime = this._textTime(cells[0]);
+        if (rowTime || !dateHits[0]) start = 1;
+      }
+
+      for (let i = start; i < cells.length; i++){
+        const cell = cells[i];
+        if (!cell) continue;
+        let date = (colDates && colDates[i - start]) || '';
+        if (!date) date = this._textDate(cell, year) || curDate;
+        if (!date) continue;
+        const p = this.parseCell(cell, known, knownTeacher);
+        if (!p.time && rowTime) p.time = rowTime.start + '-' + rowTime.end;
+        if (!p.title && !p.cls) continue;
+        out.push({
+          date, time: p.time, cls: p.cls, title: p.title, room: p.room,
+          _tname: p.teacher, stu: p.stu, kind: p.small ? 'small' : 'big'
+        });
+      }
+
+      const own = dateHits.find(Boolean);
+      if (own) curDate = own;
     });
-    const perByName = {};
-    this.periods().forEach(p => { if (!perByName[p.name]) perByName[p.name] = p.id; });
+    return out;
+  },
 
-    // 替换前自动归档本周
+  parseLocal(){
+    const box = document.getElementById('impText');
+    const text = (box ? box.value : '').trim();
+    if (!text) return UI.toast('先把课表文字贴进来，或点「选文件识别」');
+    const y = (document.getElementById('impYear').value || '').trim();
+    const year = /^\d{4}$/.test(y) ? y : String(new Date().getFullYear());
+    const rows = this.parseRows(text, year);
+    const stat = document.getElementById('impStat');
+    if (!rows.length){
+      this.impCancel();
+      stat.textContent = '没能从这段文字里认出课来。可以按「日期 → 时间 内容 班级」一行一条整理后再试，或者直接用上面的「排课台」整段排。';
+      return;
+    }
+    this._impRows = rows;
+    stat.textContent = '本机解析完成：认出 ' + rows.length + ' 节课，分布在 ' +
+      [...new Set(rows.map(r => r.date))].length + ' 天。核对下面的表，改完再导入。';
+    this.renderImpPreview();
+  },
+
+  /** 时间 → 已有节次；没有就顺手补一个，省得对不上 */
+  matchPeriod(timeStr){
+    const t = this._textTime(timeStr);
+    if (!t) return '';
+    const hit = this.periods().find(p => p.start === t.start);
+    if (hit) return hit.id;
+    const p = Store.upsert('periods', { name: t.start + '-' + t.end, start: t.start, end: t.end });
+    return p.id;
+  },
+
+  renderImpPreview(){
+    const box = document.getElementById('impPreview');
+    if (!box) return;
+    const rows = this._impRows || [];
+    if (!rows.length){ box.innerHTML = ''; return; }
+    box.innerHTML =
+      '<p class="hint" style="margin:14px 0 6px">下面这些就是会导入的课 —— 每一格都能直接改，改完点最下面的「确认导入」：</p>' +
+      '<div style="overflow-x:auto"><table class="imptbl">' +
+      '<thead><tr><th>日期</th><th>时间</th><th>班级</th><th>内容</th><th>老师</th><th>教室</th><th></th></tr></thead><tbody>' +
+      rows.map((r, i) => '<tr>' +
+        '<td><input type="date" value="' + Util.esc(r.date) + '" onchange="Schedule.impEdit(' + i + ',\'date\',this.value)"></td>' +
+        '<td><input value="' + Util.esc(r.time) + '" placeholder="08:00-09:40" oninput="Schedule.impEdit(' + i + ',\'time\',this.value)"></td>' +
+        '<td><input value="' + Util.esc(r.cls) + '" oninput="Schedule.impEdit(' + i + ',\'cls\',this.value)"></td>' +
+        '<td><input value="' + Util.esc(r.title) + '" oninput="Schedule.impEdit(' + i + ',\'title\',this.value)"></td>' +
+        '<td><input value="' + Util.esc(r._tname || '') + '" oninput="Schedule.impEdit(' + i + ',\'_tname\',this.value)"></td>' +
+        '<td><input value="' + Util.esc(r.room) + '" oninput="Schedule.impEdit(' + i + ',\'room\',this.value)"></td>' +
+        '<td><button class="del" title="这节不要" onclick="Schedule.impDel(' + i + ')">✕</button></td>' +
+      '</tr>').join('') +
+      '</tbody></table></div>' +
+      '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap;align-items:center">' +
+        '<button class="btn" onclick="Schedule.impImport()">✅ 确认导入 ' + rows.length + ' 节</button>' +
+        '<button class="btn ghost" onclick="Schedule.impCancel()">取消</button>' +
+        '<span class="hint" style="margin:0">导入是整表替换：现有课表会先存进「往期课表」。</span>' +
+      '</div>';
+  },
+  impEdit(i, k, v){
+    if (this._impRows && this._impRows[i]) this._impRows[i][k] = v;
+  },
+  impDel(i){
+    if (!this._impRows) return;
+    this._impRows.splice(i, 1);
+    this.renderImpPreview();
+  },
+  impCancel(){
+    this._impRows = null;
+    const box = document.getElementById('impPreview');
+    if (box) box.innerHTML = '';
+  },
+
+  impImport(){
+    const rows = (this._impRows || []).filter(r => r.date && r.title);
+    if (!rows.length) return UI.toast('表里没有可导入的课（日期和内容都要有）');
+    const exist = Store.list('schedule').length;
+    if (exist && !confirm('系统里现在有 ' + exist + ' 节课。\n\n导入是【整表替换】：现有课表先存进「往期课表」，再换成下面这批。继续吗？')) return;
+
     this.archiveCurrent();
     Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
 
-    const normDate = d => {
-      if (!d) return '';
-      d = String(d).trim();
-      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-      const mm = d.match(/(\d{1,2})[月\-\/](\d{1,2})/);
-      if (mm) return (year || '2026') + '-' + String(mm[1]).padStart(2,'0') + '-' + String(mm[2]).padStart(2,'0');
-      return '';
-    };
-    let nBig = 0, nSmall = 0;
-    big.forEach(x => {
-      if (!x || !x.title) return;
-      const date = normDate(x.date); if (!date) return;
-      const teacherName = (x.teacher || '').trim();
-      const teacherId = this.teacherMatch(teacherName);
+    let n = 0;
+    const dates = [];
+    rows.forEach(r => {
+      const periodId = this.matchPeriod(r.time);
+      const tid = this.teacherMatch(r._tname || '');
       Store.upsert('schedule', {
-        date, day: this.dayOfDate(date), periodId: perByName[x.period] || '',
-        time: (x.time || '').trim(), title: x.title, cls: (x.cls || '').trim(),
-        room: (x.room || '').trim(), teacherId, _tname: teacherId ? '' : teacherName, kind: 'big'
+        date: r.date, day: this.dayOfDate(r.date),
+        periodId, time: periodId ? '' : (r.time || ''),
+        title: r.title, cls: r.cls || '', room: r.room || '',
+        teacherId: tid, _tname: tid ? '' : (r._tname || ''),
+        stu: r.stu || '', kind: r.kind || 'big'
       });
-      nBig++;
-    });
-    small.forEach(x => {
-      if (!x || !x.title) return;
-      const date = normDate(x.date); if (!date) return;
-      const teacherName = (x.teacher || '').trim();
-      const teacherId = this.teacherMatch(teacherName);
-      Store.upsert('schedule', {
-        date, day: this.dayOfDate(date), periodId: perByName[x.period] || '',
-        time: (x.time || '').trim(), stu: (x.stu || '').trim(), title: x.title,
-        room: (x.room || '').trim(), teacherId, _tname: teacherId ? '' : teacherName, kind: 'small'
-      });
-      nSmall++;
+      dates.push(r.date);
+      n++;
     });
 
-    // 导入后把网格自动对准到这批课覆盖的日期区间
-    const allDates = [...big, ...small].map(x => normDate(x.date)).filter(Boolean).sort();
-    if (allDates.length){
-      const min = allDates[0], max = allDates[allDates.length - 1];
-      let span = Math.round((new Date(max + 'T00:00:00') - new Date(min + 'T00:00:00')) / 864e5) + 1;
-      span = Math.min(14, Math.max(1, span));
-      Store.set('_schStart', min); Store.set('_schDays', String(span));
+    dates.sort();
+    if (dates.length){
+      const span = Math.round((new Date(dates[dates.length - 1] + 'T00:00:00') -
+                               new Date(dates[0] + 'T00:00:00')) / 864e5) + 1;
+      Store.set('_schStart', dates[0]);
+      Store.set('_schDays', String(Math.min(62, Math.max(1, span))));
     }
 
+    this.impCancel();
     this.clearImport();
     this.render();
-    stat.textContent = `导入完成：大课 ${nBig} 节、小课 ${nSmall} 节` + (newPer ? `，新增节次 ${newPer} 个` : '') + '。本周原课表已自动存入往期。';
-    UI.toast('课表导入完成');
+    document.getElementById('impStat').textContent =
+      '导入完成：' + n + ' 节。原课表已存入「往期课表」。';
+    UI.toast('导入完成：' + n + ' 节');
   },
 
   addPeriod(){
@@ -3061,7 +3512,10 @@ const Schedule = {
     return x.time || '自由时段';
   },
   conflicts(){
-    const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
+    return this.conflictsOf(Store.list('schedule').filter(x => (x.kind || 'big') === 'big'));
+  },
+  /** 对任意一批条目跑同一套冲突检查（排课台生成前的预检也用它） */
+  conflictsOf(items){
     const slot = x => x.periodId ? x.periodId : ('t:' + (x.time || '自由'));
     const byTeacher = {}, byRoom = {}, byDup = {};
     items.forEach(x => {

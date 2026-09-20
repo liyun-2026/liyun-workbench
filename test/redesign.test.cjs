@@ -138,7 +138,7 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
   const expected = {
     super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
     admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
-    teacher: ['today','record','myclass','profile','tickets','settings'],
+    teacher: ['today','news','record','myclass','profile','tickets','settings'],
   };
 
   for (const [role, want] of Object.entries(expected)){
