@@ -71,6 +71,31 @@ try {
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true });
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 300, downloadThroughput: 400 * 1024, uploadThroughput: 200 * 1024 });
 
+  /* ⚠️ 开屏层的取样必须在「它还在的那一刻」抓下来，不能等后面的检查再查。
+     原因：启动流程改成「先摆界面、后探活」之后开屏收得更早了，
+     等 s2 去 querySelector 时元素常常已经没了 —— 那是竞态，不是字体有问题。
+     （试过「覆盖 Auth._splashOff 把开屏钉住」，结构上做不到：
+       覆盖发生在定时器已经排上之后，而 App.init() 是同步调用的，
+       页内定时器根本没有插进去的机会。）
+     做法：DOMContentLoaded + 一帧之后取样（那时开屏一定已经渲染出来），
+     把文字/字体/是否可见存到 window 上，后面直接读这份快照。 */
+  await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `addEventListener('DOMContentLoaded', () => requestAnimationFrame(() => {
+      const sp = document.getElementById('splash');
+      if (!sp) return;
+      window.__splashHTML = sp.outerHTML;
+      const el = sp.querySelector('.s-name');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      window.__splashProbe = {
+        text: el.textContent.trim(),
+        font: getComputedStyle(el).fontFamily,
+        visible: r.width > 0 && r.height > 0,
+        top: Math.round(r.top),
+      };
+    }));`,
+  });
+
   const reqs = [];
   cdp.events.set('Network.requestWillBeSent', new Set([p => reqs.push(p.request.url)]));
 
@@ -97,7 +122,9 @@ try {
       return { h, ink };
     };
     return { ready, font: px('LiYunXingShu'), kai: px('"Kaiti SC", serif'), serif: px('serif'),
-             fam: getComputedStyle(document.querySelector('#splash .s-name')).fontFamily,
+             fam: (document.querySelector('#splash .s-name')
+                    ? getComputedStyle(document.querySelector('#splash .s-name')).fontFamily
+                    : ((window.__splashProbe || {}).font || '')),
              display: [...document.styleSheets].flatMap(s => { try { return [...s.cssRules] } catch { return [] } })
                         .filter(r => r.constructor.name === 'CSSFontFaceRule')
                         .map(r => r.style.fontDisplay)[0] };
@@ -113,13 +140,29 @@ try {
 
   const s2 = await cdp.eval(`(async () => {
     await document.fonts.ready;
+    const p = window.__splashProbe;
+    if (p) return p;
+    /* 万一样没取到（线上极慢等），退回读当前 DOM */
     const el = document.querySelector('#splash .s-name');
+    if (!el) return { text: '(开屏已收走，也没取到样)', visible: false };
     const r  = el.getBoundingClientRect();
     return { text: el.textContent.trim(), visible: r.width > 0 && r.height > 0, top: Math.round(r.top) };
   })()`);
-  ok(s2.text === '砺蕴', '开屏主字是「砺蕴」且已渲染出来');
+  ok(s2.text === '砺蕴', `开屏主字是「砺蕴」（实测「${s2.text}」，取的是开屏刚出现那一刻）`);
+  ok(s2.visible === true, '开屏主字确实占了可见面积（不是 0×0 的隐藏元素）');
+  ok(/LiYunXingShu/.test(s1.fam || s2.font || ''),
+    `开屏主字用的就是行书字体，不是回退字体（${(s1.fam || s2.font || '').split(',')[0]}）`);
 
+  /* 截图：这时开屏可能已经收走了，用取样时存下的结构还原一份再截，图才有意义 */
+  await cdp.eval(`(() => {
+    if (document.getElementById('splash')) return;
+    const box = document.createElement('div');
+    box.innerHTML = window.__splashHTML || '';
+    const el = box.firstElementChild;
+    if (el) document.body.appendChild(el);
+  })()`);
   await shot(cdp, LIVE ? 'font-splash-live.png' : 'font-splash.png');
+  await cdp.eval(`(() => { const el = document.getElementById('splash'); if (el) el.remove(); })()`);
 
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: false });
   await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });

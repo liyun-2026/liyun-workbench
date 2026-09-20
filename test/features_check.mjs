@@ -306,6 +306,30 @@ try {
   ok(got.dot, `「协作」入口亮红点${got.count ? '（' + got.count.trim() + '）' : ''}`);
   ok(got.count.includes('2'), '协作页头部显示「2 条待处理」');
 
+  console.log('\n【8/8】重开页面（已登录 + 本机有档案）：要直进工作台，同步也必须照常起来…');
+  /* 这一步守的是启动流程改造里最容易出事的地方：
+     现在启动是「按本机已知信息先把界面摆出来，联网校验丢后台」（为了消掉那几秒停顿），
+     于是 App.boot() 跑到 Sync.init() 那一瞬 mode 往往还没定下来，
+     而 Sync.init() 第一行是 if (!this.on()) return 且**不置 _inited** ——
+     漏补那一下，这一整场都不会自动同步，而且界面看着完全正常，极难发现。 */
+  await cdpA.send('Page.navigate', { url: `${BASE}/` });
+  await sleep(4000);
+  const warm = await cdpA.eval(`(() => ({
+    gateOn: document.getElementById('gate').classList.contains('on'),
+    splashGone: !document.getElementById('splash'),
+    mode: Auth.mode,
+    meId: Auth.me() ? Auth.me().id : '',
+    syncOn: Sync.on(),
+    syncInited: !!Sync._inited,
+    pageOn: !!document.querySelector('.page.on'),
+  }))()`);
+  ok(!warm.gateOn, '重开后没有弹登录门（认得这台设备上已登录的账号）');
+  ok(!!warm.meId, '账号档案直接从本机缓存恢复，没有卡在联网上');
+  ok(warm.mode === 'cloud', `后台探活已完成（mode=${warm.mode}）`);
+  ok(warm.syncOn, 'Sync.on() 为真（云端模式 + 有令牌）');
+  ok(warm.syncInited, '⚠️ Sync.init 真的起来了 —— 漏掉这一步整场都不会同步，而界面看不出异常');
+  ok(warm.pageOn && warm.splashGone, '工作台已渲染，开屏层也收掉了');
+
   console.log(failed ? `\n❌ 有 ${failed} 项没过\n` : '\n✅ 本轮八项改动全部通过\n');
 } catch (e) {
   console.error('\n💥 测试中断：' + (e && e.stack || e) + '\n');
