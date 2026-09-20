@@ -63,6 +63,14 @@ class Cdp {
 let server; const chromes = []; const shots = [];
 const devReset = async () => { try { await jfetch(`${BASE}/api/dev-reset`, { method: 'POST' }); } catch {} };
 
+async function quiet(cdp){
+  /* 「已登录」「排课完成」这类浮动提示会盖在工作台顶部，留在给用户看的图里
+     很像出错。等它自己走掉再按快门。（顶部那条「记得备份一下」是真功能，不清。） */
+  await waitFor(() => cdp.eval(`(() => { const t = document.getElementById('toast');
+    return !t || !t.classList.contains('on'); })()`), { what: '提示消失', tries: 24, gap: 250 });
+  await sleep(250);
+}
+
 async function shot(cdp, name){
   const r = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   const file = path.join(OUT, name);
@@ -86,6 +94,15 @@ async function open(cdp, brand){
      看着像一层脏水印。出图前一律直接摘掉，别等它自己走。 */
   await sleep(650);
   await cdp.eval(`(() => { const s = document.getElementById('splash'); if (s) s.remove(); return 'ok'; })()`);
+  /* ⚠️ 出图用的是一次性账号 __brandtest__，问候语会变成「__brandtest__老师，晚上好」。
+     显示名只在内存里改，而每次 open() 都会重新导航、重新按账号名装配 ——
+     所以覆盖必须放在这里，每次导航后都补一遍（放在登录之后一次性改是没用的）。 */
+  await cdp.eval(`(() => {
+    if (typeof Auth === 'undefined' || !Auth._me) return 'skip';
+    if (Auth._me.name !== '教务老师'){ Auth._me.name = '教务老师'; }
+    if (typeof Greet !== 'undefined') Greet.paint();
+    return 'ok';
+  })()`);
   await sleep(150);
 }
 
@@ -136,10 +153,6 @@ try {
   if (!lg.ok) throw new Error('登录失败：' + (lg.err || ''));
   console.log('\n② 已登录，角色：' + lg.role);
 
-  /* 出图用的是一次性账号 __brandtest__，问候语会显示成「__brandtest__老师，下午好」，
-     放在给用户挑门头的图里很难看。只改内存里的显示名（账号本身不动，用完即清）。 */
-  await cdp.eval(`(() => { if (Auth._me) { Auth._me.name = '教务老师'; Greet.paint(); } return 'ok'; })()`);
-
   await cdp.eval(`(async () => {
     const today = Util.today();
     const c1 = Store.upsert('classes', { name: '砺蕴一班' });
@@ -167,7 +180,8 @@ try {
   for (const b of ALL){
     await open(cdp, b);
     await cdp.eval(`App.go('home')`);
-    await sleep(1400);
+    await sleep(1200);
+    await quiet(cdp);
     await shot(cdp, `m-app-${b}.png`);
   }
 
@@ -188,7 +202,8 @@ try {
   for (const b of ALL){
     await open(cdp, b);
     await cdp.eval(`App.go('home')`);
-    await sleep(1400);
+    await sleep(1200);
+    await quiet(cdp);
     await shot(cdp, `d-app-${b}.png`);
   }
 
@@ -204,7 +219,8 @@ try {
     await shot(cdp, `m-gate-${b}-dark.png`);
     await cdp.eval(`document.getElementById('gate').classList.remove('on')`);
     await cdp.eval(`App.go('home')`);
-    await sleep(1300);
+    await sleep(1200);
+    await quiet(cdp);
     await shot(cdp, `m-app-${b}-dark.png`);
   }
   console.log('\n⑦ 深色模式 · 电脑');
@@ -217,7 +233,8 @@ try {
     await shot(cdp, `d-gate-${b}-dark.png`);
     await cdp.eval(`document.getElementById('gate').classList.remove('on')`);
     await cdp.eval(`App.go('home')`);
-    await sleep(1300);
+    await sleep(1200);
+    await quiet(cdp);
     await shot(cdp, `d-app-${b}-dark.png`);
   }
   await cdp.send('Emulation.setEmulatedMedia', { features: [] });
