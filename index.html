@@ -1196,6 +1196,57 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学员档案 END ==== -->
 
     <!-- 设置页是必备的，不要删 -->
+    <!-- ==== 巡检 START ====（每台设备自己体检：打开跑一次，之后按节奏跑） -->
+    <section class="page" id="page-health">
+      <div class="page-title">巡检</div>
+      <div class="page-sub">系统自己定期体检；一切正常时一句话带过，有问题才把话说清楚</div>
+
+      <div class="card wide" id="healthTop">
+        <h2>🩺 体检 <span class="chip" id="healthBadge" style="margin:0 0 0 auto;pointer-events:none">还没巡检</span></h2>
+        <p class="hint" id="healthSummary" style="margin-top:0">还没查过。点下面的按钮，或者等它自己跑。</p>
+        <div class="row" style="margin-top:12px;flex-wrap:wrap">
+          <button class="btn" onclick="Health.run(true)">立即巡检</button>
+          <button class="btn ghost" onclick="Health.clean()">清理旧缓存</button>
+          <select id="healthAuto" style="max-width:130px" onchange="Health.setAuto(this.value)">
+            <option value="open">每次打开查</option>
+            <option value="2h">每 2 小时</option>
+            <option value="4h">每 4 小时</option>
+            <option value="8h">每 8 小时</option>
+            <option value="off">不自动查</option>
+          </select>
+        </div>
+        <p class="hint" id="healthAutoInfo"></p>
+      </div>
+
+      <div class="card">
+        <h2>🌐 通道 <span class="hint" style="margin:0 0 0 auto;font-size:var(--fs-meta)">跨境这一段快不快</span></h2>
+        <div id="healthNet"></div>
+      </div>
+
+      <div class="card">
+        <h2>🔧 服务与资源</h2>
+        <div id="healthRes"></div>
+      </div>
+
+      <div class="card">
+        <h2>📱 这台设备</h2>
+        <div id="healthLocal"></div>
+      </div>
+
+      <div class="card">
+        <h2>📅 到期提醒</h2>
+        <div id="healthDue"></div>
+        <p class="hint">这两样得您本人登录腾讯云 / 域名后台续，我只负责提前把天数算出来提醒您。续完之后点右边的「改日期」对一下。</p>
+      </div>
+
+      <div class="card">
+        <h2>📈 最近记录</h2>
+        <div id="healthHist"></div>
+        <p class="hint">留最近 40 次，方便回头看「是不是从哪天起开始变慢的」。</p>
+      </div>
+    </section>
+    <!-- ==== 巡检 END ==== -->
+
     <!-- ==== 功能：设置 START ==== -->
     <section class="page" id="page-settings">
       <div class="page-title">设置</div>
@@ -1812,7 +1863,26 @@ const Store = (() => {
 
     /* 这台浏览器能不能长期存东西？不能的话（本地文件 / 隐私模式 / 策略禁用），
        数据只在这次会话里有效 —— 界面必须如实说，别让人以为记下来了。 */
-    canPersist(){ return driver.persistent; }
+    canPersist(){ return driver.persistent; },
+
+    /* 本机这一摊占了多大、多少个键 —— 巡检页要报「数据有没有快撑满」 */
+    usage(){
+      let bytes = 0, n = 0;
+      const mine = k => k.startsWith(NS) || k.startsWith(SEC);
+      try {
+        if (LS_OK){
+          for (let i = 0; i < localStorage.length; i++){
+            const k = localStorage.key(i);
+            if (!k || !mine(k)) continue;
+            bytes += (localStorage.getItem(k) || '').length + k.length;
+            n++;
+          }
+        } else {
+          for (const [k, v] of MEM) if (mine(k)){ bytes += String(v).length + k.length; n++; }
+        }
+      } catch { /* 读不了就报 0，巡检页会照实显示 */ }
+      return { keys: n, bytes, persistent: LS_OK };
+    }
   };
   return S;
 })();
@@ -1952,6 +2022,401 @@ const UI = {
 
 
 /* ═══════════════════════════════════════════════════════════
+   Health · 系统巡检
+   ───────────────────────────────────────────────────────────
+   这套检查原来挂在外部定时任务上跑，只有我这边看得到结果。搬进系统之后
+   变成每台设备自己体检：打开跑一次、页面开着也定期跑，有问题当场亮出来。
+
+   ⚠️ 为什么探针一律用 HEAD：
+   Service Worker 只接管 GET，HEAD 会直接穿出去打到网络 —— 量到的才是
+   真实跨境往返。要是拿 GET 去测，一半情况下是从本地缓存读的，
+   快得毫无意义，还会把带 query 的副本写进缓存里越堆越多。
+
+   阈值沿用外部那套：> 3 秒注意，> 8 秒通道卡。
+   ═══════════════════════════════════════════════════════════ */
+const Health = {
+  WARN: 3000,          // > 3s 提醒
+  BAD:  8000,          // > 8s 通道卡，明显影响用时
+  TIMEOUT: 15000,      // 单次探测上限，超了算「没回音」，不能卡住整轮巡检
+  AUTO:  { open:0, '2h':2, '4h':4, '8h':8, off:-1 },
+
+  /* 到期项：这几样必须在腾讯云 / 域名注册商后台人工续，系统只能提前算天数 */
+  DUE: [
+    { id:'ssl', name:'SSL 证书',           date:'2026-12-16', where:'腾讯云 EdgeOne 控制台 · 域名管理 → 证书' },
+    { id:'dom', name:'域名 liyun2026.top', date:'2027-09-18', where:'域名注册商后台 → 续费' }
+  ],
+
+  KEY:  '_health',      // 本机状态，_ 开头不上传、也不触发同步
+  HIST: '_healthHist',
+  CFG:  '_healthAuto',
+  _running: null,
+  _timer: null,
+
+  last(){ return Store.get(this.KEY, null); },
+  hist(){ return Store.get(this.HIST, []); },
+  autoCfg(){ return Store.get(this.CFG, 'open'); },
+
+  /** 本地文件（双击 index.html）没有网址可言，联网那几项无从测起 */
+  online(){ return location.protocol === 'http:' || location.protocol === 'https:'; },
+
+  ago(ts){
+    if (!ts) return '从来没有过';
+    const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (s < 60) return s + ' 秒前';
+    if (s < 3600) return Math.round(s / 60) + ' 分钟前';
+    if (s < 86400) return Math.round(s / 3600) + ' 小时前';
+    return Math.round(s / 86400) + ' 天前';
+  },
+  stamp(ts){
+    const d = new Date(ts);
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' +
+           String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  },
+  daysTo(str){
+    if (!str) return null;
+    const d = new Date(str + 'T00:00:00');
+    if (isNaN(d)) return null;
+    return Math.round((d - new Date(Util.today() + 'T00:00:00')) / 864e5);
+  },
+
+  /* ── 探针 ─────────────────────────────────────────────── */
+
+  /** HEAD 一个同源文件，量往返耗时。?__ping 让每层缓存都当新请求看 */
+  async head(url){
+    const t0 = performance.now();
+    const ac = new AbortController();
+    const to = setTimeout(() => ac.abort(), this.TIMEOUT);
+    try {
+      const r = await fetch(url, { method:'HEAD', cache:'no-store', signal: ac.signal });
+      return { ms: Math.round(performance.now() - t0), status: r.status, ok: r.ok };
+    } catch(e){
+      return { ms: Math.round(performance.now() - t0), status: 0, ok:false,
+               err: (e && e.name === 'AbortError') ? '超时没回音' : '连不上' };
+    } finally { clearTimeout(to); }
+  },
+
+  /** 后端探活。/api/ 永远走网络（SW 明确不插手数据），量到的就是真实往返 */
+  async api(){
+    const t0 = performance.now();
+    const ac = new AbortController();
+    const to = setTimeout(() => ac.abort(), this.TIMEOUT);
+    try {
+      const r = await fetch('/api/sync', {
+        method:'POST', headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({ action:'hello' }), signal: ac.signal
+      });
+      let ok = r.ok;
+      if (ok){ try { const j = await r.json(); ok = j && j.ok === true; } catch { ok = false; } }
+      return { ms: Math.round(performance.now() - t0), status: r.status, ok };
+    } catch(e){
+      return { ms: Math.round(performance.now() - t0), status: 0, ok:false,
+               err: (e && e.name === 'AbortError') ? '超时没回音' : '连不上' };
+    } finally { clearTimeout(to); }
+  },
+
+  /** 问一下 SW 现在跑的是哪一版；顺便看看本地有没有 App Shell 缓存 */
+  async shell(){
+    let version = '';
+    try {
+      const ctl = navigator.serviceWorker && navigator.serviceWorker.controller;
+      if (ctl){
+        version = await new Promise(res => {
+          const ch = new MessageChannel();
+          const to = setTimeout(() => res(''), 3000);
+          ch.port1.onmessage = e => { clearTimeout(to); res((e.data && e.data.version) || ''); };
+          ctl.postMessage({ type:'PING' }, [ch.port2]);
+        });
+      }
+    } catch { /* 拿不到版本号就空着，不影响别的判断 */ }
+    let keys = [];
+    try { keys = (await caches.keys()).filter(k => k.indexOf('liyun-shell-') === 0); } catch {}
+    return { version, keys };
+  },
+
+  /* ── 跑一轮 ───────────────────────────────────────────── */
+
+  run(loud){
+    if (this._running) return this._running;
+    const p = this._go(loud);
+    this._running = p;
+    p.catch(() => {}).then(() => { this._running = null; });
+    return p;
+  },
+
+  async _go(loud){
+    const items = [];
+    const live = this.online();
+
+    /* 三个探针的结果要跨过 if/else 用到下面几组里，所以在外面先声明好 */
+    let home = null, api = null, ocr = null;
+    if (live){
+      const t = Date.now();
+      [home, api, ocr] = await Promise.all([
+        this.head('./index.html?__ping=' + t),
+        this.api(),
+        this.head('./ocr/worker.min.js?__ping=' + t)
+      ]);
+
+      items.push({
+        g:'net', name:'打开页面的速度', level: this.rate(home.ms),
+        value: home.ok ? home.ms + ' ms' : (home.err || ('HTTP ' + home.status)),
+        note: home.ok ? '点图标到看见东西，跨境这一段路耗的时间'
+                      : '页面取不下来，老师那边多半是白屏'
+      });
+      items.push({
+        g:'net', name:'后台接口', level: api.ok ? this.rate(api.ms) : 'bad',
+        value: api.ok ? api.ms + ' ms' : (api.err || ('HTTP ' + api.status)),
+        note: api.ok ? '签到、同步、发通知都走这条路' : '数据拉不下来也传不上去'
+      });
+      if (!navigator.onLine) items.push({ g:'net', name:'这台设备的网络', level:'warn',
+        value:'断网', note:'先检查 Wi-Fi 或蜂窝网络，其他项会跟着一起红' });
+    } else {
+      items.push({ g:'net', name:'联网通道', level:'skip', value:'本机文件',
+        note:'现在是直接打开的文件，没有网址，这几项要等正式网址下才有意义' });
+    }
+
+    /* ── 服务与资源 ── */
+    const sh = await this.shell();
+    items.push({
+      g:'res', name:'离线可开', level: sh.version ? 'ok' : 'warn',
+      value: sh.version ? ('第 ' + sh.version + ' 版') : '还没启用',
+      note: sh.version ? 'App Shell 已存到本机，断跨境那一段也能进'
+                       : '刷新或重装一次就有了；没有它也照样能用，只是冷启动慢约一秒'
+    });
+    if (live){
+      items.push({
+        g:'res', name:'图片识别引擎', level: ocr.ok ? this.rate(ocr.ms) : 'warn',
+        value: ocr.ok ? ocr.ms + ' ms' : (ocr.err || ('HTTP ' + ocr.status)),
+        note:'跟着站点一起部署的识别资源，传图识字要用它'
+      });
+    }
+    if (sh.keys.length > 1) items.push({ g:'res', name:'旧版本缓存', level:'warn',
+      value: sh.keys.length + ' 份', note:'升级留下的旧壳子，清掉不占空间也不影响使用' });
+
+    /* ── 这台设备 ── */
+    const u = Store.usage();
+    items.push({
+      g:'local', name:'本机存储', level: u.persistent ? 'ok' : 'bad',
+      value: u.persistent ? '能长期保存' : '临时（关掉就丢）',
+      note: u.persistent ? '数据写在本机，离线也能记账' : '浏览器不让存（隐私模式 / 限制策略），赶紧导出备份'
+    });
+    items.push({
+      g:'local', name:'数据占用', level: u.bytes > 4 * 1024 * 1024 ? 'warn' : 'ok',
+      value: (u.bytes / 1024).toFixed(0) + ' KB',
+      note: u.keys + ' 项，' + (u.bytes > 4 * 1024 * 1024 ? '有点大了，建议到设置导出备份后清理' : '离浏览器上限还很远')
+    });
+    const sa = Store.get('_syncAt');
+    items.push({
+      g:'local', name:'上次同步', level: Auth.mode === 'local' ? 'skip'
+                  : (sa && Date.now() - sa < 48 * 3600e3 ? 'ok' : 'warn'),
+      value: Auth.mode === 'local' ? '本机模式' : this.ago(sa),
+      note: Auth.mode === 'local' ? '没开云端，数据只在这台设备上' : '超过两天没同步上就留意一下'
+    });
+
+    /* ── 到期 ── */
+    const dues = this.DUE.map(d => {
+      const real = Store.get('_due:' + d.id, d.date);
+      const days = this.daysTo(real);
+      return {
+        id: d.id, name: d.name, date: real, where: d.where, days,
+        level: days === null ? 'skip' : (days <= 7 ? 'bad' : days <= 30 ? 'warn' : 'ok'),
+        value: days === null ? '没填日期' : (days < 0 ? '已过期 ' + (-days) + ' 天' : (days + ' 天'))
+      };
+    });
+
+    const rec = { at: Date.now(), items, dues, level: this.grade(items, dues) };
+    Store.set(this.KEY, rec);
+
+    const old = this.hist();
+    const one = rec.items.find(i => i.name === '打开页面的速度');
+    const two = rec.items.find(i => i.name === '后台接口');
+    old.unshift({ at: rec.at, level: rec.level, home: one && one.value, api: two && two.value });
+    Store.set(this.HIST, old.slice(0, 40));
+
+    if (document.querySelector('.page.on')?.id === 'page-health') this.render();
+    App.refreshDots();
+    this.alert(rec);
+    if (loud) UI.toast(rec.level === 'ok' ? '巡检完成，一切正常' : '巡检完成，有需要注意的地方');
+    return rec;
+  },
+
+  /** 耗时分档。取不到或不合规的（level 已经给了）不再套用 */
+  rate(ms){ return ms > this.BAD ? 'bad' : ms > this.WARN ? 'warn' : 'ok'; },
+
+  grade(items, dues){
+    const all = items.concat(dues || []);
+    if (all.some(i => i.level === 'bad')) return 'bad';
+    if (all.some(i => i.level === 'warn')) return 'warn';
+    return 'ok';
+  },
+
+  /** 恶化才提示一次：天天横条会很烦，但第一次出问题必须让人看见 */
+  alert(rec){
+    if (rec.level === 'bad'){
+      if (Store.get('_healthAlerted')) return;
+      Store.set('_healthAlerted', 1);
+      const n = rec.items.filter(i => i.level === 'bad').length;
+      UI.banner(`<span>系统自检发现 ${n} 处异常，可能影响正常使用</span>
+                 <button onclick="App.go('health')">去看</button>`);
+    } else if (!rec.items.concat(rec.dues).some(i => i.level === 'bad')){
+      Store.set('_healthAlerted', 0);
+    }
+  },
+
+  /* ── 自动巡检 ─────────────────────────────────────────── */
+
+  /** 进工作台时挂上。延迟几秒，别抢开屏那一时的带宽 */
+  boot(){
+    clearInterval(this._timer);
+    this._timer = setInterval(() => this.tick(false), 15 * 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) this.tick(false); });
+    this.renderMeta();
+    setTimeout(() => this.tick(true), 6000);
+  },
+
+  tick(first){
+    const cfg = this.autoCfg();
+    if (cfg === 'off') return;
+    const last = this.last();
+    const gap = last ? Date.now() - last.at : Infinity;
+    const h = this.AUTO[cfg];
+    if (h === undefined || h < 0) return;
+    /* open：每次打开都跑一次；页面一直挂着就别反复跑，6 小时兜个底。
+       其余：到点了才跑 —— 打开时若早就过了间隔，补一次。 */
+    const need = (h === 0 && first) ? true
+               : (h === 0 ? gap > 6 * 3600e3 : gap >= h * 3600e3);
+    if (need) this.run();
+  },
+
+  setAuto(v){
+    Store.set(this.CFG, v);
+    this.renderMeta();
+    UI.toast(v === 'off' ? '自动巡检已关，想查的时候手动点一下就行' : '已改，下次按这个节奏自己查');
+  },
+
+  /* ── 清理 ─────────────────────────────────────────────── */
+
+  /** 只删升级留下来的旧 App Shell。误删最坏也不过是下次打开多等一秒 */
+  async clean(){
+    let n = 0;
+    try {
+      const sh = await this.shell();
+      const keep = new Set(sh.keys.filter(k => sh.version && k === 'liyun-shell-' + sh.version));
+      const latest = sh.keys[sh.keys.length - 1];          // 拿不到版本号时，保留最后一份
+      const dead = sh.keys.filter(k => !keep.has(k) && k !== latest);
+      await Promise.all(dead.map(k => caches.delete(k)));
+      n = dead.length;
+    } catch { }
+    const h = this.hist();
+    if (h.length > 40) Store.set(this.HIST, h.slice(0, 40));
+    UI.toast(n ? '清掉了 ' + n + ' 份旧版本缓存' : '没有要清的旧缓存');
+    await this.run(true);
+  },
+
+  editDue(id){
+    const d = this.DUE.find(x => x.id === id);
+    const cur = Store.get('_due:' + id, d ? d.date : '');
+    const v = (prompt((d ? d.name : '到期日') + '：新的到期日（格式 2026-12-31）', cur) || '').trim();
+    if (!v) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return UI.toast('要写成 2026-12-31 这种格式');
+    Store.set('_due:' + id, v);
+    UI.toast('记下了，续期之后记得来改');
+    this.render();
+  },
+
+  /* ── 界面 ─────────────────────────────────────────────── */
+
+  LEVEL_TEXT: { ok:'正常', warn:'注意', bad:'异常', skip:'跳过' },
+  LEVEL_COLOR: { ok:'#3f9b62', warn:'#c98a2b', bad:'#c0533f', skip:'var(--txt-dim)' },
+  LEVEL_ICON: { ok:'✅', warn:'⚠️', bad:'❌', skip:'—' },
+
+  line(it){
+    const note = it.note ? `<span class="hint" style="display:inline;margin:0">${Util.esc(it.note)}</span>` : '';
+    return `<div class="item">
+      <span class="grow">${Util.esc(it.name)}<br>${note}</span>
+      <b class="num" style="color:${this.LEVEL_COLOR[it.level] || 'inherit'}">${Util.esc(it.value)}</b>
+    </div>`;
+  },
+
+  dueLine(d){
+    const c = this.LEVEL_COLOR[d.level];
+    return `<div class="item">
+      <span class="grow">${Util.esc(d.name)}<br>
+        <span class="hint" style="display:inline;margin:0">${Util.esc(d.date)} · ${Util.esc(d.where)}</span></span>
+      <button class="btn ghost" style="margin-right:8px;padding:4px 8px;font-size:12px"
+              onclick="Health.editDue('${d.id}')">改日期</button>
+      <b class="num" style="color:${c}">${Util.esc(d.value)}</b>
+    </div>`;
+  },
+
+  histLine(h){
+    const ms = parseInt((h.home || '').replace(/\D/g, ''), 10);
+    const w = ms > 0 && !isNaN(ms) ? Math.min(100, Math.round(ms / 40)) : 0;   // 4 秒顶到满格
+    const c = this.LEVEL_COLOR[h.level] || 'var(--txt-dim)';
+    return `<div class="item">
+      <span class="grow">${this.stamp(h.at)}<br>
+        <span class="hint" style="display:inline;margin:0">页面 ${Util.esc(h.home || '—')} · 接口 ${Util.esc(h.api || '—')}</span></span>
+      <span style="display:inline-block;width:70px;height:6px;border-radius:3px;background:var(--line);overflow:hidden">
+        <i style="display:block;height:100%;width:${w}%;background:${c}"></i>
+      </span>
+    </div>`;
+  },
+
+  renderMeta(){
+    const sel = document.getElementById('healthAuto');
+    if (sel) sel.value = this.autoCfg();
+    const info = document.getElementById('healthAutoInfo');
+    if (!info) return;
+    const cfg = this.autoCfg();
+    info.textContent = cfg === 'off'
+      ? '现在不自动查，需要的时候点「立即巡检」。'
+      : (cfg === 'open' ? '每次打开系统自动查一遍，页面一直挂着时最少隔 6 小时复查。'
+                        : '每 ' + this.AUTO[cfg] + ' 小时自己查一遍；打开时若早就过了点，会先补上一次。');
+  },
+
+  render(){
+    const rec = this.last();
+    const badge = document.getElementById('healthBadge');
+    const sum   = document.getElementById('healthSummary');
+    const net   = document.getElementById('healthNet');
+    const res   = document.getElementById('healthRes');
+    const loc   = document.getElementById('healthLocal');
+    const due   = document.getElementById('healthDue');
+    const his   = document.getElementById('healthHist');
+    this.renderMeta();
+
+    if (!rec){
+      if (badge){ badge.textContent = '还没巡检'; badge.style.color = 'var(--txt-dim)'; }
+      if (sum) sum.textContent = '还没查过。点上面的「立即巡检」，或者等它下一次自己跑。';
+      for (const el of [net, res, loc, due, his]) if (el) el.innerHTML = '<div class="empty">查过一次就有内容</div>';
+      return;
+    }
+
+    const pick = g => rec.items.filter(i => i.g === g);
+    const bad = rec.items.concat(rec.dues).filter(i => i.level === 'bad');
+    if (badge){
+      badge.textContent = this.LEVEL_ICON[rec.level] + ' ' + this.LEVEL_TEXT[rec.level];
+      badge.style.color = this.LEVEL_COLOR[rec.level];
+    }
+    if (sum){
+      sum.textContent = this.stamp(rec.at) + '查的（' + this.ago(rec.at) + '）' +
+        (rec.level === 'ok' ? '：各项都好，不用管它。'
+         : '：' + bad.map(i => i.name).join('、') + ' 需要处理' +
+           (bad.some(i => i.g === 'due') ? '（选里的要到控制台人工续，我改不了）。' : '。'));
+    }
+    if (net) net.innerHTML = pick('net').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
+    if (res) res.innerHTML = pick('res').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
+    if (loc) loc.innerHTML = pick('local').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
+    if (due) due.innerHTML = rec.dues.map(d => this.dueLine(d)).join('') || '<div class="empty">没有要盯的到期项</div>';
+    const h = this.hist();
+    if (his) his.innerHTML = h.length
+      ? h.slice(0, 10).map(x => this.histLine(x)).join('')
+      : '<div class="empty">查过一次就开始记了</div>';
+  }
+};
+
+
+/* ═══════════════════════════════════════════════════════════
    App · 路由与启动
    每条 route 上标好「谁能看到」「要不要放底部标签栏」「排第几」，
    电脑侧边栏、手机底部标签栏、手机「全部功能」抽屉都从这一份自动长出来。
@@ -2026,6 +2491,7 @@ const App = {
     { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
     { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
+    { id:'health',    icon:'🩺', name:'巡检',     roles:['super','admin','teacher','both'], onShow: () => Health.render() },
     { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher','both'], tab:5, onShow: () => Settings.render() },
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
@@ -2056,11 +2522,12 @@ const App = {
 
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
   NAV_ORDER: {
-    super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
-    admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
+    /* 「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
+    super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','health','settings'],
+    admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','health','settings'],
     /* 教务兼授课：先教务那摊（常用的在前），再自己班的授课那摊 */
-    both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','news','record','myclass','tickets','settings'],
-    teacher: ['today','news','record','myclass','profile','tickets','settings']
+    both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','news','record','myclass','tickets','health','settings'],
+    teacher: ['today','news','record','myclass','profile','tickets','health','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -2129,6 +2596,8 @@ const App = {
       const seen = Store.get('_tkReadAt') || 0;
       return Store.list('tickets').some(t => t.reply && (t.repliedAt || 0) > seen) ? 1 : 0;
     }
+    /* 巡检：只有在上一轮真查出「异常」时才亮 —— 正常的时候不打扰 */
+    if (id === 'health') return (Health.last() || {}).level === 'bad' ? 1 : 0;
     return 0;
   },
 
@@ -2176,6 +2645,7 @@ const App = {
     Staff.reset();                              // 换了账号，老师名单缓存作废
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
     else Sync.init();
+    Health.boot();        // 自动巡检：延后几秒跑，不占开屏那一时的带宽
   },
 
   async init(){

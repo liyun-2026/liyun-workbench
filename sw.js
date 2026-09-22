@@ -19,7 +19,7 @@
       否则老 SW 不会重装、新清单永远不生效。
    ══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'v5';
+const VERSION = 'v6';      // v6：系统内建「巡检」页（并未改动缓存清单，版本号照升，让每台设备都拿到新页面）
 const CACHE = 'liyun-shell-' + VERSION;
 
 /* 开屏要用的东西全在这里 —— 预缓存后，第二次开就是本地读盘。 */
@@ -145,5 +145,14 @@ self.addEventListener('fetch', (e) => {
 });
 
 self.addEventListener('message', (e) => {
-  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  const t = e.data && e.data.type;
+  if (t === 'SKIP_WAITING') self.skipWaiting();
+  /* 页面问「你现在跑的是第几版」—— 巡检页要显示本机存的是哪份 App Shell */
+  if (t === 'PING'){
+    const msg = { type:'PONG', version: VERSION };
+    try {
+      if (e.ports && e.ports[0]) e.ports[0].postMessage(msg);
+      else if (e.source) e.source.postMessage(msg);
+    } catch { /* 页面已经走了，没人听就算了 */ }
+  }
 });
