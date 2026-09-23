@@ -198,7 +198,30 @@ try {
   ok(cfg.back === 'open', '能改回「每次打开查」');
   ok(/2 小时/.test(cfg.info), '下面那句说明跟着改：' + cfg.info);
 
-  console.log('\n【7/7】清场…');
+  console.log('\n【7/7】设置里也有入口 + 老师端没有巡检…');
+  const scope = await cdp.eval(`(async () => {
+    App.go('settings');
+    await new Promise(r => setTimeout(r, 300));
+    const card = document.getElementById('healthCard');
+    const shown = card && getComputedStyle(card).display !== 'none';
+    const staffSees = App.can('health');
+    const r = App.routes.find(x => x.id === 'health');
+    const teacherOrder = (App.NAV_ORDER.teacher || []).includes('health');
+    return {
+      shown, staffSees,
+      badge: (document.getElementById('healthSetBadge')?.textContent || '').trim(),
+      summary: (document.getElementById('healthSetSummary')?.textContent || '').trim(),
+      teacherAllowed: r.roles.includes('teacher'),
+      teacherOrder
+    };
+  })()`);
+  ok(scope.shown === true, '设置页出现「系统健康」卡片（教务端）');
+  ok(/正常|注意|异常/.test(scope.badge), '设置里的徽章有结论：' + scope.badge);
+  ok(scope.summary.length > 8, '设置里那句话跟着最近一次结果：' + scope.summary);
+  ok(scope.staffSees === true, '教务端有权限进巡检');
+  ok(scope.teacherAllowed === false && scope.teacherOrder === false, '老师端：路由不开放、导航里也不排（已经没有巡检）');
+
+  console.log('\n【8/8】清场…');
   try { await fetch(`${BASE}/api/dev-reset`, { method: 'POST' }); } catch {}
   ok(true, '预览数据已清空');
 } catch (e) {

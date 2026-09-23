@@ -1291,6 +1291,16 @@ window.__splashT0 = performance.now();</script>
       </div>
       <!-- ==== 账号与同步卡片 syncCard END ==== -->
 
+      <div class="card" id="healthCard" style="display:none">
+        <h2>🩺 系统健康 <span class="chip" id="healthSetBadge" style="margin:0 0 0 auto;pointer-events:none">还没巡检</span></h2>
+        <p class="hint" id="healthSetSummary" style="margin-top:0"></p>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap">
+          <button class="btn" onclick="App.go('health')">打开巡检</button>
+          <button class="btn ghost" onclick="Health.run(true)">立即巡检</button>
+        </div>
+        <p class="hint">打开系统时会自动查一遍，不用记着点。</p>
+      </div>
+
       <div class="card" id="tEntryCard" style="display:none">
         <h2>🧑‍🏫 老师管理</h2>
         <p class="hint" style="margin-top:0;margin-bottom:12px">给老师开账号、分配带班、重置密码。账号只有你能建。</p>
@@ -2233,6 +2243,7 @@ const Health = {
     old.unshift({ at: rec.at, level: rec.level, home: one && one.value, api: two && two.value });
     Store.set(this.HIST, old.slice(0, 40));
 
+    this.paintBadge();                     // 在别的页面也要让设置页那一句跟着更新
     if (document.querySelector('.page.on')?.id === 'page-health') this.render();
     App.refreshDots();
     this.alert(rec);
@@ -2271,6 +2282,7 @@ const Health = {
     this._timer = setInterval(() => this.tick(false), 15 * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) this.tick(false); });
     this.renderMeta();
+    this.paintBadge();
     setTimeout(() => this.tick(true), 6000);
   },
 
@@ -2374,36 +2386,47 @@ const Health = {
                         : '每 ' + this.AUTO[cfg] + ' 小时自己查一遍；打开时若早就过了点，会先补上一次。');
   },
 
+  /** 徽章 + 那一句结论：巡检页和设置页共用同一份，永远跟着最近一次结果 */
+  paintBadge(){
+    const rec = this.last();
+    const txt = rec ? (this.LEVEL_ICON[rec.level] + ' ' + this.LEVEL_TEXT[rec.level]) : '还没巡检';
+    const col = rec ? this.LEVEL_COLOR[rec.level] : 'var(--txt-dim)';
+    for (const id of ['healthBadge','healthSetBadge']){
+      const el = document.getElementById(id);
+      if (el){ el.textContent = txt; el.style.color = col; }
+    }
+    let line;
+    if (!rec){
+      line = '还没查过。点「立即巡检」，或者等它自己跑。';
+    } else {
+      const bad = rec.items.concat(rec.dues).filter(i => i.level === 'bad');
+      line = this.stamp(rec.at) + '查的（' + this.ago(rec.at) + '）' +
+        (rec.level === 'ok' ? '：各项都好，不用管它。'
+         : '：' + bad.map(i => i.name).join('、') + ' 需要处理' +
+           (bad.some(i => i.g === 'due') ? '（到期项要您本人在控制台续，我改不了）。' : '。'));
+    }
+    for (const id of ['healthSummary','healthSetSummary']){
+      const el = document.getElementById(id);
+      if (el) el.textContent = line;
+    }
+  },
+
   render(){
     const rec = this.last();
-    const badge = document.getElementById('healthBadge');
-    const sum   = document.getElementById('healthSummary');
     const net   = document.getElementById('healthNet');
     const res   = document.getElementById('healthRes');
     const loc   = document.getElementById('healthLocal');
     const due   = document.getElementById('healthDue');
     const his   = document.getElementById('healthHist');
     this.renderMeta();
+    this.paintBadge();
 
     if (!rec){
-      if (badge){ badge.textContent = '还没巡检'; badge.style.color = 'var(--txt-dim)'; }
-      if (sum) sum.textContent = '还没查过。点上面的「立即巡检」，或者等它下一次自己跑。';
       for (const el of [net, res, loc, due, his]) if (el) el.innerHTML = '<div class="empty">查过一次就有内容</div>';
       return;
     }
 
     const pick = g => rec.items.filter(i => i.g === g);
-    const bad = rec.items.concat(rec.dues).filter(i => i.level === 'bad');
-    if (badge){
-      badge.textContent = this.LEVEL_ICON[rec.level] + ' ' + this.LEVEL_TEXT[rec.level];
-      badge.style.color = this.LEVEL_COLOR[rec.level];
-    }
-    if (sum){
-      sum.textContent = this.stamp(rec.at) + '查的（' + this.ago(rec.at) + '）' +
-        (rec.level === 'ok' ? '：各项都好，不用管它。'
-         : '：' + bad.map(i => i.name).join('、') + ' 需要处理' +
-           (bad.some(i => i.g === 'due') ? '（选里的要到控制台人工续，我改不了）。' : '。'));
-    }
     if (net) net.innerHTML = pick('net').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
     if (res) res.innerHTML = pick('res').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
     if (loc) loc.innerHTML = pick('local').map(i => this.line(i)).join('') || '<div class="empty">这项没跑</div>';
@@ -2491,7 +2514,8 @@ const App = {
     { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
     { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
-    { id:'health',    icon:'🩺', name:'巡检',     roles:['super','admin','teacher','both'], onShow: () => Health.render() },
+    /* 巡检只给教务端：老师上课用的是自己那几个入口，系统通不通由教务盯着 */
+    { id:'health',    icon:'🩺', name:'巡检',     roles:['super','admin','both'], onShow: () => Health.render() },
     { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher','both'], tab:5, onShow: () => Settings.render() },
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
@@ -2527,7 +2551,7 @@ const App = {
     admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','health','settings'],
     /* 教务兼授课：先教务那摊（常用的在前），再自己班的授课那摊 */
     both:    ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','today','news','record','myclass','tickets','health','settings'],
-    teacher: ['today','news','record','myclass','profile','tickets','health','settings']
+    teacher: ['today','news','record','myclass','profile','tickets','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -6437,6 +6461,8 @@ const Settings = {
     show('tEntryCard', Auth.isSuper() && cloud);
     show('syncNowBtn', cloud);
     show('syncCard', true);
+    show('healthCard', staff);       // 巡检只给教务端
+    Health.paintBadge();             // 无论在哪一页，设置里的那句话都跟着最新一次结果走
 
     this.refreshBackupInfo();
     this.renderAcct();
