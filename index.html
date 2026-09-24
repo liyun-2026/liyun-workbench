@@ -531,9 +531,9 @@ body.stu .card{border-radius:16px}
 #watermark{display:none}
 body.stu #watermark{
   display:block;position:fixed;inset:0;z-index:3;pointer-events:none;
-  background-color:var(--text);opacity:.11;
+  background-color:var(--text);opacity:.085;
   -webkit-mask-repeat:repeat;mask-repeat:repeat;
-  -webkit-mask-size:210px 136px;mask-size:210px 136px;
+  -webkit-mask-size:320px 210px;mask-size:320px 210px;
 }
 
 /* ════════ 打卡页：一个圈，按它 ════════
@@ -605,6 +605,19 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .card{border-radius:12px;box-shadow:none}
 }
 
+/* ════════ 「列表 + 详情」分栏：820 起就横过来 ════════
+   ⚠️ 门槛原来是 1100，但很多人的浏览器不是全屏（笔记本、半屏窗口），
+      一到 1099 就退回竖着堆 —— 用户看到的就是「网页上是手机版」。
+      现在 820 起分栏，左栏自己滚，右栏跟着内容走。 */
+@media (min-width:820px){
+  .split{
+    display:grid;grid-template-columns:236px minmax(0,1fr);
+    gap:var(--gap);align-items:start;
+  }
+  .split .pane-list{max-height:calc(100vh - 190px);overflow:auto}
+  .split .pane-main{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
+}
+
 /* ════════ 桌面：功能栏 + 列表 + 详情，一屏三栏 ════════
    标题、副标题、提示条永远占满整行；卡片默认半宽。
    需要占满的重要卡片（英雄卡、长列表）加 class="card wide"。
@@ -628,6 +641,18 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
     gap:var(--gap);align-items:start;
   }
   .split .pane-main{display:flex;flex-direction:column;gap:var(--gap)}
+}
+
+/* ════════ 宽屏：档案页真正摊开成桌面版 ════════
+   右栏自己也切成两列 —— 之前它是一根竖条（卡片一张压一张），
+   宽屏下留白全在右边，看着还是手机版。 */
+@media (min-width:1400px){
+  .split{grid-template-columns:300px minmax(0,1fr)}
+  .split .pane-main{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:var(--gap);align-content:start;
+  }
+  .split .pane-main > .card.wide{grid-column:1 / -1}
 }
 
 /* 超宽屏限制内容宽度并居中 —— 一行文字超过 40 个汉字就难读了 */
@@ -1448,6 +1473,32 @@ window.__splashT0 = performance.now();</script>
       </div>
       <!-- ==== 账号与同步卡片 syncCard END ==== -->
 
+      <!-- ==== 学生换设备密钥 devKeyCard START ====（教务端：密钥由教务自己想，一次性） -->
+      <div class="card wide" id="devKeyCard" style="display:none">
+        <h2>🔑 学生换设备密钥</h2>
+        <p class="hint" style="margin:0 0 10px">
+          学生换手机、或者要在第三台设备上登录，得输你给的一次性密钥。<b>每个密钥只能用一次</b>，用完就作废。
+        </p>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="devKeyNew" placeholder="自己想一个，如 8866-A" style="max-width:220px" autocapitalize="off" spellcheck="false">
+          <button class="btn" onclick="Settings.devKeyAdd()">生成</button>
+          <button class="btn ghost" onclick="Settings.devKeyRand()">随机一个</button>
+        </div>
+        <div id="devKeyList" style="margin-top:10px"></div>
+      </div>
+      <!-- ==== 学生换设备密钥 devKeyCard END ==== -->
+
+      <!-- ==== 演示账号 demoCard START ====（只有首位教务有：一键切到四种身份查问题） -->
+      <div class="card wide" id="demoCard" style="display:none">
+        <h2>🧪 演示账号 <span class="hint" style="margin:0 0 0 auto;font-size:var(--fs-meta)">只有你看得到</span></h2>
+        <p class="hint" style="margin:0 0 10px">
+          这四个账号是给你自己排查用的（看看老师/学生/教务各自看到什么），跟你的主账号分开，学生和老师都看不到它们。<br>
+          点了就切过去；要回来就用主账号重新登录。
+        </p>
+        <div id="demoList"></div>
+      </div>
+      <!-- ==== 演示账号 demoCard END ==== -->
+
       <div class="card" id="healthCard" style="display:none">
         <h2>🩺 系统健康 <span class="chip" id="healthSetBadge" style="margin:0 0 0 auto;pointer-events:none">还没巡检</span></h2>
         <p class="hint" id="healthSetSummary" style="margin-top:0"></p>
@@ -1584,6 +1635,11 @@ window.__splashT0 = performance.now();</script>
       <div class="card wide">
         <h2>🧑‍🏫 账号列表</h2>
         <div id="tList"></div>
+      </div>
+      <!-- 删掉的老师留档：只有首位教务看得到（后端不下发给别人，不是界面藏起来） -->
+      <div class="card wide" id="tHistoryCard" style="display:none">
+        <h2>🗂 已删除账号的历史</h2>
+        <div id="tHistory"></div>
       </div>
       <div class="card wide" id="tClsCard" style="display:none">
         <h2>📚 <span id="tClsWho"></span> 的带班</h2>
@@ -1942,6 +1998,25 @@ window.__splashT0 = performance.now();</script>
   <!-- ==== 全部功能抽屉 END ==== -->
 
 </div>
+
+<!-- ==== 学生换设备密钥门 START ====
+     一个学生账号最多两台设备，第一台是认证设备。
+     在这两台之外登录必须拿教务给的一次性密钥（每个密钥只能用一次，服务端核销）。
+     判定在服务端，这里只是把门摆出来 —— 没密钥就进不去，不是提示一句就放行。 -->
+<div class="picker" id="devGate">
+  <div class="mask"></div>
+  <div class="sheet">
+    <h3 style="margin:0 0 4px;font-size:17px;font-weight:500">这台设备还没登记</h3>
+    <p class="hint" style="margin:0 0 14px">一个学生账号最多登两台设备。要让这台也能用，找教务要一个密钥（每个密钥只能用一次）。</p>
+    <input type="text" id="devKeyIn" placeholder="教务给的密钥" autocapitalize="off" spellcheck="false">
+    <div class="row" style="margin-top:12px">
+      <button class="btn" onclick="StuDev.submit()">登记这台</button>
+      <button class="btn ghost" onclick="Auth.logout()">换个账号</button>
+    </div>
+    <p class="hint" id="devKeyErr" style="margin:10px 0 0"></p>
+  </div>
+</div>
+<!-- ==== 学生换设备密钥门 END ==== -->
 
 <!-- ==== 登录 START ====
      没登录之前只显示这一层。账号由教务创建，没有自助注册。 -->
@@ -3093,6 +3168,8 @@ const App = {
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
     else Sync.init();
     Health.boot();        // 自动巡检：延后几秒跑，不占开屏那一时的带宽
+    /* 学生换设备要密钥：不挡第一屏（后台查），查到没登记才把门摆出来 */
+    try { StuDev.check(); } catch(e){}
   },
 
   async init(){
@@ -6841,6 +6918,7 @@ const Teachers = {
          学生没有带班这一说，跟老师混在一个列表里只会让人误解。 */
       this._users = (j.users || []).filter(u => u.role !== 'student');
       this.paint();
+      this.renderHistory();
     } catch(e){
       el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
     }
@@ -6958,17 +7036,85 @@ const Teachers = {
   async remove(id){
     const u = (this._users || []).find(x => x.id === id);
     if (!u) return;
-    if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n之前录的数据会保留（不随账号删除），但不再关联到这个账号。此操作不可恢复。')) return;
+    if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n他提交过的请假/上报、录过的今日情况会抄一份进下面的「历史」，只有你能看。此操作不可恢复。')) return;
     const snap = this._users;
     this._users = this._users.filter(x => x.id !== id);
     this.paint();                                  // 立刻从列表消失
     try {
+      this.archive(u);                             // 删之前先留档，晚了就查不到人了
       await Auth.call('users', { op: 'delete', id });
-      UI.toast('已删除');
+      UI.toast('已删除，记录抄进了下面的「历史」');
+      this.renderHistory();
+      Sync.push();                                 // 把这份历史推上去，别的设备也能看到
     } catch(e){
       this._users = snap; this.paint();            // 服务端拒绝 → 回滚
       UI.toast(e.message);
     }
+  },
+
+  /* ── 删号留档 ──
+     账号一删，人就查不到了，但他交过的请假、录过的今日情况还躺在数据里。
+     所以删之前按人抄一份进 staff_history —— 这份数据只有首位教务拿得到
+     （后端 TEACHER_READ 里没有这个键，老师端根本收不到，不是靠界面藏）。 */
+  archive(u){
+    const uid = u.id, nm = u.name || u.user;
+    const tks = Store.list('tickets')
+      .filter(t => (t.userId || '') === uid || (!t.userId && (t.userName || '') === nm));
+    const rcs = Store.list('records')
+      .filter(r => (r.byId || '') === uid || (!r.byId && (r.byName || '') === nm));
+    const nts = Store.list('notices').filter(n => (n.by || '') === nm);
+    Store.upsert('staff_history', {
+      id: 'gh' + Date.now().toString(36),
+      userId: uid, user: u.user || '', name: nm,
+      role: u.role, roleName: this.roleName(u.role),
+      clsNames: (u.classIds || []).map(id => Util.clsName(id)).filter(Boolean),
+      deletedAt: Date.now(), byName: Auth.name(),
+      tickets: tks.map(t => ({
+        type: t.type || '上报', kind: t.kind || '', date: t.date || '',
+        text: t.text || '', status: t.status || 'open', reply: t.reply || '',
+        at: t.createdAt || 0,
+      })),
+      records: rcs.map(r => ({
+        date: r.date || '', perf: r.perf || '', state: r.state || '', hw: r.hw || '',
+      })),
+      notices: nts.map(n => ({ date: n.date || '', text: n.text || '' })),
+    });
+  },
+
+  /* 历史：只有首位教务看得到（数据层就下发给 super） */
+  renderHistory(){
+    const card = document.getElementById('tHistoryCard');
+    const box = document.getElementById('tHistory');
+    if (!card || !box) return;
+    if (!Auth.isSuper()){ card.style.display = 'none'; return; }
+    card.style.display = '';
+    const list = Store.list('staff_history', (a,b) => (a.deletedAt || 0) < (b.deletedAt || 0) ? 1 : -1);
+    if (!list.length){ box.innerHTML = '<div class="empty">还没有删过账号</div>'; return; }
+    box.innerHTML = list.map(h => {
+      const n = (h.tickets || []).length + (h.records || []).length + (h.notices || []).length;
+      const rows = [];
+      (h.tickets || []).forEach(t => rows.push(
+        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(t.date || '').slice(5) || '—'}</span>
+           <span class="grow">${Util.esc(t.type)}${t.kind ? ' · ' + Util.esc(t.kind) : ''}<br>
+             <span class="hint" style="display:inline;margin:0">${Util.esc(t.text || '')}</span>
+             ${t.reply ? '<br><span class="hint" style="display:inline;margin:0">教务回复：' + Util.esc(t.reply) + '</span>' : ''}</span>
+           <span class="chip ${t.status === 'done' ? 'chip-on' : ''}" style="pointer-events:none">${t.status === 'done' ? '已处理' : '待处理'}</span></div>`));
+      (h.records || []).slice(0, 12).forEach(r => rows.push(
+        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(r.date || '').slice(5) || '—'}</span>
+           <span class="grow">今日情况<br><span class="hint" style="display:inline;margin:0">${Util.esc(r.perf || r.state || '')}</span></span></div>`));
+      (h.notices || []).forEach(x => rows.push(
+        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(x.date || '').slice(5) || '—'}</span>
+           <span class="grow">通知<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.text || '')}</span></span></div>`));
+      return `<div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(h.name)}${h.user ? ` <span class="hint" style="display:inline;margin:0">@${Util.esc(h.user)}</span>` : ''}</b>
+          <span class="hint" style="margin:0">${Util.esc(h.roleName || '')} · ${h.deletedAt ? new Date(h.deletedAt).toLocaleDateString('zh-CN') : ''} 删除</span>
+        </div>
+        <p class="hint" style="margin:2px 0 0">${h.clsNames && h.clsNames.length ? '曾带：' + h.clsNames.map(Util.esc).join('、') + ' · ' : ''}共 ${n} 条记录</p>
+        ${rows.length ? `<div style="margin-top:6px">${rows.join('')}</div>`
+                      : '<div class="empty">这个账号没留下记录</div>'}
+      </div>`;
+    }).join('');
   },
 
   editCls(id){
@@ -7501,14 +7647,159 @@ const Settings = {
     show('slotCard', staff);         // 考勤时段也只有教务端配
     Health.paintBadge();             // 无论在哪一页，设置里的那句话都跟着最新一次结果走
 
+    show('devKeyCard', staff && cloud);                 // 学生换设备的一次性密钥
+    show('demoCard', Auth.isSuper() || this.isDemo());  // 演示账号：只有首位教务有
+
     this.refreshBackupInfo();
     this.renderAcct();
+    this.renderDevKeys();
+    this.renderDemo();
     if (staff) this.renderRules();
     if (staff) this.renderSlots();
     this.keys.forEach(k => {
       const el = document.getElementById('key_' + k);
       if (el) el.value = Store.getSecret(k) || '';
     });
+  },
+
+  /* ════════ 学生换设备的一次性密钥 ════════
+     学生换手机、或在第三台设备上登录，必须输教务亲手设的密钥。
+     每个密钥只能用一次 —— 用完服务端就打上「已用」，第二次拿来就废了。
+     不设自动生成的码、也不设有效期：教务自己想、自己发、自己看着作废。 */
+  devKeys(){ const a = Store.get('dev_keys'); return Array.isArray(a) ? a : []; },
+  _saveDevKeys(a){ Store.set('dev_keys', a); },
+
+  devKeyAdd(){
+    const el = document.getElementById('devKeyNew');
+    const code = ((el && el.value) || '').trim().replace(/\s+/g, '');
+    if (!code) return UI.toast('先想一个密钥，比如 8866-A');
+    const all = this.devKeys();
+    if (all.some(k => k.code === code && !k.used)) return UI.toast('这个密钥已经有了，换一个');
+    all.push({ id: 'dk' + Date.now().toString(36), code, used: false, madeAt: Date.now() });
+    this._saveDevKeys(all);
+    if (el) el.value = '';
+    this.renderDevKeys();
+    Sync.push();
+    UI.toast('密钥「' + code + '」已生成，发给要换设备的学生（只能用一次）');
+  },
+
+  devKeyRand(){
+    const el = document.getElementById('devKeyNew');
+    const n = String(Math.floor(100000 + Math.random() * 900000));
+    if (el) el.value = n;
+    this.devKeyAdd();
+  },
+
+  devKeyCopy(code){ Util.copy(code); UI.toast('已复制：' + code); },
+
+  devKeyDel(id){
+    const all = this.devKeys().filter(k => k.id !== id);
+    this._saveDevKeys(all);
+    this.renderDevKeys();
+    Sync.push();
+  },
+
+  renderDevKeys(){
+    const box = document.getElementById('devKeyList');
+    if (!box) return;
+    const all = this.devKeys().slice().sort((a,b) => (b.madeAt || 0) - (a.madeAt || 0));
+    if (!all.length){ box.innerHTML = '<div class="empty">还没有密钥。上面想一个，点「生成」。</div>'; return; }
+    box.innerHTML = all.map(k => `
+      <div class="item">
+        <span class="grow"><b class="num" style="font-weight:500;letter-spacing:.08em">${Util.esc(k.code)}</b>
+          <br><span class="hint" style="display:inline;margin:0">${
+            k.used ? '已用 · ' + Util.esc(k.usedBy || '') + (k.usedAt ? ' · ' + new Date(k.usedAt).toLocaleString('zh-CN') : '')
+                   : '还没用'}</span></span>
+        ${k.used ? '' : `<button class="chip" onclick="Settings.devKeyCopy('${Util.esc(k.code)}')">复制</button>`}
+        <button class="chip ${k.used ? '' : 'chip-no'}" onclick="Settings.devKeyDel('${k.id}')">删掉</button>
+      </div>`).join('');
+  },
+
+  /* ════════ 演示账号：只有首位教务能建、能切 ════════
+     给自己排查用：想看看老师/学生/教务各自看到什么，点一下就切过去，
+     不用退出再输密码。跟主账号完全分开 —— 切走之前先把主账号的令牌存好，
+     一键就能回来（令牌本身不存密码，也不进备份）。 */
+  DEMO_PASS: 'liyun2026',
+  DEMO: [
+    { user:'演示老师',       name:'演示老师',       role:'teacher', icon:'🧑‍🏫', desc:'授课老师：今天、录入今日、我带的班、上报' },
+    { user:'演示教务',       name:'演示教务',       role:'admin',   icon:'📋', desc:'教务老师：考勤、量化、打卡管理、名册' },
+    { user:'演示教务兼老师', name:'演示教务兼老师', role:'both',    icon:'🎯', desc:'教务兼授课：两套入口合在一起' },
+    { user:'演示学生',       name:'演示学员',       role:'student', icon:'🎓', desc:'学生：打卡、请假、我的课表、我的档案' },
+  ],
+  isDemo(){ return this.DEMO.some(d => d.user === Auth.user()); },
+
+  renderDemo(){
+    const box = document.getElementById('demoList');
+    if (!box) return;
+    if (this.isDemo()){
+      box.innerHTML = `<div class="item">
+          <span class="grow">现在是演示账号「${Util.esc(Auth.name())}」
+            <br><span class="hint" style="display:inline;margin:0">看完点这里回到你自己的账号</span></span>
+          <button class="btn" onclick="Settings.demoBack()">回到我的账号</button>
+        </div>`;
+      return;
+    }
+    if (!Auth.isSuper()){ box.innerHTML = ''; return; }
+    box.innerHTML = this.DEMO.map(d => `
+      <div class="item">
+        <span class="grow"><span style="font-size:18px;margin-right:6px">${d.icon}</span>${Util.esc(d.name)}
+          <br><span class="hint" style="display:inline;margin:0">${Util.esc(d.desc)}</span></span>
+        <button class="chip" onclick="Settings.demoGo('${d.user}')">切过去</button>
+      </div>`).join('') +
+      `<div class="row" style="margin-top:12px;flex-wrap:wrap">
+        <button class="btn ghost" onclick="Settings.demoMake()">第一次用：建好这四个账号</button>
+        ${Store.getSecret('mainToken') ? '<button class="btn" onclick="Settings.demoBack()">回到我的账号</button>' : ''}
+      </div>
+      <p class="hint">演示学生挂在「演示班 · 演示学员」这条档案上，不会混进你真实的班级名单。</p>`;
+  },
+
+  async demoMake(){
+    if (!Auth.isSuper()) return UI.toast('只有首位教务能建演示账号');
+    /* 学生号必须挂在一条学员档案上，否则学生端进去什么都没有。
+       单独开一个「演示班」，不混进真实班级。 */
+    Store.upsert('classes',  { id:'cls_demo', name:'演示班' });
+    Store.upsert('students', { id:'stu_demo', name:'演示学员', classId:'cls_demo' });
+    try { await Sync.push(); } catch(e){}
+    const clsIds = Store.list('classes').map(c => c.id);
+    const list = this.DEMO.map(d => ({
+      user: d.user, pass: this.DEMO_PASS, role: d.role, name: d.name,
+      studentId: d.role === 'student' ? 'stu_demo' : '',
+    }));
+    try {
+      const j = await Auth.call('users', { op:'createMany', list, classIds: clsIds });
+      const failed = j.fail || [];
+      UI.toast(failed.length
+        ? '建好了 ' + j.n + ' 个，这几个没建成（多半是已经建过）：' + failed.map(f => f.user).join('、')
+        : '四个演示账号都建好了，现在点「切过去」就行');
+      this.renderDemo();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async demoGo(user){
+    if (!Auth.isSuper()) return;
+    /* 先把主账号的令牌存好：回来时不用再输一次密码。
+       ⚠️ 存的是令牌不是密码，令牌 60 天有效、不进备份文件。 */
+    if (!this.isDemo() && !Store.getSecret('mainToken')){
+      Store.setSecret('mainToken', Auth.token());
+      Store.setSecret('mainMe', Auth.me());
+    }
+    try {
+      const j = await Auth.call('login', { user, pass: this.DEMO_PASS });
+      Store.setSecret('token', j.token);
+      Store.setSecret('me', j.profile);
+      location.reload();                 // 整套界面按新身份重新摆，最干净
+    } catch(e){ UI.toast(e.message || '切不过去'); }
+  },
+
+  async demoBack(){
+    const t = Store.getSecret('mainToken');
+    if (!t) return UI.toast('没记住主账号的登录状态，请退出后用你自己的账号重新登录');
+    Store.setSecret('token', t);
+    const me = Store.getSecret('mainMe');
+    if (me) Store.setSecret('me', me);
+    Store.setSecret('mainToken', '');
+    Store.setSecret('mainMe', '');
+    location.reload();
   },
 
   /* ── 考勤时段：一天点几次名，就配几个 ── */
@@ -8423,18 +8714,65 @@ const StuMark = {
     try { stu = !!Auth.isStudent(); } catch(e){}
     if (!stu){ el.style.webkitMaskImage = ''; el.style.maskImage = ''; return; }
     const r = Stu.rec();
-    const who = (Auth.name() || '') + (r && r.classId ? ' · ' + Util.clsName(r.classId) : '');
+    /* 只写「班级 · 姓名」：追溯够用，字又小又疏，不碍观感 */
+    const who = (r && r.classId ? Util.clsName(r.classId) + ' · ' : '') + (Auth.name() || '');
     const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    /* 一行系统名（大字）＋一行本人姓名·班级：两条交替铺满，辨识度和可追溯性都有 */
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="136">' +
-      '<text x="6" y="42" font-size="19" fill="#fff" transform="rotate(-32 6 42)" ' +
-        'font-family="sans-serif" letter-spacing="2">砺蕴学生系统</text>' +
-      `<text x="-22" y="106" font-size="14" fill="#fff" opacity=".72" transform="rotate(-32 -22 106)" ` +
+    /* tile 放大到 320×210 —— 一块里只有一行小字，铺得很疏 */
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="210">' +
+      `<text x="18" y="88" font-size="13" fill="#fff" transform="rotate(-32 18 88)" ` +
         `font-family="sans-serif" letter-spacing="1">${esc(who || '砺蕴学生系统')}</text>` +
       '</svg>';
     const url = 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")';
     el.style.webkitMaskImage = url;
     el.style.maskImage = url;
+  }
+};
+
+
+/* ════════ 学生端：设备绑定 ════════
+   一个学生账号最多两台设备，第一台登进去的那台是「认证设备」。
+   在这两台之外登录，必须拿教务给的一次性密钥 ——
+   不然学生互相换手机帮忙打卡就防不住了（「我替你打」是打卡最大的漏洞）。
+   判定在服务端（action:'dev'），这里只负责把门摆出来：没密钥就进不去，
+   不是提示一句就放行。断网时先放过（不能因为查不了就把人挡在外面）。 */
+const StuDev = {
+  async check(){
+    if (!Auth.isStudent() || Auth.mode !== 'cloud') return true;
+    try {
+      const j = await Auth.call('dev', { dev: Stu.dev() });
+      if (j.bound || j.ok) return true;
+      this.open();
+      return false;
+    } catch(e){
+      if (e.code === 'AUTH') throw e;      // 令牌失效：交给上层重新登录
+      return true;                          // 断网 / 后端没这接口 → 不拦人
+    }
+  },
+
+  open(){
+    const g = document.getElementById('devGate');
+    if (g) g.classList.add('on');
+  },
+  close(){
+    const g = document.getElementById('devGate');
+    if (g) g.classList.remove('on');
+  },
+
+  async submit(){
+    const el = document.getElementById('devKeyIn');
+    const key = ((el && el.value) || '').trim();
+    if (!key) return UI.toast('输一下教务给的密钥');
+    const err = document.getElementById('devKeyErr');
+    try {
+      const j = await Auth.call('dev', { dev: Stu.dev(), key });
+      if (j.bound || j.ok){
+        this.close();
+        if (el) el.value = '';
+        UI.toast(j.replaced ? '登记好了（挤掉了原来那台）' : '这台设备登记好了');
+      }
+    } catch(e){
+      if (err) err.textContent = e.message || '密钥不对';
+    }
   }
 };
 
@@ -9014,7 +9352,6 @@ const StuProfile = {
             <b class="num" style="font-size:16px">${w.avg === null ? '—' : w.avg.toFixed(1)}</b>
             ${w.tier ? `<span class="tier ${w.tier.cls}">${w.tier.name}</span>` : ''}
           </div>`).join('')}
-        <p class="hint">跨所有已填齐的场次求平均，最低的那科就是最该补的。</p>
       </div>
       <div class="card">
         <h2>📋 考勤明细</h2>

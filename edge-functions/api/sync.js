@@ -876,6 +876,52 @@ export async function onRequestPost(context) {
     if (action === 'sign') return await doSign(s, me, body);
     /* 考试抽签：教务开抽存种子，各端本地算序号（见 doDraw） */
     if (action === 'draw') return await doDraw(s, me, body);
+
+    /* ── 学生设备绑定 ──
+       一个学生账号最多两台设备；第一台登进去的那台是「认证设备」。
+       在这两台之外登录，必须拿教务给的一次性密钥 —— 否则学生之间互相
+       换着打卡就没法防了（「我帮你打」是打卡最大的漏洞）。
+       判定全在服务端：前端藏按钮不算数，密钥也只在服务端核销。 */
+    if (action === 'dev') {
+      if (!me.isStudent) return json({ ok: true, skip: true });
+      const dev = String(body.dev || '').slice(0, 64);
+      if (!dev) return json({ error: '拿不到这台设备的标识' }, 400);
+      const map = (await s.get(`devmap/${me.id}`, { type: 'json' })) || { devs: [] };
+      if (!Array.isArray(map.devs)) map.devs = [];
+      if (map.devs.indexOf(dev) >= 0) {
+        return json({ ok: true, bound: true, mine: true, devs: map.devs.length });
+      }
+      /* 第一次登录的那台就是「认证设备」，直接登记，不用密钥 ——
+         否则新账号第一次登录就被自己的门挡住，谁也进不去。 */
+      if (!map.devs.length) {
+        map.devs = [dev]; map.first = dev;
+        await s.setJSON(`devmap/${me.id}`, map);
+        return json({ ok: true, bound: true, first: true, devs: 1 });
+      }
+      const key = String(body.key || '').trim();
+      if (!key) {
+        /* 没给密钥：告诉前端「这台没登记」—— 但只说个数，不说别的设备是什么 */
+        return json({ ok: false, needKey: true, devs: map.devs.length });
+      }
+      const d = (await s.get('org/data', { type: 'json' })) || {};
+      const keys = Array.isArray(d.dev_keys) ? d.dev_keys : [];
+      const hit = keys.find(k => k && String(k.code || '').trim() === key && !k.used);
+      if (!hit) return json({ error: '密钥不对，或者已经被用过了' }, 403);
+      hit.used = true; hit.usedBy = me.name || me.user || ''; hit.usedAt = Date.now();
+      /* ⚠️ 这一下必须改 _u：教务那边本地也存着同一条（还没用），
+         不改时间戳的话合并时两边 _u 一样，教务刷新后仍然看到「还没用」，
+         还以为密钥能再用一次。 */
+      hit._u = Date.now();
+      d.dev_keys = keys;
+      await s.setJSON('org/data', d);
+      /* 最多两台：满了就挤掉后来那台（第一台是认证设备，永远留着） */
+      let replaced = false;
+      if (map.devs.length >= 2){ map.devs = [map.devs[0], dev]; replaced = true; }
+      else map.devs.push(dev);
+      if (!map.first) map.first = dev;
+      await s.setJSON(`devmap/${me.id}`, map);
+      return json({ ok: true, bound: true, replaced, devs: map.devs.length });
+    }
     /* 教务屏幕上要显示的动态码：教务自己设了就用那个（fixed:true，不会自己变），
        没设就退回每 60 秒换一个的派生码。码不下发给学生端。 */
     if (action === 'code') {

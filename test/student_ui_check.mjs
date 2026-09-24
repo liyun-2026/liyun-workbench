@@ -177,8 +177,10 @@ try {
     };
   })()`);
   ok(who.stuSkin, '学生端换了另一套皮（body.stu 生效，教务老师端不受影响）');
-  ok(/砺蕴学生系统/.test(decodeURIComponent(who.wm || '')), '整页水印按本人生成，含系统名');
   ok(/测试学员甲/.test(decodeURIComponent(who.wm || '')), '水印里有本人姓名（截图能查到是谁）');
+  ok(!/砺蕴学生系统/.test(decodeURIComponent(who.wm || '')), '水印只写「班级·姓名」，不再堆系统名（不碍观感）');
+  ok(/font-size="1[0-3]"/.test(decodeURIComponent(who.wm || '')), '水印字号够小（≤13px）');
+  ok(/width="320"/.test(decodeURIComponent(who.wm || '')), '水印铺得疏（一块 320×210 才一行字）');
   ok(who.accent && who.accent !== '#26241f', '学生端主色跟教务端不同（--accent=' + who.accent + '）');
   ok(who.role === 'student', '学生身份正确（role=' + who.role + '）');
   ok(who.sid === 'ss1', '账号挂在正确的学员档案上（studentId=' + who.sid + '）');
