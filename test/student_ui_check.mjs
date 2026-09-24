@@ -128,10 +128,13 @@ try {
     Store.upsert('periods', { id: 'p1', name: '第1节', start: '08:00', end: '09:40' });
     Store.upsert('schedule', { id: 'sch1', day: '${['周一','周二','周三','周四','周五','周六','周日'][(new Date().getDay()+6)%7]}',
       periodId: 'p1', title: '播音大课', cls: '播音一班', kind: 'big', room: '301' });
-    /* 打卡设置：上课时间就按「现在」算，宽限 2 分钟 —— 学生马上打就是正常 */
+    /* 打卡设置：上课时间按「现在」算，零宽限（到点就迟到）—— 学生马上打就是正常。
+       校区坐标就采集在 34.75/113.62，学生端 mock 定位到同一个点，距离 0 米。
+       打卡码由教务自设（8866），不再每 60 秒换。 */
     const d = new Date(Date.now() + 8 * 3600e3);
     const hm = String(d.getUTCHours()).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
-    Store.set('sign_rules', { startAt: hm, lateAfter: 2, windowBefore: 60, windowAfter: 30, radius: 150, pid: 'am' });
+    Store.set('sign_rules', { startAt: hm, lateAfter: 0, windowBefore: 60, windowAfter: 30,
+      radius: 150, pid: 'am', lat: 34.75, lng: 113.62, code: '8866' });
     Store.upsert('notices', { date: Util.today(), text: '明天带练声材料', by: '教务', at: Date.now() });
     await Sync.push();
     return { hm };
@@ -195,35 +198,62 @@ try {
   ok(badPages.length === 0, '十个页面全部渲染出内容' +
     (badPages.length ? ' —— 有问题的是：' + JSON.stringify(badPages) : ''));
 
-  console.log('\n【4/6】打卡：教务屏幕上的动态码 → 学生输码打卡…');
+  console.log('\n【4/6】打卡：两步（先定位 → 再输教务自设的码）…');
   const code = await A.eval(`(async () => {
     App.go('sign');
     await Sign.refreshCode();
-    return Sign._code;
+    return { code: Sign._code, fixed: Sign._fixed,
+             input: (document.getElementById('sgCode') || {}).value || '' };
   })()`);
-  ok(/^\d{6}$/.test(code || ''), '教务端拿到 6 位动态码（' + code + '）');
+  ok(code.code === '8866', '教务端显示的是自己设的那个码（' + code.code + '）');
+  ok(code.fixed === true, '标记为固定码，不会自己变');
+  ok(code.input === '8866', '打卡码输入框回填了当前码');
 
+  /* 学生端：真走两步 —— 点「📍 打卡」先定位（这里 mock 成校区坐标），
+     定位完才出现码输入框，填码再确认。 */
   const signed = await B.eval(`(async () => {
+    navigator.geolocation.getCurrentPosition = (ok) =>
+      ok({ coords: { latitude: 34.75, longitude: 113.62, accuracy: 8 } });
     App.go('stuSign');
     await new Promise(r => setTimeout(r, 300));
-    document.getElementById('stuCode').value = '${code}';
-    await StuSign.send('code');
+    const firstBtn = (document.querySelector('#stuSignStep .btn') || {}).textContent || '';
+    StuSign.start();
+    await new Promise(r => setTimeout(r, 300));
+    const hasInput = !!document.getElementById('stuCode');
+    document.getElementById('stuCode').value = '${'8866'}';
+    await StuSign.confirm();
     await new Promise(r => setTimeout(r, 2000));
     const s = Stu.signOf(Util.today());
-    return { s, txt: (document.getElementById('stuSignNow') || {}).textContent || '' };
+    return { firstBtn, hasInput, s, txt: (document.getElementById('stuSignNow') || {}).textContent || '' };
   })()`);
+  ok(/打卡/.test(signed.firstBtn), '第一步只有一个「打卡」按钮（' + signed.firstBtn + '）');
+  ok(signed.hasInput, '定位完成后才出现码输入框（两步，不是一次给全）');
   ok(!!signed.s, '学生打卡成功，本机拿到记录');
   ok(signed.s && signed.s.status === '正常', '判定为「正常」（' + (signed.s && signed.s.status) + '）');
   ok(signed.s && signed.s.way === 'code', '打卡方式是动态码（' + (signed.s && signed.s.way) + '）');
+  ok(signed.s && signed.s.dist === 0, '距离算出来了（' + (signed.s && signed.s.dist) + ' 米）');
   ok(/正常/.test(signed.txt), '打卡页把结果显示出来了');
 
   const bad = await B.eval(`(async () => {
+    App.go('stuSign');
+    await new Promise(r => setTimeout(r, 300));
+    StuSign.start();
+    await new Promise(r => setTimeout(r, 300));
     document.getElementById('stuCode').value = '000000';
-    await StuSign.send('code');
+    await StuSign.confirm();
     await new Promise(r => setTimeout(r, 800));
     return { toast: (document.getElementById('toast') || {}).textContent || '' };
   })()`);
   ok(/动态码不对/.test(bad.toast), '错误码打不上：' + bad.toast);
+
+  /* 老师端只看结果：动态码卡已经撤掉 */
+  const tdom = await B.eval(`JSON.stringify({
+    oldCode: !!document.getElementById('tdCodeBox'),
+    att: !!document.getElementById('tdAtt'),
+  })`);
+  const td = JSON.parse(tdom);
+  ok(!td.oldCode, '老师端「今天」页的打卡码卡已撤掉（考勤是教务的事）');
+  ok(td.att, '换成只读的「今天谁到了」');
 
   console.log('\n【5/6】教务看到这一条，并改判…');
   const seen = await A.eval(`(async () => {

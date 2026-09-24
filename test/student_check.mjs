@@ -58,8 +58,9 @@ async function setRules(r) {
   if (r === null) delete data.sign_rules; else data.sign_rules = r;
   await s.setJSON('org/data', data);
 }
+/* 零宽限：lateAfter = 0，到点就迟到（教务那边的默认也是 0） */
 const RULES_OK = (startOff) => ({
-  startAt: cnHM(startOff), lateAfter: 2, windowBefore: 60, windowAfter: 30,
+  startAt: cnHM(startOff), lateAfter: 0, windowBefore: 60, windowAfter: 30,
   radius: 150, lat: 34.75, lng: 113.62, pid: 'am',
 });
 
@@ -287,7 +288,22 @@ await ta('迟到：按服务端时间算，跟学生手机几点无关', async (
   ok(r.lateMin >= 28, '迟到分钟数应该算出来（实际 ' + r.lateMin + '）');
 });
 
+await ta('零宽限：只晚 1 分钟也算迟到（不是「宽限内」）', async () => {
+  await setRules(RULES_OK(-1));
+  const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.status, '迟到', '晚一分钟就是迟到（实际 ' + r.status + '，' + r.lateMin + ' 分钟）');
+  ok(r.lateMin >= 1, '迟到分钟数应该 >= 1');
+});
+
+await ta('零宽限：正好在点上不算迟到', async () => {
+  await setRules(RULES_OK(10));    // 上课在 10 分钟后，现在打就是提前到
+  const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.status, '正常', '提前到不该算迟到（实际 ' + r.status + '）');
+});
+
 await ta('迟到自动进量化：班级流水里出现扣分', async () => {
+  await setRules(RULES_OK(-30));
+  await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 34.75, lng: 113.62 });
   const raw = await s.get('org/data', { type: 'json' });
   const logs = (raw.quant_log || []).filter(x => x._src === 'att' && x.clsId === clsId);
   ok(logs.some(x => x.delta < 0), '应该有考勤生成的扣分');
@@ -318,8 +334,8 @@ await ta('动态码：码不对打不上', async () => {
 await ta('动态码：教务取到码，学生用它能打上', async () => {
   await setRules(RULES_OK(0));
   const c = await must({ action: 'code', token: su.token });
-  ok(/^\d{6}$/.test(c.code), '码应该是 6 位数字');
-  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
+  ok(/^\d{6}$/.test(c.code), '没设固定码时退回 6 位派生码');
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 34.75, lng: 113.62 });
   eq(r.way, 'code');
   ok(r.status !== undefined, '应该给出判定');
 });
@@ -327,6 +343,35 @@ await ta('动态码：教务取到码，学生用它能打上', async () => {
 await ta('学生拿不到动态码（码只对教务/老师有意义）', async () => {
   const r = await call({ action: 'code', token: s1.token });
   eq(r.status, 403);
+});
+
+await ta('教务自设打卡码：固定码，不会自己变', async () => {
+  await setRules(Object.assign(RULES_OK(0), { code: '8866' }));
+  const c = await must({ action: 'code', token: su.token });
+  eq(c.code, '8866', '返回的就是教务设的那个');
+  eq(c.fixed, true, '要标出来这是固定码（前端据此不再倒计时）');
+  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.way, 'code');
+  const bad = await call({ action: 'sign', token: s1.token, code: '000000', dev: 'devA' });
+  ok(bad.body.error, '码不对要直接打回，不记这一笔');
+});
+
+await ta('关掉定位只用码：判定不了人在不在教室 → 待核', async () => {
+  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA' });
+  eq(r.status, '待核', '教务配了校区坐标却没给位置，交教务核对（实际 ' + r.status + '）');
+});
+
+await ta('码被传到校外也没用：人在范围外 → 待核', async () => {
+  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA', lat: 35.5, lng: 114.5 });
+  eq(r.status, '待核', '定位这一关过不了，码对了也只能是待核');
+  eq(r.wrote, null, '不该替教务扣分');
+});
+
+await ta('打卡码不下发给学生（学生端拿不到 sign_rules.code）', async () => {
+  const j = await must({ action: 'pull', token: s1.token });
+  eq(j.shared.sign_rules.code, undefined, 'code 属于教务，不下发');
+  eq(j.shared.sign_rules.lat, undefined, '校区坐标也不下发');
+  ok(j.shared.sign_rules.startAt, '时间规则要下发，学生才知道几点上课');
 });
 
 await ta('请过假的那天，打卡不覆盖假条', async () => {
@@ -338,6 +383,34 @@ await ta('请过假的那天，打卡不覆盖假条', async () => {
   eq(r.wrote, 'leave', '假条优先，不该被打卡覆盖（实际 ' + r.wrote + '）');
   const raw = await s.get('org/data', { type: 'json' });
   eq(raw['att:' + date].find(x => x.studentId === sid1).status, '事假');
+});
+
+console.log('\n=== 四之二、断网打卡（按「按下那一刻」判迟到）===');
+
+await ta('断网但按时按下的，补传上来算正常（不冤枉人）', async () => {
+  await setRules(RULES_OK(5));
+  const at = Date.now() - 60000;          // 一分钟前按的，那时还没上课
+  const r = await must({ action: 'sign', token: s1.token, at, offline: true, dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.status, '正常', '他确实按时按了（实际 ' + r.status + '）');
+  ok(Math.abs(r.at - at) < 2000, '记录的时刻应该是他按下的那一刻');
+  ok(r.offline === true, '要标成断网补传，教务一眼看得出');
+});
+
+await ta('断网且迟到的，补传上来照样算迟到', async () => {
+  await setRules(RULES_OK(-30));
+  const at = Date.now() - 25 * 60000;     // 25 分钟前按的，那时已上课 5 分钟
+  const r = await must({ action: 'sign', token: s1.token, at, offline: true, dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.status, '迟到', '按按下那一刻算（实际 ' + r.status + '）');
+  const raw = await s.get('org/data', { type: 'json' });
+  const rec = (raw['sign:' + r.date] || []).find(x => x.studentId === sid1);
+  ok(rec && rec.offline === true && rec.recvAt, '服务端要同时记下「按下的时刻」和「补传的时刻」');
+});
+
+await ta('把手机时间调到未来也没用：超过现在 2 分钟按现在算', async () => {
+  await setRules(RULES_OK(-10));
+  const r = await must({ action: 'sign', token: s1.token, at: Date.now() + 30 * 60000, offline: true, dev: 'devA', lat: 34.75, lng: 113.62 });
+  ok(r.at <= Date.now() + 1000, '未来的时间被拉回现在（实际差 ' + (r.at - Date.now()) + 'ms）');
+  eq(r.status, '迟到', '照样判迟到');
 });
 
 console.log('\n=== 五、抽签 ===');

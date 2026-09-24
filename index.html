@@ -839,6 +839,7 @@ window.__splashT0 = performance.now();</script>
           <button class="btn" onclick="Roster.genAccounts()">为这个班建账号</button>
         </div>
         <p class="hint" id="rsStat">建完把「网址 + 用户名 + 初始密码」发给学生。学生登录后自动进学生端，看不到教务那一摊。</p>
+        <div id="rsMsgBox" style="display:none;margin-top:10px"></div>
       </div>
       <!-- ==== 功能：学生账号 END ==== -->
 
@@ -1502,9 +1503,12 @@ window.__splashT0 = performance.now();</script>
         <div id="tdNotice"></div>
       </div>
       <div class="card wide">
-        <h2>🔢 打卡动态码</h2>
-        <div id="tdCodeBox"></div>
-        <p class="hint">让学生把这个 6 位数输进他的打卡页。每 60 秒自动换一个 —— 学生算不出下一个，所以人在宿舍让同学代打这条路是堵住的。</p>
+        <h2>👀 今天谁到了 <span class="hint" id="tdAttMeta" style="display:inline;margin:0"></span></h2>
+        <div class="row" style="flex-wrap:wrap">
+          <select id="tdAttCls" onchange="Today.pickAttCls(this.value)" style="max-width:190px"></select>
+        </div>
+        <div id="tdAtt" style="margin-top:10px"></div>
+        <p class="hint">这是教务那边的考勤结果，<b>只看不改</b>。要改、要补签都归教务，老师这边不用管。</p>
       </div>
       <div class="card wide">
         <h2>📍 我今天要上的课</h2>
@@ -1629,18 +1633,10 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生打卡 START ==== -->
     <section class="page" id="page-stuSign">
       <div class="page-title">打卡</div>
-      <div class="page-sub">到教室点一下，一秒出结果 · 时间以服务器为准，改手机时间没用</div>
+      <div class="page-sub">两步：先定位、再输讲台上那个码 · 时间以服务器为准，改手机时间没用</div>
       <div class="card wide">
         <div id="stuSignNow"></div>
-      </div>
-      <div class="card wide">
-        <h2>🔢 老师屏幕上的动态码</h2>
-        <p class="hint" style="margin:0 0 8px">老师在教室时，看他屏幕上那个 6 位数，输进来点打卡。没有老师在场就直接点「定位打卡」。</p>
-        <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="stuCode" inputmode="numeric" maxlength="6" placeholder="6 位动态码" style="max-width:180px">
-          <button class="btn" onclick="StuSign.send('code')">用动态码打卡</button>
-          <button class="btn ghost" onclick="StuSign.send('geo')">定位打卡</button>
-        </div>
+        <div id="stuSignStep" style="margin-top:12px"></div>
         <p class="hint" id="stuSignHint"></p>
       </div>
       <div class="card wide">
@@ -1753,9 +1749,15 @@ window.__splashT0 = performance.now();</script>
       <div class="page-title">打卡</div>
       <div class="page-sub">学生打卡的收口：动态码、规则、今天谁打了、谁有问题</div>
       <div class="card wide">
-        <h2>🔢 当前动态码 <span class="hint" id="signCodeMeta" style="display:inline;margin:0"></span></h2>
-        <div id="signCodeBox"></div>
-        <p class="hint">每 60 秒自动换一个。学生看不到这个码是怎么来的，只能照着输 —— 人在宿舍让同学代打这条路靠它堵住。</p>
+        <h2>🔢 打卡码 <span class="hint" id="signCodeMeta" style="display:inline;margin:0"></span></h2>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="sgCode" placeholder="自己设一个，如 8866 或 A7" style="max-width:220px">
+          <button class="btn" onclick="Sign.saveCode()">保存</button>
+          <button class="btn ghost" onclick="Sign.randCode()">随机一个</button>
+        </div>
+        <div id="signCodeBox" style="margin-top:10px"></div>
+        <p class="hint">这个码<b>不会自己变</b>，您想换就换（比如一节课换一个）。学生看不到它是从哪来的，只能照着输。
+          学生打卡是「先定位、再输码」两步：码就算被传到校外，人不在校区也打不成，会标「需核对」。</p>
       </div>
       <div class="card wide">
         <h2>⚙️ 打卡设置</h2>
@@ -1764,7 +1766,7 @@ window.__splashT0 = performance.now();</script>
           <input type="time" id="sgStart" onchange="Sign.saveRules()" style="max-width:150px">
           <span class="hint" style="margin:0">宽限</span>
           <input type="number" id="sgLate" min="0" max="60" onchange="Sign.saveRules()" style="max-width:88px">
-          <span class="hint" style="margin:0">分钟</span>
+          <span class="hint" style="margin:0">分钟（<b>0 = 到点就迟到</b>，一分钟都不给）</span>
         </div>
         <div class="row" style="flex-wrap:wrap;margin-top:8px">
           <span class="hint" style="margin:0;min-width:76px">打卡时段</span>
@@ -3356,15 +3358,67 @@ const Roster = {
       const msg = `建好了 ${r.n} 个账号。` +
         (r.fail && r.fail.length ? ` 没建成 ${r.fail.length} 个：${r.fail.map(f => f.user + '（' + f.err + '）').join('、')}` : '') +
         (skip.length ? ` 跳过 ${skip.length} 个：${skip.join('、')}` : '');
-      if (stat) stat.innerHTML = msg + '<br>把「网址 + 用户名 + 初始密码」发给学生，让他们加到手机桌面更好用。';
+      if (stat) stat.innerHTML = msg + '<br>下面两段话可以直接复制发给学生。';
       UI.toast('建好了 ' + r.n + ' 个学生账号');
-      /* 把账号清单摆出来，方便直接复制发给班主任群 */
       const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
-      if (ok.length) console.info('学生账号：\n' + ok.map(x => x.user + '　' + pass).join('\n'));
+      this._pass = pass;
+      this.renderMsg(ok);
     } catch(e){
       if (stat) stat.textContent = '建号失败：' + e.message;
       UI.toast(e.message);
     }
+  },
+
+  /* ── 建完号，直接把「发给学生的两段话」摆出来 ──
+     一段发群里（欢迎 + 网址 + 密码 + 怎么加到桌面），一段是用户名清单（私发本人）。 */
+  here(){ return location.origin || 'https://liyun2026.top'; },
+
+  renderMsg(list){
+    const box = document.getElementById('rsMsgBox');
+    if (!box || !list.length) return;
+    this._ok = list;
+    box.style.display = '';
+    box.innerHTML = `
+      <p class="hint" style="margin:0 0 6px">发给学生的两段话，点按钮复制。</p>
+      <textarea id="rsMsg" style="min-height:300px"></textarea>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <button class="btn" onclick="Roster.msg('all')">📋 复制欢迎语（发群里）</button>
+        <button class="btn ghost" onclick="Roster.msg('names')">👤 复制用户名清单（单独发给本人）</button>
+      </div>`;
+    this.msg('all', true);
+  },
+
+  msg(kind, silent){
+    const ta = document.getElementById('rsMsg');
+    if (!ta) return '';
+    const pass = this._pass || 'liyun2026';
+    const url = this.here();
+    let txt = '';
+    if (kind === 'names'){
+      txt = (this._ok || []).map(x => x.user).join('\n');
+    } else {
+      txt = `哈喽，乖～ 欢迎加入博艺大家庭！
+
+这是属于你自己的学生系统，以后这几件事都在里面，打开就能看到今天该干什么：
+· 上课前打卡（到教室点一下就行）
+· 请假直接在这儿说一声
+· 今天上什么课、在哪间教室、留了什么作业
+· 每日新闻、考试出场顺序、自己的考勤记录
+
+网址　${url}
+用户名　你的名字（比如你叫张小明，就填「张小明」）
+初始密码　${pass}
+
+把它加到手机桌面（加完跟 App 一样，点一下就开，不用每次输网址）：
+· iPhone（必须用 Safari 打开）：点底部中间的「分享」→ 往下滑找到「添加到主屏幕」→ 右上角「添加」
+· 安卓（用浏览器打开）：点右上角「⋮」→「添加到主屏幕」或「安装应用」
+
+进去之后先到「设置」把密码改成自己的，别告诉别人哈。
+有不会的随时问我，加油！`;
+    }
+    ta.value = txt;
+    if (!silent){ Util.copy(txt); UI.toast(kind === 'names' ? '用户名清单已复制' : '欢迎语已复制，去微信粘贴'); }
+    return txt;
   }
 };
 /* ==== 功能：名册 END ==== */
@@ -6871,8 +6925,56 @@ const Today = {
       : '<div class="empty">教务还没有给你排课</div>';
 
     News.render('tNewsBody', 'tNewsMeta');
-    /* 老师在教室时屏幕上的动态码。已经有一个在跑就不重启，避免每秒两处互相打断 */
-    if (typeof Sign !== 'undefined'){ if (!Sign._timer) Sign.startCode(); else Sign.paintCode(); }
+    /* 老师只看考勤结果（只读）。打卡/动态码那套是教务的事，不在老师这边出现 */
+    this.renderAtt();
+  },
+
+  /* ── 今天谁到了：只读教务写好的考勤 ──
+     老师上课没工夫点名，所以要的是「一眼扫完」：
+     先给四个数，再把**没到的和迟到的**名字列出来（正常的不占版面）。 */
+  pickAttCls(v){ Store.set('_tdAttCls', v); this.renderAtt(); },
+
+  renderAtt(){
+    const box = document.getElementById('tdAtt');
+    if (!box) return;
+    const mine = Auth.classIds();
+    let classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    if (!Auth.isStaff()) classes = classes.filter(c => mine.indexOf(c.id) >= 0);
+    const sel = document.getElementById('tdAttCls');
+    let clsId = Store.get('_tdAttCls');
+    if (!classes.some(c => c.id === clsId)) clsId = classes[0] ? classes[0].id : '';
+    if (clsId && clsId !== Store.get('_tdAttCls')) Store.set('_tdAttCls', clsId);
+    if (sel) sel.innerHTML = classes.length
+      ? classes.map(c => `<option value="${c.id}" ${c.id === clsId ? 'selected' : ''}>${Util.esc(c.name)}</option>`).join('')
+      : '<option value="">教务还没给你分班</option>';
+
+    const meta = document.getElementById('tdAttMeta');
+    if (!clsId){
+      box.innerHTML = '<div class="empty">教务还没给你分配班级</div>';
+      if (meta) meta.textContent = '';
+      return;
+    }
+    const date = Util.today();
+    const w = (typeof Att !== 'undefined' && Att.worst) ? Att.worst(date) : {};
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    const n = { '正常':0, '迟到':0, '病假':0, '事假':0, '未打卡':0 };
+    const late = [], absent = [], leave = [];
+    students.forEach(s => {
+      const st = w[s.id] || '未打卡';
+      if (n[st] === undefined) n['未打卡']++; else n[st]++;
+      if (st === '迟到') late.push(s.name);
+      else if (st === '病假' || st === '事假') leave.push(s.name + '（' + st + '）');
+      else if (st === '未打卡') absent.push(s.name);
+    });
+    if (meta) meta.textContent = `已到 ${n['正常']}/${students.length} 人 · 迟到 ${n['迟到']} · 请假 ${n['病假'] + n['事假']} · 没打卡 ${n['未打卡']}`;
+
+    const line = (t, arr, cls) => arr.length
+      ? `<p class="hint" style="margin:10px 0 2px">${t}（${arr.length}）</p>
+         <div class="row" style="flex-wrap:wrap;gap:6px">${arr.map(x =>
+           `<span class="chip ${cls}" style="pointer-events:none">${Util.esc(x)}</span>`).join('')}</div>`
+      : '';
+    const body = line('没打卡', absent, '') + line('迟到', late, 'chip-no') + line('请假', leave, 'chip-on');
+    box.innerHTML = body || '<div class="empty">全班都到了 👏</div>';
   }
 };
 /* ==== 功能：老师今天 END ==== */
@@ -8086,7 +8188,7 @@ const StuHome = {
             <div class="hero" style="font-size:30px">${Stu.statusText(s)}</div>
             ${Stu.statusChip(s)}
           </div>
-          <p class="hint">打卡时间 ${new Date(s.at).toLocaleTimeString('zh-CN')} ·
+          <p class="hint">打卡时间 ${new Date(s.at).toLocaleTimeString('zh-CN')}${s.offline ? '（当时没网，联网后补传）' : ''} ·
             方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}</p>
           <div class="row" style="margin-top:10px">
             <button class="btn ghost" onclick="App.go('stuSign')">重新打卡 / 看记录</button>
@@ -8137,13 +8239,16 @@ const StuHome = {
 
 
 /* ══════════ 学生端：打卡 ══════════
-   判定全在服务端：时间用服务器的钟，距离用服务器算。
-   断网时先记在本机队列里，联网后自动补传 —— 但补传一律按服务器收到的时间判定，
-   所以「故意断网逃避迟到」这条路是堵死的（断网只会更不利）。 */
+   判定全在服务端：迟到的那一分钟用啥时间算，服务端说了算。
+   断网时学生按下打卡的那一刻记在本机队列里，联网补传时把「那一刻」一起带上去，
+   **就按那一刻判迟到** —— 断网不该让人白打（他确实按时按了），
+   改手机时间也没用（本机时钟是拿服务端时间校过的，报未来会被服务端拉回现在）。 */
 const StuSign = {
+  _geo: null,        // 本次定位结果：{lat,lng,acc} 或 {fail:true}
+  _busy: false,
+
   render(){
     const box = document.getElementById('stuSignNow');
-    const d = Util.today();
     if (box){
       const g = Stu.gate();
       if (!g.ok){
@@ -8155,23 +8260,98 @@ const StuSign = {
             <div class="hero" style="font-size:34px">${Stu.statusText(s)}</div>
             ${Stu.statusChip(s)}
           </div>
-          <p class="hint">${new Date(s.at).toLocaleTimeString('zh-CN')} 打卡 ·
+          <p class="hint">${this.hm(s.at)} 打卡${s.offline ? '（当时没网，' + this.hm(s.recvAt || s.at) + ' 补传上来）' : ''} ·
             方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}
             ${s.dist != null ? ' · 距校区 ' + s.dist + ' 米' : ''}</p>`;
       } else {
         box.innerHTML = `<div class="hero" style="font-size:26px">还没打卡</div>
-          <p class="hint">下面是今天的打卡方式。</p>`;
+          <p class="hint">到教室后点下面那个按钮，两步就完事。</p>`;
       }
     }
     const hint = document.getElementById('stuSignHint');
     if (hint){
       const q = this.queue();
       hint.textContent = q.length
-        ? `有 ${q.length} 次打卡没传上去（断网时记的），联网后会自动提交，按服务器收到的时间判定。`
+        ? `有 ${q.length} 次打卡没传上去（断网时记的，时间是当时按下的那一刻）。联网后会自动提交，按那个时间算迟到。`
         : '';
     }
+    this.renderStep();
     this.renderList();
     this.flush();
+  },
+
+  hm(ts){ return new Date(ts).toLocaleTimeString('zh-CN'); },
+
+  /* ── 两步打卡：① 定位 ② 输码 ──
+     位置是「人在不在教室」的证据，码是「这次打卡是不是这节课」的证据。
+     两样都要，所以先取位置、再要码 —— 少一步都会被教务那边标成「需核对」。 */
+  renderStep(){
+    const el = document.getElementById('stuSignStep');
+    if (!el) return;
+    const g = Stu.gate();
+    if (!g.ok){ el.innerHTML = ''; return; }
+    if (this._geo && this._geo.lat != null){
+      el.innerHTML = `
+        <p class="hint" style="margin:0 0 8px">✅ 已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''}
+          —— 再输一下讲台上那个码就打上了。</p>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="stuCode" inputmode="numeric" placeholder="讲台上/老师给的码" style="max-width:200px">
+          <button class="btn" onclick="StuSign.confirm()">确认打卡</button>
+          <button class="btn ghost" onclick="StuSign.reset()">重定位</button>
+        </div>`;
+      const inp = document.getElementById('stuCode');
+      if (inp) inp.focus();
+      return;
+    }
+    if (this._geo && this._geo.fail){
+      el.innerHTML = `
+        <p class="hint" style="margin:0 0 8px">⚠️ 没取到位置（要在系统浏览器里允许定位）。
+          可以先打卡，但教务那边会标「需核对」，请下课后跟老师说一声。</p>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="stuCode" inputmode="numeric" placeholder="讲台上/老师给的码" style="max-width:200px">
+          <button class="btn" onclick="StuSign.confirm()">确认打卡</button>
+          <button class="btn ghost" onclick="StuSign.start()">再试一次定位</button>
+        </div>`;
+      return;
+    }
+    el.innerHTML = `
+      <button class="btn" style="font-size:17px;padding:11px 20px" onclick="StuSign.start()">📍 打卡</button>
+      <p class="hint" style="margin:8px 0 0">点了先定位，定位完再让你输码。到教室再点。</p>`;
+  },
+
+  reset(){ this._geo = null; this.renderStep(); },
+
+  start(){
+    if (this._busy) return;
+    if (!navigator.geolocation){
+      this._geo = { fail: true }; this.renderStep();
+      return UI.toast('这个浏览器不支持定位，直接输码也能打（会标需核对）');
+    }
+    this._busy = true;
+    UI.toast('正在定位…');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        this._busy = false;
+        this._geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
+        this.renderStep();
+      },
+      () => {
+        this._busy = false;
+        this._geo = { fail: true };
+        UI.toast('取不到位置，直接输码也能打（会标需核对）');
+        this.renderStep();
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  },
+
+  confirm(){
+    const el = document.getElementById('stuCode');
+    const code = (el && el.value || '').trim();
+    if (!code) return UI.toast('输一下讲台上那个码');
+    const p = { code };
+    if (this._geo && this._geo.lat != null){ p.lat = this._geo.lat; p.lng = this._geo.lng; p.acc = this._geo.acc; }
+    this.doSign(p);
   },
 
   renderList(){
@@ -8201,39 +8381,30 @@ const StuSign = {
   queue(){ const q = Store.get('_signQueue'); return Array.isArray(q) ? q : []; },
   _saveQ(q){ Store.set('_signQueue', q); },
 
-  send(way){
-    if (!Auth.isStudent()) return UI.toast('这个账号不是学生');
-    if (way === 'code'){
-      const code = (document.getElementById('stuCode').value || '').trim();
-      if (!/^\d{6}$/.test(code)) return UI.toast('老师屏幕上那个码是 6 位数字');
-      return this.doSign({ code });
-    }
-    if (!navigator.geolocation) return UI.toast('这个浏览器不支持定位，请用动态码打卡');
-    UI.toast('正在取位置…');
-    navigator.geolocation.getCurrentPosition(
-      pos => this.doSign({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }),
-      () => UI.toast('取不到位置（需要在系统浏览器里允许定位）。用动态码打卡，或找教务补签'),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-    );
-  },
-
   async doSign(p){
+    if (!Auth.isStudent()) return UI.toast('这个账号不是学生');
+    /* 打卡时刻 = 现在（本机时钟已用服务端时间校过）。
+       断网时这一刻会被存进队列，联网补传时原样带上去，迟到就按它算。 */
+    const payload = Object.assign({ dev: Stu.dev() }, p);
+    if (payload.at == null) payload.at = this.now();
     try {
-      const j = await Auth.call('sign', Object.assign({ dev: Stu.dev() }, p));
+      const j = await Auth.call('sign', payload);
       this.syncClock(j.serverNow);
-      UI.toast(j.status === '迟到' ? `打上了，迟到 ${j.lateMin} 分钟`
+      UI.toast(j.status === '迟到' ? `打上了，${this.hm(payload.at)} · 迟到 ${j.lateMin} 分钟`
              : j.status === '待核' ? '已记录，等教务核对（这不算缺卡）'
-             : '打上了，正常');
+             : `打上了，${this.hm(payload.at)} · 正常`);
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来
+      this._geo = null;
       const el = document.getElementById('stuCode'); if (el) el.value = '';
       this.render();
       StuHome.render();
     } catch(e){
       if (e.code === 'OFFLINE'){
         const q = this.queue();
-        q.push(Object.assign({ dev: Stu.dev(), at: Date.now() }, p));
+        q.push(Object.assign(payload, { offline: true }));
         this._saveQ(q.slice(-7));
-        UI.toast('现在没网，已记在本机，联网后自动提交（按服务器收到的时间判定）');
+        this._geo = null;
+        UI.toast('现在没网，已记下打卡时间 ' + this.hm(payload.at) + '，联网后自动提交（就按这个时间算迟到）');
         this.render();
       } else UI.toast(e.message);
     }
@@ -8251,8 +8422,9 @@ const StuSign = {
       } catch(e){ return; }        // 还连不上，下次再试
     }
     await Sync.pull();
-    UI.toast('断网时记的打卡已补传');
+    UI.toast('断网时记的打卡已补传（按当时按下的时间算的）');
     this.render();
+    StuHome.render();
   },
 
   /** 用服务端时间校正本地时钟偏差：学生看到的钟和办公室的钟是同一个 */
@@ -8556,8 +8728,9 @@ const StuHw = {
    所以「人在宿舍让同学代打」这条路堵在这里。
    ══════════════════════════════════════════════════════════════════ */
 const Sign = {
-  DEF: { startAt:'08:30', lateAfter:2, windowBefore:60, windowAfter:30, radius:150, pid:'' },
-  _code: '', _at: 0, _left: 0, _timer: null,
+  /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
+  DEF: { startAt:'08:30', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'' },
+  _code: '', _fixed: false, _timer: null,
 
   rules(){
     const r = Store.get('sign_rules');
@@ -8581,9 +8754,10 @@ const Sign = {
     const el = document.getElementById('sgStat');
     if (!el) return;
     const r = this.rules();
+    const lateTxt = Number(r.lateAfter) > 0 ? `宽限 ${r.lateAfter} 分钟` : '零宽限（到点就迟到）';
     el.textContent = r.lat != null
-      ? `校区已采集：${r.lat.toFixed(5)}, ${r.lng.toFixed(5)} · 半径 ${r.radius} 米 · 上课 ${r.startAt}（宽限 ${r.lateAfter} 分钟）`
-      : '还没有采集校区位置。不采集也能用：学生用动态码打卡，定位那条路会一直显示「待核」。';
+      ? `校区已采集：${r.lat.toFixed(5)}, ${r.lng.toFixed(5)} · 半径 ${r.radius} 米 · 上课 ${r.startAt} · ${lateTxt}`
+      : `还没有采集校区位置。不采集也能打卡，但学生定位那条路会一直标「需核对」。上课 ${r.startAt} · ${lateTxt}`;
   },
 
   pickHere(){
@@ -8608,43 +8782,50 @@ const Sign = {
     this.stat();
   },
 
-  /* ── 动态码 ── */
+  /* ── 打卡码：教务自己设，不会自己变 ── */
+  saveCode(){
+    const el = document.getElementById('sgCode');
+    const v = (el && el.value || '').trim();
+    if (!v) return UI.toast('先填一个码，比如 8866');
+    const r = this.rules();
+    r.code = v;
+    Store.set('sign_rules', r);
+    UI.toast('打卡码已设为「' + v + '」');
+    this.refreshCode();
+  },
+  randCode(){
+    const el = document.getElementById('sgCode');
+    const n = String(Math.floor(1000 + Math.random() * 9000));
+    if (el) el.value = n;
+    this.saveCode();
+  },
+
   async refreshCode(){
     try {
       const j = await Auth.call('code');
-      this._code = j.code; this._left = j.left || 60000; this._at = Date.now();
+      this._code = j.code || ''; this._fixed = !!j.fixed;
       StuSign.syncClock(j.serverNow);
     } catch(e){
-      this._code = '';
+      this._code = ''; this._fixed = false;
     }
     this.paintCode();
   },
-  leftSec(){
-    if (!this._at) return 0;
-    return Math.max(0, Math.ceil((this._left - (Date.now() - this._at)) / 1000));
-  },
   paintCode(){
     const box = document.getElementById('signCodeBox');
-    const meta = document.getElementById('signCodeMeta');
-    const td = document.getElementById('tdCodeBox');
-    const html = this._code
-      ? `<div class="hero num" style="font-size:44px;letter-spacing:6px">${this._code}</div>
-         <p class="hint">${this.leftSec()} 秒后换新</p>`
-      : '<div class="empty">取不到动态码（可能没联网）。学生这时只能定位打卡或找您补签。</div>';
-    if (box) box.innerHTML = html;
-    if (td) td.innerHTML = this._code
-      ? `<div class="hero num" style="font-size:40px;letter-spacing:6px">${this._code}</div>
-         <p class="hint">${this.leftSec()} 秒后换新 · 让学生把这个 6 位数输进他的打卡页</p>`
-      : '<div class="empty">取不到动态码</div>';
-    if (meta) meta.textContent = '';
+    if (box){
+      box.innerHTML = this._code
+        ? `<div class="hero num" style="font-size:44px;letter-spacing:6px">${this._code}</div>
+           <p class="hint">${this._fixed ? '这是您自己设的码，不会自己变。' : '（您还没设固定码，这是系统临时的 60 秒码）'}让学生照着输。</p>`
+        : '<div class="empty">还没设打卡码。上面填一个再保存，学生就能打卡了。</div>';
+    }
+    const el = document.getElementById('sgCode');
+    if (el && this._code && el.value !== this._code) el.value = this._code;
   },
+  /** 码不会自己变，不用每秒刷新；隔一会儿看一眼，是因为别的设备可能改了码 */
   startCode(){
     this.stopCode();
     this.refreshCode();
-    this._timer = setInterval(() => {
-      if (this.leftSec() <= 0) this.refreshCode();
-      else this.paintCode();
-    }, 1000);
+    this._timer = setInterval(() => this.refreshCode(), 30000);
   },
   stopCode(){ clearInterval(this._timer); this._timer = null; },
 
@@ -8689,7 +8870,7 @@ const Sign = {
     box.innerHTML = students.length ? students.map(s => {
       const rec = bySid[s.id];
       const shared = rec && rec.dev && devN[rec.dev] > 1;
-      const flag = !rec ? '' : (rec.status === '待核' || rec.way === 'geo-far' || shared)
+      const flag = !rec ? '' : (rec.status === '待核' || rec.way === 'geo-far' || shared || rec.offline)
         ? '<span class="chip chip-no" style="pointer-events:none;margin-left:6px">需核对</span>' : '';
       const st = rec ? rec.status : '未打卡';
       return `<div class="item" style="flex-wrap:wrap">
@@ -8698,7 +8879,8 @@ const Sign = {
             rec ? `${new Date(rec.at).toLocaleTimeString('zh-CN')} · ${
               {code:'动态码', geo:'定位', 'geo-far':'定位存疑', self:'直接', manual:'教务补签'}[rec.way] || ''}${
               rec.dist != null ? ' · ' + rec.dist + ' 米' : ''}${
-              rec.status === '迟到' ? ' · 迟到 ' + rec.lateMin + ' 分钟' : ''}`
+              rec.status === '迟到' ? ' · 迟到 ' + rec.lateMin + ' 分钟' : ''}${
+              rec.offline ? (rec.recvAt ? ' · 断网，' + new Date(rec.recvAt).toLocaleTimeString('zh-CN') + ' 补传' : ' · 断网补传') : ''}`
               : '今天还没打卡'}</span></span>
         <span class="chip ${st === '正常' ? 'chip-on' : (st === '未打卡' ? '' : 'chip-no')}" style="pointer-events:none">${st}</span>
         <div class="row" style="margin-top:6px;width:100%;flex-wrap:wrap">

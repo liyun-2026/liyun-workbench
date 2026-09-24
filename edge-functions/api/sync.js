@@ -554,19 +554,24 @@ function distM(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/* 动态码：每 60 秒换一个 6 位数字，由服务端密钥派生。
-   学生端拿不到密钥，也就算不出下一分钟的码 —— 代人打卡这条路堵在这里。
-   校验时同时认当前窗口和上一窗口（刚好卡在换码那一秒也算通过）。 */
+/* 动态码：两种都认，教务设了就用教务那个。
+   ① 教务自设的固定码（sign_rules.code）—— 一节课内不变，学生慢慢输也来得及；
+      它不下发给学生端（SIGN_RULE_PUBLIC 里没有），学生只能从老师/教务屏幕上看到。
+   ② 教务没设时，退回每 60 秒换一个的派生码（由服务端密钥算出，学生端算不出来）。
+   注意：码现在只是「第二道」—— 第一道是定位。人在校区外打了也是「待核」。 */
 const CODE_WINDOW_MS = 60000;
 async function codeAt(sec, slot) {
   const h = await hmacHex(sec, 'signcode|' + slot);
   return String(parseInt(h.slice(0, 8), 16) % 1000000).padStart(6, '0');
 }
-async function codeOK(sec, code, ts) {
-  const want = String(code || '').trim();
+async function codeOK(sec, rules, code, ts) {
+  const want = String(code == null ? '' : code).trim();
+  if (!want) return false;
+  const mine = rules && rules.code != null ? String(rules.code).trim() : '';
+  if (mine) return want === mine;
   if (!/^\d{6}$/.test(want)) return false;
   const slot = Math.floor(ts / CODE_WINDOW_MS);
-  for (const s of [slot, slot - 1]) if ((await codeAt(sec, s)) === want) return true;
+  for (const q of [slot, slot - 1]) if ((await codeAt(sec, q)) === want) return true;
   return false;
 }
 
@@ -599,29 +604,43 @@ async function doSign(s, me, body) {
   const rules = data.sign_rules || null;
   const sid = me.studentId;
   const now = Date.now();
-  const p = cnParts(now);
-  const date = String(body.date || p.date);
   const sec = await secret(s);
 
-  /* 打卡方式：动态码 > 定位 > 都没有就记「待核」 */
-  let way = 'self', dist = null;
-  if (body.code) {
-    if (await codeOK(sec, body.code, now)) way = 'code';
-    else return json({ error: '动态码不对，请在老师/教务的屏幕上看看当前的码' }, 400);
-  }
-  if (body.lat != null && body.lng != null && rules && rules.lat != null) {
-    dist = Math.round(distM(rules.lat, rules.lng, Number(body.lat), Number(body.lng)));
-    if (way !== 'code') {
-      const r = Number(rules.radius || 150);
-      way = dist <= r ? 'geo' : 'geo-far';
-    }
-  }
+  /* 打卡时刻：联网就是服务器现在；
+     断网补传时带的是学生按下打卡的那一刻（本机时钟已用 serverNow 校过），
+     **就用它判定迟到** —— 断网不该让人白打，改手机时间也没用（钟是校过的，
+     而且报未来的时间会被下面那行拉回现在）。 */
+  let at = Number(body.at);
+  if (!Number.isFinite(at) || at <= 0) at = now;
+  if (at > now + 120000) at = now;
+  const offline = !!body.offline && at < now - 20000;
+  const p = cnParts(at);
+  const date = String(body.date || p.date);
 
-  /* 迟到：一律按服务端的钟，跟学生手机上是几点无关 */
+  /* 打卡方式：定位是硬要求（证明人在教室），码是第二道（证明是这节课）。
+     ① 码不对 → 直接打回，不记这一笔
+     ② 有定位但在范围外 → 记下来，交教务核对
+     ③ 教务配了校区坐标、学生这边却没给位置 → 也交教务核对（关掉定位想蒙混过关没用） */
+  let way = 'self', dist = null;
+  if (body.code != null && String(body.code) !== '') {
+    if (!(await codeOK(sec, rules, body.code, now)))
+      return json({ error: '动态码不对，问一下讲台上/教务当前的码' }, 400);
+    way = 'code';
+  }
+  const hasGeo = body.lat != null && body.lng != null;
+  if (hasGeo && rules && rules.lat != null) {
+    dist = Math.round(distM(rules.lat, rules.lng, Number(body.lat), Number(body.lng)));
+    if (dist > Number(rules.radius || 150)) way = 'geo-far';
+    else if (way === 'self') way = 'geo';
+  }
+  if (rules && rules.lat != null && !hasGeo) way = 'self';
+
+  /* 迟到：一律按打卡那一刻算，跟学生手机现在几点无关 */
   let status = '正常', lateMin = 0;
   if (rules && rules.startAt) {
     const start = hm2min(rules.startAt);
-    const late = Number(rules.lateAfter === undefined ? 5 : rules.lateAfter);
+    /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
+    const late = Number(rules.lateAfter === undefined ? 0 : rules.lateAfter);
     const before = Number(rules.windowBefore === undefined ? 60 : rules.windowBefore);
     const after = Number(rules.windowAfter === undefined ? 30 : rules.windowAfter);
     if (start !== null) {
@@ -644,13 +663,16 @@ async function doSign(s, me, body) {
   const prev = arr.find(x => x && x.id === sid);
   const rec = {
     id: sid, studentId: sid, userId: me.id,
-    at: now, date, way, status, lateMin,
+    at, date, way, status, lateMin,
     dist: dist === null ? undefined : dist,
     acc: body.acc == null ? undefined : Number(body.acc),
     dev: String(body.dev || '').slice(0, 40),
     by: 'self',
+    /* 断网打卡：记下「什么时候按的」和「什么时候传上来的」，教务一眼能看出差别 */
+    recvAt: now,
+    offline: offline || undefined,
     attempts: (prev && Array.isArray(prev.attempts) ? prev.attempts : []).concat(
-      [{ at: now, way, dist, status }]).slice(-5),
+      [{ at, way, dist, status }]).slice(-5),
   };
   data[key] = arr.filter(x => x && x.id !== sid).concat([rec]);
 
@@ -677,7 +699,7 @@ async function doSign(s, me, body) {
   }
 
   await s.setJSON('org/data', data);
-  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote });
+  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote, at, offline: !!offline });
 }
 
 /* ══ 考试抽签 ══
@@ -854,12 +876,19 @@ export async function onRequestPost(context) {
     if (action === 'sign') return await doSign(s, me, body);
     /* 考试抽签：教务开抽存种子，各端本地算序号（见 doDraw） */
     if (action === 'draw') return await doDraw(s, me, body);
-    /* 老师/教务屏幕上要显示当前动态码 —— 码必须由服务端现算，前端算不出来 */
+    /* 教务屏幕上要显示的动态码：教务自己设了就用那个（fixed:true，不会自己变），
+       没设就退回每 60 秒换一个的派生码。码不下发给学生端。 */
     if (action === 'code') {
       if (me.isStudent) return json({ error: '学生端不需要动态码' }, 403);
       const now = Date.now();
-      return json({ ok: true, code: await codeAt(await secret(s), Math.floor(now / CODE_WINDOW_MS)),
-                    serverNow: now, left: CODE_WINDOW_MS - (now % CODE_WINDOW_MS) });
+      const d2 = (await s.get('org/data', { type: 'json' })) || {};
+      const rr = d2.sign_rules || null;
+      const mine = rr && rr.code != null ? String(rr.code).trim() : '';
+      return json({
+        ok: true, code: mine || await codeAt(await secret(s), Math.floor(now / CODE_WINDOW_MS)),
+        fixed: !!mine, serverNow: now,
+        left: mine ? 0 : CODE_WINDOW_MS - (now % CODE_WINDOW_MS),
+      });
     }
 
     if (action === 'pull') {
