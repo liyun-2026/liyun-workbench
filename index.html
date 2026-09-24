@@ -966,17 +966,39 @@ window.__splashT0 = performance.now();</script>
         </div>
         <div id="stuList" style="margin-top:8px"></div>
       </div>
-      <!-- ==== 功能：学生账号 START ====（名册页：一键为全班建号） -->
-      <div class="card wide">
-        <h2>🎓 学生账号 <span class="hint" style="display:inline;margin:0">（给上面这个班的学员批量建登录账号）</span></h2>
+      <!-- ==== 功能：单独建号 START ==== -->
+      <div class="card">
+        <h2>🎓 单独建号 <span class="hint" style="display:inline;margin:0">（今天新来的一个学生，单独给他建）</span></h2>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="rsPass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
-          <button class="btn" onclick="Roster.genAccounts()">为这个班建账号</button>
+          <input type="text" id="singleName" placeholder="学员姓名" style="max-width:150px">
+          <select id="singleCls" style="max-width:170px"></select>
+          <button class="btn ghost" onclick="Roster.newClsIn('singleCls')">＋新建班级</button>
         </div>
-        <p class="hint" id="rsStat"></p>
-        <div id="rsMsgBox" style="display:none;margin-top:10px"></div>
+        <div class="row" style="flex-wrap:wrap;margin-top:8px">
+          <input type="text" id="singlePass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
+          <button class="btn" onclick="Roster.createSingle()">建这一个</button>
+        </div>
+        <p class="hint" id="singleStat"></p>
       </div>
-      <!-- ==== 功能：学生账号 END ==== -->
+      <!-- ==== 功能：单独建号 END ==== -->
+
+      <!-- ==== 功能：批量建号 START ==== -->
+      <div class="card wide">
+        <h2>🎓 批量建号 <span class="hint" style="display:inline;margin:0">（集训开课，一整个班一次建好）</span></h2>
+        <div class="row" style="flex-wrap:wrap">
+          <select id="batchCls" style="max-width:170px"></select>
+          <button class="btn ghost" onclick="Roster.newClsIn('batchCls')">＋新建班级</button>
+          <input type="text" id="batchPass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
+        </div>
+        <textarea id="batchNames" placeholder="每行一个名字，或用空格、逗号隔开，例如：&#10;张三&#10;李四，王五" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="btn" onclick="Roster.createBatch()">批量建号</button>
+          <button class="btn ghost" onclick="document.getElementById('batchNames').value='';document.getElementById('batchStat').textContent=''">清空</button>
+        </div>
+        <p class="hint" id="batchStat"></p>
+        <div id="rosterMsgBox" style="display:none;margin-top:10px"></div>
+      </div>
+      <!-- ==== 功能：批量建号 END ==== -->
 
       <!-- ==== 功能：周末班 START ==== -->
       <div class="card wide">
@@ -1599,6 +1621,29 @@ window.__splashT0 = performance.now();</script>
     </section>
     <!-- ==== 功能：协作 END ==== -->
 
+    <!-- ==== 功能：限时征集 START ====（教务端发起，学生端接收完成，过期即收） -->
+    <section class="page" id="page-gather">
+      <div class="page-title">限时征集</div>
+      <div class="card">
+        <h2>发起一次征集</h2>
+        <input type="text" id="gTitle" placeholder="标题，如：艺考服装定制登记">
+        <textarea id="gDesc" placeholder="说明（学生端会看到）" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px">截止时间<input type="datetime-local" id="gDeadline"></label>
+        </div>
+        <textarea id="gQuestions" placeholder="要学生填的问题，每行一个（选填；不填则只收「已完成」）" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="Gather.create()">发起</button>
+        </div>
+        <p class="hint" id="gStat"></p>
+      </div>
+      <div class="card wide">
+        <h2>进行中 / 已结束</h2>
+        <div id="gatherList"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：限时征集 END ==== -->
+
     <!-- ==== 功能：老师管理 START ====（只有首位教务看得到） -->
     <section class="page" id="page-teachers">
       <div class="page-title">老师管理</div>
@@ -1895,6 +1940,13 @@ window.__splashT0 = performance.now();</script>
       </div>
     </section>
     <!-- ==== 功能：学生我的作业 END ==== -->
+
+    <!-- ==== 功能：学生端·限时征集 START ==== -->
+    <section class="page" id="page-stuGather">
+      <div class="page-title">限时征集</div>
+      <div id="stuGatherBody"></div>
+    </section>
+    <!-- ==== 功能：学生端·限时征集 END ==== -->
 
     <!-- ══════════ 教务端：打卡管理 ══════════
          动态码、打卡设置、今日打卡一览，三件事在一个页面上收口。 -->
@@ -2416,6 +2468,20 @@ const Util = {
 
   /** 班级名 */
   clsName(id){ const c = Store.list('classes').find(x => x.id === id); return c ? c.name : ''; },
+
+  /* 演示实体（演示班 / 演示学员 / 四个演示账号）一律认 id 与 demo 标记，
+     真实系统里把它们从班级、名册、账号列表里隔离出去，跟真数据分清楚。 */
+  isDemoObj(o){
+    if (!o) return false;
+    if (o.demo === true) return true;
+    if (o.id === 'cls_demo' || o.id === 'stu_demo') return true;
+    if (o.user && typeof Settings !== 'undefined' && Settings.DEMO && Settings.DEMO.some(d => d.user === o.user)) return true;
+    return false;
+  },
+  realClasses(){
+    return Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1)
+               .filter(c => !this.isDemoObj(c));
+  },
 
   /** 学员名 */
   stuName(id){ const s = Store.list('students').find(x => x.id === id); return s ? s.name : ''; },
@@ -2953,6 +3019,7 @@ const App = {
     { id:'quant',     icon:'📊', name:'量化',     roles:['super','admin','both'], onShow: () => Quant.render() },
     { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
     { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
+    { id:'gather',    icon:'📣', name:'限时征集', roles:['super','admin','both'], onShow: () => Gather.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里 */
     { id:'students',  icon:'🎓', name:'学生账号', roles:['super'],         onShow: () => StuAcct.render() },
@@ -2979,6 +3046,7 @@ const App = {
     { id:'stuQuant',  icon:'📊', name:'本班量化', roles:['student'], onShow: () => StuQuant.render() },
     { id:'stuProfile',icon:'📇', name:'我的档案', roles:['student'], onShow: () => StuProfile.render() },
     { id:'stuHw',     icon:'📝', name:'我的作业', roles:['student'], onShow: () => StuHw.render() },
+    { id:'stuGather', icon:'📣', name:'限时征集', roles:['student'], onShow: () => StuGather.render() },
 
     /* ── 教务端：学生打卡的收口 ── */
     { id:'sign',      icon:'📍', name:'打卡管理', roles:['super','admin','both'], tab:3, onShow: () => Sign.render() }
@@ -3400,24 +3468,27 @@ async function readAnyFile(file, prog){
 const Roster = {
   render(){
     const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
+    const realClasses = classes.filter(c => !Util.isDemoObj(c));
     let cur = Store.get('_rosterCls');
-    if (!classes.some(c => c.id === cur)) cur = classes[0] ? classes[0].id : '';
+    if (!realClasses.some(c => c.id === cur)) cur = realClasses[0] ? realClasses[0].id : '';
     if (cur && cur !== Store.get('_rosterCls')) Store.set('_rosterCls', cur);
 
     const clsSel = document.getElementById('rosterCls');
-    clsSel.innerHTML = classes.length
-      ? classes.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${Util.esc(c.name)}</option>`).join('')
+    clsSel.innerHTML = realClasses.length
+      ? realClasses.map(c => `<option value="${c.id}" ${c.id === cur ? 'selected' : ''}>${Util.esc(c.name)}</option>`).join('')
       : '<option value="">还没有班级</option>';
 
-    document.getElementById('clsList').innerHTML = classes.length ? classes.map(c => {
-      const n = Store.list('students').filter(s => s.classId === c.id).length;
+    const demoHidden = classes.length - realClasses.length;
+    document.getElementById('clsList').innerHTML = realClasses.length ? realClasses.map(c => {
+      const n = Store.list('students').filter(s => s.classId === c.id && !Util.isDemoObj(s)).length;
       return `<div class="item">
         <span class="grow">${Util.esc(c.name)} <span class="hint" style="display:inline;margin:0">${n} 人</span></span>
         <button class="del" onclick="Roster.delCls('${c.id}')">✕</button>
       </div>`;
-    }).join('') : '<div class="empty">还没有班级，先建一个</div>';
+    }).join('') + (demoHidden ? `<div class="hint" style="margin:8px 0 0">另有 ${demoHidden} 个演示班级已单独归置，不计入真实考勤与量化。</div>` : '')
+      : '<div class="empty">还没有班级，先建一个</div>';
 
-    const students = Store.list('students', Util.byName).filter(s => s.classId === cur);
+    const students = Store.list('students', Util.byName).filter(s => s.classId === cur && !Util.isDemoObj(s));
     document.getElementById('stuList').innerHTML = students.length
       ? students.map(s => `<div class="item">
           <span class="grow">${Util.esc(s.name)}</span>
@@ -3425,6 +3496,8 @@ const Roster = {
         </div>`).join('')
       : '<div class="empty">这个班还没有学员</div>';
 
+    this._fillClsSelect('singleCls');
+    this._fillClsSelect('batchCls');
     Weekend.render();     // 周末班名单取自全部在册学员，学员有变要跟着重画
   },
 
@@ -3557,12 +3630,104 @@ const Roster = {
     }
   },
 
+  /* ── 单独建号：今天新来的一个学生，选班（可现场建班）后直接开账号、入册 ── */
+  _fillClsSelect(selId){
+    const el = document.getElementById(selId);
+    if (!el) return;
+    const cur = el.value;
+    const classes = Util.realClasses();
+    el.innerHTML = classes.map(c => `<option value="${c.id}">${Util.esc(c.name)}</option>`).join('')
+      + '<option value="__new__">＋ 新建班级…</option>';
+    if (classes.some(c => c.id === cur)) el.value = cur;
+    else if (classes[0]) el.value = classes[0].id;
+  },
+
+  async newClsIn(selId){
+    const name = (prompt('新班级叫什么？例如：播音一班') || '').trim();
+    if (!name) return;
+    if (Store.list('classes').some(c => c.name === name)) return UI.toast('已经有这个班了');
+    const c = Store.upsert('classes', { name });
+    this._fillClsSelect(selId, c.id);
+    UI.toast('已建「' + name + '」并选中');
+    this.render();
+  },
+
+  async createSingle(){
+    if (Auth.mode !== 'cloud') return UI.toast('本机模式不能建账号');
+    let clsId = document.getElementById('singleCls').value;
+    if (clsId === '__new__'){ await this.newClsIn('singleCls'); clsId = document.getElementById('singleCls').value; }
+    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
+    const name = (document.getElementById('singleName').value || '').trim();
+    if (!name) return UI.toast('填一下学员姓名');
+    const pass = (document.getElementById('singlePass').value || '').trim() || 'liyun2026';
+    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
+    const stat = document.getElementById('singleStat');
+    try {
+      const j = await Auth.call('users', { op:'list' });
+      const users = j.users || [];
+      const haveSid = new Set(users.filter(u => u.role === 'student' && u.studentId).map(u => u.studentId));
+      const haveUser = new Set(users.map(u => u.user));
+      let stu = Store.list('students').find(s => s.name === name && s.classId === clsId && !Util.isDemoObj(s));
+      if (!stu) stu = Store.upsert('students', { classId: clsId, name });
+      if (haveSid.has(stu.id)){ if (stat) stat.textContent = name + ' 在这个班已经有账号了。'; return; }
+      let user = name;
+      if (haveUser.has(user)) user = name + String(stu.id).slice(-4);
+      if (haveUser.has(user)){ if (stat) stat.textContent = '用户名「' + user + '」被占了，换个字或加个后缀再建。'; return; }
+      const r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
+      this._pass = pass; this._ok = [{ user, name }];
+      if (stat) stat.innerHTML = '建好了「' + name + '」的账号（用户名 ' + user + '），下面是发给 TA 的话。';
+      this.renderMsg([{ user, name }]);
+      this.render();
+      UI.toast('建好了 ' + name + ' 的账号');
+    } catch(e){ if (stat) stat.textContent = '建号失败：' + e.message; UI.toast(e.message); }
+  },
+
+  async createBatch(){
+    if (Auth.mode !== 'cloud') return UI.toast('本机模式不能建账号');
+    let clsId = document.getElementById('batchCls').value;
+    if (clsId === '__new__'){ await this.newClsIn('batchCls'); clsId = document.getElementById('batchCls').value; }
+    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
+    const raw = (document.getElementById('batchNames').value || '').trim();
+    if (!raw) return UI.toast('先填名字，或传名单识别');
+    const pass = (document.getElementById('batchPass').value || '').trim() || 'liyun2026';
+    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
+    const names = raw.split(/[\n,，、;；\t]+|\s{2,}| /).map(s => s.trim()).filter(Boolean);
+    if (!names.length) return UI.toast('没解析出名字');
+    const stat = document.getElementById('batchStat');
+    try {
+      const j = await Auth.call('users', { op:'list' });
+      const users = j.users || [];
+      const haveSid = new Set(users.filter(u => u.role === 'student' && u.studentId).map(u => u.studentId));
+      const haveUser = new Set(users.map(u => u.user));
+      const list = [], skip = [];
+      for (const nm of names){
+        let stu = Store.list('students').find(s => s.name === nm && s.classId === clsId && !Util.isDemoObj(s));
+        if (!stu) stu = Store.upsert('students', { classId: clsId, name: nm });
+        if (haveSid.has(stu.id)){ skip.push(nm + '（已有）'); continue; }
+        let user = nm;
+        if (haveUser.has(user)) user = nm + String(stu.id).slice(-4);
+        if (haveUser.has(user)){ skip.push(nm + '（用户名撞了）'); continue; }
+        haveUser.add(user);
+        list.push({ user, name: nm, studentId: stu.id, role:'student', pass });
+      }
+      if (!list.length){ if (stat) stat.textContent = '这些名字都已经有账号了。'; return; }
+      const r = await Auth.call('users', { op:'createMany', list });
+      const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
+      this._pass = pass; this._ok = ok;
+      const msg = `建好了 ${r.n} 个账号。` + (r.fail && r.fail.length ? ` 没建成 ${r.fail.length} 个` : '') + (skip.length ? ` 跳过 ${skip.length} 个：${skip.join('、')}` : '');
+      if (stat) stat.innerHTML = msg + '<br>下面两段话可以直接复制发给学生。';
+      this.renderMsg(ok);
+      this.render();
+      UI.toast('批量建好 ' + r.n + ' 个账号');
+    } catch(e){ if (stat) stat.textContent = '建号失败：' + e.message; UI.toast(e.message); }
+  },
+
   /* ── 建完号，直接把「发给学生的两段话」摆出来 ──
      一段发群里（欢迎 + 网址 + 密码 + 怎么加到桌面），一段是用户名清单（私发本人）。 */
   here(){ return location.origin || 'https://liyun2026.top'; },
 
   renderMsg(list){
-    const box = document.getElementById('rsMsgBox');
+    const box = document.getElementById('rosterMsgBox');
     if (!box || !list.length) return;
     this._ok = list;
     box.style.display = '';
@@ -3844,6 +4009,7 @@ const Att = {
             <span class="hint" style="display:inline;margin:0;font-weight:400"> · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span></b>
           <span class="chip ${t.status === 'done' ? 'chip-on' : (t.status === 'rejected' ? 'chip-no' : '')}" style="pointer-events:none">${
             t.status === 'done' ? '已批准' : t.status === 'rejected' ? '已驳回' : '待批'}</span>
+          <button class="del" onclick="Att.delLeave('${t.id}')" title="删除这条请假">✕</button>
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         ${done ? '' : `
@@ -3859,6 +4025,27 @@ const Att = {
   leave(id, ok){
     try { if (typeof Coop !== 'undefined' && Coop.leave) Coop.leave(id, ok); } catch(e){}
     this.render();
+  },
+
+  /* 删除一条学生请假：软删除工单；若已批准，一并撤销当天写进考勤的那条记录，量化跟着回算 */
+  delLeave(id){
+    const t = Store.list('tickets').find(x => x.id === id);
+    if (!t) return;
+    const approved = t.status === 'done';
+    if (!confirm('删除这条请假记录？' + (approved ? '它已写进考勤，删除会一并撤销当天的请假标记、量化自动回算。' : ''))) return;
+    if (approved){
+      const date = t.date || Util.today();
+      const pid = (typeof Sign !== 'undefined' && Sign.rules && Sign.rules().pid)
+        || ((typeof Att !== 'undefined' && Att.SLOTS) ? (Att.SLOTS()[0] || {}).id : 'am') || 'am';
+      const key = 'att:' + date;
+      const rec = Store.list(key).find(r => r.studentId === t.studentId && (r.pid || 'am') === pid);
+      if (rec) Store.softDelete(key, rec.id);
+      const stu = Store.list('students').find(s => s.id === t.studentId);
+      if (stu && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(stu.classId, date);
+    }
+    Store.softDelete('tickets', id);
+    this.render();
+    UI.toast('已删除');
   },
 
   /* 「一键全部正常」下面那句话：说清是哪天、哪一次考勤、现在登记成什么样了。
@@ -3916,7 +4103,7 @@ const Att = {
       const keep = rc.value;
       const opts = [];
       if (cur0 && Util.clsName(cur0)) opts.push(`<option value="${cur0}">${Util.esc(Util.clsName(cur0))}（当前班）</option>`);
-      Store.list('classes').forEach(c => { if (c.id !== cur0) opts.push(`<option value="${c.id}">${Util.esc(c.name)}</option>`); });
+      Util.realClasses().forEach(c => { if (c.id !== cur0) opts.push(`<option value="${c.id}">${Util.esc(c.name)}</option>`); });
       opts.push(`<option value="*">全部班级</option>`);
       rc.innerHTML = opts.join('');
       if (keep) rc.value = keep;
@@ -6722,6 +6909,7 @@ const Coop = {
                   t.studentId ? ` <span class="hint" style="display:inline;margin:0">${Util.esc(Util.stuName(t.studentId))}</span>` : ''}</b>
           <span class="chip ${t.status === 'done' ? '' : (t.status === 'rejected' ? 'chip-no' : 'chip-no')}" style="pointer-events:none">${
             t.status === 'done' ? '已处理' : t.status === 'rejected' ? '已驳回' : '待处理'}</span>
+          <button class="del" onclick="Coop.delTicket('${t.id}')" title="删除这条">✕</button>
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         <p class="hint" style="margin:4px 0 0">${Util.esc(t.userName || '')}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
@@ -6797,9 +6985,133 @@ const Coop = {
       </div>`).join('') : '<div class="empty">还没发过通知</div>';
   },
 
-  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); }
+  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); },
+
+  /* 删除一条协作工单（调课/异常等）：软删除留墓碑，老师端同步消失 */
+  delTicket(id){
+    if (!confirm('删除这条上报 / 申请？删除后老师端也会同步消失。')) return;
+    Store.softDelete('tickets', id);
+    this.renderList();
+  }
 };
 /* ==== 功能：协作 END ==== */
+
+/* ==== 功能：限时征集 START ====（教务发起，学生接收完成，过期消失） */
+const Gather = {
+  render(){
+    const el = document.getElementById('gatherList');
+    if (!el) return;
+    const list = Store.list('gathers', (a,b) => (b.createdAt || 0) - (a.createdAt || 0)).filter(g => !g._d);
+    const now = Date.now();
+    el.innerHTML = list.length ? list.map(g => {
+      const closed = g.closed || (g.deadline && new Date(g.deadline).getTime() < now);
+      const resp = (Store.list('gresp:' + g.id) || []).filter(r => !r._d);
+      return `<div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(g.title)} ${
+            closed ? '<span class="chip chip-no" style="pointer-events:none">已结束</span>'
+                   : '<span class="chip chip-on" style="pointer-events:none">进行中</span>'}</b>
+          <span class="hint" style="margin:0">${g.deadline ? '截止 ' + Util.esc(g.deadline.replace('T',' ')) : ''} · 已回 ${resp.length} 人</span>
+        </div>
+        ${g.desc ? `<div class="pre" style="margin-top:4px">${Util.esc(g.desc)}</div>` : ''}
+        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          ${closed ? '' : `<button class="btn ghost" onclick="Gather.close('${g.id}')">提前结束</button>`}
+          <button class="del" onclick="Gather.del('${g.id}')" title="删除">✕</button>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">还没有发起过征集</div>';
+  },
+
+  create(){
+    const title = (document.getElementById('gTitle').value || '').trim();
+    if (!title) return UI.toast('填一下标题');
+    const desc = (document.getElementById('gDesc').value || '').trim();
+    const dl   = (document.getElementById('gDeadline').value || '').trim();
+    const qs   = (document.getElementById('gQuestions').value || '').trim()
+                   .split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const g = { id: Util.uid(), title, desc, deadline: dl, questions: qs, by: Auth.name(), createdAt: Date.now() };
+    Store.upsert('gathers', g);
+    Sync.push();
+    ['gTitle','gDesc','gDeadline','gQuestions'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    UI.toast('已发起：' + title);
+    this.render();
+  },
+
+  close(id){
+    const g = Store.list('gathers').find(x => x.id === id);
+    if (g){ Store.upsert('gathers', Object.assign({}, g, { closed: true })); Sync.push(); this.render(); }
+  },
+
+  del(id){
+    if (!confirm('删除这次征集？')) return;
+    Store.softDelete('gathers', id);
+    Sync.push();
+    this.render();
+  }
+};
+
+const StuGather = {
+  render(){
+    const el = document.getElementById('stuGatherBody');
+    if (!el) return;
+    const sid = Auth.me() ? Auth.me().studentId : '';
+    const now = Date.now();
+    const all = Store.list('gathers', (a,b) => (b.createdAt || 0) - (a.createdAt || 0)).filter(g => !g._d);
+    const myResp = id => (Store.list('gresp:' + id) || []).find(r => !r._d && r.studentId === sid);
+    const active = all.filter(g => !g.closed && (!g.deadline || new Date(g.deadline).getTime() >= now) && !myResp(g.id));
+    const done   = all.filter(g => myResp(g.id));
+    let html = active.length ? active.map(g => this._card(g, myResp(g.id))).join('')
+                              : '<div class="empty">暂时没有要完成的征集</div>';
+    if (done.length){
+      html += `<div class="hint" style="margin:14px 0 6px">已完成（${done.length}）</div>`;
+      html += done.map(g => this._card(g, myResp(g.id))).join('');
+    }
+    el.innerHTML = html;
+  },
+
+  _card(g, resp){
+    const now = Date.now();
+    const expired = g.closed || (g.deadline && new Date(g.deadline).getTime() < now);
+    const qs = (g.questions || []);
+    const ans = (resp && resp.answers) || [];
+    const done = !!resp;
+    let body = `<div class="item" style="flex-direction:column;align-items:stretch">
+      <div class="row" style="justify-content:space-between">
+        <b style="font-weight:500">${Util.esc(g.title)} ${
+          done ? '<span class="chip chip-on" style="pointer-events:none">已完成</span>'
+               : (expired ? '<span class="chip chip-no" style="pointer-events:none">已结束</span>'
+                          : '<span class="chip" style="pointer-events:none">进行中</span>')}</b>
+        <span class="hint" style="margin:0">${g.deadline ? '截止 ' + Util.esc(g.deadline.replace('T',' ')) : ''}</span>
+      </div>
+      ${g.desc ? `<div class="pre" style="margin-top:4px">${Util.esc(g.desc)}</div>` : ''}`;
+    if (qs.length && !done){
+      body += '<div style="margin-top:8px">' + qs.map((q,i) =>
+        `<div class="row" style="margin:6px 0"><span class="grow" style="margin-right:8px">${Util.esc(q)}</span>` +
+        `<input type="text" id="ga_${g.id}_${i}" style="max-width:60%" placeholder="填写"></div>`).join('') + '</div>';
+    }
+    if (!done && !expired){
+      body += `<div class="row" style="margin-top:10px"><button class="btn" onclick="StuGather.submit('${g.id}')">提交</button></div>`;
+    } else if (done){
+      body += `<div class="pre" style="margin-top:8px">` +
+        ans.map((a,i) => Util.esc((g.questions[i] || ('第' + (i+1) + '项')) + '：' + (a || '（空）'))).join('<br>') + `</div>`;
+    }
+    body += '</div>';
+    return body;
+  },
+
+  submit(id){
+    const g = Store.list('gathers').find(x => x.id === id);
+    if (!g) return;
+    const qs = g.questions || [];
+    const answers = qs.map((q,i) => { const el = document.getElementById('ga_' + id + '_' + i); return el ? el.value.trim() : ''; });
+    if (qs.length && answers.some(a => !a)) return UI.toast('还有没填的');
+    Store.upsert('gresp:' + id, { id: Auth.me().studentId, gatherId: id, answers });
+    Sync.push();
+    UI.toast('已提交');
+    this.render();
+  }
+};
+/* ==== 功能：限时征集 END ==== */
 
 
 /* ==== 功能：老师管理 START ====（只有首位教务，且账号操作全部在服务端鉴权） */
@@ -6888,7 +7200,9 @@ const Teachers = {
       const j = await Auth.call('users', { op: 'list' });
       /* 学生账号不在这儿管：单独有「学生账号」那一页。
          学生没有带班这一说，跟老师混在一个列表里只会让人误解。 */
-      this._users = (j.users || []).filter(u => u.role !== 'student');
+      const all = j.users || [];
+      this._demoHidden = all.filter(u => u.role !== 'student' && Util.isDemoObj(u)).length;
+      this._users = all.filter(u => u.role !== 'student' && !Util.isDemoObj(u));
       this.paint();
       this.renderHistory();
     } catch(e){
@@ -6925,7 +7239,8 @@ const Teachers = {
         </span>
         ${acts}
       </div>`;
-    }).join('') : '<div class="empty">还没有老师</div>';
+    }).join('') + (this._demoHidden ? `<div class="hint" style="margin:8px 0 0">另有 ${this._demoHidden} 个演示账号已单独归置（在「设置 → 演示账号」里切用），不计入真实账号与考勤。</div>` : '')
+      : '<div class="empty">还没有老师</div>';
   },
 
   /** 拼一条能直接发给老师的开场文案（含登录地址、用户名、初始密码、加桌面说明） */
@@ -7731,12 +8046,12 @@ const Settings = {
     if (!Auth.isSuper()) return UI.toast('只有首位教务能建演示账号');
     /* 学生号必须挂在一条学员档案上，否则学生端进去什么都没有。
        单独开一个「演示班」，不混进真实班级。 */
-    Store.upsert('classes',  { id:'cls_demo', name:'演示班' });
-    Store.upsert('students', { id:'stu_demo', name:'演示学员', classId:'cls_demo' });
+    Store.upsert('classes',  { id:'cls_demo', name:'演示班', demo:true });
+    Store.upsert('students', { id:'stu_demo', name:'演示学员', classId:'cls_demo', demo:true });
     try { await Sync.push(); } catch(e){}
     const clsIds = Store.list('classes').map(c => c.id);
     const list = this.DEMO.map(d => ({
-      user: d.user, pass: this.DEMO_PASS, role: d.role, name: d.name,
+      user: d.user, pass: this.DEMO_PASS, role: d.role, name: d.name, demo:true,
       studentId: d.role === 'student' ? 'stu_demo' : '',
     }));
     try {

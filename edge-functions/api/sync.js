@@ -119,13 +119,14 @@ const STUDENT_READ = {
   quant_log:    'ownCls',
   records:      'self',        // 老师写给本人的评语与今日情况
   tickets:      'self',        // 只看到自己提交的请假（看得到处理结果，改不了）
+  gathers:      null,          // 限时征集：教务发起的，全体学生都能看到
 };
 /* 按天 / 按次分片的键：全部只留本人那几条 */
-const STUDENT_PREFIX_SELF = ['att:', 'sign:', 'night:', 'hw:', 'hwchk:'];
+const STUDENT_PREFIX_SELF = ['att:', 'sign:', 'night:', 'hw:', 'hwchk:', 'gresp:'];
 /* 学生能写回哪些（服务端强制，前端隐藏不算数）：
      sign:{日期}  —— 打卡，一人一条，服务端盖时间戳与判定
      tickets      —— 只能新增本人的请假工单，且状态只能是 open（批准权在教务） */
-const STUDENT_WRITE_PREFIX = ['sign:'];
+const STUDENT_WRITE_PREFIX = ['sign:', 'gresp:'];
 /* 打卡判定用的配置。坐标（lat/lng）不下发给学生 —— 学生不需要知道校区在哪。 */
 const SIGN_RULE_PUBLIC = ['startAt', 'lateAfter', 'windowBefore', 'windowAfter', 'mode', 'pid'];
 
@@ -369,6 +370,12 @@ function sanitizeStudent(src, me, server) {
       for (const f of ['at', 'status', 'lateMin', 'dist', 'way', 'by']) if (prev[f] !== undefined) it[f] = prev[f];
     }
     out[k] = [it];
+  }
+
+  /* 限时征集的回应：盖上本人姓名与服务端时间，便于教务核验是否按时提交 */
+  for (const k of Object.keys(out)) {
+    if (k.indexOf('gresp:') !== 0) continue;
+    out[k] = out[k].map(x => Object.assign({}, x, { name: me.name, at: Date.now() }));
   }
 
   /* 请假：只能新增本人的，且状态只能是待处理 —— 批准权在教务手上。
