@@ -643,6 +643,18 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .split .pane-main{display:flex;flex-direction:column;gap:var(--gap)}
 }
 
+/* ════════ 桌面：卡片塞在「裸容器」里也要摊开 ════════
+   档案页、限时征集页把卡片写进一个 <div id="...Body"> 里（render 时整段 innerHTML）。
+   容器自己是 .page.on 网格的一个格子 → 只占左半栏，卡片在里面一张压一张竖着堆，
+   右边整片留白 —— 看着就是「手机版」。给它加 .cardflow：容器占满整行、内部再切两列。 */
+.cardflow{display:block}
+@media (min-width:1100px){
+  .page.on > .cardflow{grid-column:1 / -1}
+  .cardflow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap);align-content:start}
+  .cardflow > .card.wide{grid-column:1 / -1}
+}
+/* 窄屏（手机）维持单列堆叠 —— .cardflow 在无媒体查询时就是普通块，卡片自然竖直排 */
+
 /* ════════ 宽屏：档案页真正摊开成桌面版 ════════
    右栏自己也切成两列 —— 之前它是一根竖条（卡片一张压一张），
    宽屏下留白全在右边，看着还是手机版。 */
@@ -1928,7 +1940,7 @@ window.__splashT0 = performance.now();</script>
     <section class="page" id="page-stuProfile">
       <div class="page-title">我的档案</div>
       <div class="page-sub" id="stuPfSub"></div>
-      <div id="stuPfBody"></div>
+      <div id="stuPfBody" class="cardflow"></div>
     </section>
     <!-- ==== 功能：学生我的档案 END ==== -->
 
@@ -1944,7 +1956,7 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生端·限时征集 START ==== -->
     <section class="page" id="page-stuGather">
       <div class="page-title">限时征集</div>
-      <div id="stuGatherBody"></div>
+      <div id="stuGatherBody" class="cardflow"></div>
     </section>
     <!-- ==== 功能：学生端·限时征集 END ==== -->
 
@@ -7061,9 +7073,9 @@ const StuGather = {
     const active = all.filter(g => !g.closed && (!g.deadline || new Date(g.deadline).getTime() >= now) && !myResp(g.id));
     const done   = all.filter(g => myResp(g.id));
     let html = active.length ? active.map(g => this._card(g, myResp(g.id))).join('')
-                              : '<div class="empty">暂时没有要完成的征集</div>';
+                              : '<div class="empty" style="grid-column:1/-1">暂时没有要完成的征集</div>';
     if (done.length){
-      html += `<div class="hint" style="margin:14px 0 6px">已完成（${done.length}）</div>`;
+      html += `<div class="hint" style="margin:14px 0 6px;grid-column:1/-1">已完成（${done.length}）</div>`;
       html += done.map(g => this._card(g, myResp(g.id))).join('');
     }
     el.innerHTML = html;
@@ -7075,7 +7087,7 @@ const StuGather = {
     const qs = (g.questions || []);
     const ans = (resp && resp.answers) || [];
     const done = !!resp;
-    let body = `<div class="item" style="flex-direction:column;align-items:stretch">
+    let body = `<div class="card">
       <div class="row" style="justify-content:space-between">
         <b style="font-weight:500">${Util.esc(g.title)} ${
           done ? '<span class="chip chip-on" style="pointer-events:none">已完成</span>'
