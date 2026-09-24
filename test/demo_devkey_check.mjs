@@ -156,6 +156,34 @@ try {
   ok(s6.role === 'super', '一键回到主账号（role=' + s6.role + '）');
   ok(/已用/.test(s6.txt), '教务端看得到这个密钥已经被用掉了：' + s6.txt.replace(/\s+/g, ' ').slice(0, 60));
 
+  console.log('\n【6/5】同一台设备切换另一个学生账号，也要密钥（防拿同学手机互相打卡）…');
+  const s7 = await cdp.eval(`(async () => {
+    /* 回到主账号，建第二条演示学员档案 + 第二个学生账号 */
+    const back = Store.getSecret('mainToken'); Store.setSecret('token', back);
+    const mm = Store.getSecret('mainMe'); if (mm) Store.setSecret('me', mm);
+    Store.upsert('students', { id:'stu_demo2', name:'演示学员2', classId:'cls_demo' });
+    try { await Sync.push(); } catch(e){}
+    const clsIds = Store.list('classes').map(c => c.id);
+    const made = await Auth.call('users', { op:'createMany',
+      list:[{ user:'演示学生2', pass:Settings.DEMO_PASS, role:'student', name:'演示学员2', studentId:'stu_demo2' }],
+      classIds: clsIds });
+    /* 演示学生登过 device-A（step 4 把它记成认证设备）。现在换「演示学生2」登同一台 device-A。 */
+    const j2 = await Auth.call('login', { user:'演示学生2', pass:Settings.DEMO_PASS });
+    Store.setSecret('token', j2.token); Auth._me = j2.profile;
+    const dev1 = await Auth.call('dev', { dev:'device-A' });          // 同设备、不同账号
+    let wrongMsg = '';
+    try { await Auth.call('dev', { dev:'device-A', key:'THIS-KEY-INVALID' }); dev1.wrongPassed = true; }
+    catch(e){ wrongMsg = e.message; dev1.wrongPassed = false; dev1.wrongMsg = e.message; }
+    return { made:(made.n||0), needKey: dev1.needKey === true,
+             switchFlag: dev1.switchAccount === true, newDevFlag: dev1.newDevice === true,
+             wrongPassed: dev1.wrongPassed, wrongMsg };
+  })()`);
+  ok(s7.made >= 1, '建出了第二个学生账号「演示学生2」（' + s7.made + ' 个）');
+  ok(s7.needKey,
+     '同设备换另一个学生账号 → 必须输密钥（(设备+账号)这对没绑过就挡，needKey=' + s7.needKey + '，UI 提示 newDev=' + s7.newDevFlag + ' switch=' + s7.switchFlag + '）');
+  ok(!s7.wrongPassed && /用过|不对/.test(s7.wrongMsg || ''),
+     '随手填个不对的密钥照样挡住（' + (s7.wrongMsg || '但没报错') + '）');
+
   console.log('\n【收尾】清场…');
   await devReset();
   server.kill(); chrome.kill();

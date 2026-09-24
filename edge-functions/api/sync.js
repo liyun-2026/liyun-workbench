@@ -310,7 +310,9 @@ function filterShared(shared, me) {
     const rule = TEACHER_READ[k];
     if (rule === null || !Array.isArray(v)) { out[k] = v; continue; }
     if (rule === 'self')            out[k] = v.filter(c => ids.has(c.id));
-    else if (rule === 'own')        out[k] = v.filter(t => t.userId === me.id);
+    /* 自己的工单。学生请假一律不发给老师 —— 那是教务在考勤里批的事，
+       跟老师的调课/请假/异常上报不是一回事，不该混在同一张列表里 */
+    else if (rule === 'own')        out[k] = v.filter(t => t.userId === me.id && t.type !== '学生请假');
     else if (rule === 'classId')    out[k] = v.filter(x => ids.has(x.classId));
     else if (rule === 'clsId')      out[k] = v.filter(x => ids.has(x.clsId));
     else if (rule === 'studentId')  out[k] = v.filter(x => stuIds.has(x.studentId));
@@ -886,22 +888,38 @@ export async function onRequestPost(context) {
       if (!me.isStudent) return json({ ok: true, skip: true });
       const dev = String(body.dev || '').slice(0, 64);
       if (!dev) return json({ error: '拿不到这台设备的标识' }, 400);
+
+      /* 两道门，任何一道没过都要教务的密钥：
+         ① 换设备 —— 一个学生账号最多两台，第一台登的那台是认证设备；
+         ② 换账号 —— 同一台设备上换别的学生账号登录（不然学生拿同学手机互相打卡）。
+         只查「换设备」的话，学生用自己已登记的手机退出再登同学的号，照样畅通无阻。 */
       const map = (await s.get(`devmap/${me.id}`, { type: 'json' })) || { devs: [] };
       if (!Array.isArray(map.devs)) map.devs = [];
-      if (map.devs.indexOf(dev) >= 0) {
-        return json({ ok: true, bound: true, mine: true, devs: map.devs.length });
-      }
-      /* 第一次登录的那台就是「认证设备」，直接登记，不用密钥 ——
-         否则新账号第一次登录就被自己的门挡住，谁也进不去。 */
-      if (!map.devs.length) {
+      const knownDev = map.devs.indexOf(dev) >= 0;
+
+      /* devacct/{设备}：这台设备上放行过的学生账号 */
+      const da = (await s.get(`devacct/${dev}`, { type: 'json' })) || { uids: [] };
+      if (!Array.isArray(da.uids)) da.uids = [];
+      const knownAcct = da.uids.indexOf(me.id) >= 0;
+
+      if (knownDev && knownAcct) return json({ ok: true, bound: true, devs: map.devs.length });
+
+      /* 全新账号 + 从没登过学生的设备：直接登记放行。
+         不这样的话，新账号第一次登录就被自己的门挡在外面，谁也进不去。 */
+      if (!map.devs.length && !da.uids.length) {
         map.devs = [dev]; map.first = dev;
         await s.setJSON(`devmap/${me.id}`, map);
+        da.uids = [me.id];
+        await s.setJSON(`devacct/${dev}`, da);
         return json({ ok: true, bound: true, first: true, devs: 1 });
       }
+
       const key = String(body.key || '').trim();
       if (!key) {
-        /* 没给密钥：告诉前端「这台没登记」—— 但只说个数，不说别的设备是什么 */
-        return json({ ok: false, needKey: true, devs: map.devs.length });
+        /* 没给密钥：只告诉前端「要密钥」和是哪一道，不透露别的设备/账号是谁 */
+        return json({ ok: false, needKey: true,
+                      newDevice: !knownDev, switchAccount: !knownAcct,
+                      devs: map.devs.length });
       }
       const d = (await s.get('org/data', { type: 'json' })) || {};
       const keys = Array.isArray(d.dev_keys) ? d.dev_keys : [];
@@ -914,13 +932,23 @@ export async function onRequestPost(context) {
       hit._u = Date.now();
       d.dev_keys = keys;
       await s.setJSON('org/data', d);
-      /* 最多两台：满了就挤掉后来那台（第一台是认证设备，永远留着） */
+
+      /* 设备：最多两台，满了就挤掉后来那台（第一台是认证设备，永远留着） */
       let replaced = false;
-      if (map.devs.length >= 2){ map.devs = [map.devs[0], dev]; replaced = true; }
-      else map.devs.push(dev);
-      if (!map.first) map.first = dev;
-      await s.setJSON(`devmap/${me.id}`, map);
-      return json({ ok: true, bound: true, replaced, devs: map.devs.length });
+      if (!knownDev){
+        if (map.devs.length >= 2){ map.devs = [map.devs[0], dev]; replaced = true; }
+        else map.devs.push(dev);
+        if (!map.first) map.first = dev;
+        await s.setJSON(`devmap/${me.id}`, map);
+      }
+      /* 账号：这台设备记住这个号，下次再登就不用重复要密钥 */
+      if (!knownAcct){
+        da.uids.push(me.id);
+        if (da.uids.length > 5) da.uids = da.uids.slice(-5);
+        await s.setJSON(`devacct/${dev}`, da);
+      }
+      return json({ ok: true, bound: true, replaced,
+                    switchAccount: !knownAcct, devs: map.devs.length });
     }
     /* 教务屏幕上要显示的动态码：教务自己设了就用那个（fixed:true，不会自己变），
        没设就退回每 60 秒换一个的派生码。码不下发给学生端。 */
