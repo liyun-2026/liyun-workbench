@@ -47,10 +47,21 @@ const must = async (body) => {
   return r.body;
 };
 
-/* 北京时间 HH:MM（服务端一律按 +8 算，测试也要跟着） */
+/* 北京时间 HH:MM（服务端一律按 +8 算，测试也要跟着）
+   ⚠️ 跨午夜要夹回当天边界：用例写的是「上课在 30 分钟前」，若在 00:29 跑，
+      算出来是昨天的 23:59，服务端按「今天」判就成了窗口外 → 假红。
+      这不是代码 bug，是测试挑的时间不巧，所以这里夹一下（夜里跑也准）。 */
 function cnHM(offsetMin = 0) {
-  const d = new Date(Date.now() + 8 * 3600e3 + offsetMin * 60e3);
-  return String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+  const base = Date.now() + 8 * 3600e3;
+  const d = new Date(base + offsetMin * 60e3);
+  let h, m;
+  if (d.getUTCDate() !== new Date(base).getUTCDate()) {
+    h = offsetMin < 0 ? 0 : 23;      // 往前跨 → 当天 00:00；往后跨 → 当天 23:59
+    m = offsetMin < 0 ? 0 : 59;
+  } else {
+    h = d.getUTCHours(); m = d.getUTCMinutes();
+  }
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
 /** 直接改共享区里的打卡设置（绕开 push 的合并语义，测试意图才精确） */
 async function setRules(r) {

@@ -169,8 +169,17 @@ try {
       stuCount: Store.list('students').length,
       clsCount: Store.list('classes').length,
       aiKey: Store.get('aiKey'),
+      stuSkin: document.body.classList.contains('stu'),
+      wm: (document.getElementById('watermark') || {}).style &&
+          ((document.getElementById('watermark').style.maskImage || '') +
+           (document.getElementById('watermark').style.webkitMaskImage || '')),
+      accent: getComputedStyle(document.body).getPropertyValue('--accent').trim(),
     };
   })()`);
+  ok(who.stuSkin, '学生端换了另一套皮（body.stu 生效，教务老师端不受影响）');
+  ok(/砺蕴学生系统/.test(decodeURIComponent(who.wm || '')), '整页水印按本人生成，含系统名');
+  ok(/测试学员甲/.test(decodeURIComponent(who.wm || '')), '水印里有本人姓名（截图能查到是谁）');
+  ok(who.accent && who.accent !== '#26241f', '学生端主色跟教务端不同（--accent=' + who.accent + '）');
   ok(who.role === 'student', '学生身份正确（role=' + who.role + '）');
   ok(who.sid === 'ss1', '账号挂在正确的学员档案上（studentId=' + who.sid + '）');
   ok(who.page === 'page-stuHome', '首屏落在「今日」（' + who.page + '）');
@@ -209,14 +218,18 @@ try {
   ok(code.fixed === true, '标记为固定码，不会自己变');
   ok(code.input === '8866', '打卡码输入框回填了当前码');
 
-  /* 学生端：真走两步 —— 点「📍 打卡」先定位（这里 mock 成校区坐标），
-     定位完才出现码输入框，填码再确认。 */
+  /* 学生端：真走两步 —— 按中间那个圈先定位（这里 mock 成校区坐标），
+     定位完下面才出现码输入框，填码再按圈提交。
+     ⚠️ 圈本身要同时满足：写着「打卡」、有简笔画、有跳动的时分秒。 */
   const signed = await B.eval(`(async () => {
     navigator.geolocation.getCurrentPosition = (ok) =>
       ok({ coords: { latitude: 34.75, longitude: 113.62, accuracy: 8 } });
     App.go('stuSign');
     await new Promise(r => setTimeout(r, 300));
-    const firstBtn = (document.querySelector('#stuSignStep .btn') || {}).textContent || '';
+    const ring = document.querySelector('#stuSignNow .p-ring');
+    const ringTxt = (ring || {}).textContent || '';
+    const hasIco = !!(ring && ring.querySelector('svg.p-ico'));
+    const beforeStep = (document.getElementById('stuSignStep') || {}).textContent || '';
     StuSign.start();
     await new Promise(r => setTimeout(r, 300));
     const hasInput = !!document.getElementById('stuCode');
@@ -224,9 +237,13 @@ try {
     await StuSign.confirm();
     await new Promise(r => setTimeout(r, 2000));
     const s = Stu.signOf(Util.today());
-    return { firstBtn, hasInput, s, txt: (document.getElementById('stuSignNow') || {}).textContent || '' };
+    return { ringTxt, hasIco, beforeStep, hasInput, s,
+             txt: (document.getElementById('stuSignNow') || {}).textContent || '' };
   })()`);
-  ok(/打卡/.test(signed.firstBtn), '第一步只有一个「打卡」按钮（' + signed.firstBtn + '）');
+  ok(/打卡/.test(signed.ringTxt), '圈里写着「打卡」两个字（' + signed.ringTxt.replace(/\s+/g, '') + '）');
+  ok(/\d\d:\d\d:\d\d/.test(signed.ringTxt), '时分秒也在圈里（' + (signed.ringTxt.match(/\d\d:\d\d:\d\d/) || [''])[0] + '）');
+  ok(signed.hasIco, '圈里是简笔画（svg 线稿，不是 emoji）');
+  ok(!signed.beforeStep.trim(), '还没定位时下面干干净净（圈自己就是按钮）');
   ok(signed.hasInput, '定位完成后才出现码输入框（两步，不是一次给全）');
   ok(!!signed.s, '学生打卡成功，本机拿到记录');
   ok(signed.s && signed.s.status === '正常', '判定为「正常」（' + (signed.s && signed.s.status) + '）');
@@ -237,6 +254,8 @@ try {
   const bad = await B.eval(`(async () => {
     App.go('stuSign');
     await new Promise(r => setTimeout(r, 300));
+    StuSign.again();                       // 打过了要再打一次，得先按「重新打卡」
+    await new Promise(r => setTimeout(r, 200));
     StuSign.start();
     await new Promise(r => setTimeout(r, 300));
     document.getElementById('stuCode').value = '000000';

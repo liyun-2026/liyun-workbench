@@ -480,6 +480,111 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 /* ── 分栏：手机上竖着堆，电脑上变「列表 + 详情」两栏 ── */
 .split{display:flex;flex-direction:column;gap:var(--gap)}
 
+/* ════════ 学生端：整套换一张皮（青蓝·活力） ════════
+   学生端刻意跟教务老师端长得不一样：更亮、更松、圆角更大，
+   一眼就知道「这是我自己的系统」，不是老师的办公台。
+   只在 body.stu 下生效 —— 教务端、老师端、登录门、开屏一律不受影响。
+   网页版（左侧栏）和手机版（顶栏＋底栏）共用这同一份变量，两边同时换。
+   ⚠️ 品牌金 --gold 故意不动：行书字标、门头金线还是金色的，
+      换肤只换「操作色」（按钮、选中、时钟、卡片描边），品牌不变。 */
+body.stu{
+  --bg:#eef3f8;
+  --sidebar:#ffffff;
+  --sidebar-text:#5a6b7b;
+  --sidebar-active:#e4edf6;
+  --card:#ffffff;
+  --text:#22303c;
+  --text-dim:#8b99a6;
+  --accent:#4f7398;              /* 学生端操作色：青蓝 */
+  --btn-text:#ffffff;
+  --line:#dee8f2;
+  --shadow:0 3px 12px rgba(65,96,127,.09);
+}
+@media (prefers-color-scheme: dark){
+  body.stu{
+    --bg:#141a20;
+    --sidebar:#1a2129;
+    --sidebar-text:#9fb0c0;
+    --sidebar-active:#243039;
+    --card:#1a2129;
+    --text:#e6eef6;
+    --text-dim:#8ea0b1;
+    --accent:#6f9ac4;
+    --btn-text:#141a20;
+    --line:#26313b;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+body.stu .clock{color:var(--accent)}
+body.stu .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.stu .card{border-radius:16px}
+@media (min-width:700px){
+  body.stu .main{background:rgba(65,96,127,.045)}
+  body.stu .card{border-radius:14px;border-color:var(--line);box-shadow:var(--shadow)}
+}
+
+/* ════════ 学生端：整页水印 ════════
+   斜着铺满、压得很淡：正常看字完全不受影响，
+   但谁把页面截出去 / 拍出去，一查就知道是哪个学生。
+   用 mask + background-color，不写死颜色 —— 深浅色模式自动跟着变，
+   深色模式下水印自动变成浅色（写死黑字在深底上会看不见）。 */
+#watermark{display:none}
+body.stu #watermark{
+  display:block;position:fixed;inset:0;z-index:3;pointer-events:none;
+  background-color:var(--text);opacity:.11;
+  -webkit-mask-repeat:repeat;mask-repeat:repeat;
+  -webkit-mask-size:210px 136px;mask-size:210px 136px;
+}
+
+/* ════════ 打卡页：一个圈，按它 ════════
+   同心圆三样：外圈一道细环 → 主盘 → 内圈一道白环。
+   圈里从上到下：简笔画定位标 → 「打卡」两个字 → 此刻的时分秒（服务端时间）。
+   颜色一律取系统色板（暖金 / 学生端青蓝），不另造颜色。 */
+.punch{display:flex;flex-direction:column;align-items:center;padding:4px 0 2px}
+.punch .p-ring{
+  --r1:#d9bd91;--r2:#c9ab7c;--r3:#b0905f;--rs:rgba(176,144,95,.28);
+  width:min(224px,64vw);aspect-ratio:1;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  background:radial-gradient(circle at 50% 34%,var(--r1),var(--r2) 58%,var(--r3));
+  box-shadow:0 8px 24px var(--rs);
+  color:#fff;cursor:pointer;user-select:none;-webkit-user-select:none;
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease);
+}
+.punch .p-ring:active{transform:scale(.97)}
+.punch .p-ring::before{                       /* 外圈细环 */
+  content:'';position:absolute;inset:-13px;border-radius:50%;
+  border:1px solid rgba(201,171,124,.42);
+}
+.punch .p-ring::after{                        /* 内圈同心环 */
+  content:'';position:absolute;inset:15px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.34);
+}
+.punch .p-in{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;
+  color:#fff;
+}
+.punch .p-ico{
+  width:36px;height:36px;margin-bottom:2px;
+  stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+.punch .p-word{font-size:26px;font-weight:500;letter-spacing:.16em;text-indent:.16em;line-height:1.25}
+.punch .p-time{
+  font-size:19px;font-weight:400;letter-spacing:.06em;opacity:.92;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum";
+}
+.punch .p-ring.done{--r1:#7fb894;--r2:#4c8f68;--r3:#3c7353;--rs:rgba(46,125,79,.28)}
+.punch .p-ring.done::before{border-color:rgba(46,125,79,.35)}
+.punch .p-ring.late{--r1:#e2ab7a;--r2:#c9834e;--r3:#a9673c;--rs:rgba(169,103,60,.28)}
+.punch .p-ring.late::before{border-color:rgba(169,103,60,.35)}
+.punch .p-ring.off{--r1:#cfcbc4;--r2:#b3aea6;--r3:#9a958d;--rs:rgba(0,0,0,.12);cursor:default}
+.punch .p-ring.off::before{border-color:rgba(128,128,128,.3)}
+.punch .p-ring.off:active{transform:none}
+.p-state{margin-top:15px;font-size:var(--fs-meta);color:var(--text-dim);text-align:center;line-height:1.6}
+.p-state b{color:var(--text);font-weight:500}
+/* 学生端：圆圈跟着青蓝走，跟学生端那套皮是同一个色 */
+body.stu .punch .p-ring{--r1:#9dbdd8;--r2:#5b7fa6;--r3:#41607f;--rs:rgba(65,96,127,.28)}
+body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
+
 /* ════════ 平板与横屏：侧栏展开成图标配文字 ════════ */
 @media (min-width:700px){
   :root{--fs-hero:48px;--fs-title:26px;--pad:24px;--gap:16px}
@@ -758,6 +863,12 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 window.__splashT0 = performance.now();</script>
 <!-- ==== 开屏层 END ==== -->
 
+<!-- ==== 学生端整页水印 START ====
+     只有学生端会显示（body.stu 时才 display:block），教务/老师端没有。
+     图案由 StuMark.paint() 按当前登录学生生成（系统名 + 本人姓名 + 班级）。 -->
+<div id="watermark"></div>
+<!-- ==== 学生端整页水印 END ==== -->
+
 <div class="app">
 
   <!-- ==== 侧边栏 START ==== -->
@@ -895,6 +1006,11 @@ window.__splashT0 = performance.now();</script>
           <button class="btn ghost" onclick="Att.copySummary()">复制小结文案</button>
         </div>
         <p class="hint" id="attSum"></p>
+      </div>
+
+      <div class="card wide">
+        <h2>🏥 学生请假 <span class="hint" id="attLeaveMeta" style="display:inline;margin:0"></span></h2>
+        <div id="attLeaveList"></div>
       </div>
 
       <div class="card wide">
@@ -1494,6 +1610,19 @@ window.__splashT0 = performance.now();</script>
     </section>
     <!-- ==== 功能：老师管理 END ==== -->
 
+    <!-- ==== 功能：学生账号 START ====（学生单独一个端口：不跟老师混，也没有「带班」这一说） -->
+    <section class="page" id="page-students">
+      <div class="page-title">学生账号</div>
+      <div class="card wide">
+        <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+          <h2 style="margin:0">🎓 学生账号 <span class="hint" id="saMeta" style="display:inline;margin:0"></span></h2>
+          <button class="btn ghost" onclick="App.go('roster')">去名册建号</button>
+        </div>
+        <div id="saList"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：学生账号 END ==== -->
+
     <!-- ==== 功能：老师今天 START ====（授课老师端首页） -->
     <section class="page" id="page-today">
       <div class="page-title"><span id="tdHi">今天</span> <span class="clock" id="ckToday"></span></div>
@@ -1630,13 +1759,15 @@ window.__splashT0 = performance.now();</script>
     </section>
     <!-- ==== 功能：学生今日 END ==== -->
 
-    <!-- ==== 功能：学生打卡 START ==== -->
+    <!-- ==== 功能：学生打卡 START ====
+         打卡就一个动作：按中间那个圈。
+         圈里从上到下三样 —— 简笔画定位标、「打卡」两个字、此刻的时分秒（服务端时间）。
+         按下去先定位（证明人在校区），定位完下面才出码框，输教务给的码才算打上。 -->
     <section class="page" id="page-stuSign">
       <div class="page-title">打卡</div>
-      <div class="page-sub">两步：先定位、再输讲台上那个码 · 时间以服务器为准，改手机时间没用</div>
       <div class="card wide">
         <div id="stuSignNow"></div>
-        <div id="stuSignStep" style="margin-top:12px"></div>
+        <div id="stuSignStep" style="margin-top:14px"></div>
         <p class="hint" id="stuSignHint"></p>
       </div>
       <div class="card wide">
@@ -1649,7 +1780,7 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生请假 START ==== -->
     <section class="page" id="page-stuLeave">
       <div class="page-title">请假</div>
-      <div class="page-sub">批准后自动写进考勤 · 教务在「协作」里处理</div>
+      <div class="page-sub">批准后自动写进考勤</div>
       <div class="card wide">
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="lvDate" style="max-width:170px">
@@ -1673,7 +1804,6 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生每日新闻 START ==== -->
     <section class="page" id="page-stuNews">
       <div class="page-title">每日新闻</div>
-      <div class="page-sub">练声与评述素材 · 全班看的是同一份</div>
       <div class="card wide">
         <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
           <h2 style="margin:0">📰 央视新闻 <span class="hint" id="stuNewsMeta" style="display:inline;margin:0"></span></h2>
@@ -1688,7 +1818,6 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生我的课表 START ==== -->
     <section class="page" id="page-stuTable">
       <div class="page-title">我的课表</div>
-      <div class="page-sub">本周课表，只读</div>
       <div class="card wide">
         <div id="stuWeek"></div>
       </div>
@@ -1698,7 +1827,6 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生考试与抽签 START ==== -->
     <section class="page" id="page-stuExam">
       <div class="page-title">考试与抽签</div>
-      <div class="page-sub">出场顺序由教务开抽，抽完不能重抽</div>
       <div class="card wide">
         <h2>🎲 我的出场序号</h2>
         <div id="stuDraw"></div>
@@ -1735,7 +1863,6 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：学生我的作业 START ==== -->
     <section class="page" id="page-stuHw">
       <div class="page-title">我的作业</div>
-      <div class="page-sub">本班作业 · 我这条是已交还是未交</div>
       <div class="card wide">
         <div id="stuHwList"></div>
       </div>
@@ -1747,18 +1874,6 @@ window.__splashT0 = performance.now();</script>
     <!-- ==== 功能：打卡管理 START ====（教务端） -->
     <section class="page" id="page-sign">
       <div class="page-title">打卡</div>
-      <div class="page-sub">学生打卡的收口：动态码、规则、今天谁打了、谁有问题</div>
-      <div class="card wide">
-        <h2>🔢 打卡码 <span class="hint" id="signCodeMeta" style="display:inline;margin:0"></span></h2>
-        <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="sgCode" placeholder="自己设一个，如 8866 或 A7" style="max-width:220px">
-          <button class="btn" onclick="Sign.saveCode()">保存</button>
-          <button class="btn ghost" onclick="Sign.randCode()">随机一个</button>
-        </div>
-        <div id="signCodeBox" style="margin-top:10px"></div>
-        <p class="hint">这个码<b>不会自己变</b>，您想换就换（比如一节课换一个）。学生看不到它是从哪来的，只能照着输。
-          学生打卡是「先定位、再输码」两步：码就算被传到校外，人不在校区也打不成，会标「需核对」。</p>
-      </div>
       <div class="card wide">
         <h2>⚙️ 打卡设置</h2>
         <div class="row" style="flex-wrap:wrap">
@@ -1784,9 +1899,17 @@ window.__splashT0 = performance.now();</script>
         <div class="row" style="flex-wrap:wrap;margin-top:8px">
           <span class="hint" style="margin:0;min-width:76px">允许半径</span>
           <input type="number" id="sgRadius" min="20" max="2000" onchange="Sign.saveRules()" style="max-width:110px">
-          <span class="hint" style="margin:0">米（室内定位会漂 20~100 米，别设太小）</span>
+          <span class="hint" style="margin:0">米</span>
         </div>
         <p class="hint" id="sgStat"></p>
+
+        <h2 style="margin:18px 0 0">🔢 这个时段的打卡码</h2>
+        <div class="row" style="flex-wrap:wrap">
+          <input type="text" id="sgCode" placeholder="自己设一个，如 8866" style="max-width:220px">
+          <button class="btn" onclick="Sign.saveCode()">保存</button>
+          <button class="btn ghost" onclick="Sign.randCode()">随机一个</button>
+        </div>
+        <div id="signCodeBox" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
         <h2>📋 今日打卡 <span class="hint" id="signTodayMeta" style="display:inline;margin:0"></span></h2>
@@ -1795,7 +1918,6 @@ window.__splashT0 = performance.now();</script>
           <select id="sgCls" onchange="Sign.pickCls(this.value)" style="max-width:180px"></select>
           <button class="btn ghost" onclick="Sign.exportDay()">导出这一天</button>
         </div>
-        <p class="hint" style="margin:8px 0 0">标黄 = 需要看一眼（没定位到人、距离存疑、待核）。点名字可以补签或改判。</p>
         <div id="signToday" style="margin-top:10px"></div>
       </div>
     </section>
@@ -2728,7 +2850,10 @@ const Greet = {
 
   text(){
     const n = Auth.name() || '';
-    const who = n && !/老师$/.test(n) ? n + '老师' : n;
+    /* 学生端就是学生本人，不能再叫「XX老师」—— 直接叫名字 */
+    let stu = false;
+    try { stu = !!(typeof Auth.isStudent === 'function' && Auth.isStudent()); } catch(e){}
+    const who = (!stu && n && !/老师$/.test(n)) ? n + '老师' : n;
     return who ? who + '，' + this.word() : this.word();
   },
 
@@ -2778,6 +2903,8 @@ const App = {
     { id:'exam',      icon:'🎤', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
     { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
+    /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里 */
+    { id:'students',  icon:'🎓', name:'学生账号', roles:['super'],         onShow: () => StuAcct.render() },
     /* 巡检只给教务端：老师上课用的是自己那几个入口，系统通不通由教务盯着 */
     { id:'health',    icon:'🩺', name:'巡检',     roles:['super','admin','both'], onShow: () => Health.render() },
     { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
@@ -2830,10 +2957,11 @@ const App = {
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
   NAV_ORDER: {
     /* 「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
-    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','teachers','health','settings'],
+    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','teachers','students','health','settings'],
     admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','health','settings'],
-    /* 教务兼授课：先教务那摊（常用的在前），再自己班的授课那摊 */
-    both:    ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','today','news','record','myclass','tickets','health','settings'],
+    /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
+       教务那摊排完，再接自己班的授课那摊。 */
+    both:    ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','news','record','myclass','tickets','health','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
     student: ['stuHome','stuSign','stuLeave','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','settings']
   },
@@ -2889,6 +3017,9 @@ const App = {
        </button>`).join('');
 
     Greet.paint();
+    /* 学生端换一整套皮（青蓝），网页版侧栏和手机版顶栏/底栏共用同一份变量，两边同时换 */
+    try { document.body.classList.toggle('stu', !!Auth.isStudent()); } catch(e){}
+    StuMark.paint();
     this.refreshDots();
   },
 
@@ -3397,24 +3528,17 @@ const Roster = {
     if (kind === 'names'){
       txt = (this._ok || []).map(x => x.user).join('\n');
     } else {
-      txt = `哈喽，乖～ 欢迎加入博艺大家庭！
+      txt = `哈喽，乖～欢迎加入博艺大家庭！
 
-这是属于你自己的学生系统，以后这几件事都在里面，打开就能看到今天该干什么：
-· 上课前打卡（到教室点一下就行）
-· 请假直接在这儿说一声
-· 今天上什么课、在哪间教室、留了什么作业
-· 每日新闻、考试出场顺序、自己的考勤记录
+砺蕴学生系统　${url}
+用户名　姓名
+密码　${pass}
 
-网址　${url}
-用户名　你的名字（比如你叫张小明，就填「张小明」）
-初始密码　${pass}
+加到手机桌面：
+iPhone（用 Safari 打开）分享 → 添加到主屏幕
+安卓 右上角「⋮」→ 添加到主屏幕
 
-把它加到手机桌面（加完跟 App 一样，点一下就开，不用每次输网址）：
-· iPhone（必须用 Safari 打开）：点底部中间的「分享」→ 往下滑找到「添加到主屏幕」→ 右上角「添加」
-· 安卓（用浏览器打开）：点右上角「⋮」→「添加到主屏幕」或「安装应用」
-
-进去之后先到「设置」把密码改成自己的，别告诉别人哈。
-有不会的随时问我，加油！`;
+登录后先改密码。`;
     }
     ta.value = txt;
     if (!silent){ Util.copy(txt); UI.toast(kind === 'names' ? '用户名清单已复制' : '欢迎语已复制，去微信粘贴'); }
@@ -3610,6 +3734,7 @@ const Att = {
     const clsId = Util.fillCls('attCls', '_attCls');
     const body = document.getElementById('attBody');
     const sum = document.getElementById('attSum');
+    this.renderLeaves();      // 学生请假就在这儿批，不用跑去「协作」
     if (!clsId){
       body.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>';
       sum.textContent = '';
@@ -3640,6 +3765,43 @@ const Att = {
     }).join('') : '<div class="empty">这个班还没有学员</div>';
 
     sum.innerHTML = this.sumText(date, pid, students, map);
+  },
+
+  /* ── 学生请假：摆在考勤页批 ──
+     请假说到底是考勤的一种结果，放在考勤页批最顺手：批完当天考勤就变了，一眼能对上。
+     批准 = 写考勤 + 自动进量化，跟在「协作」里点批准走的是同一条路。 */
+  renderLeaves(){
+    const box = document.getElementById('attLeaveList');
+    const meta = document.getElementById('attLeaveMeta');
+    if (!box) return;
+    const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
+                      .filter(t => t && t.type === '学生请假');
+    const open = list.filter(t => t.status === 'open' || t.status === undefined);
+    if (meta) meta.textContent = open.length ? '（' + open.length + ' 条待批）' : '';
+    if (!list.length){ box.innerHTML = '<div class="empty">还没有学生请假</div>'; return; }
+    box.innerHTML = list.slice(0, 12).map(t => {
+      const done = t.status === 'done' || t.status === 'rejected';
+      return `<div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between">
+          <b style="font-weight:500">${Util.esc(Util.stuName(t.studentId) || '学生')} 请假
+            <span class="hint" style="display:inline;margin:0;font-weight:400"> · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span></b>
+          <span class="chip ${t.status === 'done' ? 'chip-on' : (t.status === 'rejected' ? 'chip-no' : '')}" style="pointer-events:none">${
+            t.status === 'done' ? '已批准' : t.status === 'rejected' ? '已驳回' : '待批'}</span>
+        </div>
+        <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
+        ${done ? '' : `
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <button class="btn" onclick="Att.leave('${t.id}', true)">批准（写进考勤）</button>
+            <button class="btn ghost" onclick="Att.leave('${t.id}', false)">驳回</button>
+          </div>`}
+      </div>`;
+    }).join('');
+  },
+
+  /** 批准 / 驳回：动作本身复用协作页那套，批完把考勤主体也刷一遍 */
+  leave(id, ok){
+    try { if (typeof Coop !== 'undefined' && Coop.leave) Coop.leave(id, ok); } catch(e){}
+    this.render();
   },
 
   /* 「一键全部正常」下面那句话：说清是哪天、哪一次考勤、现在登记成什么样了。
@@ -6498,9 +6660,12 @@ const Coop = {
     el.innerHTML = list.length ? list.map(t => `
       <div class="item" style="flex-direction:column;align-items:stretch">
         <div class="row" style="justify-content:space-between">
-          <b style="font-weight:500">${Util.esc(t.type || '上报')}${
-            t.type === '学生请假' ? ` · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}` : ''}${
-            t.studentId ? ` <span class="hint" style="display:inline;margin:0">${Util.esc(Util.stuName(t.studentId))}</span>` : ''}</b>
+          <b style="font-weight:500">${
+            t.type === '学生请假'
+              /* 请假首要看「谁」请假 —— 姓名顶在最前面，不用点进去才知道 */
+              ? `${Util.esc(Util.stuName(t.studentId) || '学生')} 请假 · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}`
+              : `${Util.esc(t.type || '上报')}${
+                  t.studentId ? ` <span class="hint" style="display:inline;margin:0">${Util.esc(Util.stuName(t.studentId))}</span>` : ''}`}</b>
           <span class="chip ${t.status === 'done' ? '' : (t.status === 'rejected' ? 'chip-no' : 'chip-no')}" style="pointer-events:none">${
             t.status === 'done' ? '已处理' : t.status === 'rejected' ? '已驳回' : '待处理'}</span>
         </div>
@@ -6627,7 +6792,8 @@ const Teachers = {
     const box = document.getElementById('roleOpts');
     if (!box) return;
     const cur = this._role;
-    box.innerHTML = Object.keys(App.ROLE_KIND).map(k => {
+    /* 学生不在这里建（学生账号由「名册」一键建出），所以身份选项里不出现「学生」 */
+    box.innerHTML = Object.keys(App.ROLE_KIND).filter(k => k !== 'student').map(k => {
       const r = App.ROLE_KIND[k];
       const on = k === cur ? ' on' : '';
       return `<button class="role-opt${on}" onclick="Teachers.pickRole('${k}')">
@@ -6671,7 +6837,9 @@ const Teachers = {
     this.closeCls();
     try {
       const j = await Auth.call('users', { op: 'list' });
-      this._users = j.users || [];
+      /* 学生账号不在这儿管：单独有「学生账号」那一页。
+         学生没有带班这一说，跟老师混在一个列表里只会让人误解。 */
+      this._users = (j.users || []).filter(u => u.role !== 'student');
       this.paint();
     } catch(e){
       el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
@@ -6847,6 +7015,82 @@ const Teachers = {
   }
 };
 /* ==== 功能：老师管理 END ==== */
+
+
+/* ══════════ 学生账号：单独一个端口 ══════════
+   学生不是小一号的老师 —— 没有「带班」，也不该跟老师账号挤在同一张列表里。
+   建号在「名册」里一键建（用户名就是姓名），这一页只管：查、改密码、停用、删除。 */
+const StuAcct = {
+  _users: [],
+
+  async render(){
+    const el = document.getElementById('saList');
+    if (!el) return;
+    el.innerHTML = '<div class="empty">正在读取…</div>';
+    try {
+      const j = await Auth.call('users', { op: 'list' });
+      this._users = (j.users || []).filter(u => u.role === 'student');
+      this.paint();
+    } catch(e){
+      el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
+    }
+  },
+
+  paint(){
+    const el = document.getElementById('saList');
+    if (!el) return;
+    const list = (this._users || []).slice().sort((a,b) =>
+      String(a.name || a.user).localeCompare(String(b.name || b.user), 'zh'));
+    const meta = document.getElementById('saMeta');
+    if (meta) meta.textContent = list.length ? '（' + list.length + ' 人）' : '';
+    el.innerHTML = list.length ? list.map(u => {
+      const stu = Store.list('students').find(s => s.id === u.studentId);
+      return `<div class="item">
+        <span class="grow">${Util.esc(u.name || u.user)}
+          <span class="hint" style="display:inline;margin:0"> @${Util.esc(u.user)}</span>
+          <br><span class="hint" style="display:inline;margin:0">${
+            (stu ? (Util.esc(Util.clsName(stu.classId) || '') || '已关联学员') : '还没关联学员档案') +
+            (u.active ? '' : ' · 已停用')}</span></span>
+        <span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+          <button class="chip" onclick="StuAcct.resetPass('${u.id}')">改密码</button>
+          <button class="chip" onclick="StuAcct.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
+          ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
+        </span>
+      </div>`;
+    }).join('') : '<div class="empty">还没有学生账号。到「名册」里一键建号。</div>';
+  },
+
+  async resetPass(id){
+    const u = (this._users || []).find(x => x.id === id);
+    const np = prompt('给「' + ((u && u.name) || (u && u.user) || '这个学生') + '」设一个新密码（至少 8 位）');
+    if (!np) return;
+    try { await Auth.call('users', { op: 'pass', id, pass: np }); UI.toast('密码已改'); }
+    catch(e){ UI.toast(e.message); }
+  },
+
+  async toggle(id, active){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!active && u && !confirm('停用「' + (u.name || u.user) + '」？\n\nTA 立刻登不进来，之前录的数据一条不丢，随时可以再启用。')) return;
+    const prev = u ? u.active : null;
+    if (u) u.active = active;
+    this.paint();
+    try {
+      await Auth.call('users', { op: 'update', id, active });
+      UI.toast(active ? '已启用' : '已停用');
+    } catch(e){ if (u) u.active = prev; this.paint(); UI.toast(e.message); }
+  },
+
+  async remove(id){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!u) return;
+    if (!confirm('删除「' + (u.name || u.user) + '」的账号？\n\nTA 将无法再登录，已录的数据保留。此操作不可恢复。')) return;
+    const snap = this._users;
+    this._users = this._users.filter(x => x.id !== id);
+    this.paint();
+    try { await Auth.call('users', { op: 'delete', id }); UI.toast('已删除'); }
+    catch(e){ this._users = snap; this.paint(); UI.toast(e.message); }
+  }
+};
 
 
 /* ==== 功能：老师今天 START ====（授课老师端首页） */
@@ -8166,6 +8410,35 @@ const Stu = {
 };
 
 
+/* ════════ 学生端：整页水印 ════════
+   斜着铺满整页，压得很淡 —— 看字完全不受影响，
+   但谁把页面截出去、拍出去，一眼就能查到是哪个学生。
+   用 mask 而不是写死颜色：水印跟着 --text 走，深色模式下自动变浅色
+   （写死黑字的话，深底上就整个看不见了）。 */
+const StuMark = {
+  paint(){
+    const el = document.getElementById('watermark');
+    if (!el) return;
+    let stu = false;
+    try { stu = !!Auth.isStudent(); } catch(e){}
+    if (!stu){ el.style.webkitMaskImage = ''; el.style.maskImage = ''; return; }
+    const r = Stu.rec();
+    const who = (Auth.name() || '') + (r && r.classId ? ' · ' + Util.clsName(r.classId) : '');
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    /* 一行系统名（大字）＋一行本人姓名·班级：两条交替铺满，辨识度和可追溯性都有 */
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="136">' +
+      '<text x="6" y="42" font-size="19" fill="#fff" transform="rotate(-32 6 42)" ' +
+        'font-family="sans-serif" letter-spacing="2">砺蕴学生系统</text>' +
+      `<text x="-22" y="106" font-size="14" fill="#fff" opacity=".72" transform="rotate(-32 -22 106)" ` +
+        `font-family="sans-serif" letter-spacing="1">${esc(who || '砺蕴学生系统')}</text>` +
+      '</svg>';
+    const url = 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")';
+    el.style.webkitMaskImage = url;
+    el.style.maskImage = url;
+  }
+};
+
+
 /* ══════════ 学生端：今日（首屏） ══════════ */
 const StuHome = {
   render(){
@@ -8196,7 +8469,6 @@ const StuHome = {
       } else {
         box.innerHTML = `
           <div class="hero" style="font-size:22px">还没打卡</div>
-          <p class="hint">到教室后点一下，一秒出结果。</p>
           <div class="row" style="margin-top:10px">
             <button class="btn" onclick="App.go('stuSign')">去打卡</button>
           </div>`;
@@ -8246,26 +8518,41 @@ const StuHome = {
 const StuSign = {
   _geo: null,        // 本次定位结果：{lat,lng,acc} 或 {fail:true}
   _busy: false,
+  _again: false,     // 已经打过卡了，学生自己按了「重新打卡」：这一轮允许再打一次
 
   render(){
     const box = document.getElementById('stuSignNow');
     if (box){
       const g = Stu.gate();
       if (!g.ok){
-        box.innerHTML = `<div class="hero" style="font-size:26px">${g.text}</div>`;
-      } else if (g.signed && g.rec){
+        /* 请假了 / 这天不用打卡：圈变成灰的，按不动 */
+        box.innerHTML = `<div class="punch">
+          ${this.ring({ cls:'off', word:'不用打卡', ico:'dash', time:this.hms(this.now()) })}
+          <div class="p-state">${Util.esc(g.text)}</div>
+        </div>`;
+      } else if (g.signed && g.rec && !this._again){
         const s = g.rec;
-        box.innerHTML = `
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <div class="hero" style="font-size:34px">${Stu.statusText(s)}</div>
-            ${Stu.statusChip(s)}
+        const late = s.status === '迟到';
+        const way = {code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—';
+        box.innerHTML = `<div class="punch">
+          ${this.ring({ cls: late ? 'late' : 'done',
+                        word: late ? '迟到' : (s.status === '待核' ? '待核' : '已打卡'),
+                        ico: late ? 'warn' : 'check', time: this.hms(s.at) })}
+          <div class="p-state">${Util.esc(Stu.statusText(s))} · ${Util.esc(way)}
+            ${s.dist != null ? ' · 距校区 ' + s.dist + ' 米' : ''}
+            ${s.offline ? '<br>当时没网，' + this.hms(s.recvAt || s.at) + ' 补传上来（按按下那一刻算的）' : ''}</div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn ghost" onclick="StuSign.again()">重新打卡</button>
           </div>
-          <p class="hint">${this.hm(s.at)} 打卡${s.offline ? '（当时没网，' + this.hm(s.recvAt || s.at) + ' 补传上来）' : ''} ·
-            方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}
-            ${s.dist != null ? ' · 距校区 ' + s.dist + ' 米' : ''}</p>`;
+        </div>`;
       } else {
-        box.innerHTML = `<div class="hero" style="font-size:26px">还没打卡</div>
-          <p class="hint">到教室后点下面那个按钮，两步就完事。</p>`;
+        /* 还没打卡：圈本身就是按钮。定位好了再按＝提交，没定位按＝先定位 */
+        const got = !!(this._geo && (this._geo.lat != null || this._geo.fail));
+        box.innerHTML = `<div class="punch">
+          ${this.ring({ word:'打卡', ico:'pin', time:this.hms(this.now()), live:true,
+                        act: got ? 'StuSign.confirm()' : 'StuSign.start()' })}
+          <div class="p-state" id="punchState">${this.gateText()}</div>
+        </div>`;
       }
     }
     const hint = document.getElementById('stuSignHint');
@@ -8277,26 +8564,72 @@ const StuSign = {
     }
     this.renderStep();
     this.renderList();
+    this.startClock();
     this.flush();
   },
 
+  /** 圈下面那一句：只写跟「现在该不该打」有关的，不写废话 */
+  gateText(){
+    const r = Store.get('sign_rules') || {};
+    if (r.startAt) return '打卡时间 ' + r.startAt;
+    return '';
+  },
+
   hm(ts){ return new Date(ts).toLocaleTimeString('zh-CN'); },
+  hms(ts){
+    const d = new Date(ts), p = n => String(n).padStart(2, '0');
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  },
+
+  /** 打卡圈：同心圆（外环 → 主盘 → 内环），圈里三样：简笔画 → 字 → 时分秒 */
+  ring(o){
+    const ico = {
+      /* 简笔画定位标：一根线勾出 marker，中间一个小圈 */
+      pin:  '<path d="M22 39.5s9.5-11 9.5-18A9.5 9.5 0 1 0 12.5 21.5c0 7 9.5 18 9.5 18z"/><circle cx="22" cy="21" r="3.4"/>',
+      /* 简笔画对勾 */
+      check:'<path d="M13.5 23l6.5 6.5L32 16"/>',
+      /* 简笔画感叹号（迟到） */
+      warn: '<path d="M22 12.5v13"/><circle cx="22" cy="33.6" r="1.9" fill="currentColor" stroke="none"/>',
+      /* 简笔画横杠（这天不用打卡） */
+      dash: '<path d="M14 22h16"/>',
+    }[o.ico || 'pin'];
+    const tap = o.act ? ` onclick="${o.act}"` : '';
+    return `<div class="p-ring ${o.cls || ''}"${tap} role="button" aria-label="打卡">
+      <div class="p-in">
+        <svg class="p-ico" viewBox="0 0 44 44" aria-hidden="true">${ico}</svg>
+        <div class="p-word">${Util.esc(o.word)}</div>
+        <div class="p-time"${o.live ? ' id="punchTime"' : ''}>${o.time}</div>
+      </div>
+    </div>`;
+  },
+
+  /** 圈里的秒针要真的走。用服务端校过的时间，改手机时间没用 */
+  startClock(){
+    const paint = () => {
+      const el = document.getElementById('punchTime');
+      if (!el) return;
+      el.textContent = this.hms(this.now());
+    };
+    paint();
+    if (this._tk) return;
+    this._tk = setInterval(paint, 1000);
+  },
 
   /* ── 两步打卡：① 定位 ② 输码 ──
      位置是「人在不在教室」的证据，码是「这次打卡是不是这节课」的证据。
      两样都要，所以先取位置、再要码 —— 少一步都会被教务那边标成「需核对」。 */
+  /* 圈下面只在「定位好了、还差一个码」时才长东西 —— 其余时候干干净净 */
   renderStep(){
     const el = document.getElementById('stuSignStep');
     if (!el) return;
     const g = Stu.gate();
-    if (!g.ok){ el.innerHTML = ''; return; }
+    if (!g.ok) { el.innerHTML = ''; return; }
+    if (g.signed && g.rec && !this._again){ el.innerHTML = ''; return; }
     if (this._geo && this._geo.lat != null){
       el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">✅ 已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''}
-          —— 再输一下讲台上那个码就打上了。</p>
+        <p class="hint" style="margin:0 0 8px">已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''} —— 输一下码，再按上面的圈。</p>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="stuCode" inputmode="numeric" placeholder="讲台上/老师给的码" style="max-width:200px">
-          <button class="btn" onclick="StuSign.confirm()">确认打卡</button>
+          <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px">
           <button class="btn ghost" onclick="StuSign.reset()">重定位</button>
         </div>`;
       const inp = document.getElementById('stuCode');
@@ -8305,26 +8638,24 @@ const StuSign = {
     }
     if (this._geo && this._geo.fail){
       el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">⚠️ 没取到位置（要在系统浏览器里允许定位）。
-          可以先打卡，但教务那边会标「需核对」，请下课后跟老师说一声。</p>
+        <p class="hint" style="margin:0 0 8px">没取到位置：可以先打卡，教务那边会标「需核对」。</p>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="stuCode" inputmode="numeric" placeholder="讲台上/老师给的码" style="max-width:200px">
-          <button class="btn" onclick="StuSign.confirm()">确认打卡</button>
-          <button class="btn ghost" onclick="StuSign.start()">再试一次定位</button>
+          <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px">
+          <button class="btn ghost" onclick="StuSign.start()">再试定位</button>
         </div>`;
       return;
     }
-    el.innerHTML = `
-      <button class="btn" style="font-size:17px;padding:11px 20px" onclick="StuSign.start()">📍 打卡</button>
-      <p class="hint" style="margin:8px 0 0">点了先定位，定位完再让你输码。到教室再点。</p>`;
+    el.innerHTML = '';      /* 还没定位：圈自己就是按钮，下面不摆东西 */
   },
 
-  reset(){ this._geo = null; this.renderStep(); },
+  reset(){ this._geo = null; this.render(); },
+  /** 已经打过了还想再打一次（比如刚才打错了）：重新走一遍 */
+  again(){ this._again = true; this._geo = null; this.render(); },
 
   start(){
     if (this._busy) return;
     if (!navigator.geolocation){
-      this._geo = { fail: true }; this.renderStep();
+      this._geo = { fail: true }; this.render();
       return UI.toast('这个浏览器不支持定位，直接输码也能打（会标需核对）');
     }
     this._busy = true;
@@ -8333,13 +8664,13 @@ const StuSign = {
       pos => {
         this._busy = false;
         this._geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
-        this.renderStep();
+        this.render();
       },
       () => {
         this._busy = false;
         this._geo = { fail: true };
         UI.toast('取不到位置，直接输码也能打（会标需核对）');
-        this.renderStep();
+        this.render();
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
@@ -8395,6 +8726,7 @@ const StuSign = {
              : `打上了，${this.hm(payload.at)} · 正常`);
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来
       this._geo = null;
+      this._again = false;          // 这一轮打完了，「重新打卡」要再按一次才重来
       const el = document.getElementById('stuCode'); if (el) el.value = '';
       this.render();
       StuHome.render();
@@ -8602,7 +8934,7 @@ const StuQuant = {
               <br><span class="hint" style="display:inline;margin:0">${p.n} 次</span></span>
             <b class="num" style="font-size:16px;flex-shrink:0;color:${p.delta > 0 && p.n > 0 ? '#2e7d4f' : '#c25650'}">${p.delta * p.n > 0 ? '+' : ''}${p.delta * p.n}</b>
           </div>`).join('') : '<div class="empty">这段时间没有你的加扣分</div>'}
-        <p class="hint">这是由你的考勤、作业、晚自习按「量化细则」折算出来的，跟教务那边同一套算法。</p>`;
+        `;
     }
   }
 };
@@ -8782,7 +9114,12 @@ const Sign = {
     this.stat();
   },
 
-  /* ── 打卡码：教务自己设，不会自己变 ── */
+  /* ── 打卡码：教务自己设，不会自己变 ──
+     以前这里每 30 秒去服务端取一次码、再回写进输入框：刚改的码还没同步上去，
+     就被服务端那个旧值盖回去了 —— 看起来就是「改不动、刷新很慢」。
+     现在改成：**本地就是唯一真相**，改完立刻生效；只有本地没设码时才去服务端要一个。 */
+  localCode(){ return String(this.rules().code || '').trim(); },
+
   saveCode(){
     const el = document.getElementById('sgCode');
     const v = (el && el.value || '').trim();
@@ -8790,8 +9127,10 @@ const Sign = {
     const r = this.rules();
     r.code = v;
     Store.set('sign_rules', r);
+    this._code = v; this._fixed = true;
     UI.toast('打卡码已设为「' + v + '」');
-    this.refreshCode();
+    this.paintCode();
+    this.pushRules();
   },
   randCode(){
     const el = document.getElementById('sgCode');
@@ -8800,11 +9139,18 @@ const Sign = {
     this.saveCode();
   },
 
+  /** 改完立刻推一次，别等定时同步 —— 学生下一秒就可能要打卡 */
+  pushRules(){
+    try { if (typeof Sync !== 'undefined' && Sync.push) Sync.push(); } catch(e){}
+  },
+
   async refreshCode(){
+    const local = this.localCode();
+    if (local){ this._code = local; this._fixed = true; this.paintCode(); return; }
     try {
       const j = await Auth.call('code');
       this._code = j.code || ''; this._fixed = !!j.fixed;
-      StuSign.syncClock(j.serverNow);
+      if (j && j.serverNow) StuSign.syncClock(j.serverNow);
     } catch(e){
       this._code = ''; this._fixed = false;
     }
@@ -8814,19 +9160,16 @@ const Sign = {
     const box = document.getElementById('signCodeBox');
     if (box){
       box.innerHTML = this._code
-        ? `<div class="hero num" style="font-size:44px;letter-spacing:6px">${this._code}</div>
-           <p class="hint">${this._fixed ? '这是您自己设的码，不会自己变。' : '（您还没设固定码，这是系统临时的 60 秒码）'}让学生照着输。</p>`
-        : '<div class="empty">还没设打卡码。上面填一个再保存，学生就能打卡了。</div>';
+        ? `<div class="hero num" style="font-size:44px;letter-spacing:6px">${this._code}</div>`
+        : '<div class="empty">还没设打卡码</div>';
     }
     const el = document.getElementById('sgCode');
-    if (el && this._code && el.value !== this._code) el.value = this._code;
+    if (!el) return;
+    /* 正在输的时候绝不回写，否则刚敲进去的字会被冲掉 */
+    if (document.activeElement === el) return;
+    if (el.value !== this._code) el.value = this._code;
   },
-  /** 码不会自己变，不用每秒刷新；隔一会儿看一眼，是因为别的设备可能改了码 */
-  startCode(){
-    this.stopCode();
-    this.refreshCode();
-    this._timer = setInterval(() => this.refreshCode(), 30000);
-  },
+  startCode(){ this.stopCode(); this.refreshCode(); },
   stopCode(){ clearInterval(this._timer); this._timer = null; },
 
   /* ── 今日打卡一览 ── */
@@ -8971,20 +9314,26 @@ const Brand = {
            '" alt="' + (alt === undefined ? '博艺教育' : alt) + '" draggable="false">';
   },
 
+  /** 学生端整套门头换名：学生看到的是「砺蕴学生系统」，教务/老师才是「砺蕴工作系统」 */
+  sysName(){
+    try { if (typeof Auth !== 'undefined' && Auth.isStudent && Auth.isStudent()) return '砺蕴学生系统'; } catch(e){}
+    return '砺蕴工作系统';
+  },
+
   /** 门头层次：徽章 84（宽屏由 CSS 放大到 132），自上而下压在中轴 */
   gate(){
     return this.bi(84) +
       '<div class="b-org">博艺教育<i>BOYI EDUCATION</i></div>' +
       '<span class="b-rule"></span>' +
       '<div class="ly"></div>' +
-      '<div class="b-sys">砺蕴工作系统</div>';
+      '<div class="b-sys">' + this.sysName() + '</div>';
   },
 
-  /** 侧栏：徽章 + 「博艺教育 / 砺蕴工作系统」两行，左对齐成一块 */
+  /** 侧栏：徽章 + 「博艺教育 / 砺蕴??系统」两行，左对齐成一块 */
   side(){
     return '<div class="b-row">' + this.bi(32) +
       '<div><div class="b-org">博艺教育</div>' +
-      '<div class="b-sys" style="margin-top:3px">砺蕴工作系统</div></div></div>';
+      '<div class="b-sys" style="margin-top:3px">' + this.sysName() + '</div></div></div>';
   },
 
   paint(){
@@ -9004,7 +9353,7 @@ const Brand = {
     const gf = document.getElementById('gFoot');
     if (gf) gf.textContent = '博艺教育 · LIYUN WORKBENCH';
     const fb = document.getElementById('footBrand');
-    if (fb) fb.textContent = '博艺教育 · 砺蕴工作系统 · liyun2026.top';
+    if (fb) fb.textContent = '博艺教育 · ' + this.sysName() + ' · liyun2026.top';
   }
 };
 
