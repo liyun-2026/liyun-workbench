@@ -1589,7 +1589,7 @@ window.__splashT0 = performance.now();</script>
       </div>
 
       <div class="card">
-        <p class="hint" style="margin:0;text-align:center" id="footBrand">砺蕴工作系统 · liyun2026.top</p>
+        <p class="hint" style="margin:0;text-align:center" id="footBrand">博艺教育 · liyun2026.top</p>
       </div>
     </section>
     <!-- ==== 功能：设置 END ==== -->
@@ -2260,7 +2260,9 @@ const Store = (() => {
 
     /* ── 备份 ── */
     exportAll(){
-      return { app:'砺蕴工作系统', version:2, exportedAt:new Date().toISOString(), data:this.dump() };
+      let app = '砺蕴工作系统';
+      try { if (typeof Brand !== 'undefined' && Brand.sysName) app = Brand.sysName(); } catch(e){}
+      return { app, version:2, exportedAt:new Date().toISOString(), data:this.dump() };
     },
 
     async exportFile(){
@@ -3092,6 +3094,10 @@ const App = {
        </button>`).join('');
 
     Greet.paint();
+    /* ⚠️ 品牌门头/侧栏/页脚必须在这里再画一次：Brand.paint() 在脚本末尾只跑过一回，
+       那时人还没登录，Auth.isStudent() 是 false → 学生端页脚会一直显示「砺蕴工作系统」。
+       登录（或切演示账号）后身份才定下来，这里补画一次才对。 */
+    try { Brand.paint(); } catch(e){}
     /* 学生端换一整套皮（青蓝），网页版侧栏和手机版顶栏/底栏共用同一份变量，两边同时换 */
     try { document.body.classList.toggle('stu', !!Auth.isStudent()); } catch(e){}
     StuMark.paint();

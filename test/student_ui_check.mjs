@@ -137,9 +137,10 @@ try {
       radius: 150, pid: 'am', lat: 34.75, lng: 113.62, code: '8866' });
     Store.upsert('notices', { date: Util.today(), text: '明天带练声材料', by: '教务', at: Date.now() });
     await Sync.push();
-    return { hm };
+    return { hm, foot: (document.getElementById('footBrand') || {}).textContent || '' };
   })()`);
   ok(!!setup.hm, '教务登录成功，班级/学员/课表/打卡设置就绪（上课按 ' + setup.hm + ' 算）');
+  ok(/砺蕴工作系统/.test(setup.foot || ''), '教务端页脚仍是「砺蕴工作系统」（' + (setup.foot || '空') + '）');
 
   const gen = await A.eval(`(async () => {
     App.go('roster');
@@ -174,8 +175,16 @@ try {
           ((document.getElementById('watermark').style.maskImage || '') +
            (document.getElementById('watermark').style.webkitMaskImage || '')),
       accent: getComputedStyle(document.body).getPropertyValue('--accent').trim(),
+      /* 门头/侧栏/设置页页脚三处都要跟着身份换名，不能停在「砺蕴工作系统」 */
+      foot: (document.getElementById('footBrand') || {}).textContent || '',
+      side: (document.getElementById('sideBrand') || {}).textContent || '',
+      sys: (typeof Brand !== 'undefined' && Brand.sysName) ? Brand.sysName() : '',
     };
   })()`);
+  ok(/砺蕴学生系统/.test(who.foot || ''), '设置页页脚写的是「砺蕴学生系统」（' + (who.foot || '空') + '）');
+  ok(!/砺蕴工作系统/.test(who.foot || ''), '页脚不再出现「砺蕴工作系统」');
+  ok(/砺蕴学生系统/.test(who.side || ''), '电脑侧栏也是「砺蕴学生系统」');
+  ok(who.sys === '砺蕴学生系统', 'Brand.sysName() 按当前身份返回学生系统');
   ok(who.stuSkin, '学生端换了另一套皮（body.stu 生效，教务老师端不受影响）');
   ok(/测试学员甲/.test(decodeURIComponent(who.wm || '')), '水印里有本人姓名（截图能查到是谁）');
   ok(!/砺蕴学生系统/.test(decodeURIComponent(who.wm || '')), '水印只写「班级·姓名」，不再堆系统名（不碍观感）');
