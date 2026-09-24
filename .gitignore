@@ -1,6 +1,7 @@
 风格预览.html
 .DS_Store
 test/.sync.gen.mjs
+test/.sync.student.mjs
 test/.preview-data.json
 test/.shots/
 
