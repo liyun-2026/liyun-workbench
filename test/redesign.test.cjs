@@ -139,9 +139,10 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
   console.log('\n=== 二、角色能看到的页面 ===');
   const expected = {
     /* sign(打卡管理) / students(学生账号) / health(巡检) 是 v15+ 后来加的;
-       gather(限时征集) 是教务端给学生发起限时征集用的入口。 */
-    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','teachers','students','health','settings'],
-    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','settings'],
+       gather(限时征集) 是教务端给学生发起限时征集用的入口。
+       v20 起：students 三位教务都可见，且紧跟 roster（在哪建号就在哪看得到）。 */
+    super:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
+    admin:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
   };
 

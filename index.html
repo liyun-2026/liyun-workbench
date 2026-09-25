@@ -984,7 +984,6 @@ window.__splashT0 = performance.now();</script>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="singleName" placeholder="学员姓名" style="max-width:150px">
           <select id="singleCls" style="max-width:170px"></select>
-          <button class="btn ghost" onclick="Roster.newClsIn('singleCls')">＋新建班级</button>
         </div>
         <div class="row" style="flex-wrap:wrap;margin-top:8px">
           <input type="text" id="singlePass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
@@ -999,11 +998,11 @@ window.__splashT0 = performance.now();</script>
         <h2>🎓 批量建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <select id="batchCls" style="max-width:170px"></select>
-          <button class="btn ghost" onclick="Roster.newClsIn('batchCls')">＋新建班级</button>
           <input type="text" id="batchPass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
         </div>
         <div class="row" style="margin-top:10px;flex-wrap:wrap">
           <button class="btn" onclick="Roster.genAccounts()">⚡ 给全班建号</button>
+          <button class="btn ghost" onclick="App.go('students')">🎓 查看学生账号</button>
         </div>
         <p class="hint" id="rsStat"></p>
         <div id="rosterMsgBox" style="display:none;margin-top:10px"></div>
@@ -1700,7 +1699,10 @@ window.__splashT0 = performance.now();</script>
       <div class="card wide">
         <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:8px">
           <h2 style="margin:0">🎓 学生账号 <span class="hint" id="saMeta" style="display:inline;margin:0"></span></h2>
-          <button class="btn ghost" onclick="App.go('roster')">去名册建号</button>
+          <div class="row" style="flex-wrap:wrap;gap:6px">
+            <button class="btn ghost" onclick="StuAcct.copyList()">📋 复制名单</button>
+            <button class="btn ghost" onclick="App.go('roster')">去名册建号</button>
+          </div>
         </div>
         <div id="saList"></div>
       </div>
@@ -3021,8 +3023,10 @@ const App = {
     { id:'coop',      icon:'📥', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'gather',    icon:'📣', name:'限时征集', roles:['super','admin','both'], onShow: () => Gather.render() },
     { id:'teachers',  icon:'🧑‍🏫', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
-    /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里 */
-    { id:'students',  icon:'🎓', name:'学生账号', roles:['super'],         onShow: () => StuAcct.render() },
+    /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
+       名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
+       区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
+    { id:'students',  icon:'🎓', name:'学生账号', roles:['super','admin','both'], onShow: () => StuAcct.render() },
     /* 巡检只给首位教务：系统通不通是站长的事，教务老师、授课老师、学生都不该看到这一页 */
     { id:'health',    icon:'🩺', name:'巡检',     roles:['super'],         onShow: () => Health.render() },
     { id:'settings',  icon:'⚙️', name:'设置',     roles:['super','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
@@ -3075,12 +3079,13 @@ const App = {
 
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
   NAV_ORDER: {
-    /* 「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
-    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','teachers','students','health','settings'],
-    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','health','settings'],
+    /* 「学生账号」紧跟「名册」：在哪儿建的号，就在哪儿看得到（老师找不到的那一版是它排在倒数第二）。
+       「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
+    super:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
+    admin:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','health','settings'],
     /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
        教务那摊排完，再接自己班的授课那摊。 */
-    both:    ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
+    both:    ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
     student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','settings']
   },
@@ -3583,11 +3588,9 @@ const Roster = {
      已经有了的自动跳过，不会建重。建完把「网址 + 用户名 + 密码」发给学生。 */
   async genAccounts(){
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，建不了学生账号');
-    /* 选班：批量建号卡片自己的下拉（缺省回退到顶部学员卡片）。
-       直接调 newClsIn 让用户现场建班的逻辑也走这里，免得出现「按钮变灰」的死角。 */
-    let clsId = (document.getElementById('batchCls') || {}).value || Store.get('_rosterCls');
-    if (clsId === '__new__'){ await this.newClsIn('batchCls'); clsId = document.getElementById('batchCls').value; }
-    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
+    /* 选班：批量建号卡片自己的下拉（缺省回退到顶部学员卡片选中的班） */
+    const clsId = (document.getElementById('batchCls') || {}).value || Store.get('_rosterCls');
+    if (!clsId) return UI.toast('先在上头选定一个班级');
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId && !Util.isDemoObj(s));
     if (!students.length) return UI.toast('这个班还没有学员');
     const pass = (document.getElementById('batchPass')?.value || '').trim() || 'liyun2026';
@@ -3634,32 +3637,22 @@ const Roster = {
   },
 
   /* ── 单独建号：今天新来的一个学生，选班（可现场建班）后直接开账号、入册 ── */
+  /* 班级下拉只列已经存在的班：建班是「名册」页面上头那张班级卡片的事，
+     这儿不再塞「＋新建班级」入口（2026-09-25 按老师要求去掉）。 */
   _fillClsSelect(selId){
     const el = document.getElementById(selId);
     if (!el) return;
     const cur = el.value;
     const classes = Util.realClasses();
-    el.innerHTML = classes.map(c => `<option value="${c.id}">${Util.esc(c.name)}</option>`).join('')
-      + '<option value="__new__">＋ 新建班级…</option>';
+    el.innerHTML = classes.map(c => `<option value="${c.id}">${Util.esc(c.name)}</option>`).join('');
     if (classes.some(c => c.id === cur)) el.value = cur;
     else if (classes[0]) el.value = classes[0].id;
   },
 
-  async newClsIn(selId){
-    const name = (prompt('新班级叫什么？例如：播音一班') || '').trim();
-    if (!name) return;
-    if (Store.list('classes').some(c => c.name === name)) return UI.toast('已经有这个班了');
-    const c = Store.upsert('classes', { name });
-    this._fillClsSelect(selId, c.id);
-    UI.toast('已建「' + name + '」并选中');
-    this.render();
-  },
-
   async createSingle(){
     if (Auth.mode !== 'cloud') return UI.toast('本机模式不能建账号');
-    let clsId = document.getElementById('singleCls').value;
-    if (clsId === '__new__'){ await this.newClsIn('singleCls'); clsId = document.getElementById('singleCls').value; }
-    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
+    const clsId = document.getElementById('singleCls').value;
+    if (!clsId) return UI.toast('先选定一个班级');
     const name = (document.getElementById('singleName').value || '').trim();
     if (!name) return UI.toast('填一下学员姓名');
     const pass = (document.getElementById('singlePass').value || '').trim() || 'liyun2026';
@@ -7429,28 +7422,55 @@ const StuAcct = {
     }
   },
 
+  stuOf(u){ return Store.list('students').find(s => s.id === u.studentId); },
+
+  /* 改密码 / 停用 / 删除只有首位教务能操作 —— 后端 doUsers 也是这么判的，
+     这里先把按钮藏掉，免得点了才知道会被拒。其余教务看这张表是为了查和发给学员。 */
+  canEdit(){ try { return !!Auth.isSuper(); } catch(e){ return false; } },
+
+  clsKey(u){ const s = this.stuOf(u); return s ? (Util.clsName(s.classId) || '') : ''; },
+
+  /** 按「班级 → 姓名」排，没分班的排最后 */
+  sorted(){
+    return (this._users || []).slice().sort((a,b) => {
+      const ka = this.clsKey(a), kb = this.clsKey(b);
+      if (ka !== kb) return ka ? (kb ? ka.localeCompare(kb, 'zh') : -1) : 1;
+      return String(a.name || a.user).localeCompare(String(b.name || b.user), 'zh');
+    });
+  },
+
+  /** 一行一条：班级 / 姓名 / 用户名，直接粘到 Excel 或微信群里都整齐 */
+  copyList(){
+    const list = this.sorted();
+    if (!list.length) return UI.toast('还没有学生账号');
+    Util.copy(list.map(u => [this.clsKey(u), u.name || u.user, u.user].join('\t')).join('\n'));
+    UI.toast('已复制 ' + list.length + ' 条，去粘贴');
+  },
+
   paint(){
     const el = document.getElementById('saList');
     if (!el) return;
-    const list = (this._users || []).slice().sort((a,b) =>
-      String(a.name || a.user).localeCompare(String(b.name || b.user), 'zh'));
+    const list = this.sorted();
+    const off = list.filter(u => !u.active).length;
     const meta = document.getElementById('saMeta');
-    if (meta) meta.textContent = list.length ? '（' + list.length + ' 人）' : '';
+    if (meta) meta.textContent = list.length ? `（${list.length} 人${off ? ' · 停用 ' + off : ''}）` : '';
+    const editable = this.canEdit();
     el.innerHTML = list.length ? list.map(u => {
-      const stu = Store.list('students').find(s => s.id === u.studentId);
+      const stu = this.stuOf(u);
+      const acts = editable ? `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+          <button class="chip" onclick="StuAcct.resetPass('${u.id}')">改密码</button>
+          <button class="chip" onclick="StuAcct.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
+          ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
+        </span>` : '';
       return `<div class="item">
         <span class="grow">${Util.esc(u.name || u.user)}
           <span class="hint" style="display:inline;margin:0"> @${Util.esc(u.user)}</span>
           <br><span class="hint" style="display:inline;margin:0">${
             (stu ? (Util.esc(Util.clsName(stu.classId) || '') || '已关联学员') : '还没关联学员档案') +
             (u.active ? '' : ' · 已停用')}</span></span>
-        <span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-          <button class="chip" onclick="StuAcct.resetPass('${u.id}')">改密码</button>
-          <button class="chip" onclick="StuAcct.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
-          ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
-        </span>
+        ${acts}
       </div>`;
-    }).join('') : '<div class="empty">还没有学生账号</div>';
+    }).join('') : '<div class="empty">还没有学生账号，去「名册」选个班一键建</div>';
   },
 
   async resetPass(id){
