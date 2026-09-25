@@ -980,7 +980,7 @@ window.__splashT0 = performance.now();</script>
       </div>
       <!-- ==== 功能：单独建号 START ==== -->
       <div class="card">
-        <h2>🎓 单独建号 <span class="hint" style="display:inline;margin:0">（今天新来的一个学生，单独给他建）</span></h2>
+        <h2>🎓 单独建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="singleName" placeholder="学员姓名" style="max-width:150px">
           <select id="singleCls" style="max-width:170px"></select>
@@ -996,25 +996,23 @@ window.__splashT0 = performance.now();</script>
 
       <!-- ==== 功能：批量建号 START ==== -->
       <div class="card wide">
-        <h2>🎓 批量建号 <span class="hint" style="display:inline;margin:0">（集训开课，一整个班一次建好）</span></h2>
+        <h2>🎓 批量建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <select id="batchCls" style="max-width:170px"></select>
           <button class="btn ghost" onclick="Roster.newClsIn('batchCls')">＋新建班级</button>
           <input type="text" id="batchPass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
         </div>
-        <textarea id="batchNames" placeholder="每行一个名字，或用空格、逗号隔开，例如：&#10;张三&#10;李四，王五" style="margin-top:8px"></textarea>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap">
-          <button class="btn" onclick="Roster.createBatch()">批量建号</button>
-          <button class="btn ghost" onclick="document.getElementById('batchNames').value='';document.getElementById('batchStat').textContent=''">清空</button>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap">
+          <button class="btn" onclick="Roster.genAccounts()">⚡ 给全班建号</button>
         </div>
-        <p class="hint" id="batchStat"></p>
+        <p class="hint" id="rsStat"></p>
         <div id="rosterMsgBox" style="display:none;margin-top:10px"></div>
       </div>
       <!-- ==== 功能：批量建号 END ==== -->
 
       <!-- ==== 功能：周末班 START ==== -->
       <div class="card wide">
-        <h2>🏫 周末班 <span class="hint" style="display:inline;margin:0">（不是人人都要上，勾谁算谁）</span></h2>
+        <h2>🏫 周末班</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="wkDate" onchange="Weekend.pickDate(this.value)" style="max-width:175px">
           <span class="hint" id="wkStat" style="margin:0"></span>
@@ -1028,9 +1026,8 @@ window.__splashT0 = performance.now();</script>
       </div>
       <!-- ==== 功能：周末班 END ==== -->
       <div class="card wide">
-        <h2>⚡ 批量添加学员 <span class="hint" style="display:inline;margin:0">（加进上面选中的班）</span></h2>
+        <h2>⚡ 批量添加学员</h2>
         <div class="row" style="justify-content:space-between;align-items:center">
-          <span class="hint" style="margin:0">名单是图片可以拍/传上来识别，txt、docx 也行；识别完检查一遍再导入</span>
           <button class="btn ghost" onclick="document.getElementById('batchFile').click()">📄 传名单识别</button>
         </div>
         <input type="file" id="batchFile" accept="image/*,.txt,.docx" style="display:none" onchange="Roster.importFile(this)">
@@ -1104,7 +1101,7 @@ window.__splashT0 = performance.now();</script>
     <section class="page" id="page-timetable">
       <div class="page-title">课表</div>
       <div class="card wide">
-        <h2>⏰ 每日作息时间 <span class="hint" style="display:inline;margin:0">（改这里，全表自动跟着变）</span></h2>
+        <h2>⏰ 每日作息时间</h2>
         <div id="periodList"></div>
         <div class="row" style="margin-top:10px">
           <input type="text" id="perName" placeholder="节次名，如：第1节" style="max-width:130px">
@@ -1114,7 +1111,7 @@ window.__splashT0 = performance.now();</script>
         </div>
       </div>
       <div class="card wide">
-        <h2>🏫 教室 <span class="hint" style="display:inline;margin:0">（不是每个班都在同一间，先把教室加好）</span></h2>
+        <h2>🏫 教室</h2>
         <div id="roomList" class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
         <div class="row" style="margin-top:4px">
           <input type="text" id="roomName" placeholder="教室名，如：BY08" style="min-width:140px">
@@ -1122,7 +1119,7 @@ window.__splashT0 = performance.now();</script>
         </div>
       </div>
       <div class="card wide">
-        <h2>🧩 排课台 <span class="hint" style="display:inline;margin:0">（定一次，铺满整期）</span></h2>
+        <h2>🧩 排课台</h2>
         <div class="row" style="flex-wrap:wrap;gap:10px;align-items:flex-end">
           <label class="hint" style="margin:0">开始 <input type="date" id="ppFrom" style="max-width:160px"></label>
           <label class="hint" style="margin:0">结束 <input type="date" id="ppTo" style="max-width:160px"></label>
@@ -1137,7 +1134,6 @@ window.__splashT0 = performance.now();</script>
         </div>
         <div style="margin-top:14px">
           <div class="row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-            <span class="hint" style="margin:0">每个上课日上什么（一行 = 一节课；一格放几个班就写「BY05/BY06」）</span>
             <span class="row" style="margin:0;gap:8px;flex-wrap:wrap">
               <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppAddRow()">＋ 加一行</button>
               <button class="btn ghost" style="padding:3px 10px" onclick="Schedule.ppFillPeriods()">按节次铺满</button>
@@ -1155,7 +1151,7 @@ window.__splashT0 = performance.now();</script>
       </div>
       <div class="card wide">
         <div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
-          <h2 style="margin:0">🗓️ 大课表 <span class="hint" style="display:inline;margin:0">（点格子直接排 / 改）</span></h2>
+          <h2 style="margin:0">🗓️ 大课表</h2>
           <div class="row" style="margin:0;gap:8px;flex-wrap:wrap;align-items:flex-end">
             <label class="hint" style="margin:0">起始日 <input type="date" id="gridStart" style="max-width:160px"></label>
             <label class="hint" style="margin:0">共
@@ -1173,7 +1169,7 @@ window.__splashT0 = performance.now();</script>
         <div id="gridWrap" style="margin-top:12px;overflow-x:auto"></div>
       </div>
       <div class="card wide">
-        <h2>🎓 小课 <span class="hint" style="display:inline;margin:0">（一对一 / 辅导课，独立于大课表）</span></h2>
+        <h2>🎓 小课</h2>
         <div class="row">
           <select id="miniDay" style="max-width:100px"></select>
           <select id="miniPeriod"></select>
@@ -1187,14 +1183,12 @@ window.__splashT0 = performance.now();</script>
         <div class="row" style="margin-top:8px;flex-wrap:wrap">
           <select id="miniTeacher" style="max-width:160px"></select>
           <button class="btn" onclick="Schedule.addMini()">加入小课</button>
-          <span class="hint" style="margin:0">不选节次、单独填时间也行</span>
         </div>
         <div id="schSmallBody" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
-        <h2>📥 导入课表文字 <span class="hint" style="display:inline;margin:0">（本机解析，不联网、不花钱）</span></h2>
+        <h2>📥 导入课表文字</h2>
         <div class="row" style="justify-content:space-between;align-items:center">
-          <span class="hint" style="margin:0">拍课表照片 / 传图片、txt、docx，识别出来核对一遍再解析</span>
           <button class="btn ghost" onclick="document.getElementById('schFile').click()">📄 选文件识别</button>
         </div>
         <input type="file" id="schFile" accept="image/*,.txt,.docx" style="display:none" onchange="Schedule.importFile(this)">
@@ -1202,7 +1196,6 @@ window.__splashT0 = performance.now();</script>
         <textarea id="impText" placeholder="把课表文字贴在这里（从 Excel 直接复制最好，一行一节课）。形如：&#10;7月10日 周五&#10;08:00-09:40 即兴评述 BY05 [BY08]&#10;10:00-11:40 形体 BY06" style="margin-top:8px;min-height:120px"></textarea>
         <details style="margin-top:8px">
           <summary class="hint" style="cursor:pointer">能认出来什么（点开看）</summary>
-          <p class="hint" style="margin:6px 0 0">解析结果会先摆成一张能逐格修改的表，核对完再导入。</p>
         </details>
         <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px;align-items:center">
           <label class="hint" style="margin:0">年份 <input type="number" id="impYear" value="2026" min="2020" max="2035" style="max-width:80px"></label>
@@ -1211,7 +1204,7 @@ window.__splashT0 = performance.now();</script>
           <button class="btn ghost" onclick="Schedule.clearImport()">清空</button>
         </div>
         <div id="impPreview"></div>
-        <p class="hint" id="impNote" style="margin:8px 0 0">导入是整表替换：现有课表会先自动存进「往期课表」。若只是想补几节，直接在「大课表」里点格子加，或去上面的「排课台」整段重排。</p>
+        <p class="hint" id="impNote" style="margin:8px 0 0"></p>
       </div>
       <div class="card wide">
         <h2>🗄️ 往期课表</h2>
@@ -1338,7 +1331,7 @@ window.__splashT0 = performance.now();</script>
         </div>
       </div>
       <div class="card wide">
-        <h2>📊 成绩录入 <span class="hint" style="display:inline;margin:0">（以班级为单位，一人一行，直接在线上填）</span></h2>
+        <h2>📊 成绩录入</h2>
         <div class="row" style="flex-wrap:wrap">
           <select id="exCls" onchange="Exam.pickCls(this.value)"></select>
           <select id="exSheetSel" onchange="Exam.pickSheet(this.value)"></select>
@@ -1361,7 +1354,7 @@ window.__splashT0 = performance.now();</script>
       </div>
 
       <div class="card wide">
-        <h2>🎲 抽签 <span class="hint" style="display:inline;margin:0">（出场顺序 · 学生端只看得到自己的序号，不能重抽）</span></h2>
+        <h2>🎲 抽签</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="drName" placeholder="这次抽签的名字，如：9月第3周模考" style="min-width:210px">
           <button class="btn" onclick="Exam.newDraw()">开抽 / 重新抽</button>
@@ -1419,7 +1412,7 @@ window.__splashT0 = performance.now();</script>
       </div>
 
       <div class="card">
-        <h2>🌐 通道 <span class="hint" style="margin:0 0 0 auto;font-size:var(--fs-meta)">跨境这一段快不快</span></h2>
+        <h2>🌐 通道</h2>
         <div id="healthNet"></div>
       </div>
 
@@ -1508,7 +1501,7 @@ window.__splashT0 = performance.now();</script>
 
       <!-- ==== 演示账号 demoCard START ====（只有首位教务有：一键切到四种身份查问题） -->
       <div class="card wide" id="demoCard" style="display:none">
-        <h2>🧪 演示账号 <span class="hint" style="margin:0 0 0 auto;font-size:var(--fs-meta)">只有你看得到</span></h2>
+        <h2>🧪 演示账号</h2>
         <p class="hint" style="margin:0 0 10px">
           这四个账号是给你自己排查用的（看看老师/学生/教务各自看到什么），跟你的主账号分开，学生和老师都看不到它们。<br>
           点了就切过去；要回来就用主账号重新登录。
@@ -3492,7 +3485,7 @@ const Roster = {
         <span class="grow">${Util.esc(c.name)} <span class="hint" style="display:inline;margin:0">${n} 人</span></span>
         <button class="del" onclick="Roster.delCls('${c.id}')">✕</button>
       </div>`;
-    }).join('') + (demoHidden ? `<div class="hint" style="margin:8px 0 0">另有 ${demoHidden} 个演示班级已单独归置，不计入真实考勤与量化。</div>` : '')
+    }).join('')
       : '<div class="empty">还没有班级，先建一个</div>';
 
     const students = Store.list('students', Util.byName).filter(s => s.classId === cur && !Util.isDemoObj(s));
@@ -3590,11 +3583,14 @@ const Roster = {
      已经有了的自动跳过，不会建重。建完把「网址 + 用户名 + 密码」发给学生。 */
   async genAccounts(){
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，建不了学生账号');
-    const clsId = Store.get('_rosterCls');
-    if (!clsId) return UI.toast('先选一个班级');
-    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    /* 选班：批量建号卡片自己的下拉（缺省回退到顶部学员卡片）。
+       直接调 newClsIn 让用户现场建班的逻辑也走这里，免得出现「按钮变灰」的死角。 */
+    let clsId = (document.getElementById('batchCls') || {}).value || Store.get('_rosterCls');
+    if (clsId === '__new__'){ await this.newClsIn('batchCls'); clsId = document.getElementById('batchCls').value; }
+    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
+    const students = Store.list('students', Util.byName).filter(s => s.classId === clsId && !Util.isDemoObj(s));
     if (!students.length) return UI.toast('这个班还没有学员');
-    const pass = (document.getElementById('rsPass').value || '').trim() || 'liyun2026';
+    const pass = (document.getElementById('batchPass')?.value || '').trim() || 'liyun2026';
     if (pass.length < 8) return UI.toast('初始密码至少 8 位');
 
     const stat = document.getElementById('rsStat');
@@ -3689,46 +3685,6 @@ const Roster = {
     } catch(e){ if (stat) stat.textContent = '建号失败：' + e.message; UI.toast(e.message); }
   },
 
-  async createBatch(){
-    if (Auth.mode !== 'cloud') return UI.toast('本机模式不能建账号');
-    let clsId = document.getElementById('batchCls').value;
-    if (clsId === '__new__'){ await this.newClsIn('batchCls'); clsId = document.getElementById('batchCls').value; }
-    if (!clsId || clsId === '__new__') return UI.toast('先选或新建一个班级');
-    const raw = (document.getElementById('batchNames').value || '').trim();
-    if (!raw) return UI.toast('先填名字，或传名单识别');
-    const pass = (document.getElementById('batchPass').value || '').trim() || 'liyun2026';
-    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
-    const names = raw.split(/[\n,，、;；\t]+|\s{2,}| /).map(s => s.trim()).filter(Boolean);
-    if (!names.length) return UI.toast('没解析出名字');
-    const stat = document.getElementById('batchStat');
-    try {
-      const j = await Auth.call('users', { op:'list' });
-      const users = j.users || [];
-      const haveSid = new Set(users.filter(u => u.role === 'student' && u.studentId).map(u => u.studentId));
-      const haveUser = new Set(users.map(u => u.user));
-      const list = [], skip = [];
-      for (const nm of names){
-        let stu = Store.list('students').find(s => s.name === nm && s.classId === clsId && !Util.isDemoObj(s));
-        if (!stu) stu = Store.upsert('students', { classId: clsId, name: nm });
-        if (haveSid.has(stu.id)){ skip.push(nm + '（已有）'); continue; }
-        let user = nm;
-        if (haveUser.has(user)) user = nm + String(stu.id).slice(-4);
-        if (haveUser.has(user)){ skip.push(nm + '（用户名撞了）'); continue; }
-        haveUser.add(user);
-        list.push({ user, name: nm, studentId: stu.id, role:'student', pass });
-      }
-      if (!list.length){ if (stat) stat.textContent = '这些名字都已经有账号了。'; return; }
-      const r = await Auth.call('users', { op:'createMany', list });
-      const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
-      this._pass = pass; this._ok = ok;
-      const msg = `建好了 ${r.n} 个账号。` + (r.fail && r.fail.length ? ` 没建成 ${r.fail.length} 个` : '') + (skip.length ? ` 跳过 ${skip.length} 个：${skip.join('、')}` : '');
-      if (stat) stat.innerHTML = msg + '<br>下面两段话可以直接复制发给学生。';
-      this.renderMsg(ok);
-      this.render();
-      UI.toast('批量建好 ' + r.n + ' 个账号');
-    } catch(e){ if (stat) stat.textContent = '建号失败：' + e.message; UI.toast(e.message); }
-  },
-
   /* ── 建完号，直接把「发给学生的两段话」摆出来 ──
      一段发群里（欢迎 + 网址 + 密码 + 怎么加到桌面），一段是用户名清单（私发本人）。 */
   here(){ return location.origin || 'https://liyun2026.top'; },
@@ -3739,7 +3695,6 @@ const Roster = {
     this._ok = list;
     box.style.display = '';
     box.innerHTML = `
-      <p class="hint" style="margin:0 0 6px">发给学生的两段话，点按钮复制。</p>
       <textarea id="rsMsg" style="min-height:300px"></textarea>
       <div class="row" style="margin-top:8px;flex-wrap:wrap">
         <button class="btn" onclick="Roster.msg('all')">📋 复制欢迎语（发群里）</button>
@@ -5150,7 +5105,6 @@ const Schedule = {
     const rows = this._impRows || [];
     if (!rows.length){ box.innerHTML = ''; return; }
     box.innerHTML =
-      '<p class="hint" style="margin:14px 0 6px">下面这些就是会导入的课 —— 每一格都能直接改，改完点最下面的「确认导入」：</p>' +
       '<div style="overflow-x:auto"><table class="imptbl">' +
       '<thead><tr><th>日期</th><th>时间</th><th>班级</th><th>内容</th><th>老师</th><th>教室</th><th></th></tr></thead><tbody>' +
       rows.map((r, i) => '<tr>' +
@@ -5166,7 +5120,6 @@ const Schedule = {
       '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap;align-items:center">' +
         '<button class="btn" onclick="Schedule.impImport()">✅ 确认导入 ' + rows.length + ' 节</button>' +
         '<button class="btn ghost" onclick="Schedule.impCancel()">取消</button>' +
-        '<span class="hint" style="margin:0">导入是整表替换：现有课表会先存进「往期课表」。</span>' +
       '</div>';
   },
   impEdit(i, k, v){
@@ -6491,7 +6444,7 @@ const Weight = {
       </div>`).join('');
 
     return `<div class="card">
-      <h2>⚖️ 体重 <span class="hint" style="display:inline;margin:0">（一周记一次就够）</span></h2>
+      <h2>⚖️ 体重</h2>
       ${last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次 ${last.date}</span></div>` : ''}
       ${canEdit ? `<div class="row" style="margin-top:14px;flex-wrap:wrap">
         <input type="date" id="wDate" value="${Util.today()}" style="max-width:170px">
@@ -6817,7 +6770,7 @@ const Student = {
         ${scoreSvg ? `<div style="margin-top:12px">${scoreSvg}</div>` : ''}
 
         ${weakest ? `<div style="margin-top:14px">
-          <p class="hint" style="margin:0 0 6px">三科强弱（近 ${myScores.length} 场平均）</p>
+          <p class="hint" style="margin:0 0 6px">三科强弱</p>
           <div class="weak">
             ${weak.map(w => {
               const pct = w.avg === null ? 0 : Math.round(w.avg);
@@ -7246,7 +7199,7 @@ const Teachers = {
         </span>
         ${acts}
       </div>`;
-    }).join('') + (this._demoHidden ? `<div class="hint" style="margin:8px 0 0">另有 ${this._demoHidden} 个演示账号已单独归置（在「设置 → 演示账号」里切用），不计入真实账号与考勤。</div>` : '')
+    }).join('') + (this._demoHidden ? `<div class="hint" style="margin:8px 0 0">另有 ${this._demoHidden} 个演示账号已隐藏（设置里切用）</div>` : '')
       : '<div class="empty">还没有老师</div>';
   },
 
@@ -7497,7 +7450,7 @@ const StuAcct = {
           ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
         </span>
       </div>`;
-    }).join('') : '<div class="empty">还没有学生账号。到「名册」里一键建号。</div>';
+    }).join('') : '<div class="empty">还没有学生账号</div>';
   },
 
   async resetPass(id){
@@ -8029,8 +7982,7 @@ const Settings = {
     if (!box) return;
     if (this.isDemo()){
       box.innerHTML = `<div class="item">
-          <span class="grow">现在是演示账号「${Util.esc(Auth.name())}」
-            <br><span class="hint" style="display:inline;margin:0">看完点这里回到你自己的账号</span></span>
+          <span class="grow">现在是演示账号「${Util.esc(Auth.name())}」</span>
           <button class="btn" onclick="Settings.demoBack()">回到我的账号</button>
         </div>`;
       return;
@@ -8045,8 +7997,7 @@ const Settings = {
       `<div class="row" style="margin-top:12px;flex-wrap:wrap">
         <button class="btn ghost" onclick="Settings.demoMake()">第一次用：建好这四个账号</button>
         ${Store.getSecret('mainToken') ? '<button class="btn" onclick="Settings.demoBack()">回到我的账号</button>' : ''}
-      </div>
-      <p class="hint">演示学生挂在「演示班 · 演示学员」这条档案上，不会混进你真实的班级名单。</p>`;
+      </div>`;
   },
 
   async demoMake(){
@@ -8193,8 +8144,8 @@ const Settings = {
     const legacy = rules.filter(r => (r.key || '').indexOf('cls:') !== 0);
     const cls = rules.filter(r => (r.key || '').indexOf('cls:') === 0);
     el.innerHTML =
-      (legacy.length ? `<p class="hint" style="margin:2px 0 8px">自动计分（考勤 / 作业 / 晚自习，按登记记录自动算）</p>${legacy.map(row).join('')}` : '') +
-      (cls.length ? `<p class="hint" style="margin:10px 0 8px">班级名目（量化页「快捷加减分」按钮，删一条就少一个按钮）</p>${cls.map(row).join('')}` : '');
+      (legacy.length ? `<p class="hint" style="margin:2px 0 8px">自动计分（考勤 / 作业 / 晚自习）</p>${legacy.map(row).join('')}` : '') +
+      (cls.length ? `<p class="hint" style="margin:10px 0 8px">班级名目</p>${cls.map(row).join('')}` : '');
   },
 
   addRule(){
