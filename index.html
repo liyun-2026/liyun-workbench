@@ -10019,20 +10019,26 @@ setTimeout(() => { const sp = document.getElementById('splash'); if (sp) Auth._s
 /* ── Service Worker：把「点开图标 → 看见东西」中间那段跨境下载盖掉 ──
    这个站部署在境外节点，每次冷启动光握手就要约一秒；没有 SW 时那一秒是白屏。
    装上之后从第二次打开起，index.html 直接走本地缓存，开屏动画立刻就能动。
-   完整的策略说明在 sw.js 顶部。调试时加 ?nosw=1 可跳过注册，直接读源文件。 */
+
+   ⭐ 更新机制（2026-09-25 重写）：
+   新 SW 装完 → skipWaiting → activate → claim → 浏览器自动派发 controllerchange →
+   页面看到 controllerchange 就 reload 一次。窗口开着也能自动升新版，**不再需要手刷**。
+   兜底：SW 还会主动 postMessage('shell-updated')，万一 controllerchange 漏了也能 reload。
+   双重保险都用同一个 _swReloading 守门，保证每个页面生命周期里最多 reload 一次。
+
+   调试时加 ?nosw=1 可跳过注册，直接读源文件。 */
 if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   navigator.serviceWorker.register('sw.js').catch(() => {});
-  navigator.serviceWorker.addEventListener('message', (e) => {
-    if (!e.data || e.data.type !== 'shell-updated') return;
-    /* 只在还停在开屏层的时候刷 —— 那时用户什么都没输入，刷新他察觉不到。
-       每个标签页最多刷一次（sessionStorage 兜底），杜绝任何情况的刷新死循环。 */
-    const sp = document.getElementById('splash');
-    if (!sp || !document.body.contains(sp)) return;
-    try {
-      if (sessionStorage.getItem('shellReloaded')) return;
-      sessionStorage.setItem('shellReloaded', '1');
-    } catch(err){ return; }
+  const _onShellReady = () => {
+    if (window._swReloading) return;
+    window._swReloading = true;
     location.reload();
+  };
+  /* 主路径：新 SW 接管 → 浏览器自动派发 controllerchange */
+  navigator.serviceWorker.addEventListener('controllerchange', _onShellReady);
+  /* 兜底：SW 主动通知 shell-updated（防止 controllerchange 因异常漏派） */
+  navigator.serviceWorker.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'shell-updated') _onShellReady();
   });
 }
 </script>

@@ -9,7 +9,9 @@
 
    策略：
    · 页面导航（HTML）→ 缓存优先 + 后台悄悄取新；取到的新版本和缓存里的不一样
-     就通知页面（页面还在开屏期就自己刷一次，用户察觉不到）
+     就更新缓存 + postMessage('shell-updated')。activate 后客户端的 controller 也会
+     切到新 SW → 浏览器自动派发 controllerchange → 主页 reload 一次拿到新版。
+     这套双通道保证「页面开着也能自动升级」，用户**不再需要手刷**。
    · 其他同源静态资源 → 缓存优先 + 后台更新
    · /api/ 一律不插手 —— 数据必须实时，缓存了会出大事
    · 跨域资源（央视新闻、CDN）不插手
@@ -19,12 +21,11 @@
       否则老 SW 不会重装、新清单永远不生效。
    ══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'v16';     // v16：学生端档案页/限时征集页在桌面端摊成两栏（修「看着像手机版」）；v15：删除按钮/演示隔离/双端口建号/限时征集
+const VERSION = 'v17';     // v17：更新机制改写——新 SW 接管后通过 controllerchange 自动 reload（不再依赖开屏期）；v16：学生端档案页/限时征集页在桌面端摊成两栏
 const CACHE = 'liyun-shell-' + VERSION;
 
 /* 开屏要用的东西全在这里 —— 预缓存后，第二次开就是本地读盘。 */
 const SHELL = [
-  './',
   './index.html',
   './manifest.json',
   './icon.png',
@@ -41,6 +42,8 @@ self.addEventListener('install', (e) => {
     await Promise.all(SHELL.map((u) =>
       cache.add(new Request(u, { cache: 'reload' })).catch(() => {})
     ));
+    /* 取 index.html 的指纹——和上面那一次 cache.add 是同一份网络响应,
+       这里只是为了算出 hash 用，不会重复下载 */
     await stamp(cache, await fetchAndHash('./index.html'));
     self.skipWaiting();
   })());
@@ -48,6 +51,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
+    /* 清掉所有旧版本缓存（VERSION 变了会换名，旧的 liyun-shell-* 一律不要） */
     const keys = await caches.keys();
     await Promise.all(keys
       .filter((k) => k.startsWith('liyun-shell-') && k !== CACHE)
