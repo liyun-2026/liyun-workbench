@@ -21,7 +21,7 @@
       否则老 SW 不会重装、新清单永远不生效。
    ══════════════════════════════════════════════════════════════════ */
 
-const VERSION = 'v17';     // v17：更新机制改写——新 SW 接管后通过 controllerchange 自动 reload（不再依赖开屏期）；v16：学生端档案页/限时征集页在桌面端摊成两栏
+const VERSION = 'v18';     // v18：教务端补「限时征集」入口(super/admin/both 漏列的 gather 进 NAV_ORDER)+ 学生端打卡+请假合到一页 + 每日新闻升底部 tab(stuNews tab=3);v17：更新机制改写——新 SW 接管后通过 controllerchange 自动 reload（不再依赖开屏期）
 const CACHE = 'liyun-shell-' + VERSION;
 
 /* 开屏要用的东西全在这里 —— 预缓存后，第二次开就是本地读盘。 */
