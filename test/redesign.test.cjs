@@ -138,11 +138,10 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
 (async () => {
   console.log('\n=== 二、角色能看到的页面 ===');
   const expected = {
-    /* sign(打卡管理) / students(学生账号) / health(巡检) 是 v15+ 后来加的,
-       测试期望漏了 → 历史 5 项失败的 3 项。gather(限时征集) 没列入 NAV_ORDER,
-       所以 visible() 不会返回它,也不算 */
-    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','teachers','students','health','settings'],
-    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
+    /* sign(打卡管理) / students(学生账号) / health(巡检) 是 v15+ 后来加的;
+       gather(限时征集) 是教务端给学生发起限时征集用的入口。 */
+    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','teachers','students','health','settings'],
+    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
   };
 

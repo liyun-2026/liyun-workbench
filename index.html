@@ -1850,7 +1850,7 @@ window.__splashT0 = performance.now();</script>
          圈里从上到下三样 —— 简笔画定位标、「打卡」两个字、此刻的时分秒（服务端时间）。
          按下去先定位（证明人在校区），定位完下面才出码框，输教务给的码才算打上。 -->
     <section class="page" id="page-stuSign">
-      <div class="page-title">打卡</div>
+      <div class="page-title">打卡 / 请假</div>
       <div class="card wide">
         <div id="stuSignNow"></div>
         <div id="stuSignStep" style="margin-top:14px"></div>
@@ -1860,13 +1860,8 @@ window.__splashT0 = performance.now();</script>
         <h2>📅 我这个月的打卡</h2>
         <div id="stuSignList"></div>
       </div>
-    </section>
-    <!-- ==== 功能：学生打卡 END ==== -->
-
-    <!-- ==== 功能：学生请假 START ==== -->
-    <section class="page" id="page-stuLeave">
-      <div class="page-title">请假</div>
       <div class="card wide">
+        <h2>🏥 请假</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="lvDate" style="max-width:170px">
           <select id="lvKind" style="max-width:120px">
@@ -1884,7 +1879,7 @@ window.__splashT0 = performance.now();</script>
         <div id="lvList"></div>
       </div>
     </section>
-    <!-- ==== 功能：学生请假 END ==== -->
+    <!-- ==== 功能：学生打卡+请假 END ==== -->
 
     <!-- ==== 功能：学生每日新闻 START ==== -->
     <section class="page" id="page-stuNews">
@@ -3051,8 +3046,8 @@ const App = {
        所以「今日」是首屏，打卡卡就摆在最上面。 */
     { id:'stuHome',   icon:'🎯', name:'今日',     roles:['student'], tab:1, onShow: () => StuHome.render() },
     { id:'stuSign',   icon:'📍', name:'打卡',     roles:['student'], tab:2, onShow: () => StuSign.render() },
-    { id:'stuLeave',  icon:'🏥', name:'请假',     roles:['student'], tab:3, onShow: () => StuLeave.render() },
-    { id:'stuNews',   icon:'📰', name:'每日新闻', roles:['student'], onShow: () => StuNews.render() },
+    /* stuLeave 已合并进 stuSign 页(同一个 page,上半打卡+下半请假),route 拆掉以免留空指针 */
+    { id:'stuNews',   icon:'📰', name:'每日新闻', roles:['student'], tab:3, onShow: () => StuNews.render() },
     { id:'stuTable',  icon:'🗓️', name:'我的课表', roles:['student'], tab:4, onShow: () => StuTable.render() },
     { id:'stuExam',   icon:'🎲', name:'考试与抽签', roles:['student'], onShow: () => StuExam.render() },
     { id:'stuQuant',  icon:'📊', name:'本班量化', roles:['student'], onShow: () => StuQuant.render() },
@@ -3082,19 +3077,19 @@ const App = {
     admin:   ['home','att','homework','roster','settings'],
     teacher: ['today','record','myclass','tickets','settings'],
     both:    ['home','att','record','myclass','settings'],
-    student: ['stuHome','stuSign','stuLeave','stuTable','settings']
+    student: ['stuHome','stuSign','stuNews','stuTable','settings']
   },
 
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
   NAV_ORDER: {
     /* 「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
-    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','teachers','students','health','settings'],
-    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','health','settings'],
+    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','teachers','students','health','settings'],
+    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','health','settings'],
     /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
        教务那摊排完，再接自己班的授课那摊。 */
-    both:    ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','news','record','myclass','tickets','health','settings'],
+    both:    ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
-    student: ['stuHome','stuGather','stuSign','stuLeave','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','settings']
+    student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -9221,6 +9216,8 @@ const StuSign = {
     this.renderList();
     this.startClock();
     this.flush();
+    /* 同一个 page 里下面那块是请假 —— 一起渲染，进来一次就能看到两段 */
+    if (typeof StuLeave !== 'undefined') StuLeave.render();
   },
 
   /** 圈下面那一句：只写跟「现在该不该打」有关的，不写废话 */
