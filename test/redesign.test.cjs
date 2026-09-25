@@ -53,9 +53,11 @@ console.log('\n=== 一、双端版式骨架 ===');
   });
 
   t('≥700px 展开侧边栏，≥1100px 走三栏 .split', () => {
-    const m700 = html.match(/@media\s*\(min-width:\s*700px\)\s*\{([\s\S]*?)\n\}/);
-    assert(m700, '缺少 ≥700px 这一档媒体查询（平板上要能看到侧边栏）');
-    assert(/\.side\{[^}]*display:flex/.test(m700[1]), '≥700px 时侧边栏应显示出来');
+    /* ⚠️ index.html 里 ≥700px 的媒体查询不止一条（最早一条是学生端水印），
+       直接 .*?\}\n 这种非贪婪写法会立刻在第一条块内 `}` 处停下来抓个空 body 回来。
+       正确写法：直接让正则把「.side{display:flex}」作为锚点，匹配到它就证明这个 ≥700px 块存在。*/
+    const m700 = html.match(/@media\s*\(min-width:\s*700px\)\s*\{[\s\S]*?\.side\{[^}]*display:flex[\s\S]*?\n\s*\}/);
+    assert(m700, '≥700px 这一档媒体查询里应有 .side{display:flex}（平板上要能看到侧边栏）');
     assert(html.includes('@media (min-width:1100px)') || html.includes('@media (min-width: 1100px)'),
       '缺少 ≥1100px 这一档（电脑上要能多列）');
     assert(/\.split\{/.test(html), '缺少 .split 三栏布局');
@@ -136,8 +138,11 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
 (async () => {
   console.log('\n=== 二、角色能看到的页面 ===');
   const expected = {
-    super:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','teachers','settings'],
-    admin:   ['home','att','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
+    /* sign(打卡管理) / students(学生账号) / health(巡检) 是 v15+ 后来加的,
+       测试期望漏了 → 历史 5 项失败的 3 项。gather(限时征集) 没列入 NAV_ORDER,
+       所以 visible() 不会返回它,也不算 */
+    super:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','teachers','students','health','settings'],
+    admin:   ['home','att','sign','homework','roster','profile','timetable','night','quant','exam','coop','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
   };
 
