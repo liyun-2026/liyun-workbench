@@ -48,6 +48,25 @@ PAGE = [
     ('t2-record.png', 'tc_record.png'),
     ('t3-myclass.png', 'tc_myclass.png'),
     ('t4-tickets.png', 'tc_tickets.png'),
+    ('pg_students.png', 'pg_students.png'),
+    # 学生端（电脑）
+    ('stu_home.png', 'stu_home.png'),
+    ('stu_sign.png', 'stu_sign.png'),
+    ('stu_leave.png', 'stu_leave.png'),
+    ('stu_news.png', 'stu_news.png'),
+    ('stu_gather.png', 'stu_gather.png'),
+    ('stu_table.png', 'stu_table.png'),
+    ('stu_exam.png', 'stu_exam.png'),
+    ('stu_quant.png', 'stu_quant.png'),
+    ('stu_profile.png', 'stu_profile.png'),
+    ('stu_hw.png', 'stu_hw.png'),
+    ('stu_settings.png', 'stu_settings.png'),
+    # 授课老师手册补图
+    ('tc_today_news.png', 'tc_today_news.png'),
+    ('pg_health.png', 'pg_health.png'),
+    # 开屏 / 登录门（手册直接引用）
+    ('g1-splash.png', 'g1-splash.png'),
+    ('g2-gate.png', 'g2-gate.png'),
 ]
 
 PHONE = [
@@ -56,6 +75,19 @@ PHONE = [
     ('m3-quant.png', 'm_quant.png'),
     ('m4-drawer.png', 'm_drawer.png'),
     ('m5-record.png', 'm_record.png'),
+    # 授课老师手机端
+    ('js_today.png', 'js_today.png'),
+    ('js_record.png', 'js_record.png'),
+    ('js_myclass.png', 'js_myclass.png'),
+    ('js_tickets.png', 'js_tickets.png'),
+    ('js_profile.png', 'js_profile.png'),
+    ('js_drawer.png', 'js_drawer.png'),
+    # 学生端手机
+    ('stum_home.png', 'stum_home.png'),
+    ('stum_sign.png', 'stum_sign.png'),
+    ('stum_news.png', 'stum_news.png'),
+    ('stum_table.png', 'stum_table.png'),
+    ('stum_quant.png', 'stum_quant.png'),
 ]
 
 # 局部裁切。尺寸必须是版式里那个框的真实尺寸 ——

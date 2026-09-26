@@ -63,7 +63,6 @@ const MOB  = { width: 420,  height: 940, dsf: 2, mobile: true };
 const server = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(PORT)], { cwd: dir, stdio: 'ignore' });
 let chrome;
 try {
-  await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
   await waitFor(async () => (await jfetch(`${BASE}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务', tries: 40 });
   try { await jfetch(`${BASE}/api/dev-reset`, { method: 'POST' }); } catch {}
@@ -207,6 +206,10 @@ try {
     await mkAcc('张伟', '张伟', 'teacher', [c2.id]);
     await mkAcc('王敏', '王敏', 'admin', []);
     await mkAcc('陈静', '陈静', 'both', [c1.id]);
+    // 学生账号：王梓涵（挂在已灌数据的真实学员档案 s1[0] 上，学生端才看得到数据）
+    try { await Auth.call('users', { op: 'create', user: '王梓涵', name: '王梓涵', role: 'student', pass: 'liyun2026', studentId: s1[0].id }); } catch (e) {}
+    // 让学生端「打卡」页有动态码可显示
+    try { Store.upsert('sign_rules', { code: '8821', radius: 150, lat: 34.75, lng: 113.62 }); } catch (e) {}
     return { c1: c1.id, c2: c2.id, s1: s1.map(x => x.id), s2: s2.map(x => x.id), today, yest };
   })()`);
   console.log('   数据就绪：砺蕴一班 7 人 / 集训班 8 人 + 3 个老师账号\n');
@@ -235,6 +238,8 @@ try {
   await shot(cdp, '13-role-picker.png');
   await cdp.eval(`(() => { Teachers.closeRole(); return 1; })()`);
   await go('settings');   await shot(cdp, '14-settings.png');
+  // 学生账号页（单独端口，教务手册用）
+  await go('students');   await shot(cdp, 'pg_students.png');
 
   // ── ⑤ 手机端 ───────────────────────────────────────
   console.log('④ 手机端');
@@ -281,11 +286,71 @@ try {
     await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
     await shot(cdp, name);
   }
+  // 今日页「新闻」区特写（授课老师手册用）
+  await cdp.eval(`(async () => { App.go('today'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'tc_today_news.png');
+  // 健康巡检页（教务老师手册用）
+  await cdp.eval(`(async () => { App.go('health'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,500)); return 1; })()`);
+  await shot(cdp, 'pg_health.png');
   // 老师端手机版（老师实际是在手机上用）
   await view(cdp, MOB);
   await sleep(500);
   await cdp.eval(`(async () => { App.go('record'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
   await shot(cdp, 'm5-record.png');
+
+  // ── ⑤b 授课老师手机端（张伟仍在登录，MOB 视图） ────────
+  console.log('④b 授课老师手机端');
+  await cdp.eval(`(async () => { App.go('today'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'js_today.png');
+  await cdp.eval(`(async () => { App.go('record'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'js_record.png');
+  await cdp.eval(`(async () => { App.go('myclass'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'js_myclass.png');
+  await cdp.eval(`(async () => { App.go('tickets'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'js_tickets.png');
+  await cdp.eval(`(async () => { App.go('profile'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+  await shot(cdp, 'js_profile.png');
+  await cdp.eval(`(async () => { App.drawer(true); await new Promise(r=>setTimeout(r,520)); return 1; })()`);
+  await shot(cdp, 'js_drawer.png');
+  await cdp.eval(`(() => { App.drawer(false); return 1; })()`);
+
+  // ── ⑤c 学生端（王梓涵账号，挂在已灌数据的真实学员档案上） ──
+  console.log('⑤ 学生端（登录真实学员账号「王梓涵」）');
+  await cdp.eval(`(async () => { Store.setSecret('token',''); Store.setSecret('acct',''); return 1; })()`);
+  { const l = cdp.once('Page.loadEventFired');
+    await cdp.send('Page.navigate', { url: `${BASE}/` }); await l; await sleep(2400); }
+  const sl = await cdp.eval(`(async () => {
+    if (!Auth.mode) await Auth.probe();
+    document.getElementById('gUser').value = '王梓涵';
+    document.getElementById('gPass').value = 'liyun2026';
+    await Auth.submit(); await new Promise(r => setTimeout(r, 1800));
+    return { ok: !document.getElementById('gate').classList.contains('on'), role: Auth.role && Auth.role(), stu: Auth.isStudent() };
+  })()`);
+  if (!sl.ok) throw new Error('学生登录失败：王梓涵');
+  console.log('   已切换为学生：王梓涵（' + sl.role + '）');
+
+  await view(cdp, DESK);
+  const sgo = async (id, name) => { await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,450)); return 1; })()`); await shot(cdp, name); };
+  await sgo('stuHome',   'stu_home.png');
+  await sgo('stuSign',   'stu_sign.png');
+  await sgo('stuSign',   'stu_leave.png');
+  await sgo('stuNews',   'stu_news.png');
+  await sgo('stuGather', 'stu_gather.png');
+  await sgo('stuTable',  'stu_table.png');
+  await sgo('stuExam',   'stu_exam.png');
+  await sgo('stuQuant',  'stu_quant.png');
+  await sgo('stuProfile','stu_profile.png');
+  await sgo('stuHw',     'stu_hw.png');
+  await sgo('settings',  'stu_settings.png');
+
+  await view(cdp, MOB);
+  await sleep(500);
+  const smgo = async (id, name) => { await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,450)); return 1; })()`); await shot(cdp, name); };
+  await smgo('stuHome',  'stum_home.png');
+  await smgo('stuSign',  'stum_sign.png');
+  await smgo('stuNews',  'stum_news.png');
+  await smgo('stuTable', 'stum_table.png');
+  await smgo('stuQuant', 'stum_quant.png');
 
   // ── ⑦ 登出后的登录门 ────────────────────────────────
   console.log('⑥ 登录门');
