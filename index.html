@@ -571,6 +571,40 @@ body.role-admin .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
 body.role-admin .card{border-radius:14px}
 @media (min-width:700px){ body.role-admin .main{background:rgba(80,99,142,.05)} }
 
+/* ════════ 首位教务（super）：松绿 · 主理 ════════
+   与教务端（黛蓝）区分开：super 是机构主理人，单独一色。
+   同样只换操作色与少量皮肤变量，品牌金不动、融合标不变色。 */
+body.role-super{
+  --bg:#f1f5f2;
+  --sidebar:#ffffff;
+  --sidebar-text:#2f5544;
+  --sidebar-active:#e2ede7;
+  --card:#ffffff;
+  --text:#1c2e26;
+  --accent:#3a6b54;            /* 松绿 */
+  --btn-text:#ffffff;
+  --line:#d8e6df;
+  --shadow:0 3px 12px rgba(58,107,84,.10);
+}
+@media (prefers-color-scheme: dark){
+  body.role-super{
+    --bg:#121a16;
+    --sidebar:#18211c;
+    --sidebar-text:#9cc4b2;
+    --sidebar-active:#233029;
+    --card:#18211c;
+    --text:#e3efe9;
+    --accent:#74b394;          /* 松绿提亮 */
+    --btn-text:#0f1612;
+    --line:#233029;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+body.role-super .clock{color:var(--accent)}
+body.role-super .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-super .card{border-radius:14px}
+@media (min-width:700px){ body.role-super .main{background:rgba(58,107,84,.05)} }
+
 /* ════════ 兼岗端（教务兼授课）：黛紫 · 贵气 ════════ */
 body.role-both{
   --bg:#f5f3f8;
@@ -873,7 +907,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .side .brand{padding:2px 8px 12px;border-bottom:1px solid var(--line)}
 .side .brand .b-row{display:flex;align-items:center;gap:9px;min-width:0}
 .side .brand .b-row.wide{justify-content:space-between}
-.side .brand .brand-lock{width:148px;height:auto}
+.side .brand .brand-lock{width:88px;height:auto}
 .side .brand .b-sys,.side .brand .b-port{text-align:left}   /* 侧栏故意左对齐成一块，覆盖全局居中 */
 .side .greet{
   flex:0 0 auto;font-size:12px;color:var(--sidebar-text);opacity:.92;
@@ -882,7 +916,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 
 /* ── ② 登录门头 · 融合标竖式（居中，层次最全）── */
 .brand-a .g-brand{flex-direction:column}
-.brand-a .g-brand>.brand-lock{width:min(300px,30vh);height:auto}
+.brand-a .g-brand>.brand-lock{width:min(220px,22vh);height:auto}
 .brand-a .g-brand .b-sys{font-size:11px;letter-spacing:5.5px;text-indent:5.5px;margin-top:18px}
 
 /* ── ④ 宽屏（电脑）的登录页 · 放大的牌匾 ──────────────────────
@@ -933,7 +967,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   }
 
   /* ── 竖排牌匾（尺寸随屏高伸缩）── */
-  .brand-a .g-brand>.brand-lock{width:min(360px,34vh);height:auto}
+  .brand-a .g-brand>.brand-lock{width:min(260px,26vh);height:auto}
   .brand-a .g-brand .b-sys{
     font-size:min(12px,1.2vh);letter-spacing:min(9px,.9vh);text-indent:min(9px,.9vh);
     margin-top:min(22px,2.1vh);
@@ -3216,7 +3250,8 @@ const App = {
       const rk = (typeof Auth !== 'undefined' && Auth.role) ? Auth.role() : 'teacher';
       document.body.classList.toggle('stu', rk === 'student');
       document.body.classList.toggle('role-teacher', rk === 'teacher');
-      document.body.classList.toggle('role-admin', rk === 'admin' || rk === 'super');
+      document.body.classList.toggle('role-admin', rk === 'admin');
+      document.body.classList.toggle('role-super', rk === 'super');
       document.body.classList.toggle('role-both', rk === 'both');
       document.body.setAttribute('data-role', rk);
     } catch(e){}
@@ -9999,13 +10034,14 @@ const Port = {
       teacher:{name:'授课老师',  slogan:'守好每一堂课，记清每一份付出'},
       admin:  {name:'教务老师',  slogan:'统筹教务，让每个环节有迹可循'},
       both:   {name:'教务兼授课', slogan:'既上讲台，也理教务'},
+      super:  {name:'首位教务',  slogan:'统筹全局，为每一环兜底'},
       student:{name:'学生',      slogan:'专注当下，让每一步都算数'},
     })[kind] || {name:'授课老师', slogan:'守好每一堂课，记清每一份付出'};
   },
   role(){
     let r = '';
     try { if (typeof Auth !== 'undefined' && Auth.role) r = Auth.role() || ''; } catch(e){}
-    if (r === 'super') return 'admin';   /* 首位教务 = 教务端（黛蓝） */
+    if (r === 'super') return 'super';   /* 首位教务单独成端：松绿，与教务端（黛蓝）区分 */
     return (r === 'teacher' || r === 'admin' || r === 'both' || r === 'student') ? r : 'teacher';
   },
 };
@@ -10037,7 +10073,7 @@ const Brand = {
   /** 侧栏：融合标 + 系统名 + 端口名，左对齐成一块 */
   side(){
     const p = Port.info(Port.role());
-    return '<div class="b-row">' + this.lock(120) +
+    return '<div class="b-row">' + this.lock(88) +
       '<div><div class="b-sys">' + this.sysName() + '</div>' +
       '<div class="b-port" style="margin-top:4px">' + p.name + '</div></div></div>';
   },
@@ -10054,7 +10090,7 @@ const Brand = {
 
     /* 手机顶栏位置窄，只放一枚融合标 */
     const tb = document.getElementById('topBrand');
-    if (tb) tb.innerHTML = this.lock(120);
+    if (tb) tb.innerHTML = this.lock(88);
 
     const gf = document.getElementById('gFoot');
     if (gf) gf.textContent = '博艺教育 · LIYUN WORKBENCH';
