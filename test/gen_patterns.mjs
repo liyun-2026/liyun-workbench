@@ -110,10 +110,12 @@ const ROLES = [
     comp:{ ground:'tortoise', vine:'cloud', bloom:'baoxiang' } },
 ];
 
-/* rail 面（深色块）：pattern 用比 rail 亮的 tone，明显但克制 */
-const RAIL_OP = { ground:0.32, vine:0.55, bloom:0.70 };
+/* rail 面（深色块）：pattern 用比 rail 亮的 tone —— v31 整体调淡一档。
+   起因：用户反馈「花纹还是太明显、太明显了容易挡着字」，
+   原 0.32/0.55/0.70 里花头层(0.70)最抢眼，压到 0.34。 */
+const RAIL_OP = { ground:0.18, vine:0.30, bloom:0.34 };
 /* topbar 面（浅/深底上的薄条）：pattern 用端口色淡化，极克制 */
-const TOP_OP  = { ground:0.12, vine:0.18, bloom:0.22 };
+const TOP_OP  = { ground:0.07, vine:0.10, bloom:0.12 };
 
 function buildRole(r){
   const c=r.comp;

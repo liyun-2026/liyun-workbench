@@ -185,6 +185,31 @@ try {
     await shot(cdp, `m-app-${b}.png`);
   }
 
+  /* ── ③b v31 核对：量手机底部标签栏实际尺寸（放大后防跑版） ── */
+  const tb = await cdp.eval(`(() => {
+    const bar = document.querySelector('.tabbar');
+    if (!bar) return { err: '页面里没有 .tabbar' };
+    const btn = bar.querySelector('button');
+    const ico = btn && btn.querySelector('.ico');
+    const main = document.getElementById('main');
+    const R = bar.getBoundingClientRect();
+    const B = btn && btn.getBoundingClientRect();
+    const I = ico && ico.getBoundingClientRect();
+    const cs = el => el ? getComputedStyle(el) : null;
+    return {
+      项数: bar.querySelectorAll('button').length,
+      胶囊高: +R.height.toFixed(1),
+      胶囊宽: +R.width.toFixed(1),
+      单钮高: B ? +B.height.toFixed(1) : null,
+      图标fontSize: cs(ico) && cs(ico).fontSize,
+      图标盒高: I ? +I.height.toFixed(1) : null,
+      文字fontSize: cs(btn) && cs(btn).fontSize,
+      内容区paddingBottom: cs(main) && cs(main).paddingBottom,
+      胶囊底距屏底: +(innerHeight - R.bottom).toFixed(1),
+    };
+  })()`);
+  console.log('   ③b 底栏实测: ' + JSON.stringify(tb));
+
   /* ── ④ 电脑上：登录页 + 工作台 ──────────────── */
   await view(cdp, DESK);
   await sleep(400);
