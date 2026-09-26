@@ -290,16 +290,16 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
       assert(err('аdmin') !== '', '西里尔同形字（长得像 a 但要挡住）');
     });
 
-    t('登录门干净：标题就是书法「砺蕴」，提示只写「用户名」，按钮下不放说明文字', () => {
+    t('登录门干净：门头是融合标，提示只写「用户名」，按钮下不放说明文字', () => {
       const m = html.match(/id="gUser"[^>]*placeholder="([^"]+)"/);
       assert(m && m[1] === '用户名', '提示应只写「用户名」（2026-09-18 用户要求删掉括号说明）：' + (m && m[1]));
-      assert(html.includes('id="gBrand"') && /assets\/logo-liyun\.png/.test(html),
-        '登录门头该由 Brand 装配书法字标（砺蕴字标走 CSS 遮罩上色）');
+      assert(html.includes('id="gBrand"') && /assets\/brand-lock\.png/.test(html),
+        '登录门头该由 Brand 装配融合标（博艺徽章 + 砺蕴印章，横版一张图）');
       assert(!/第一次使用：填一个用户名/.test(html), '「第一次使用…首位教务」这句该删掉');
       assert(!/账号由教务创建，没有自助注册。<br>/.test(html), '登录按钮下的两行说明该删掉');
     });
 
-    t('品牌门头：博艺徽章 + 砺蕴字标，只此一套（B/C/D 均已去掉）', () => {
+    t('品牌门头：融合标一套（博艺徽章 + 砺蕴印章），旧标已清干净', () => {
       assert(/const Brand = \{/.test(html), 'Brand 模块该在');
       assert(/classList\.add\('brand-a'\)/.test(html), '门头该挂 brand-a');
       ['brand-b', 'brand-c', 'brand-d', 'gCorner', 'pickbar'].forEach(x =>
@@ -312,12 +312,15 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
         '宽屏登录门该有 scrollbar-gutter，否则滚动条一出现整块牌匾就左偏');
       assert(!/boyi-512\.png[^)]*\)[^;]*opacity:\s*\.0[4-9]/i.test(html),
         '背景那枚虚化徽章印记已按用户意见去掉，不该再压回屏幕');
-      assert(/'assets\/boyi-' \+ f \+ '\.png'/.test(html),
-        '徽章该按显示尺寸就近取图（Brand.pic）');
-      fs.readdirSync(path.join(dir, 'assets')).forEach(f => {
-        if (/^boyi-\d+\.png$/.test(f))
-          assert(fs.statSync(path.join(dir, 'assets', f)).size > 1000, '徽章素材是空的：' + f);
+      assert(/lock\(px\)\{[\s\S]{0,300}?brand-lock@sm\.png/.test(html),
+        '融合标该按显示宽度就近取图（Brand.lock 两档：1024 / 384）');
+      ['assets/brand-lock.png', 'assets/brand-lock@sm.png'].forEach(f => {
+        assert(fs.existsSync(path.join(dir, f)) && fs.statSync(path.join(dir, f)).size > 1000,
+          '融合标素材缺失或为空：' + f);
       });
+      /* 旧 logo（独立的博艺徽章 boyi-*、砺蕴行书字标 logo-liyun）已按用户要求全部清掉，
+         页面上不该再有任何引用 —— 留着既是死资源，也会跟融合标打架。 */
+      assert(!/boyi-\d+\.png|logo-liyun\.png/.test(html), '旧 logo 不该再被页面引用');
       assert(!/filter:\s*(brightness|hue-rotate)\(/.test(html), '徽章不许加滤镜改色（那是机构的资产）');
     });
 

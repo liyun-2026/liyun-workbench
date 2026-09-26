@@ -26,6 +26,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="砺蕴">
 <meta name="theme-color" content="#f6f5f2">
+<!-- 深色模式那一枚。登录后由 Port.syncChrome() 按当前端口改写这两枚。 -->
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311">
 <!-- 开屏那枚融合标是第一屏里唯一的位图，早点开始下载，别等解析到 body 才发请求 -->
 <link rel="preload" as="image" href="assets/brand-lock.png">
 <!-- iPhone 系统启动图：按机型分辨率各配一张（深浅色各一套），盖住
@@ -69,8 +71,6 @@
 /* ==== 主题变量 · 极简·暖（浅色默认，跟随系统切深色） ==== */
 :root{
   --bg:#f6f5f2;
-  --sidebar:#ffffff;
-  --sidebar-text:#55524c;
   --sidebar-active:#edebe5;
   --card:#ffffff;
   --text:#26241f;
@@ -82,6 +82,18 @@
   --font:-apple-system,"PingFang SC",system-ui,sans-serif;
   --line:#e8e6e0;          /* 1px 细边框色。现代审美用细线，不用投影 */
   --gold:#c9ab7c;          /* 古铜金，品牌色，深浅色模式通用 */
+
+  /* ── 端口主题面（整页着色的三个面）──────────────────────────
+     · --tint   次级面：手机顶栏、次级底。极浅的主题色调，只作衬托
+     · --rail   主色面：电脑侧栏 / 手机底部标签栏。主题色的深色版，
+                 上面压浅色字 —— 一眼就知道「我现在在哪个端口」
+     · --rail-on 选中块：深色面上的半透明浅块（不能用实色，深浅色模式都要成立）
+     默认（未分端）取品牌墨色 + 金，和登录门同一套气质。 */
+  --tint:#efece7;
+  --rail:#2f2b24;
+  --rail-text:#e9e3d8;
+  --rail-on:rgba(255,255,255,.15);
+  --rail-on-text:#ffffff;
 
   /* 字号阶梯 —— 故意拉开跨度。所有字号都差不多，是业余感最大的来源 */
   --fs-hero:40px;   /* 英雄元素：每页最大的那一个数字或标题，其余全部退后 */
@@ -185,8 +197,6 @@
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#141311;
-    --sidebar:#1c1a18;
-    --sidebar-text:#a8a29a;
     --sidebar-active:#332f2a;
     --card:#1c1a18;
     --text:#efe9df;
@@ -195,6 +205,11 @@
     --btn-text:#141311;
     --line:#302d29;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
+    --tint:#1a1815;
+    --rail:#2b2721;
+    --rail-text:#e9e3d8;
+    --rail-on:rgba(255,255,255,.14);
+    --rail-on-text:#ffffff;
   }
 }
 
@@ -209,9 +224,9 @@ body{
 }
 .app{display:flex;height:100%}
 
-/* ==== 侧边栏：常驻窄条 ==== */
+/* ==== 侧边栏：常驻窄条（底色走 --rail，端口主题色的深色面） ==== */
 .side{
-  width:76px;flex-shrink:0;background:var(--sidebar);
+  width:76px;flex-shrink:0;background:var(--rail);
   display:flex;flex-direction:column;
   padding:calc(12px + env(safe-area-inset-top,0)) 6px calc(12px + env(safe-area-inset-bottom,0));
   overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -222,15 +237,17 @@ body{
 .nav button{
   border:none;background:transparent;font-family:inherit;
   padding:10px 2px;border-radius:12px;
-  color:var(--sidebar-text);font-size:11px;line-height:1.3;
+  color:var(--rail-text);font-size:11px;line-height:1.3;
 }
 .nav button .ico{display:block;font-size:21px;margin-bottom:3px}
-.nav button.on{background:var(--sidebar-active);color:var(--text)}
+.nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 
 /* ==== 内容区 ==== */
 .main{
   flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:calc(14px + env(safe-area-inset-top,0)) 12px calc(28px + env(safe-area-inset-bottom,0));
+  /* ⚠️ 手机上顶栏在 .main 上面、已经吃过 env(safe-area-inset-top)，
+     这里不能再加一次 —— 否则刘海机顶部平白多出 59px 空白。 */
+  padding:14px 12px calc(28px + env(safe-area-inset-bottom,0));
   scroll-behavior:smooth;
 }
 .page{display:none;flex-direction:column;gap:var(--gap)}
@@ -361,13 +378,27 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .col{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
 
 .topbar{
-  display:flex;align-items:center;gap:10px;flex-shrink:0;
-  padding:calc(10px + env(safe-area-inset-top,0)) 14px 10px;
-  border-bottom:1px solid var(--line);background:var(--bg);
+  position:relative;display:flex;align-items:center;gap:10px;flex-shrink:0;
+  padding:calc(9px + env(safe-area-inset-top,0)) 12px 9px;
+  border-bottom:1px solid var(--line);background:var(--tint);
+}
+/* 端口色压一道 2px 底线：手机上一眼分得清此刻在哪个端口 */
+.topbar::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;
+  background:var(--accent);opacity:.62;
 }
 .topbar .t-brand{display:flex;align-items:center;flex:0 0 auto}
-.topbar .t-logo{font-size:21px;line-height:1}
-.topbar .t-name{font-size:15px;font-weight:500;white-space:nowrap}
+/* ⚠️ 顶栏融合标的宽度必须在这一层显式钉死。
+   之前 .topbar 里没有任何宽度规则，图片就落到 .brand-lock 的 width:auto 上，
+   于是按**自身像素尺寸**铺开（brand-lock@sm 是 384×162）——
+   430 宽的屏上顶栏被撑到 183px 高、logo 占满整行还溢出，
+   这就是「手机端 logo 还是很大、怎么没缩小」的真正原因。
+   Brand.lock() 写在 <img width> 属性上的值会被 CSS 覆盖，指望它没用。 */
+.topbar .t-brand .brand-lock{width:88px;height:auto}
+.topbar .t-name{
+  flex:1;min-width:0;font-size:14px;font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 .topbar .t-more{
   margin-left:auto;flex-shrink:0;font-family:inherit;font-size:13px;
   padding:7px 13px;border-radius:999px;
@@ -375,7 +406,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 
 .tabbar{
-  display:block;flex-shrink:0;background:var(--sidebar);
+  display:block;flex-shrink:0;background:var(--rail);
   border-top:1px solid var(--line);
   padding:5px 4px calc(5px + env(safe-area-inset-bottom,0));
 }
@@ -383,12 +414,12 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .tabbar .tabs{display:flex;gap:2px}
 .tabbar button{
   flex:1;min-width:0;border:none;background:transparent;font-family:inherit;
-  color:var(--sidebar-text);font-size:10px;line-height:1.25;
+  color:var(--rail-text);font-size:10px;line-height:1.25;
   padding:6px 2px;border-radius:11px;
   display:flex;flex-direction:column;align-items:center;gap:3px;
 }
 .tabbar button .ico{font-size:19px;line-height:1}
-.tabbar button.on{background:var(--sidebar-active);color:var(--text)}
+.tabbar button.on{background:var(--rail-on);color:var(--rail-on-text)}
 
 /* ── M1 · 雅金卡片：手机端质感强化（只在 <700px 生效，电脑端不掺和） ── */
 @media (max-width:699px){
@@ -398,10 +429,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
     border-radius:0 0 3px 3px;background:var(--gold);opacity:.55;
   }
   .col{position:relative}
+  /* 手机底部标签栏 = 浮起的一枚「端口色胶囊」。
+     底就是端口的深色面，图标浅色，选中项一块半透明浅块 ——
+     整屏最下面这一条永远在提醒「你在哪个端口」。 */
   .tabbar{
     position:absolute;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0));
-    background:var(--card);border:1px solid var(--line);border-top:1px solid var(--line);
-    border-radius:24px;box-shadow:0 8px 28px rgba(40,32,18,.14);
+    background:var(--rail);border:none;
+    border-radius:24px;box-shadow:0 10px 30px rgba(30,26,18,.26);
     padding:7px 10px;
   }
   .tabbar button{border-radius:16px;padding:7px 2px}
@@ -514,8 +548,9 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
       换肤只换「操作色」（按钮、选中、时钟、卡片描边），品牌不变。 */
 body.stu{
   --bg:#eef3f8;
-  --sidebar:#ffffff;
-  --sidebar-text:#5a6b7b;
+  --tint:#e6edf6;                /* 次级面：手机顶栏 / 电脑画布 */
+  --rail:#2c4a6b;                /* 侧栏 / 底部标签栏：青蓝深色面 */
+  --rail-text:#e2ecf7;
   --sidebar-active:#e4edf6;
   --card:#ffffff;
   --text:#22303c;
@@ -528,8 +563,9 @@ body.stu{
 @media (prefers-color-scheme: dark){
   body.stu{
     --bg:#141a20;
-    --sidebar:#1a2129;
-    --sidebar-text:#9fb0c0;
+    --tint:#1b2229;
+    --rail:#1b2b3d;
+    --rail-text:#cfe0f0;
     --sidebar-active:#243039;
     --card:#1a2129;
     --text:#e6eef6;
@@ -541,10 +577,9 @@ body.stu{
   }
 }
 body.stu .clock{color:var(--accent)}
-body.stu .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.stu .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 body.stu .card{border-radius:16px}
 @media (min-width:700px){
-  body.stu .main{background:rgba(65,96,127,.045)}
   body.stu .card{border-radius:14px;border-color:var(--line);box-shadow:var(--shadow)}
 }
 
@@ -552,116 +587,145 @@ body.stu .card{border-radius:16px}
    和 body.stu 同一套机制：只换「操作色」(--accent) 与少量皮肤变量，
    品牌金 --gold 不动，融合标不变色。登录门与开屏一律不受影响（那时人还没登录）。 */
 body.role-admin{
-  --bg:#f3f5f8;
-  --sidebar:#ffffff;
-  --sidebar-text:#3f5170;
+  --bg:#eef2f9;
+  --tint:#e5ebf5;
+  --rail:#2f3c5c;                /* 侧栏 / 底栏：黛蓝深色面 */
+  --rail-text:#e4eaf7;
   --sidebar-active:#e6ecf4;
   --card:#ffffff;
-  --text:#1e2a3a;
-  --text-dim:#7a89a0;
-  --accent:#50638E;
+  --text:#1c2838;
+  --text-dim:#77869e;
+  --accent:#50638E;              /* 黛蓝 */
   --btn-text:#ffffff;
-  --line:#dde4ee;
+  --line:#d6dfec;
   --shadow:0 3px 12px rgba(80,99,142,.10);
 }
 @media (prefers-color-scheme: dark){
   body.role-admin{
-    --bg:#141a22;
-    --sidebar:#1a212b;
-    --sidebar-text:#9fb0c8;
+    --bg:#10151f;
+    --tint:#161d2a;
+    --rail:#1b2439;
+    --rail-text:#cfd9ec;
     --sidebar-active:#243040;
-    --card:#1a212b;
-    --text:#e6eef6;
-    --text-dim:#8a9ab2;
+    --card:#161d2a;
+    --text:#e4ecf7;
+    --text-dim:#8797ae;
     --accent:#7d93bd;
-    --btn-text:#141a22;
-    --line:#26313d;
+    --btn-text:#10151f;
+    --line:#232c3d;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
   }
 }
 body.role-admin .clock{color:var(--accent)}
-body.role-admin .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-admin .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 body.role-admin .card{border-radius:14px}
-@media (min-width:700px){ body.role-admin .main{background:rgba(80,99,142,.05)} }
 
 /* ════════ 首位教务（super）：松绿 · 主理 ════════
    与教务端（黛蓝）区分开：super 是机构主理人，单独一色。
    同样只换操作色与少量皮肤变量，品牌金不动、融合标不变色。 */
 body.role-super{
-  --bg:#faf5f3;
-  --sidebar:#ffffff;
-  --sidebar-text:#7a3b34;
-  --sidebar-active:#f6e7e4;
+  --bg:#f2f5f1;
+  --tint:#e6ede4;
+  --rail:#2f4d33;                /* 侧栏 / 底栏：竹青深绿面 */
+  --rail-text:#dde9dc;
+  --sidebar-active:#e6ede4;
   --card:#ffffff;
-  --text:#2a201c;
-  --accent:#B23A2E;            /* 朱砂红 */
+  --text:#1f2b21;
+  --text-dim:#718a73;
+  --accent:#4E7A53;              /* 竹青 · 中国传统色（用户选定） */
   --btn-text:#ffffff;
-  --line:#ecd9d4;
-  --shadow:0 3px 12px rgba(178,58,46,.10);
+  --line:#d6e2d4;
+  --shadow:0 3px 12px rgba(78,122,83,.10);
 }
 @media (prefers-color-scheme: dark){
   body.role-super{
-    --bg:#1a1311;
-    --sidebar:#221a18;
-    --sidebar-text:#e6b3ab;
-    --sidebar-active:#2e2320;
-    --card:#221a18;
-    --text:#f4e7e4;
-    --accent:#d98c84;          /* 朱砂提亮 */
-    --btn-text:#1a1311;
-    --line:#2e2320;
+    --bg:#11180f;
+    --tint:#182117;
+    --rail:#1c2c1a;
+    --rail-text:#d2e3cf;
+    --sidebar-active:#1f2e1c;
+    --card:#182117;
+    --text:#e6ede4;
+    --text-dim:#8aa487;
+    --accent:#7fae84;            /* 竹青提亮（深底可读） */
+    --btn-text:#11180f;
+    --line:#263426;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
   }
 }
 body.role-super .clock{color:var(--accent)}
-body.role-super .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-super .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 body.role-super .card{border-radius:14px}
-@media (min-width:700px){ body.role-super .main{background:rgba(58,107,84,.05)} }
 
 /* ════════ 兼岗端（教务兼授课）：黛紫 · 贵气 ════════ */
 body.role-both{
-  --bg:#f5f3f8;
-  --sidebar:#ffffff;
-  --sidebar-text:#4d3f63;
+  --bg:#f4f1f9;
+  --tint:#ece7f5;
+  --rail:#3d2f58;                /* 侧栏 / 底栏：黛紫深色面 */
+  --rail-text:#e8e0f6;
   --sidebar-active:#ece7f4;
   --card:#ffffff;
-  --text:#241e30;
-  --text-dim:#8079a0;
-  --accent:#7a5a9e;
+  --text:#221c2e;
+  --text-dim:#7f76a0;
+  --accent:#7a5a9e;              /* 黛紫 */
   --btn-text:#ffffff;
-  --line:#e3dded;
+  --line:#e0d8ee;
   --shadow:0 3px 12px rgba(122,90,158,.10);
 }
 @media (prefers-color-scheme: dark){
   body.role-both{
-    --bg:#191620;
-    --sidebar:#1f1a28;
-    --sidebar-text:#b0a3c8;
+    --bg:#14111c;
+    --tint:#1b1726;
+    --rail:#241b36;
+    --rail-text:#d8cdec;
     --sidebar-active:#2b2438;
-    --card:#1f1a28;
+    --card:#1b1726;
     --text:#ece7f6;
     --text-dim:#948aae;
     --accent:#a487c8;
-    --btn-text:#191620;
-    --line:#2c2538;
+    --btn-text:#14111c;
+    --line:#272038;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
   }
 }
 body.role-both .clock{color:var(--accent)}
-body.role-both .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-both .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 body.role-both .card{border-radius:14px}
-@media (min-width:700px){ body.role-both .main{background:rgba(122,90,158,.05)} }
 
 /* ════════ 授课端（教师）：古铜金 · 温润 ════════
    默认 :root 浅色是墨色操作色；这里把它显式换成金，呼应「教师端金」。
-   深色模式 :root 已是金，无需再写。 */
+   金太浅，压不住白字，所以侧栏/底栏用的是它的深色版（古铜）而不是金本身。 */
 body.role-teacher{
-  --accent:#c9ab7c;
+  --bg:#f7f5f0;
+  --tint:#efece4;
+  --rail:#332d22;                /* 侧栏 / 底栏：古铜深色面 */
+  --rail-text:#ebe4d6;
+  --sidebar-active:#edebe5;
+  --card:#ffffff;
+  --text:#26241f;
+  --text-dim:#96918a;
+  --accent:#c9ab7c;              /* 古铜金 */
   --btn-text:#26241f;
+  --line:#e8e4da;
+  --shadow:0 3px 12px rgba(120,95,50,.10);
 }
 @media (prefers-color-scheme: dark){
-  body.role-teacher{ --accent:#c9ab7c; --btn-text:#141311; }
+  body.role-teacher{
+    --bg:#141311;
+    --tint:#1b1917;
+    --rail:#2b2620;
+    --rail-text:#e7e0d2;
+    --sidebar-active:#332f2a;
+    --card:#1b1917;
+    --text:#efe9df;
+    --text-dim:#8f897f;
+    --accent:#c9ab7c;
+    --btn-text:#141311;
+    --line:#2c2925;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
 }
+body.role-teacher .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 
 /* ════════ 学生端：整页水印 ════════
    斜着铺满、压得很淡：正常看字完全不受影响，
@@ -732,16 +796,14 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .side{display:flex;width:200px;padding-left:12px;padding-right:12px}
   .topbar,.tabbar{display:none}
   .drawer{display:none}
-  .side .brand{padding:2px 8px 0}
   .nav{gap:2px}
   .nav button{
     display:flex;align-items:center;gap:12px;text-align:left;
     padding:12px 14px;font-size:15px;
   }
   .nav button .ico{display:inline;font-size:20px;margin:0;width:24px;text-align:center}
-  /* D3 · 数据雅座：浅灰画布衬托白卡，侧栏细描边分界，卡片去投影走扁平 */
-  .main{padding:28px 32px 40px;background:rgba(38,36,31,.035)}
-  .side{border-right:1px solid var(--line)}
+  /* D3 · 数据雅座：端口色canvas 衬托白卡，卡片去投影走扁平 */
+  .main{padding:28px 32px 40px;background:var(--tint)}
   .card{border-radius:12px;box-shadow:none}
 }
 
@@ -766,6 +828,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 @media (min-width:1100px){
   :root{--fs-hero:56px;--fs-title:30px;--pad:30px;--gap:20px}
   .side{width:236px}
+  .side .brand .brand-lock{max-width:148px}
   .main{padding:36px 44px 52px}
   .page.on{
     display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
@@ -916,15 +979,21 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .b-sys{font-size:10px;letter-spacing:2.4px;color:var(--text-dim);line-height:1.4;white-space:nowrap}
 .b-port{font-size:11px;letter-spacing:1px;color:var(--text-dim);line-height:1.5;white-space:nowrap;margin-top:6px}
 
-/* ── ① 侧边栏门头（只在电脑出现）── */
-.side .brand{padding:2px 8px 12px;border-bottom:1px solid var(--line)}
-.side .brand .b-row{display:flex;align-items:center;gap:9px;min-width:0}
+/* ── ① 侧边栏门头（只在电脑出现）──
+   侧栏底已经是端口的深色面，融合标里有蓝白徽章，直接压在深底上会糊。
+   所以门头单独做成一枚**浅色牌**（--card）：牌上放融合标 + 系统名 + 端口名。
+   深色侧栏 + 浅色牌 = 一眼看到端口色，又保住了徽章的蓝白。 */
+.side .brand{
+  background:var(--card);border-radius:14px;padding:11px 11px 12px;margin:0 0 12px;
+  box-shadow:0 3px 12px rgba(0,0,0,.18);
+}
+.side .brand .b-row{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
 .side .brand .b-row.wide{justify-content:space-between}
-.side .brand .brand-lock{width:88px;height:auto}
+.side .brand .brand-lock{width:100%;max-width:118px;height:auto}
 .side .brand .b-sys,.side .brand .b-port{text-align:left}   /* 侧栏故意左对齐成一块，覆盖全局居中 */
 .side .greet{
-  flex:0 0 auto;font-size:12px;color:var(--sidebar-text);opacity:.92;
-  padding:11px 8px 0;margin-bottom:14px;line-height:1.45;word-break:break-all;
+  flex:0 0 auto;font-size:12px;color:var(--rail-text);opacity:.9;
+  padding:2px 8px 0;margin-bottom:14px;line-height:1.45;word-break:break-all;
 }
 
 /* ── ② 登录门头 · 融合标竖式（居中，层次最全）── */
@@ -3272,6 +3341,7 @@ const App = {
       document.body.classList.toggle('role-super', rk === 'super');
       document.body.classList.toggle('role-both', rk === 'both');
       document.body.setAttribute('data-role', rk);
+      Port.syncChrome();
     } catch(e){}
     StuMark.paint();
     this.refreshDots();
@@ -10059,8 +10129,27 @@ const Port = {
   role(){
     let r = '';
     try { if (typeof Auth !== 'undefined' && Auth.role) r = Auth.role() || ''; } catch(e){}
-    if (r === 'super') return 'super';   /* 首位教务单独成端：松绿，与教务端（黛蓝）区分 */
+    if (r === 'super') return 'super';   /* 首位教务单独成端，与教务端（黛蓝）区分 */
     return (r === 'teacher' || r === 'admin' || r === 'both' || r === 'student') ? r : 'teacher';
+  },
+
+  /** 把当前端口的 --tint 同步给 <meta name="theme-color">：
+   *  手机上状态栏 / 浏览器栏那一圈也会跟着端口变色，
+   *  从别的 App 切回来，光看顶上也认得出在哪个端口。
+   *  两枚 meta（浅色一枚、深色一枚）都写当前值 —— getComputedStyle 读出来的
+   *  --tint 已经是「当前色彩模式下的那一份」，不用自己判断深浅。 */
+  syncChrome(){
+    try {
+      const tint = getComputedStyle(document.body).getPropertyValue('--tint').trim();
+      if (!tint) return;
+      document.querySelectorAll('meta[name="theme-color"]')
+        .forEach(m => m.setAttribute('content', tint));
+      if (!Port._chromeHooked){
+        Port._chromeHooked = true;
+        matchMedia('(prefers-color-scheme: dark)')
+          .addEventListener('change', () => setTimeout(() => Port.syncChrome(), 60));
+      }
+    } catch(e){}
   },
 };
 
