@@ -129,46 +129,57 @@ def extract():
     return light, dark, faces, splash_css, out
 
 
-def template(light, dark, faces, splash_css, markup, is_dark):
-    """拼临时页面。浅色直接用；深色把深色变量追加在后面覆盖掉浅色。"""
+def template(light, dark, faces, splash_css, markup, is_dark, w, h):
+    """拼临时页面。浅色直接用；深色把深色变量追加在后面覆盖掉浅色。
+    用「大窗口里嵌一个精确尺寸 frame」规避 Chrome 最小窗口宽钳制（否则 390 视口会被钳到 ~500，
+    内容右偏）。截图后由 shoot() 裁出 frame 区域 → 内容严格居中。"""
+    LEFT, TOP = 400, 120
     dark_override = dark if is_dark else ''
     return f'''<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>
-html,body{{margin:0;padding:0;width:100%;height:100%;overflow:hidden}}
+html,body{{margin:0;padding:0;overflow:hidden;background:#000}}
+#frame{{position:absolute;left:{LEFT}px;top:{TOP}px;width:{w}px;height:{h}px;overflow:hidden}}
 {light}
 {chr(10).join(faces)}
 {dark_override}
 {splash_css}
 /* 截的就是动画第 0 帧 —— 页面刚画出来那一帧 */
 *{{animation-play-state:paused !important}}
+/* 启动图强制为动画终态，避免截到空白第 0 帧（圆环未画、标未淡入） */
+.s-ring,.s-ring circle,.s-board,.s-lock{{animation:none !important}}
+.s-ring circle{{stroke-dashoffset:0 !important}}
+.s-board,.s-lock{{opacity:1 !important;transform:none !important}}
+.s-bar i{{width:58% !important;transform:none !important}}
+/* 让开屏层填满 frame 而非整个视口（避开钳制） */
+#splash{{position:absolute !important;inset:0 !important;width:100% !important;height:100% !important}}
 </style></head><body>
-{markup}
+<div id="frame">{markup}</div>
 </body></html>'''
 
 
 def shoot(w, h, dpr, dark):
+    LEFT, TOP = 400, 120
     name = f'splash-{w * dpr}x{h * dpr}' + ('-dark' if dark else '') + '.png'
     dst = os.path.join(OUT, name)
+    # 外窗口刻意放大（> Chrome 最小窗口宽钳制 ~500px），frame 才是真实机型尺寸
+    win_w, win_h = w + LEFT * 2, h + TOP * 2
     r = subprocess.run([
         CHROME, '--headless=old', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
-        f'--force-device-scale-factor={dpr}', f'--window-size={w},{h}',
+        f'--force-device-scale-factor={dpr}', f'--window-size={win_w},{win_h}',
         f'--screenshot={dst}', 'file://' + TPL,
-    ], capture_output=True, text=True, timeout=90)
+    ], capture_output=True, text=True, timeout=120)
     if not os.path.exists(dst):
         raise SystemExit(f'{name} 没生成：\n{r.stderr[-400:]}')
-    # 尺寸自检：Chrome 的 --screenshot 只截窗口大小，对不上说明参数没生效
-    try:
-        from PIL import Image
-        im = Image.open(dst)
-        got = im.size
-        if got != (w * dpr, h * dpr):
-            print(f'  ⚠️ {name} 实际 {got[0]}×{got[1]}，期望 {w * dpr}×{h * dpr}')
-        # 瘦身：这张图 90% 面积是暖金晕的平滑渐变，PNG 压不动（单张 200KB 上下）。
-        # 颜色本来就不多（米白 + 金 + 徽章的蓝白），降到 192 色体积减半，肉眼无差。
-        im.convert('RGB').quantize(colors=192, method=Image.MEDIANCUT).save(dst, 'PNG', optimize=True)
-    except ImportError:
-        pass
+    from PIL import Image
+    im = Image.open(dst)
+    # 裁出 frame 区域（避开钳制导致的右偏），得到严格居中的机型尺寸图
+    box = (LEFT * dpr, TOP * dpr, (LEFT + w) * dpr, (TOP + h) * dpr)
+    im = im.crop(box)
+    if im.size != (w * dpr, h * dpr):
+        print(f'  ⚠️ {name} 裁后 {im.size}，期望 {(w * dpr, h * dpr)}')
+    # 瘦身：颜色本不多（米白 + 金 + 徽章蓝白），降到 192 色体积减半，肉眼无差
+    im.convert('RGB').quantize(colors=192, method=Image.MEDIANCUT).save(dst, 'PNG', optimize=True)
     return name
 
 
@@ -196,13 +207,14 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     light, dark, faces, splash_css, markup = extract()
 
-    made, stale = [], []
+    made = []
     for is_dark in (False, True):
-        open(TPL, 'w', encoding='utf-8').write(
-            template(light, dark, faces, splash_css, markup, is_dark))
         for w, h, dpr in SIZES:
             if only and w != only:
                 continue
+            # 模板依赖机型尺寸（frame 大小），每个尺寸单独写
+            open(TPL, 'w', encoding='utf-8').write(
+                template(light, dark, faces, splash_css, markup, is_dark, w, h))
             n = shoot(w, h, dpr, is_dark)
             made.append(n)
             print(('  深色 ' if is_dark else '  浅色 ') + n)

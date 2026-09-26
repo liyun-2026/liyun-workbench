@@ -128,7 +128,28 @@
   background:radial-gradient(circle, rgba(201,171,124,.22), rgba(201,171,124,0) 68%);
   animation:s-breathe 2.6s ease-in-out infinite;
 }
-#splash .s-lock{display:block;position:relative;width:min(320px,76vw);height:auto;aspect-ratio:1024 / 432;margin-top:6px}
+  /* 动画2：古铜金圆环「画」出来 + 融合标落在底板上淡入（底板让金字纹路更清晰） */
+  #splash .s-stage{position:relative;width:min(290px,72vw);height:min(290px,72vw);margin-top:6px;
+    display:flex;align-items:center;justify-content:center}
+  #splash .s-ring{position:absolute;inset:0;margin:auto;width:100%;height:100%;overflow:visible;
+    animation:s-ring-spin 2.4s var(--ease) -.6s both}
+  #splash .s-ring circle{fill:none;stroke:var(--gold);stroke-width:2;stroke-linecap:round;
+    stroke-dasharray:578;stroke-dashoffset:578;animation:s-ring-draw 1.5s var(--ease) -.2s forwards}
+  #splash .s-board{
+    position:relative;width:74%;aspect-ratio:1024/432;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(125% 125% at 50% 36%, #fffdf8 0%, #f4eee2 58%, #ece2cf 100%);
+    border:1px solid rgba(201,171,124,.55);border-radius:16px;
+    box-shadow:0 10px 28px rgba(120,90,40,.16), inset 0 0 0 4px rgba(255,255,255,.6);
+    animation:s-board-in .7s var(--ease) both;
+  }
+  #splash .s-lock{display:block;width:86%;height:auto;aspect-ratio:1024/432;
+    filter:drop-shadow(0 1px 2px rgba(120,90,40,.28));
+    animation:s-lock-in .8s var(--ease) .25s both}
+  @keyframes s-ring-spin{from{transform:rotate(-10deg) scale(.96)}to{transform:rotate(0) scale(1)}}
+  @keyframes s-ring-draw{from{stroke-dashoffset:578}to{stroke-dashoffset:0}}
+  @keyframes s-board-in{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
+  @keyframes s-lock-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 /* 带字距的居中文字必须 text-indent = letter-spacing，否则整行左偏半个字距 */
 #splash .s-bar{position:relative;width:150px;height:4px;border-radius:2px;background:var(--line);margin-top:40px;overflow:hidden}
 /* 进度条做成「一直滑」的不确定态：
@@ -467,21 +488,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 .gate .g-note{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;line-height:1.7}
 .gate .g-foot{
-  position:absolute;bottom:24px;left:0;right:0;
-  text-align:center;font-size:11px;color:var(--text-dim);opacity:.65;letter-spacing:3px;text-indent:3px;
+  position:absolute;bottom:22px;left:0;right:0;
+  text-align:center;font-size:12px;color:#1a1815;letter-spacing:2px;text-indent:2px;
 }
-/* 系统签名色 · 朱砂红：登录门右上角一枚「砺」字印，权作品牌落款 */
-.gate .g-seal{
-  position:absolute;top:18px;right:18px;
-  width:46px;height:46px;border-radius:10px;
-  background:#B23A2E;color:#fff;
-  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
-  font-size:24px;line-height:46px;text-align:center;
-  box-shadow:0 3px 10px rgba(178,58,46,.35);
-  transform:rotate(-5deg);user-select:none;
-}
-@media (max-width:520px){
-  .gate .g-seal{top:14px;right:14px;width:40px;height:40px;font-size:21px;line-height:40px}
+/* 落款印章已移除（D 方案）：底部黑字「博艺教育 · 砺蕴2026」作品牌签名 */
+.gate .g-welcome{
+  font-size:21px;font-weight:600;color:#1a1815;text-align:center;
+  margin-top:16px;letter-spacing:3px;text-indent:3px;
 }
 .gate .whoami{
   display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;
@@ -990,7 +1003,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
      那批图是 test/make_splash_shots.py 照这段结构渲染的，改这里就要重出图。 -->
 <div id="splash" aria-hidden="true">
   <div class="s-halo"></div>
-  <img class="s-lock" src="assets/brand-lock.png" alt="博艺教育 · 砺蕴" draggable="false">
+  <div class="s-stage">
+    <svg class="s-ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="92"/></svg>
+    <div class="s-board">
+      <img class="s-lock" src="assets/brand-lock.png" alt="博艺教育 · 砺蕴" draggable="false">
+    </div>
+  </div>
   <div class="s-bar"><i></i></div>
   <div class="s-tag">博学宏才 艺德卓绝</div>
   <div class="s-org">博艺教育 · 砺蕴工作系统</div>
@@ -2147,8 +2165,8 @@ window.__splashT0 = performance.now();</script>
 <div class="gate" id="gate">
   <div class="g-top"></div>
   <div class="wrap">
-    <div class="g-seal" aria-hidden="true">砺</div>
     <div class="g-brand" id="gBrand"></div>
+    <div class="g-welcome">欢迎回来</div>
     <div class="g-tagline">博学宏才 · 艺德卓绝</div>
     <div class="g-sub" id="gSub"></div>
     <div class="g-form">
@@ -10093,7 +10111,7 @@ const Brand = {
     if (tb) tb.innerHTML = this.lock(88);
 
     const gf = document.getElementById('gFoot');
-    if (gf) gf.textContent = '博艺教育 · LIYUN WORKBENCH';
+    if (gf) gf.textContent = '博艺教育 · 砺蕴2026';
     const fb = document.getElementById('footBrand');
     if (fb) fb.textContent = '博艺教育 · ' + this.sysName() + ' · liyun2026.top';
   }
