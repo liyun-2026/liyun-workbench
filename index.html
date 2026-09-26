@@ -26,8 +26,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="砺蕴">
 <meta name="theme-color" content="#f6f5f2">
-<!-- 开屏那枚徽章是第一屏里唯一的位图，早点开始下载，别等解析到 body 才发请求 -->
-<link rel="preload" as="image" href="assets/boyi-256.png">
+<!-- 开屏那枚融合标是第一屏里唯一的位图，早点开始下载，别等解析到 body 才发请求 -->
+<link rel="preload" as="image" href="assets/brand-lock.png">
 <!-- iPhone 系统启动图：按机型分辨率各配一张（深浅色各一套），盖住
      「点开图标 → 页面还没解析出来」那段空白。内容＝开屏层的静止形态，
      所以切到页面时看不出接缝。
@@ -128,14 +128,9 @@
   background:radial-gradient(circle, rgba(201,171,124,.22), rgba(201,171,124,0) 68%);
   animation:s-breathe 2.6s ease-in-out infinite;
 }
-#splash .s-bi{display:block;position:relative}
+#splash .s-lock{display:block;position:relative;width:min(320px,76vw);height:auto;aspect-ratio:1024 / 432;margin-top:6px}
 /* 带字距的居中文字必须 text-indent = letter-spacing，否则整行左偏半个字距 */
-#splash .s-name{
-  position:relative;
-  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
-  font-size:64px;color:var(--text);letter-spacing:.12em;text-indent:.12em;margin-top:34px;
-}
-#splash .s-bar{position:relative;width:150px;height:4px;border-radius:2px;background:var(--line);margin-top:44px;overflow:hidden}
+#splash .s-bar{position:relative;width:150px;height:4px;border-radius:2px;background:var(--line);margin-top:40px;overflow:hidden}
 /* 进度条做成「一直滑」的不确定态：
    旧版是 0→58% 长到一半就停住 —— 等超过 2.2 秒就看着像卡死。
    现在永远在动，等多久都不显卡。
@@ -147,6 +142,11 @@
   position:relative;
   font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
   font-size:17px;color:var(--text-dim);margin-top:20px;letter-spacing:.35em;text-indent:.35em;
+}
+#splash .s-org{
+  position:relative;
+  font-size:12px;color:var(--text-dim);opacity:.85;margin-top:14px;
+  letter-spacing:.3em;text-indent:.3em;
 }
 @keyframes s-disc-in{from{transform:rotate(-160deg) scale(.7);opacity:0}to{transform:rotate(0) scale(1);opacity:1}}
 @keyframes s-wave-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -447,7 +447,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 }
 /* 门头三套写法，见文件末尾 Brand 模块；这里只管版式 */
 .gate .g-brand{display:flex;align-items:center;justify-content:center}
-.gate .b-rule{flex:0 0 auto;width:62px;height:1px;background:var(--gold);display:block}
 .gate .g-tagline{font-size:12px;color:var(--text-dim);text-align:center;margin-top:18px;letter-spacing:4px;text-indent:4px}
 .gate .g-sub{font-size:13px;color:var(--text-dim);text-align:center;margin-top:8px;margin-bottom:30px;min-height:20px}
 .gate .g-sub:empty{display:none;margin:0}
@@ -470,6 +469,19 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .gate .g-foot{
   position:absolute;bottom:24px;left:0;right:0;
   text-align:center;font-size:11px;color:var(--text-dim);opacity:.65;letter-spacing:3px;text-indent:3px;
+}
+/* 系统签名色 · 朱砂红：登录门右上角一枚「砺」字印，权作品牌落款 */
+.gate .g-seal{
+  position:absolute;top:18px;right:18px;
+  width:46px;height:46px;border-radius:10px;
+  background:#B23A2E;color:#fff;
+  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
+  font-size:24px;line-height:46px;text-align:center;
+  box-shadow:0 3px 10px rgba(178,58,46,.35);
+  transform:rotate(-5deg);user-select:none;
+}
+@media (max-width:520px){
+  .gate .g-seal{top:14px;right:14px;width:40px;height:40px;font-size:21px;line-height:40px}
 }
 .gate .whoami{
   display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;
@@ -495,7 +507,7 @@ body.stu{
   --card:#ffffff;
   --text:#22303c;
   --text-dim:#8b99a6;
-  --accent:#4f7398;              /* 学生端操作色：青蓝 */
+  --accent:#2f8f8f;              /* 学生端操作色：水青 */
   --btn-text:#ffffff;
   --line:#dee8f2;
   --shadow:0 3px 12px rgba(65,96,127,.09);
@@ -521,6 +533,87 @@ body.stu .card{border-radius:16px}
 @media (min-width:700px){
   body.stu .main{background:rgba(65,96,127,.045)}
   body.stu .card{border-radius:14px;border-color:var(--line);box-shadow:var(--shadow)}
+}
+
+/* ════════ 教务端：黛蓝 · 沉稳 ════════
+   和 body.stu 同一套机制：只换「操作色」(--accent) 与少量皮肤变量，
+   品牌金 --gold 不动，融合标不变色。登录门与开屏一律不受影响（那时人还没登录）。 */
+body.role-admin{
+  --bg:#f3f5f8;
+  --sidebar:#ffffff;
+  --sidebar-text:#3f5170;
+  --sidebar-active:#e6ecf4;
+  --card:#ffffff;
+  --text:#1e2a3a;
+  --text-dim:#7a89a0;
+  --accent:#50638E;
+  --btn-text:#ffffff;
+  --line:#dde4ee;
+  --shadow:0 3px 12px rgba(80,99,142,.10);
+}
+@media (prefers-color-scheme: dark){
+  body.role-admin{
+    --bg:#141a22;
+    --sidebar:#1a212b;
+    --sidebar-text:#9fb0c8;
+    --sidebar-active:#243040;
+    --card:#1a212b;
+    --text:#e6eef6;
+    --text-dim:#8a9ab2;
+    --accent:#7d93bd;
+    --btn-text:#141a22;
+    --line:#26313d;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+body.role-admin .clock{color:var(--accent)}
+body.role-admin .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-admin .card{border-radius:14px}
+@media (min-width:700px){ body.role-admin .main{background:rgba(80,99,142,.05)} }
+
+/* ════════ 兼岗端（教务兼授课）：黛紫 · 贵气 ════════ */
+body.role-both{
+  --bg:#f5f3f8;
+  --sidebar:#ffffff;
+  --sidebar-text:#4d3f63;
+  --sidebar-active:#ece7f4;
+  --card:#ffffff;
+  --text:#241e30;
+  --text-dim:#8079a0;
+  --accent:#7a5a9e;
+  --btn-text:#ffffff;
+  --line:#e3dded;
+  --shadow:0 3px 12px rgba(122,90,158,.10);
+}
+@media (prefers-color-scheme: dark){
+  body.role-both{
+    --bg:#191620;
+    --sidebar:#1f1a28;
+    --sidebar-text:#b0a3c8;
+    --sidebar-active:#2b2438;
+    --card:#1f1a28;
+    --text:#ece7f6;
+    --text-dim:#948aae;
+    --accent:#a487c8;
+    --btn-text:#191620;
+    --line:#2c2538;
+    --shadow:0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+body.role-both .clock{color:var(--accent)}
+body.role-both .nav button.on{box-shadow:inset 0 0 0 1px var(--line)}
+body.role-both .card{border-radius:14px}
+@media (min-width:700px){ body.role-both .main{background:rgba(122,90,158,.05)} }
+
+/* ════════ 授课端（教师）：古铜金 · 温润 ════════
+   默认 :root 浅色是墨色操作色；这里把它显式换成金，呼应「教师端金」。
+   深色模式 :root 已是金，无需再写。 */
+body.role-teacher{
+  --accent:#c9ab7c;
+  --btn-text:#26241f;
+}
+@media (prefers-color-scheme: dark){
+  body.role-teacher{ --accent:#c9ab7c; --btn-text:#141311; }
 }
 
 /* ════════ 学生端：整页水印 ════════
@@ -772,36 +865,25 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
      层次自上而下：徽章 → 博艺教育（+ BOYI EDUCATION）→ 金线 → 砺蕴字标 → 砺蕴工作系统。
      窄屏竖排一条；宽屏放大成一枚「牌匾」。见文件末尾 Brand 模块。
    ══════════════════════════════════════════════════════════════════ */
-.bi{display:block;flex:0 0 auto;border-radius:50%;user-select:none;-webkit-user-drag:none}
-.ly{
-  display:block;flex:0 0 auto;background:var(--gold);
-  -webkit-mask:url(assets/logo-liyun.png) no-repeat center / contain;
-          mask:url(assets/logo-liyun.png) no-repeat center / contain;
-}
-.b-org{font-size:13px;letter-spacing:1.6px;color:var(--text);line-height:1.35;white-space:nowrap;text-align:center}
-.b-org i{display:block;font-style:normal;font-size:8px;letter-spacing:1.5px;color:var(--text-dim);margin-top:2px}
+.brand-lock{display:block;flex:0 0 auto;width:auto;height:auto;aspect-ratio:1024 / 432;user-select:none;-webkit-user-drag:none}
 .b-sys{font-size:10px;letter-spacing:2.4px;color:var(--text-dim);line-height:1.4;white-space:nowrap}
+.b-port{font-size:11px;letter-spacing:1px;color:var(--text-dim);line-height:1.5;white-space:nowrap;margin-top:6px}
 
 /* ── ① 侧边栏门头（只在电脑出现）── */
 .side .brand{padding:2px 8px 12px;border-bottom:1px solid var(--line)}
 .side .brand .b-row{display:flex;align-items:center;gap:9px;min-width:0}
 .side .brand .b-row.wide{justify-content:space-between}
-.side .brand .bi{width:34px;height:34px}
-.side .brand .ly{width:104px;height:37px}
-.side .brand .b-org,.side .brand .b-sys{text-align:left}   /* 侧栏故意左对齐成一块，覆盖全局居中 */
+.side .brand .brand-lock{width:148px;height:auto}
+.side .brand .b-sys,.side .brand .b-port{text-align:left}   /* 侧栏故意左对齐成一块，覆盖全局居中 */
 .side .greet{
   flex:0 0 auto;font-size:12px;color:var(--sidebar-text);opacity:.92;
   padding:11px 8px 0;margin-bottom:14px;line-height:1.45;word-break:break-all;
 }
 
-/* ── ② 登录门头 · A 竖式（居中竖排，层次最全）── */
+/* ── ② 登录门头 · 融合标竖式（居中，层次最全）── */
 .brand-a .g-brand{flex-direction:column}
-.brand-a .g-brand>.bi{width:84px;height:84px}
-.brand-a .g-brand .b-org{font-size:17px;letter-spacing:7px;text-indent:7px;margin-top:16px}
-.brand-a .g-brand .b-org i{font-size:9px;letter-spacing:4.2px;margin-top:5px}
-.brand-a .g-brand .b-rule{width:104px;margin:18px 0}
-.brand-a .g-brand .ly{width:176px;height:62px}
-.brand-a .g-brand .b-sys{font-size:11px;letter-spacing:5.5px;text-indent:5.5px;margin-top:12px}
+.brand-a .g-brand>.brand-lock{width:min(300px,30vh);height:auto}
+.brand-a .g-brand .b-sys{font-size:11px;letter-spacing:5.5px;text-indent:5.5px;margin-top:18px}
 
 /* ── ④ 宽屏（电脑）的登录页 · 放大的牌匾 ──────────────────────
    手机上是整屏竖排一条，那样最紧凑；可到了电脑上还保持这个尺度，
@@ -850,25 +932,8 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
     padding:0 24px;background:none;border:none;border-radius:0;box-shadow:none;
   }
 
-  /* ── 竖排牌匾（尺寸随屏高伸缩，字距与行首缩进必须用同一个值）── */
-  .brand-a .g-brand>.bi{width:min(132px,13vh);height:min(132px,13vh)}
-  .brand-a .g-brand .b-org{
-    font-size:min(30px,3vh);letter-spacing:min(16px,1.6vh);text-indent:min(16px,1.6vh);
-    margin-top:min(28px,2.8vh);
-  }
-  .brand-a .g-brand .b-org i{
-    font-size:min(11px,1.1vh);letter-spacing:min(8px,.8vh);text-indent:min(8px,.8vh);
-    margin-top:min(10px,1vh);
-  }
-  .brand-a .g-brand .b-rule{
-    width:min(560px,62vw);margin:min(34px,3vh) 0;height:1px;position:relative;
-  }
-  .brand-a .g-brand .b-rule::after{
-    content:'';position:absolute;left:50%;top:50%;width:9px;height:9px;
-    transform:translate(-50%,-50%) rotate(45deg);background:var(--gold);
-  }
-  /* 行书字标：902×320 的字形，用 aspect-ratio 让高度自己算，别写死一对宽高 */
-  .brand-a .g-brand .ly{width:min(330px,32vh);height:auto;aspect-ratio:902 / 320}
+  /* ── 竖排牌匾（尺寸随屏高伸缩）── */
+  .brand-a .g-brand>.brand-lock{width:min(360px,34vh);height:auto}
   .brand-a .g-brand .b-sys{
     font-size:min(12px,1.2vh);letter-spacing:min(9px,.9vh);text-indent:min(9px,.9vh);
     margin-top:min(22px,2.1vh);
@@ -891,10 +956,10 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
      那批图是 test/make_splash_shots.py 照这段结构渲染的，改这里就要重出图。 -->
 <div id="splash" aria-hidden="true">
   <div class="s-halo"></div>
-  <img class="s-bi" src="assets/boyi-256.png" width="92" height="92" alt="博艺教育" draggable="false">
-  <div class="s-name">砺蕴</div>
+  <img class="s-lock" src="assets/brand-lock.png" alt="博艺教育 · 砺蕴" draggable="false">
   <div class="s-bar"><i></i></div>
   <div class="s-tag">博学宏才 艺德卓绝</div>
+  <div class="s-org">博艺教育 · 砺蕴工作系统</div>
 </div>
 <script>/* 记下开屏出现的那一刻，_splashOff 靠它保证开屏至少完整显示一小段，不会一闪而过 */
 window.__splashT0 = performance.now();</script>
@@ -2048,6 +2113,7 @@ window.__splashT0 = performance.now();</script>
 <div class="gate" id="gate">
   <div class="g-top"></div>
   <div class="wrap">
+    <div class="g-seal" aria-hidden="true">砺</div>
     <div class="g-brand" id="gBrand"></div>
     <div class="g-tagline">博学宏才 · 艺德卓绝</div>
     <div class="g-sub" id="gSub"></div>
@@ -3146,7 +3212,14 @@ const App = {
        登录（或切演示账号）后身份才定下来，这里补画一次才对。 */
     try { Brand.paint(); } catch(e){}
     /* 学生端换一整套皮（青蓝），网页版侧栏和手机版顶栏/底栏共用同一份变量，两边同时换 */
-    try { document.body.classList.toggle('stu', !!Auth.isStudent()); } catch(e){}
+    try {
+      const rk = (typeof Auth !== 'undefined' && Auth.role) ? Auth.role() : 'teacher';
+      document.body.classList.toggle('stu', rk === 'student');
+      document.body.classList.toggle('role-teacher', rk === 'teacher');
+      document.body.classList.toggle('role-admin', rk === 'admin' || rk === 'super');
+      document.body.classList.toggle('role-both', rk === 'both');
+      document.body.setAttribute('data-role', rk);
+    } catch(e){}
     StuMark.paint();
     this.refreshDots();
   },
@@ -9910,30 +9983,43 @@ const Sign = {
 
 
 /* ══════════════════════════════════════════════════════════════════
-   Brand · 品牌门头（单一一套写法）
+   Brand · 品牌门头（融合 LOGO · 横版并排透明）
    ──────────────────────────────────────────────────────────────────
-   机构徽章（博艺教育）＋ 系统字标（砺蕴工作系统），层次自上而下：
-
-      徽章 → 博艺教育（BOYI EDUCATION）→ 金线 → 砺蕴字标 → 砺蕴工作系统
-
-   窄屏（手机）竖排一条、尺寸克制；宽屏（≥900px）由 CSS 放大成一枚牌匾。
+   双品牌融合标：博艺教育徽章 ＋ 砺蕴组合标，横向并排、透明底。
    落点五处：开屏层 / 登录门头 / 电脑侧栏 / 手机顶栏 / 设置页署名。
 
-   · 2026-09-20 用户定稿：B 横式、C 砺蕴为主、D 深色鎏金 三套全部删除，
-     ?brand= / ?pick=1 的切换机制一并撤掉，登录页不再有深色底版本。
-   · ⚠️ 徽章任何时候都不改色 —— 蓝白是机构的资产，改色就不是人家的 logo。
+   四端各自换肤（见 body.role-* / body.stu），但融合标本身永远不变色 ——
+   博艺蓝白是机构资产，砺蕴金是品牌色，换肤只换「操作色」，不动这枚标。
    ══════════════════════════════════════════════════════════════════ */
+
+/* 四端身份：名称 + 端口口号（写入门头 / 侧栏，区分各端语气） */
+const Port = {
+  info(kind){
+    return ({
+      teacher:{name:'授课老师',  slogan:'守好每一堂课，记清每一份付出'},
+      admin:  {name:'教务老师',  slogan:'统筹教务，让每个环节有迹可循'},
+      both:   {name:'教务兼授课', slogan:'既上讲台，也理教务'},
+      student:{name:'学生',      slogan:'专注当下，让每一步都算数'},
+    })[kind] || {name:'授课老师', slogan:'守好每一堂课，记清每一份付出'};
+  },
+  role(){
+    let r = '';
+    try { if (typeof Auth !== 'undefined' && Auth.role) r = Auth.role() || ''; } catch(e){}
+    if (r === 'super') return 'admin';   /* 首位教务 = 教务端（黛蓝） */
+    return (r === 'teacher' || r === 'admin' || r === 'both' || r === 'student') ? r : 'teacher';
+  },
+};
+
 const Brand = {
   V: 'A',
+  LOCK: 'assets/brand-lock.png',
 
-  /** 徽章位图按显示尺寸就近取，别拿 512 缩到 22px —— 缩得越小越糊 */
-  pic(px){
-    const f = px <= 48 ? 64 : px <= 110 ? 128 : px <= 240 ? 256 : 512;
-    return 'assets/boyi-' + f + '.png';
-  },
-  bi(px, alt){
-    return '<img class="bi" src="' + this.pic(px) + '" width="' + px + '" height="' + px +
-           '" alt="' + (alt === undefined ? '博艺教育' : alt) + '" draggable="false">';
+  /** 融合标位图，按显示宽度就近取（桌面裁好的两档：1024 / 384） */
+  lock(px){
+    const src = px <= 160 ? 'assets/brand-lock@sm.png' : 'assets/brand-lock.png';
+    const h = Math.round(px * 432 / 1024);
+    return '<img class="brand-lock" src="' + src + '" width="' + px + '" height="' + h +
+           '" alt="博艺教育 · 砺蕴" draggable="false">';
   },
 
   /** 学生端整套门头换名：学生看到的是「砺蕴学生系统」，教务/老师才是「砺蕴工作系统」 */
@@ -9942,20 +10028,18 @@ const Brand = {
     return '砺蕴工作系统';
   },
 
-  /** 门头层次：徽章 84（宽屏由 CSS 放大到 132），自上而下压在中轴 */
+  /** 登录门头：融合标居中 + 系统名（登录门各端共用，不放端口口号，保持中性） */
   gate(){
-    return this.bi(84) +
-      '<div class="b-org">博艺教育<i>BOYI EDUCATION</i></div>' +
-      '<span class="b-rule"></span>' +
-      '<div class="ly"></div>' +
+    return this.lock(300) +
       '<div class="b-sys">' + this.sysName() + '</div>';
   },
 
-  /** 侧栏：徽章 + 「博艺教育 / 砺蕴??系统」两行，左对齐成一块 */
+  /** 侧栏：融合标 + 系统名 + 端口名，左对齐成一块 */
   side(){
-    return '<div class="b-row">' + this.bi(32) +
-      '<div><div class="b-org">博艺教育</div>' +
-      '<div class="b-sys" style="margin-top:3px">' + this.sysName() + '</div></div></div>';
+    const p = Port.info(Port.role());
+    return '<div class="b-row">' + this.lock(120) +
+      '<div><div class="b-sys">' + this.sysName() + '</div>' +
+      '<div class="b-port" style="margin-top:4px">' + p.name + '</div></div></div>';
   },
 
   paint(){
@@ -9968,9 +10052,9 @@ const Brand = {
     const sb = document.getElementById('sideBrand');
     if (sb) sb.innerHTML = this.side();
 
-    /* 手机顶栏位置窄，只放一枚徽章 */
+    /* 手机顶栏位置窄，只放一枚融合标 */
     const tb = document.getElementById('topBrand');
-    if (tb) tb.innerHTML = this.bi(22);
+    if (tb) tb.innerHTML = this.lock(120);
 
     const gf = document.getElementById('gFoot');
     if (gf) gf.textContent = '博艺教育 · LIYUN WORKBENCH';
