@@ -110,31 +110,41 @@ try {
     document.head.appendChild(s); return 'ok';
   })()`);
 
-  // 电脑端：逐端
-  await cdp.eval(`App.go('home'); true`);
-  await sleep(700);
+  /* ⚠️ 不要试图用 Settings.demoMake()/demoGo() 逐端截「各自真实页面」——
+     本机预览里 Auth.role() 拿不到值，Port.role() 会一律回落到 teacher，
+     换演示账号也换不动皮肤（实测：五个端全变成 role-teacher、页面卡在 page-today，
+     而且每轮 reload 让整个脚本跑 5 分钟）。
+     所以这里只做**同一页面 × 五种皮肤**的配色核对：颜色是真渲染的，页面内容是同一个。 */
+  await cdp.eval(`(() => { document.body.className = 'role-super'; Port.syncChrome(); return 'ok'; })()`);
+  await sleep(400);
+
+  // ── 电脑端 1440×900 ──
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await sleep(400);
   for (const [label, cls] of PORTS) {
     await cdp.eval(`(() => { document.body.className = ${JSON.stringify(cls)}; Port.syncChrome(); return 'ok'; })()`);
-    await sleep(260);
+    await sleep(300);
+    const info = await cdp.eval(`(() => ({ page: (document.querySelector('.page.on')||{}).id, cls: document.body.className }))()`);
+    console.log(`  [${label}] 皮肤 class="${info.cls}" 页面=${info.page}`);
     await shot(cdp, `d-${label}.png`);
   }
 
-  // 手机端：逐端
+  // ── 手机端 430×932 @2x ──
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 430, height: 932, deviceScaleFactor: 2, mobile: true });
   await sleep(500);
   for (const [label, cls] of PORTS) {
     await cdp.eval(`(() => { document.body.className = ${JSON.stringify(cls)}; Port.syncChrome(); return 'ok'; })()`);
-    await sleep(260);
+    await sleep(300);
     await shot(cdp, `m-${label}.png`);
   }
 
-  // 高视口：900px 高时导航按钮铺满侧栏、白描被压在按钮后面量不到，
-  // 拉高到 1500 才露出侧栏下半段，用来核对白描到底渲染没渲染、浓淡如何。
+  // ── 高视口 1440×1500：900px 高时导航按钮铺满侧栏、白描被压在按钮后面量不到，
+  //    拉高才露出侧栏下半段，用来核对白描渲染没渲染、浓淡如何 ──
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1500, deviceScaleFactor: 1, mobile: false });
   await sleep(600);
   for (const [label, cls] of PORTS) {
     await cdp.eval(`(() => { document.body.className = ${JSON.stringify(cls)}; Port.syncChrome(); return 'ok'; })()`);
-    await sleep(260);
+    await sleep(300);
     await shot(cdp, `tall-${label}.png`);
   }
   const artInfo = await cdp.eval(`(() => {
