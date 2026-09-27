@@ -84,17 +84,22 @@
   --line:#e8e6e0;          /* 1px 细边框色。现代审美用细线，不用投影 */
   --gold:#c9ab7c;          /* 古铜金，品牌色，深浅色模式通用 */
 
-  /* ── 端口主题面（整页着色的三个面）──────────────────────────
-     · --tint   次级面：手机顶栏、次级底。极浅的主题色调，只作衬托
-     · --rail   主色面：电脑侧栏 / 手机底部标签栏。主题色的深色版，
-                 上面压浅色字 —— 一眼就知道「我现在在哪个端口」
-     · --rail-on 选中块：深色面上的半透明浅块（不能用实色，深浅色模式都要成立）
-     默认（未分端）取品牌墨色 + 金，和登录门同一套气质。 */
-  --tint:#efece7;
-  --rail:#2f2b24;
-  --rail-text:#e9e3d8;
-  --rail-on:rgba(255,255,255,.15);
-  --rail-on-text:#ffffff;
+  /* ── 端口主题面（整页着色的几个面）──────────────────────────
+     · --tint     次级面：手机顶栏、次级底。浅端口色
+     · --rail     主色面：电脑侧栏 / 手机底部标签栏。端口的**浅色面**，
+                  上面压深端口色字 —— 一眼就知道「我现在在哪个端口」，
+                  又不至于像旧版那样压着一整块深色，看着沉。
+     · --rail-on  选中块：比栏面再深一档的端口色，字用深端口色
+     · --rail-art 桌面侧栏白描的线条色（浅栏上必须深色才看得见）
+     默认（未分端）取品牌墨色 + 金，和登录门同一套气质。
+     ⚠️ 具体五端取值见下方「五端皮肤 · 云淡版」区块。 */
+  --tint:#f4f2ed;
+  --rail:#f0ede7;
+  --rail-text:#4a463e;
+  --rail-on:#e4e0d7;
+  --rail-on-text:#2f2b24;
+  --rail-art:#8b8477;
+  --shadow-lg:0 10px 28px rgba(60,50,35,.14);
 
   /* 字号阶梯 —— 故意拉开跨度。所有字号都差不多，是业余感最大的来源 */
   --fs-hero:40px;   /* 英雄元素：每页最大的那一个数字或标题，其余全部退后 */
@@ -211,6 +216,8 @@
     --rail-text:#e9e3d8;
     --rail-on:rgba(255,255,255,.14);
     --rail-on-text:#ffffff;
+    --rail-art:#cfc7b8;
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
 }
 
@@ -540,225 +547,293 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 /* ── 分栏：手机上竖着堆，电脑上变「列表 + 详情」两栏 ── */
 .split{display:flex;flex-direction:column;gap:var(--gap)}
 
-/* ════════ 学生端：整套换一张皮（青蓝·活力） ════════
-   学生端刻意跟教务老师端长得不一样：更亮、更松、圆角更大，
-   一眼就知道「这是我自己的系统」，不是老师的办公台。
-   只在 body.stu 下生效 —— 教务端、老师端、登录门、开屏一律不受影响。
-   网页版（左侧栏）和手机版（顶栏＋底栏）共用这同一份变量，两边同时换。
-   ⚠️ 品牌金 --gold 故意不动：行书字标、门头金线还是金色的，
-      换肤只换「操作色」（按钮、选中、时钟、卡片描边），品牌不变。 */
+/* ==PORT-THEME-START==  ↓↓↓ 本区块由 test/gen_port_theme.py 生成，改配色请改脚本后重跑，别手改 ↓↓↓ */
+/* ════════════════════════════════════════════════════════════════
+   五端皮肤 ·「云淡」版
+   ────────────────────────────────────────────────────────────────
+   为什么改：旧版把「侧栏 / 底栏」做成了端口的**深色面**（师 #5E3328、教 #2C4A6E…），
+   深色面积太大，整块压在页面上很沉；而且整页底 --bg 五端只差两三个色阶，
+   肉眼等于没换 —— 于是「顶栏是端口色、整页底还是老颜色」。
+   现在换成：
+     · --rail      端口的**浅色面**（同色相、明度 ~88%），上面压深端口色字
+     · --rail-on   选中胶囊：比栏面再深一档的端口色，字用深端口色
+     · --bg        看得出来的浅端口色（不再是"几乎和白一样"）
+     · --accent    端口色（略柔化），按钮/选中/图标统一走它
+     · --rail-art  桌面侧栏白描的**线条颜色**（浅栏上必须是深色才看得见）
+   品牌金 --gold 依旧不动：字标、门头金线、卡片金线还是金的。
+   登录门与开屏不受影响（那时人还没登录，走的仍是 :root 默认）。
+   ⚠️ 深浅两套都要给 --rail-art，否则深色模式下白描会变成深线糊在深栏上。
+*/
+
+/* ── 授课端 ── */
+body.role-teacher{
+  --bg:#FCF9F8;
+  --tint:#FAF3F1;
+  --rail:#F3E2DD;
+  --rail-text:#724F45;
+  --rail-on:#EACFC6;
+  --rail-on-text:#795044;
+  --rail-art:#785145;
+  --sidebar-active:#F7EDEA;
+  --card:#FFFFFF;
+  --text:#382C28;
+  --text-dim:#A6867C;
+  --accent:#CB8671;
+  --btn-text:#3A2A25;
+  --line:#F6EBE7;
+  --shadow:0 2px 8px rgba(163,109,92,.09);
+  --shadow-lg:0 10px 28px rgba(163,109,92,.15);
+}
+@media (prefers-color-scheme: dark){
+  body.role-teacher{
+    --bg:#211A18;
+    --tint:#2A211E;
+    --rail:#453029;
+    --rail-text:#F4E6E1;
+    --rail-on:rgba(255,255,255,.16);
+    --rail-on-text:#FFFFFF;
+    --rail-art:#F3E3DE;
+    --sidebar-active:#392C28;
+    --card:#2F2522;
+    --text:#EEE7E4;
+    --text-dim:#AF8E84;
+    --accent:#DEB3A6;
+    --btn-text:#141414;
+    --line:#4A3B37;
+    --shadow:0 0 0 1px rgba(255,255,255,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
+  }
+}
+body.role-teacher .clock{color:var(--accent)}
+body.role-teacher .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
+body.role-teacher .topbar::after{opacity:.72}
+
+/* ── 教务端 ── */
+body.role-admin{
+  --bg:#F8FAFC;
+  --tint:#F1F5FA;
+  --rail:#DDE7F3;
+  --rail-text:#455A72;
+  --rail-on:#C6D7EA;
+  --rail-on-text:#445D79;
+  --rail-art:#455D78;
+  --sidebar-active:#EAF0F7;
+  --card:#FFFFFF;
+  --text:#283038;
+  --text-dim:#7C8FA6;
+  --accent:#719BCB;
+  --btn-text:#26303C;
+  --line:#E7EEF6;
+  --shadow:0 2px 8px rgba(92,125,163,.09);
+  --shadow-lg:0 10px 28px rgba(92,125,163,.15);
+}
+@media (prefers-color-scheme: dark){
+  body.role-admin{
+    --bg:#181C21;
+    --tint:#1E242A;
+    --rail:#293645;
+    --rail-text:#E1EAF4;
+    --rail-on:rgba(255,255,255,.16);
+    --rail-on-text:#FFFFFF;
+    --rail-art:#DEE8F3;
+    --sidebar-active:#283039;
+    --card:#22282F;
+    --text:#E4E9EE;
+    --text-dim:#8498AF;
+    --accent:#A6C0DE;
+    --btn-text:#141414;
+    --line:#37404A;
+    --shadow:0 0 0 1px rgba(255,255,255,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
+  }
+}
+body.role-admin .clock{color:var(--accent)}
+body.role-admin .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
+body.role-admin .topbar::after{opacity:.72}
+
+/* ── 首位教务 ── */
+body.role-super{
+  --bg:#FCFBF8;
+  --tint:#FAF7F1;
+  --rail:#F3ECDD;
+  --rail-text:#726445;
+  --rail-on:#EADFC6;
+  --rail-on-text:#6E603F;
+  --rail-art:#786945;
+  --sidebar-active:#F7F3EA;
+  --card:#FFFFFF;
+  --text:#383328;
+  --text-dim:#A6997C;
+  --accent:#CBB071;
+  --btn-text:#4D432E;
+  --line:#F6F2E7;
+  --shadow:0 2px 8px rgba(163,142,92,.09);
+  --shadow-lg:0 10px 28px rgba(163,142,92,.15);
+}
+@media (prefers-color-scheme: dark){
+  body.role-super{
+    --bg:#211F18;
+    --tint:#2A261E;
+    --rail:#453D29;
+    --rail-text:#F4EEE1;
+    --rail-on:rgba(255,255,255,.16);
+    --rail-on-text:#FFFFFF;
+    --rail-art:#F3EDDE;
+    --sidebar-active:#393428;
+    --card:#2F2B22;
+    --text:#EEEBE4;
+    --text-dim:#AFA284;
+    --accent:#DECDA6;
+    --btn-text:#141414;
+    --line:#4A4437;
+    --shadow:0 0 0 1px rgba(255,255,255,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
+  }
+}
+body.role-super .clock{color:var(--accent)}
+body.role-super .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
+body.role-super .topbar::after{opacity:.72}
+
+/* ── 兼岗端 ── */
+body.role-both{
+  --bg:#F7FAFA;
+  --tint:#F0F6F5;
+  --rail:#DBE9E6;
+  --rail-text:#3F5D58;
+  --rail-on:#C2D9D6;
+  --rail-on-text:#3E605B;
+  --rail-art:#3F605B;
+  --sidebar-active:#E9F1F0;
+  --card:#FFFFFF;
+  --text:#27302F;
+  --text-dim:#77928E;
+  --accent:#67A197;
+  --btn-text:#22302E;
+  --line:#E5EFEE;
+  --shadow:0 2px 8px rgba(84,130,122,.09);
+  --shadow-lg:0 10px 28px rgba(84,130,122,.15);
+}
+@media (prefers-color-scheme: dark){
+  body.role-both{
+    --bg:#171D1C;
+    --tint:#1D2423;
+    --rail:#263835;
+    --rail-text:#DFEBE9;
+    --rail-on:rgba(255,255,255,.16);
+    --rail-on-text:#FFFFFF;
+    --rail-art:#DCE9E7;
+    --sidebar-active:#263130;
+    --card:#202927;
+    --text:#E3E9E8;
+    --text-dim:#7F9B96;
+    --accent:#9FC4BE;
+    --btn-text:#141414;
+    --line:#35413F;
+    --shadow:0 0 0 1px rgba(255,255,255,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
+  }
+}
+body.role-both .clock{color:var(--accent)}
+body.role-both .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
+body.role-both .topbar::after{opacity:.72}
+
+/* ── 学生端（学生端一整套皮：更亮、更松、圆角更大，一眼看出这是自己的系统） ── */
 body.stu{
-  --bg:#eef3f8;
-  --tint:#e6edf6;                /* 次级面：手机顶栏 / 电脑画布 */
-  --rail:#2B5C4C;                /* 侧栏 / 底栏：石绿深绿面 */
-  --rail-text:#e2ecf7;
-  --sidebar-active:#e4edf6;
-  --card:#ffffff;
-  --text:#22303c;
-  --text-dim:#8b99a6;
-  --accent:#6AC8A1;              /* 学生端操作色：石绿 */
-  --btn-text:#103027;            /* 深墨绿字，保证中明度底色上可读 */
-  --line:#dee8f2;
-  --shadow:0 3px 12px rgba(65,96,127,.09);
+  --bg:#F8FCFA;
+  --tint:#F1FAF6;
+  --rail:#DDF3EA;
+  --rail-text:#45725F;
+  --rail-on:#C6EADB;
+  --rail-on-text:#3E6C59;
+  --rail-art:#457863;
+  --sidebar-active:#EAF7F2;
+  --card:#FFFFFF;
+  --text:#283831;
+  --text-dim:#7CA694;
+  --accent:#71CBA6;
+  --btn-text:#2F4F41;
+  --line:#E7F6F0;
+  --shadow:0 2px 8px rgba(92,163,134,.09);
+  --shadow-lg:0 10px 28px rgba(92,163,134,.15);
 }
 @media (prefers-color-scheme: dark){
   body.stu{
-    --bg:#141a20;
-    --tint:#1b2229;
-    --rail:#163026;
-    --rail-text:#cfe0f0;
-    --sidebar-active:#243039;
-    --card:#1a2129;
-    --text:#e6eef6;
-    --text-dim:#8ea0b1;
-    --accent:#92E2C6;
-    --btn-text:#141a20;
-    --line:#26313b;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
+    --bg:#18211E;
+    --tint:#1E2A25;
+    --rail:#294539;
+    --rail-text:#E1F4EC;
+    --rail-on:rgba(255,255,255,.16);
+    --rail-on-text:#FFFFFF;
+    --rail-art:#DEF3EA;
+    --sidebar-active:#283932;
+    --card:#222F29;
+    --text:#E4EEEA;
+    --text-dim:#84AF9D;
+    --accent:#A6DEC7;
+    --btn-text:#141414;
+    --line:#374A42;
+    --shadow:0 0 0 1px rgba(255,255,255,.05);
+    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
 }
 body.stu .clock{color:var(--accent)}
-body.stu .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+body.stu .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
+body.stu .topbar::after{opacity:.72}
 body.stu .card{border-radius:16px}
 @media (min-width:700px){
   body.stu .card{border-radius:14px;border-color:var(--line);box-shadow:var(--shadow)}
 }
 
-/* ════════ 教务端：黛蓝 · 沉稳 ════════
-   和 body.stu 同一套机制：只换「操作色」(--accent) 与少量皮肤变量，
-   品牌金 --gold 不动，融合标不变色。登录门与开屏一律不受影响（那时人还没登录）。 */
-body.role-admin{
-  --bg:#eef2f9;
-  --tint:#e5ebf5;
-  --rail:#2C4A6E;                /* 侧栏 / 底栏：霁蓝深色面 */
-  --rail-text:#e4eaf7;
-  --sidebar-active:#e6ecf4;
-  --card:#ffffff;
-  --text:#1c2838;
-  --text-dim:#77869e;
-  --accent:#6A96C8;              /* 霁蓝 */
-  --btn-text:#16243f;            /* 深墨蓝字 */
-  --line:#d6dfec;
-  --shadow:0 3px 12px rgba(80,99,142,.10);
-}
-@media (prefers-color-scheme: dark){
-  body.role-admin{
-    --bg:#10151f;
-    --tint:#161d2a;
-    --rail:#16243A;
-    --rail-text:#cfd9ec;
-    --sidebar-active:#243040;
-    --card:#161d2a;
-    --text:#e4ecf7;
-    --text-dim:#8797ae;
-    --accent:#93B6E6;
-    --btn-text:#10151f;
-    --line:#232c3d;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-  }
-}
-body.role-admin .clock{color:var(--accent)}
-body.role-admin .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-body.role-admin .card{border-radius:14px}
-
-/* ════════ 首位教务（super）：赤金 · 主理 ════════
-   与教务端（霁蓝）区分开：super 是机构主理人，单独一色（甲方案·师↔首互换后，赤金归首位）。
-   同样只换操作色与少量皮肤变量，品牌金不动、融合标不变色。 */
-body.role-super{
-  --bg:#f2f5f1;
-  --tint:#e6ede4;
-  --rail:#5C4622;                /* 侧栏 / 底栏：赤金深铜面 */
-  --rail-text:#dde9dc;
-  --sidebar-active:#e6ede4;
-  --card:#ffffff;
-  --text:#1f2b21;
-  --text-dim:#718a73;
-  --accent:#C8AC6A;              /* 赤金 · 中国传统色（甲方案终版） */
-  --btn-text:#2a2008;            /* 深墨金字 */
-  --line:#d6e2d4;
-  --shadow:0 3px 12px rgba(120,95,50,.10);
-}
-@media (prefers-color-scheme: dark){
-  body.role-super{
-    --bg:#11180f;
-    --tint:#182117;
-    --rail:#2E240F;
-    --rail-text:#d2e3cf;
-    --sidebar-active:#1f2e1c;
-    --card:#182117;
-    --text:#e6ede4;
-    --text-dim:#8aa487;
-    --accent:#E2CB88;            /* 赤金提亮（深底可读） */
-    --btn-text:#11180f;
-    --line:#263426;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-  }
-}
-body.role-super .clock{color:var(--accent)}
-body.role-super .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-body.role-super .card{border-radius:14px}
-
-/* ════════ 兼岗端（教务兼授课）：铜绿 · 桥接 ════════ */
-body.role-both{
-  --bg:#f4f1f9;
-  --tint:#ece7f5;
-  --rail:#284A45;                /* 侧栏 / 底栏：铜绿深青面 */
-  --rail-text:#e8e0f6;
-  --sidebar-active:#ece7f4;
-  --card:#ffffff;
-  --text:#221c2e;
-  --text-dim:#7f76a0;
-  --accent:#5F9C92;              /* 铜绿 */
-  --btn-text:#0f231f;            /* 深墨绿字 */
-  --line:#e0d8ee;
-  --shadow:0 3px 12px rgba(95,156,146,.10);
-}
-@media (prefers-color-scheme: dark){
-  body.role-both{
-    --bg:#14111c;
-    --tint:#1b1726;
-    --rail:#14302C;
-    --rail-text:#d8cdec;
-    --sidebar-active:#2b2438;
-    --card:#1b1726;
-    --text:#ece7f6;
-    --text-dim:#948aae;
-    --accent:#86C4BA;
-    --btn-text:#14111c;
-    --line:#272038;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-  }
-}
-body.role-both .clock{color:var(--accent)}
-body.role-both .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-body.role-both .card{border-radius:14px}
-
-/* ════════ 授课端（教师）：珊瑚 · 温润 ════════
-   甲方案师↔首互换后，教师端取珊瑚色；侧栏/底栏用其深色版（暖赭）而非珊瑚本身，
-   保证导航文字在深底上可读，珊瑚作操作色点缀。 */
-body.role-teacher{
-  --bg:#f7f5f0;
-  --tint:#efece4;
-  --rail:#5E3328;                /* 侧栏 / 底栏：珊瑚深赭面 */
-  --rail-text:#ebe4d6;
-  --sidebar-active:#edebe5;
-  --card:#ffffff;
-  --text:#26241f;
-  --text-dim:#96918a;
-  --accent:#C8806A;              /* 珊瑚 */
-  --btn-text:#2a1d18;            /* 深墨赭字 */
-  --line:#e8e4da;
-  --shadow:0 3px 12px rgba(120,95,50,.10);
-}
-@media (prefers-color-scheme: dark){
-  body.role-teacher{
-    --bg:#141311;
-    --tint:#1b1917;
-    --rail:#2A1C16;
-    --rail-text:#e7e0d2;
-    --sidebar-active:#332f2a;
-    --card:#1b1917;
-    --text:#efe9df;
-    --text-dim:#8f897f;
-    --accent:#E6A892;
-    --btn-text:#141311;
-    --line:#2c2925;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-  }
-}
-body.role-teacher .nav button.on{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
-
-
-/* ════════ 五端 · 桌面侧栏白描画（v32；源：test/make_side_art.py） ════════
-   电脑端侧栏（≥700px）沉底一枚花鸟白描小品（白线蒙版叠在端口底色上）；
-   手机端 .tabbar / .topbar 不再有任何纹样，纯色面（用户要求「简单大方」）。
-   白描素材：assets/sideart/{zhushi,songhe,lanhua}_lite.png（更淡一档）
-   端口映射：教师=竹石  兼岗=竹石  教务=兰花  学生=兰花  首位=松鹤 */
+/* ════════ 五端 · 桌面侧栏白描画 ════════
+   ≥700px 时侧栏沉底一枚花鸟白描小品。
+   ⚠️ 素材是**纯白线条 on 透明**（assets/sideart/*_lite.png，见 test/make_side_art.py）。
+      以前侧栏是深色面，白线直接当 background-image 就看得见；
+      现在侧栏是浅色面，白线会彻底消失 —— 所以改成用 CSS mask：
+      拿素材的 alpha 当镂空模版，填 --rail-art（深端口色），线条就跟着端口走。
+      mask 必须是独立图层且压在内容之下，故用 ::before + z-index:-1，
+      并把 .side 提升为层叠上下文（z-index:0 + isolation:isolate），
+      否则 z-index:-1 会掉到侧栏底色背后，整幅画看不见。 */
 @media (min-width:700px){
-  body.role-teacher .side,
-  body.role-both .side{
-    background-color:var(--rail);
-    background-image:url("assets/sideart/zhushi_lite.png");
-    background-repeat:no-repeat;
-    background-position:center bottom;
-    background-size:82% auto;
+  .side{position:relative;z-index:0;isolation:isolate}
+  .side::before{
+    content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+    background-color:var(--rail-art);
+    /* 「白描浓淡」的唯一旋钮就是这里的 opacity。
+       注意素材 assets/sideart/*_lite.png 本身已经是「lite 档」——
+       alpha 峰值只有 62~66/255（≈25%），是 make_side_art.py 用 strength .26 抽的线。
+       所以这里保持 1（不再二次削减）：线色 = 栏色×74% + 墨色×26%，
+       在浅色栏上是「凑近看得见、不抢字」的若隐若现。
+       想更淡就调小（.6/.4），想更清楚就调大，不必动素材。 */
+    opacity:1;
+    -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+    -webkit-mask-position:center bottom;mask-position:center bottom;
+    -webkit-mask-size:82% auto;mask-size:82% auto;
   }
-  body.role-admin .side,
-  body.stu .side{
-    background-color:var(--rail);
-    background-image:url("assets/sideart/lanhua_lite.png");
-    background-repeat:no-repeat;
-    background-position:center bottom;
-    background-size:82% auto;
+  body.role-teacher .side::before,
+  body.role-both .side::before{
+    -webkit-mask-image:url("assets/sideart/zhushi_lite.png");
+            mask-image:url("assets/sideart/zhushi_lite.png");
   }
-  body.role-super .side{
-    background-color:var(--rail);
-    background-image:url("assets/sideart/songhe_lite.png");
-    background-repeat:no-repeat;
-    background-position:center bottom;
-    background-size:82% auto;
+  body.role-admin .side::before,
+  body.stu .side::before{
+    -webkit-mask-image:url("assets/sideart/lanhua_lite.png");
+            mask-image:url("assets/sideart/lanhua_lite.png");
+  }
+  body.role-super .side::before{
+    -webkit-mask-image:url("assets/sideart/songhe_lite.png");
+            mask-image:url("assets/sideart/songhe_lite.png");
   }
 }
+
+/* ════════ 手机底栏胶囊：阴影跟着浅色栏一起变轻 ════════ */
+@media (max-width:699px){
+  .tabbar{box-shadow:var(--shadow-lg)}
+}
+
+/* ════════ 侧栏门头浅牌：浅色侧栏上不再需要重投影 ════════ */
+.side .brand{box-shadow:0 2px 10px rgba(0,0,0,.07)}
+
+/* ==PORT-THEME-END== */
 
 /* ════════ 学生端：整页水印 ════════
    斜着铺满、压得很淡：正常看字完全不受影响，
@@ -1013,12 +1088,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .b-port{font-size:11px;letter-spacing:1px;color:var(--text-dim);line-height:1.5;white-space:nowrap;margin-top:6px}
 
 /* ── ① 侧边栏门头（只在电脑出现）──
-   侧栏底已经是端口的深色面，融合标里有蓝白徽章，直接压在深底上会糊。
-   所以门头单独做成一枚**浅色牌**（--card）：牌上放融合标 + 系统名 + 端口名。
-   深色侧栏 + 浅色牌 = 一眼看到端口色，又保住了徽章的蓝白。 */
+   侧栏底已经是端口的**浅色面**，融合标里有蓝白徽章，浅底上本就清楚。
+   门头仍单独做成一枚**白牌**（--card）：牌上放融合标 + 系统名 + 端口名。
+   浅色栏 + 白牌 = 靠一根细线和小投影分层，不用再压一块重投影。 */
 .side .brand{
   background:var(--card);border-radius:14px;padding:11px 11px 12px;margin:0 0 12px;
-  box-shadow:0 3px 12px rgba(0,0,0,.18);
+  box-shadow:0 2px 10px rgba(0,0,0,.07);
 }
 .side .brand .b-row{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
 .side .brand .b-row.wide{justify-content:space-between}

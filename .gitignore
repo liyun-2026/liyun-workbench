@@ -10,3 +10,6 @@ test/.shots/
 
 # 挑选用的对比图（本地看一下就行，不进仓库）
 /预览/
+
+# 五端配色方向预览（gen 出来的，本地看）
+test/preview_ports.html
