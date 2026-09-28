@@ -90,8 +90,9 @@ async function open(cdp, brand){
   await loaded;
   await waitFor(() => cdp.eval(`!!document.getElementById('gBrand') && document.getElementById('gBrand').children.length > 0`),
     { what: '门头装配', tries: 40, gap: 200 });
-  /* ⚠️ 开屏层淡出要 300+450ms，这时候截图会把它半透明地叠在页面上，
-     看着像一层脏水印。出图前一律直接摘掉，别等它自己走。 */
+  /* ⚠️ 开屏层收掉要「保底 1200ms + 淡出 550ms」（见 Auth._splashOff / #splash 的 transition），
+     这期间截图会把它半透明地叠在页面上，看着像一层脏水印。
+     出图前一律直接摘掉，别等它自己走。 */
   await sleep(650);
   await cdp.eval(`(() => { const s = document.getElementById('splash'); if (s) s.remove(); return 'ok'; })()`);
   /* ⚠️ 出图用的是一次性账号 __brandtest__，问候语会变成「__brandtest__老师，晚上好」。
