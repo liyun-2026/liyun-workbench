@@ -405,6 +405,45 @@ try {
       /* 左右取样区留开中间那道空（圆章与圆底之间）：左 0~48%、右 55%~100% */
       pix = { w: N, h: M, left: region(0, Math.floor(N * 0.48)),
               right: region(Math.floor(N * 0.55), N) };
+      /* 左半取样区的**左上 / 右上角块**：裸摆的圆章，四个角一定是空的；给这一半
+         套一块板就填满了。这是「只给砺蕴加底色」最直接的证据 ——
+         ⚠️ 别只看「左半透明占比」：圆章一旦放大到快铺满左半，占比会从 55% 掉到
+         24%（圆的透明率本来就是 21.5%），那条会误报（v44 实测踩到）。 */
+      const box = (x0, y0, x1, y1) => {
+        let t = 0, all = 0;
+        for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+          all++; if (raw[(y * N + x) * 4 + 3] < 20) t++;
+        }
+        return all ? t / all * 100 : 0;
+      };
+      pix.cornerL = [
+        box(0, 0, Math.round(N * 0.06), Math.round(M * 0.10)),
+        box(Math.round(N * 0.42), 0, Math.round(N * 0.48), Math.round(M * 0.10)),
+      ];
+      /* 按列找中间那道空，把标切成左右两块，各量外接框 —— 用户要「两枚一样大」。
+         病根在生成脚本：它一度按「左半画布 bbox」量边（圆章右侧有一撮 alpha
+         60~120 的淡色残影，把最长边从 526 虚撑到 623），圆章被压成 76%。
+         所以这里不给容差以外的余地：两块宽高都得对得上。 */
+      const segs = []; let cur = -1;
+      for (let x = 0; x < N; x++) {
+        let any = false;
+        for (let y = 0; y < M; y++) if (raw[(y * N + x) * 4 + 3] > 30) { any = true; break; }
+        if (any && cur < 0) cur = x;
+        else if (!any && cur >= 0) { segs.push([cur, x - 1]); cur = -1; }
+      }
+      if (cur >= 0) segs.push([cur, N - 1]);
+      pix.blobs = segs.map(([x0, x1]) => {
+        let y0 = M, y1 = -1;
+        for (let y = 0; y < M; y++) {
+          for (let x = x0; x <= x1; x++) if (raw[(y * N + x) * 4 + 3] > 30) {
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+            break;
+          }
+        }
+        return { w: x1 - x0 + 1, h: y1 - y0 + 1, gap: 0 };
+      });
+      for (let i = 1; i < segs.length; i++) pix.blobs[i].gap = segs[i][0] - segs[i - 1][1] - 1;
     } catch (e) { pix = { err: String(e && e.message || e) }; }
     return { src: img.currentSrc || img.src, complete: img.complete,
              nw: img.naturalWidth, nh: img.naturalHeight,
@@ -424,13 +463,17 @@ try {
     assert(!brand.pix.err, '取像素失败：' + brand.pix.err);
     const p = brand.pix;
     /* 圆章/圆底都是圆形，两侧本该各留一圈透明；差别在「有没有一块铺满半边的板」：
-       左半若被套板，透明占比会掉到个位数。 */
-    assert(p.left.trans >= 35,
+       左半若被套板，透明占比会掉到个位数、两个角也会被填满。 */
+    assert(p.left.trans >= 15,
       '左半（博艺圆章）透明占比只有 ' + p.left.trans.toFixed(0) + '% —— ' +
       '看着像给博艺那半也套了底板，用户要的是「只给砺蕴的 logo 加个底色」');
+    assert(p.cornerL[0] >= 90 && p.cornerL[1] >= 90,
+      '左半（博艺圆章）的角上有东西（左上透明 ' + p.cornerL[0].toFixed(0) + '%、右上 ' +
+      p.cornerL[1].toFixed(0) + '%）—— 圆章裸摆时四角必然是空的，填上了就是套了板');
     assert(p.right.trans <= 30,
       '右半（砺蕴）透明占比 ' + p.right.trans.toFixed(0) + '% —— 圆底没画出来？');
-    return '左半透明 ' + p.left.trans.toFixed(0) + '%（裸摆）· 右半透明 ' +
+    return '左半透明 ' + p.left.trans.toFixed(0) + '% · 两角空 ' + p.cornerL[0].toFixed(0) +
+           '/' + p.cornerL[1].toFixed(0) + '%（裸摆）· 右半透明 ' +
            p.right.trans.toFixed(0) + '%（圆底）';
   });
   t('砺蕴那半的板是**暖米黄**（用了深墨/杂色这里会挂），且章线在板上读得出', () => {
@@ -446,6 +489,18 @@ try {
       '）—— 印章在纸上化掉了，正是用户报的「看不清晰」');
     return '板色 rgb(' + R.med.join(',') + ') · 亮度 p50 ' + R.p50.toFixed(0) +
            ' / 章线 p05 ' + R.p05.toFixed(0) + '（差 ' + (R.p50 - R.p05).toFixed(0) + '）';
+  });
+  t('两枚 logo **一样大**（左博艺圆章 = 右砺蕴圆底）', () => {
+    assert(!brand.pix.err, '取像素失败：' + brand.pix.err);
+    const b = brand.pix.blobs;
+    assert(b && b.length === 2, '标该由左右两块组成，实际切出 ' + (b ? b.length : 0) + ' 块');
+    const tol = Math.max(2, Math.round(b[0].w * 0.03));
+    const dw = Math.abs(b[0].w - b[1].w), dh = Math.abs(b[0].h - b[1].h);
+    assert(dw <= tol && dh <= tol,
+      '两枚 logo 一大一小：左 ' + b[0].w + '×' + b[0].h + ' vs 右 ' + b[1].w + '×' + b[1].h +
+      '（用户原话「这两个 logo 要一样大，不能你大我小，它俩是一样的」）');
+    return '左 ' + b[0].w + '×' + b[0].h + ' · 右 ' + b[1].w + '×' + b[1].h +
+           '（原图 ' + brand.nw + '×' + brand.nh + '，净空隙 ' + b[1].gap + 'px）';
   });
   t('中栏没被顶带挤溢出（挤出去会被 body 的 overflow:hidden 默默裁掉，图上少一行）', () => {
     assert(brand.fit, '没量到中栏尺寸');

@@ -1272,8 +1272,10 @@ body.board-mode .page.on > *{animation:none}
         贴在这块米白纸上右侧的砺蕴章整块化掉 —— 「看不清」不是分辨率，是拿错了变体；
      ② v42 整条套一块**深墨**底板：清楚是清楚了，但整屏宣纸白里插一块黑，用户否了
         （「很丑」「博艺的 logo 是白色跟蓝色的」）。
-   尺寸：圆底比章高（单边 8.5%），所以高度要比裸标放大一档，内容才跟以前一样大
-      （5.4vh 这块按圆底高度算：0.845 × 5.4vh ≈ 4.56vh 的章）。 */
+   尺寸（v44）：**两枚等径** —— 左博艺圆章 = 右砺蕴圆底，高度就是两枚共同的直径。
+      v43 之前左枚只有右枚的 72%：脚本按「左半画布 bbox」量边，被圆章右侧那撮
+      alpha 60~120 的淡色残影虚撑到 623px，圆章被压成 76%，用户一眼看出「你大我小」
+      （「这两个 logo 要一样大，不能你大我小，它俩是一样的」）。 */
 .bd-lock{height:clamp(38px,5.4vh,72px);width:auto;flex:none;display:block}
 .bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
   letter-spacing:.05em;flex:none}
