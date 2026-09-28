@@ -1177,6 +1177,109 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ic-inline{width:1.15em;height:1.15em;margin-right:.45em;vertical-align:-.2em}
 .ico .ic{width:1em;height:1em}
+
+/* ══════════ 看板端（副屏）════════════════════════════════════════
+   办公室那台电脑挂着的一块只读屏：时间、打卡码、今天来了多少人、谁还没到、今天上什么课。
+   进这一页时 body 带 board-mode —— 侧栏 / 顶栏 / 底栏全隐、内容区去边距铺满整屏，
+   屏幕上只剩数字，看着就不像办公界面，也没有任何能误点改数据的地方。
+
+   固定深墨底 + 古铜金，**不跟系统深浅色**：这块屏 24 小时亮着，深底更耐看、
+   也正好和开屏动画那套气质对上；更要紧的是，「深底 = 这不是办公界面」一眼可辨，
+   教务不会以为自己把系统弄坏了。
+   ⚠️ 字号全部 clamp(…vw/vh)：同一套代码在小笔记本和 55 寸电视上都能铺满，不用改。 */
+body.board-mode{background:#1B2028}
+body.board-mode .side,
+body.board-mode .topbar,
+body.board-mode .tabbar{display:none}
+/* UI.banner 会把提醒条插进当前页的最前面（备份提醒、自检异常…），
+   落在看板上就是一条横在数字头顶的黄条 —— 这块屏不该有这些东西。 */
+body.board-mode .banner{display:none}
+body.board-mode .main{display:flex;flex-direction:column;padding:0;overflow:hidden}
+/* ⚠️ 宽屏（≥1100px）有一条 .page.on{display:grid;grid-template-columns:repeat(2,1fr)}，
+   把一页切成两栏 —— 那是给名册 / 档案这种「左列表右详情」用的。
+   看板是一整块屏，落进去只会占左半栏（实测 1600 宽的窗里只剩 800），
+   所以这里必须掰回单列；≥1700px 那条 max-width:1400px 居中也要一并放开。 */
+body.board-mode #page-board{
+  flex:1;min-height:0;gap:0;
+  display:flex;flex-direction:column;
+  max-width:none;margin:0;
+}
+/* 看板不要入场动画：一屏数字挨个往上冒，看着像卡顿 */
+body.board-mode .page.on > *{animation:none}
+
+.bd{
+  flex:1;min-height:0;display:grid;
+  grid-template-rows:auto minmax(0,1.4fr) auto minmax(0,.95fr);
+  gap:clamp(10px,1.3vh,22px);
+  padding:clamp(12px,2.2vh,30px) clamp(16px,2.4vw,48px);
+  background:#1B2028;color:#F2EFE8;
+  font-variant-numeric:tabular-nums;
+}
+.bd-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;
+  border-bottom:1px solid rgba(200,172,124,.22);padding-bottom:clamp(6px,1vh,14px)}
+.bd-brand{font-size:clamp(13px,1.15vw,20px);color:#C8AC7C;letter-spacing:.06em}
+.bd-date{font-size:clamp(13px,1.15vw,20px);color:#B9B4AA}
+.bd-fresh{font-size:clamp(11px,.85vw,15px);color:#807B72}
+.bd-fresh.warn{color:#E0A15C}
+
+.bd-main{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);
+  gap:clamp(14px,2.4vw,48px);align-items:center;min-height:0}
+.bd-block{display:flex;flex-direction:column;justify-content:center;gap:clamp(3px,.7vh,11px);min-width:0}
+/* 字号走 vw：同一套代码在 13 寸笔记本和 55 寸电视上都能铺满。
+   ⚠️ 系数按「列宽 ≈ 视口 41%」倒推 —— 时钟 8 个字符要在半屏里放得下，
+   系数给大了就会和旁边的打卡码叠在一起（7vw 在 1600 宽的窗口里实测溢出）。 */
+.bd-lab{font-size:clamp(12px,1vw,17px);color:#807B72;letter-spacing:.1em}
+.bd-clock{font-size:clamp(34px,6.2vw,104px);font-weight:500;line-height:1;letter-spacing:.01em;white-space:nowrap}
+.bd-sub{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C}
+.bd-code{font-size:clamp(50px,8.6vw,150px);font-weight:500;line-height:1;color:#C8AC7C;letter-spacing:.06em;white-space:nowrap}
+.bd-code.long{font-size:clamp(30px,5.4vw,94px);letter-spacing:.02em}
+.bd-bar{height:clamp(4px,.7vh,10px);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:clamp(4px,.8vh,12px)}
+.bd-bar > i{display:block;height:100%;border-radius:99px;background:#C8AC7C;transition:width .9s linear}
+
+.bd-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:clamp(8px,1vw,22px);
+  border-top:1px solid rgba(200,172,124,.16);border-bottom:1px solid rgba(200,172,124,.16);
+  padding:clamp(8px,1.3vh,18px) 0}
+.bd-stat{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bd-stat b{font-size:clamp(22px,3.2vw,54px);font-weight:500;line-height:1.05}
+.bd-stat span{font-size:clamp(11px,.9vw,15px);color:#807B72}
+/* ⚠️ 类名一律带 bd- 前缀：系统里已有一个通用 `.ok{background:#eafaf0;…}` 状态条样式，
+   直接写 .bd-stat.ok 会把它一起吃掉 —— 「已到」那块会平白多出一片浅绿底。 */
+.bd-stat.bd-ok b{color:#7FBF97}
+.bd-stat.bd-late b{color:#E0A15C}
+.bd-stat.bd-leave b{color:#9BB6D8}
+.bd-stat.bd-miss b{color:#D98A80}
+
+.bd-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:clamp(12px,1.6vw,32px);min-height:0}
+.bd-panel{display:flex;flex-direction:column;min-height:0;gap:clamp(4px,.7vh,10px)}
+/* 右栏一条细金线分栏：名单和课表是两件事，隔开一眼就分得清 */
+.bd-panel + .bd-panel{border-left:1px solid rgba(200,172,124,.14);padding-left:clamp(14px,2.2vw,44px)}
+.bd-panel h3{font-size:clamp(12px,1vw,17px);font-weight:500;color:#C8AC7C;letter-spacing:.06em;margin:0}
+.bd-list{flex:1;min-height:0;overflow:hidden}
+.bd-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(96px,9vw,190px),1fr));
+  gap:clamp(5px,.65vw,12px);align-content:start}
+.bd-row{font-size:clamp(13px,1.1vw,20px);color:#E8E4DC;background:rgba(255,255,255,.05);
+  border-radius:8px;padding:clamp(2px,.45vh,8px) clamp(8px,.8vw,16px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 名单 / 课表超出面板高度时，整体缓慢上滚循环（内容由 Board.autoScroll 复制一份） */
+.bd-rows.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes bdUp{from{transform:translateY(0)}to{transform:translateY(calc(-1 * var(--bd-h,0px)))}}
+
+/* 退出：平时完全看不见（这块屏是给路过的人看的，不该出现任何按钮），
+   鼠标挪到右下角才浮出来；Esc 也能退 */
+.bd-exit{position:fixed;right:12px;bottom:12px;z-index:60;
+  border:none;background:rgba(255,255,255,.08);color:#6E6A63;font-family:inherit;
+  font-size:12px;padding:6px 13px;border-radius:99px;cursor:pointer;opacity:0;transition:opacity .2s}
+.bd-exit:hover,.bd-exit:focus{opacity:1;background:rgba(255,255,255,.16);color:#D6D1C7}
+
+@media (max-width:760px){
+  body.board-mode .main{overflow-y:auto}
+  .bd{flex:none;height:auto;min-height:100%;grid-template-rows:none;gap:20px}
+  .bd-main,.bd-foot{grid-template-columns:minmax(0,1fr)}
+  .bd-panel + .bd-panel{border-left:none;padding-left:0;border-top:1px solid rgba(200,172,124,.14);padding-top:14px}
+  .bd-clock{font-size:clamp(44px,15vw,92px)}
+  .bd-code{font-size:clamp(54px,19vw,112px)}
+}
 </style>
 </head>
 <body>
@@ -1948,6 +2051,22 @@ try {
         <button class="btn" onclick="App.go('rules')">打开量化细则</button>
       </div>
 
+      <!-- 看板端：办公室那台电脑挂着的只读屏（时间 / 打卡码 / 签到 / 课表）。
+           和量化细则一样有 route 但**不进 NAV_ORDER**，入口只在这里。
+           卡上直接给出那个 ?board=1 网址 —— 那台电脑的桌面快捷方式就照它写。 -->
+      <div class="card" id="boardCard" style="display:none">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-desktop"></use></svg> 看板端</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:10px">
+          给办公室那台电脑挂的一块只读屏：当前时间、今日打卡码、来了多少人、谁还没到、今天上什么课。
+          进去之后侧栏和按钮全部收起，屏幕上只剩数字 —— 点到也改不了任何数据，它跟您的工作台是同一个系统，只是多了一个「只看不碰」的视图。
+        </p>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="Board.enter()">打开看板端</button>
+          <button class="btn ghost" onclick="Board.copyLink()">复制看板网址</button>
+        </div>
+        <p class="hint" style="margin-bottom:0" id="boardTip"></p>
+      </div>
+
       <div class="card">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-warn"></use></svg> 危险操作</h2>
         <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
@@ -2018,6 +2137,53 @@ try {
       </div>
     </section>
     <!-- ==== 功能：量化细则 END ==== -->
+
+    <!-- ==== 功能：看板端 START ====（副屏：办公室那台电脑挂着的只读屏）
+         屏幕上只有数字，没有任何能改数据的东西 —— 它不是这个账号待的地方，
+         是给人路过时看的。所以有两处刻意的设计：
+           ① 路由有、**不进 NAV_ORDER** —— 侧栏 / 底部标签栏 / 全部功能抽屉都不出现，
+              入口只有设置页那张卡，或网址带 ?board=1（Windows 桌面快捷方式靠它）；
+           ② App.go 里 board **不写 _lastPage** —— 不带参数重开就回正常工作台，
+              不会把教务锁在这块屏里出不来。
+         取数全部走现成的 Store 与 Auth.call('code')：不新增接口，主系统一改这块屏跟着变。 -->
+    <section class="page" id="page-board">
+      <div class="bd">
+        <div class="bd-top">
+          <span class="bd-brand">博艺教育 · 砺蕴教务</span>
+          <span class="bd-date" id="bdDate">—</span>
+          <span class="bd-fresh" id="bdFresh"></span>
+        </div>
+
+        <div class="bd-main">
+          <div class="bd-block">
+            <span class="bd-lab">当前时间</span>
+            <div class="bd-clock" id="bdClock">--:--:--</div>
+            <div class="bd-sub" id="bdSub"></div>
+          </div>
+          <div class="bd-block">
+            <span class="bd-lab">今日打卡码</span>
+            <div class="bd-code" id="bdCode">····</div>
+            <div class="bd-bar"><i id="bdBar" style="width:0%"></i></div>
+            <div class="bd-sub" id="bdCodeHint"></div>
+          </div>
+        </div>
+
+        <div class="bd-stats" id="bdStats"></div>
+
+        <div class="bd-foot">
+          <div class="bd-panel">
+            <h3 id="bdMissTitle">还没到</h3>
+            <div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div>
+          </div>
+          <div class="bd-panel">
+            <h3>今日课表</h3>
+            <div class="bd-list"><div class="bd-rows" id="bdSched"></div></div>
+          </div>
+        </div>
+      </div>
+      <button class="bd-exit" onclick="Board.leave()">退出看板（Esc）</button>
+    </section>
+    <!-- ==== 功能：看板端 END ==== -->
 
     <!-- ==== 功能：协作 START ====（教务端：收老师上报 + 发通知） -->
     <section class="page" id="page-coop">
@@ -3444,6 +3610,10 @@ const App = {
        入口只在设置页那张「打开量化细则」的卡上。表太长（近 30 条可编辑的加减分），
        摆进导航反而多一个菜单；放这里既好找又不会被误点。 */
     { id:'rules',     icon:'calc', name:'量化细则', roles:['super','admin','both'], onShow: () => Settings.renderRules() },
+    /* 看板端：同上，有 route 但**不进 NAV_ORDER / TAB_ORDER** —— 它是给办公室那台
+       电脑挂的一块只读屏，不是给人当功能用的。入口只有设置页那张卡，
+       或网址带 ?board=1（Windows 桌面快捷方式写死这个参数，开机就落在看板上）。 */
+    { id:'board',     icon:'desktop', name:'看板端', roles:['super','admin','both'], onShow: () => Board.render() },
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
        名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
        区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
@@ -3624,7 +3794,10 @@ const App = {
     document.querySelectorAll('#nav button, #tabs button, #dgrid button').forEach(b =>
       b.classList.toggle('on', b.dataset.id === id));
     document.getElementById('main').scrollTop = 0;
-    Store.set('_lastPage', id);
+    /* 看板端不记「上次停在哪」：它是给别人看的一块屏，不是这个账号常待的地方。
+       真要常驻看板，走的是网址带 ?board=1 那条路（App.boot 里判），
+       不靠这个键 —— 否则在这块屏上点一次，以后不带参数重开也回不到工作台了。 */
+    if (id !== 'board') Store.set('_lastPage', id);
     this.routes.find(r => r.id === id)?.onShow?.();
     // 「看过就消红点」只认用户主动点进去这一次：同步在后台刷页面不算看过，
     // 否则人停在协作页时新工单会被瞬间自动已读，红点永远亮不起来
@@ -3645,7 +3818,10 @@ const App = {
     Greet.start();                              // 左上角问候 + 今日时钟，每秒走一格
     if (Auth.isStaff()) Settings.initRules();   // 量化占位细则，只有教务这边需要
     const last = Store.get('_lastPage');
-    this.go(this.can(last) ? last : this.defaultPage());
+    /* 网址带 ?board=1 = 这台机器是当看板用的（桌面快捷方式里写死这个参数）：
+       直接落在看板上，不走「上次停在哪」。教务端才有看板，老师/学生照旧。 */
+    if (/[?&]board=1/.test(location.search) && Board.ok()) Board.enter();
+    else this.go(this.can(last) ? last : this.defaultPage());
     this.checkBackup();
     Staff.reset();                              // 换了账号，老师名单缓存作废
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
@@ -8343,6 +8519,7 @@ const Settings = {
     show('backupCard', staff);
     show('apiCard', staff);
     show('rulesCard', staff);
+    show('boardCard', staff && cloud);   // 看板端：给办公室那台电脑挂的只读屏
     show('tEntryCard', Auth.isSuper() && cloud);
     show('syncNowBtn', cloud);
     show('syncCard', true);
@@ -8358,6 +8535,11 @@ const Settings = {
     this.renderDevKeys();
     this.renderDemo();
     if (staff) this.renderRules();
+    if (staff){
+      const tip = document.getElementById('boardTip');
+      if (tip) tip.innerHTML =
+        `在那台电脑上用浏览器打开 <b>${Util.esc(Board.link())}</b>，登录教务账号，按 <b>F11</b> 就是全屏。`;
+    }
     if (staff) this.renderSlots();
     this.keys.forEach(k => {
       const el = document.getElementById('key_' + k);
@@ -10344,6 +10526,290 @@ const Sign = {
     });
     Util.download(`打卡_${Util.clsName(clsId)}_${date}.csv`, Util.csv(rows));
     UI.toast('已导出这一天的打卡');
+  }
+};
+
+
+/* ══════════════════════════════════════════════════════════════════
+   看板端（副屏）：办公室那台电脑挂着的一块只读屏
+   ──────────────────────────────────────────────────────────────────
+   屏幕上只有数字 —— 当前时间、今日打卡码、来了多少人、谁还没到、今天上什么课。
+   没有按钮、没有导航、没有任何能改数据的地方：它不是这个账号待的地方，
+   是给路过的人看的（所以退出按钮平时完全隐形，鼠标挪到右下角才浮出来）。
+
+   取数全部走现成的 Store 与 Auth.call('code')，**不新增任何接口** ——
+   主系统那边改了数据，这块屏半分钟内自己跟上，两边永远不会打架。
+
+   进出两条路（都不写 _lastPage，免得把教务锁在这块屏里出不来）：
+     · 设置页「看板端」那张卡 → Board.enter()，看一眼就走
+     · 网址带 ?board=1 → 开机 / 刷新直接落在看板（Windows 桌面快捷方式写死这条）
+
+   ⚠️ 打卡码本来就是给教务屏幕显示的东西，这里只是把它放大 ——
+      但一块朝外的屏等于把码公开了（学生自己看、甚至拍了转出去），
+      摆放位置得教务自己拿主意；朝内一侧则没有任何影响。
+   ══════════════════════════════════════════════════════════════════ */
+const Board = {
+  _sec: null,    /* 每秒走一格：时钟 + 换码倒计时 + 新鲜度 */
+  _pull: null,   /* 半分钟拉一趟：打卡码 / 签到 / 考勤 / 课表 */
+  _vis: null, _esc: null,
+  _lock: null,   /* 屏幕唤醒锁 —— 这台电脑没人碰，不锁住几分钟就息屏了 */
+  _off: 0,       /* 本机时钟与服务端的偏差。三硬原则：时间以服务端为准 */
+  _until: 0,     /* 这一枚码还剩到什么时候（教务设的固定码时为 0） */
+  _code: '', _fixed: false, _stamp: 0, _data: null,
+
+  /* 只有教务端能看：老师那边没有打卡这一摊，学生更不该看到码 */
+  ok(){ return Auth.isStaff(); },
+
+  link(){ return location.href.replace(/[?#].*$/, '') + '?board=1'; },
+
+  copyLink(){
+    const url = this.link();
+    const done = () => UI.toast('看板网址已复制');
+    try {
+      if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('复制这个网址：', url));
+      else prompt('复制这个网址：', url);
+    } catch(e){ prompt('复制这个网址：', url); }
+  },
+
+  enter(){
+    if (!this.ok()) return UI.toast('这个功能你的账号看不到');
+    document.body.classList.add('board-mode');
+    App.go('board');
+  },
+
+  leave(){
+    document.body.classList.remove('board-mode');
+    this.stop();
+    App.go('home');
+  },
+
+  render(){ if (this.ok()) this.start(); },
+
+  start(){
+    this.stop();
+    this.tick();       /* 先把时钟摆上，别让人先看到一秒的空白 */
+    this.refresh();    /* 码 + 数据 */
+    this._sec = setInterval(() => this.tick(), 1000);
+    this._pull = setInterval(() => this.refresh(), 30000);
+    this._esc = e => { if (e.key === 'Escape') this.leave(); };
+    document.addEventListener('keydown', this._esc);
+    /* 切走标签页会被系统收掉唤醒锁，回来得重新要一次 */
+    this._vis = () => { if (!document.hidden) this.keepAwake(); };
+    document.addEventListener('visibilitychange', this._vis);
+    this.keepAwake();
+  },
+  stop(){
+    clearInterval(this._sec); clearInterval(this._pull);
+    this._sec = this._pull = null;
+    if (this._esc){ document.removeEventListener('keydown', this._esc); this._esc = null; }
+    if (this._vis){ document.removeEventListener('visibilitychange', this._vis); this._vis = null; }
+    this.releaseAwake();
+  },
+
+  async keepAwake(){
+    try {
+      if (!navigator.wakeLock || this._lock) return;
+      this._lock = await navigator.wakeLock.request('screen');
+      this._lock.addEventListener('release', () => { this._lock = null; });
+    } catch(e){ /* 浏览器不支持就安静跳过，不影响别的功能 */ }
+  },
+  releaseAwake(){
+    try { if (this._lock) this._lock.release(); } catch(e){}
+    this._lock = null;
+  },
+
+  /* ── 取数 ── */
+  async refresh(){
+    /* 打卡码：教务自己设了就用那个（固定不变），没设就是服务端每 60 秒派生的那枚。
+       顺手拿 serverNow 校正本机时钟 —— 打卡这件事上，时间只能以服务端为准。 */
+    try {
+      const j = await Auth.call('code');
+      if (j && j.code){
+        this._code = String(j.code);
+        this._fixed = !!j.fixed;
+        if (j.serverNow) this._off = j.serverNow - Date.now();
+        this._until = j.fixed ? 0 : Date.now() + (j.left || 60000);
+      }
+    } catch(e){ /* 断网时留着上一枚码，右上角那行「数据停留于」会亮出来提醒 */ }
+
+    this._data = this.collect(Util.today());
+    this._stamp = Date.now();
+    this.tick();        /* 时钟 / 倒计时 / 新鲜度，一并在这趟里画掉 */
+    this.paint();
+  },
+
+  /* 今日签到的一本账。口径：
+       · 请假优先 —— 批过假的、或现场标了病假事假的，不算「未到」，
+         否则教务会去催一个本来就不用来的人；
+       · 迟到单独数 —— 这是值班第一眼要看的那个数；
+       · 「应到」= 名册人数 − 请假，比总人数更能说明今天该来多少。
+     打卡(sign)和考勤(att)都认：学生自己打的、教务补点的，都算到过人。 */
+  collect(date){
+    const students = Store.list('students', Util.byName);
+    const bySid = {};
+    Store.list('sign:' + date).forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
+    const att = {};
+    Store.list('att:' + date).forEach(r => { if (r && r.studentId) att[r.studentId] = r.status; });
+    const away = this.leavers(date);
+    const miss = [];
+    let ok = 0, late = 0, leave = 0;
+    students.forEach(st => {
+      const r = bySid[st.id];
+      const st2 = r ? r.status : att[st.id];
+      if (away.has(st.id) || st2 === '病假' || st2 === '事假'){ leave++; return; }
+      if (!st2){ miss.push(st); return; }
+      if (st2 === '迟到') late++; else ok++;
+    });
+    return { total: students.length, should: students.length - leave, ok, late, leave, miss };
+  },
+
+  /* 今天批过假的学员 id：走协作里的请假工单（已批 = status done）。
+     和 Stu.leaveOf 同一套判据，日期写法两种都认（单日与起止区间）。 */
+  leavers(date){
+    const set = new Set();
+    Store.list('tickets').forEach(t => {
+      if (!t || t.type !== '学生请假' || t.status !== 'done' || !t.studentId) return;
+      if (t.date === date || (t.from && t.from <= date && t.to && t.to >= date)) set.add(t.studentId);
+    });
+    return set;
+  },
+
+  /* ── 画 ── */
+  tick(){
+    if (!document.body.classList.contains('board-mode')) return;
+    const p = n => String(n).padStart(2, '0');
+    const d = new Date(Date.now() + this._off);
+
+    const ck = document.getElementById('bdClock');
+    const t = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+    if (ck && ck.textContent !== t) ck.textContent = t;
+
+    const dt = document.getElementById('bdDate');
+    if (dt){
+      const w = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+      const txt = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${w}`;
+      if (dt.textContent !== txt) dt.textContent = txt;
+    }
+
+    /* 距上课还有多久 —— 比钟点本身更有用，一眼知道还来不来得及 */
+    const sub = document.getElementById('bdSub');
+    if (sub){
+      const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : { startAt: '08:30' };
+      const hm = String(r.startAt || '08:30').split(':');
+      const at = new Date(d);
+      at.setHours(Number(hm[0]) || 0, Number(hm[1]) || 0, 0, 0);
+      const mins = Math.round((at - d) / 60000);
+      /* 只在临近上课时给倒计时；一节课过了大半就不必再报「已开始 532 分钟」这种数了 */
+      const txt = mins > 0 ? `距上课 ${mins} 分钟（${r.startAt}）`
+                : mins === 0 ? `现在就是上课时间（${r.startAt}）`
+                : (-mins <= 90 ? `上课时间 ${r.startAt} · 已开始 ${-mins} 分钟` : `上课时间 ${r.startAt}`);
+      if (sub.textContent !== txt) sub.textContent = txt;
+    }
+
+    this.paintCode();
+    this.paintFresh();
+  },
+
+  paintCode(){
+    const el = document.getElementById('bdCode');
+    if (el){
+      if (el.textContent !== this._code) el.textContent = this._code || '····';
+      /* 服务端派生的是 6 位码；教务要是设了个更长的固定码，降一档字号别撑到隔壁那栏 */
+      el.classList.toggle('long', (this._code || '').length > 6);
+    }
+    const bar = document.getElementById('bdBar');
+    const hint = document.getElementById('bdCodeHint');
+    if (this._fixed){
+      if (bar) bar.style.width = '100%';
+      if (hint) hint.textContent = '教务设的固定码';
+      return;
+    }
+    if (!this._until){
+      if (bar) bar.style.width = '0%';
+      if (hint && hint.textContent) hint.textContent = '';
+      return;
+    }
+    const left = Math.max(0, this._until - Date.now());
+    if (bar) bar.style.width = (left / 60000 * 100).toFixed(1) + '%';
+    if (hint) hint.textContent = left ? `还有 ${Math.ceil(left / 1000)} 秒自动换码` : '正在换码…';
+    /* 走到头立刻换新码，不等下一趟半分钟 */
+    if (left <= 0){ this._until = 0; this.refresh(); }
+  },
+
+  /* 数据新鲜度：这块屏最怕「网断了、数字还挂着」——教务看一眼以为一切正常。
+     超过一分半没更新就把这一行点亮成警示色。 */
+  paintFresh(){
+    const el = document.getElementById('bdFresh');
+    if (!el || !this._stamp) return;
+    const p = n => String(n).padStart(2, '0');
+    const d = new Date(this._stamp);
+    const stale = Date.now() - this._stamp > 90000;
+    const txt = stale
+      ? `数据停留于 ${p(d.getHours())}:${p(d.getMinutes())} · 可能已断网`
+      : `数据更新 ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    if (el.textContent !== txt) el.textContent = txt;
+    el.classList.toggle('warn', stale);
+  },
+
+  paint(){
+    const D = this._data;
+    if (!D) return;
+    const stats = document.getElementById('bdStats');
+    if (stats){
+      stats.innerHTML = [
+        ['应到', D.should, ''],
+        ['已到', D.ok + D.late, 'bd-ok'],
+        ['迟到', D.late, 'bd-late'],
+        ['请假', D.leave, 'bd-leave'],
+        ['未到', D.miss.length, 'bd-miss'],
+      ].map(([k, v, c]) => `<div class="bd-stat ${c}"><b>${v}</b><span>${k}</span></div>`).join('');
+    }
+
+    const t = document.getElementById('bdMissTitle');
+    if (t) t.textContent = D.miss.length ? `还没到 · ${D.miss.length} 人` : '还没到';
+
+    const miss = document.getElementById('bdMiss');
+    if (miss) this.fill(miss, D.miss.length
+      ? D.miss.map(s => `<div class="bd-row">${Util.esc(s.name)}</div>`).join('')
+      : '<div class="bd-row" style="color:#7FBF97">全部到齐</div>');
+
+    const sc = document.getElementById('bdSched');
+    if (sc) this.fill(sc, this.schedHtml());
+  },
+
+  schedHtml(){
+    const d = new Date(Date.now() + this._off);
+    const w = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+    const periods = Store.list('periods');
+    const rows = Store.list('schedule').filter(x => x.day === w).map(x => {
+      const pd = periods.find(q => q.id === x.periodId) || {};
+      return { t: x.time || pd.start || '', x };
+    }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
+    if (!rows.length) return '<div class="bd-row" style="color:#807B72">今天没有排课</div>';
+    return rows.slice(0, 14).map(r => {
+      const who = r.x.cls ? ' · ' + String(r.x.cls).split('、')[0] : '';
+      return `<div class="bd-row">${r.t ? Util.esc(r.t) + ' ' : ''}${Util.esc(r.x.title || '')}${Util.esc(who)}</div>`;
+    }).join('');
+  },
+
+  /* 名单 / 课表塞不下面板时，复制一份缓慢上滚循环。
+     每次重画先还原成一份再判断 —— 不还原的话复制会一份变两份、两份变四份。
+     内容没变就直接跳过：不然每半分钟刷新一次，滚动会不停跳回开头。 */
+  fill(box, html){
+    if (box.dataset.raw === html && box.innerHTML) return;
+    box.dataset.raw = html;
+    box.style.animation = '';
+    box.style.animationDuration = '';
+    box.classList.remove('loop');
+    box.style.removeProperty('--bd-h');
+    box.innerHTML = html;
+    const host = box.parentElement;
+    const h = box.scrollHeight;
+    if (h <= host.clientHeight + 2) return;
+    box.innerHTML += html;
+    box.classList.add('loop');
+    box.style.setProperty('--bd-h', h + 'px');
+    box.style.animationDuration = Math.max(14, Math.round(h / host.clientHeight * 9)) + 's';
   }
 };
 
