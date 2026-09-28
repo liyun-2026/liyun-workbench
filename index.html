@@ -10645,11 +10645,24 @@ const Board = {
     if (!this.ok()) return UI.toast('这个功能你的账号看不到');
     document.body.classList.add('board-mode');
     App.go('board');
+    this.goFull();   /* 点这个按钮就是「我要用大屏看」，那就直接铺满 —— 留在窗口里没意义 */
+  },
+
+  /* 真·全屏。有些浏览器不给（比如没接用户手势、或 iOS Safari），
+     那就安静跳过 —— 看板本身照样铺满视口，不影响。 */
+  goFull(){
+    try {
+      const el = document.documentElement;
+      if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    } catch(e){}
   },
 
   leave(){
     document.body.classList.remove('board-mode');
     this.stop();
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    } catch(e){}
     App.go('home');
   },
 
