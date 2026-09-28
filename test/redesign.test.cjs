@@ -630,6 +630,83 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
     });
   }
 
+  /* ───────────────── 七、量化细则：从设置里拆成独立页 ─────────────────
+     为什么守：这张表近 30 条、每条都是可编辑的输入框，塞在设置里会把设置页撑得
+     很长还容易误触。拆法本身容易回退（有人顺手搬回去、或把 route 加进导航），
+     所以这里把「搬走了没有」「进不进导航」「教务进得去、老师进不去」都钉住。 */
+  console.log('\n=== 七、量化细则：从设置里拆成独立页 ===');
+  {
+    t('细则整块搬进 page-rules；设置页只留一张入口卡', () => {
+      const rp = html.match(/<section class="page" id="page-rules">([\s\S]*?)<\/section>/);
+      assert(rp, '找不到 page-rules');
+      ['id="rulesList"', 'id="ruleSrc"', 'id="ruleName"', 'id="ruleDelta"',
+       'id="rulesFile"', 'id="rulesImpText"', 'Settings.addRule()',
+       'Settings.saveRules()', 'Settings.parseRulesImport()']
+        .forEach(sig => assert(rp[1].includes(sig), '细则页缺了 ' + sig));
+
+      const sp = html.match(/<section class="page" id="page-settings">([\s\S]*?)<\/section>/);
+      assert(sp, '找不到 page-settings');
+      assert(!sp[1].includes('id="rulesList"'), '设置页不该再放那张长表（就是它把设置页撑长的）');
+      assert(!sp[1].includes('id="ruleSrc"'), '加减分那行也该一起搬走');
+      assert(sp[1].includes('id="rulesCount"'), '入口卡上该有一句条数说明');
+      assert(/onclick="App\.go\('rules'\)">打开量化细则/.test(sp[1]),
+        '设置页该有个「打开量化细则」按钮（照老师管理那张卡的样子）');
+    });
+
+    t('细则页有 route，但**不进** NAV_ORDER / TAB_ORDER（不占侧栏、底栏、抽屉）', () => {
+      const rt = html.match(/\{ id:'rules',[\s\S]{0,160}?roles:(\[[^\]]*\])/);
+      assert(rt, 'routes 里找不到 rules');
+      eq(rt[1].replace(/\s/g, ''), "['super','admin','both']", 'roles');
+      const nav = html.match(/NAV_ORDER:\s*\{([\s\S]*?)\n  \},/);
+      assert(nav, '找不到 NAV_ORDER');
+      assert(!nav[1].includes("'rules'"), 'rules 不该出现在任何角色的 NAV_ORDER 里');
+      const tab = html.match(/TAB_ORDER:\s*\{([\s\S]*?)\n  \},/);
+      assert(tab, '找不到 TAB_ORDER');
+      assert(!tab[1].includes("'rules'"), 'rules 不该进底部标签栏');
+    });
+
+    const { G } = boot(ROLES.super);
+    await settle();
+
+    t('教务进得去；三处导航里都没有它的按钮（只能从设置那张卡进）', () => {
+      eq(G(`App.can('rules')`), true, '教务该进得去');
+      G('App.renderChrome()');
+      const ids = G(`[...document.querySelectorAll('#nav button,#tabs button,#dgrid button')].map(b => b.dataset.id)`);
+      assert(Array.isArray(ids) && !ids.includes('rules'), 'rules 不该出现在任何导航里：' + (ids || []).join(','));
+      G(`App.go('rules')`);
+      eq(G(`document.getElementById('page-rules').classList.contains('on')`), true, '该切到细则页');
+      const rows = G(`document.querySelectorAll('#rulesList .row').length`);
+      assert(rows >= 20, '细则页该把近 30 条都列出来，实际 ' + rows);
+      return;
+    });
+
+    t('加减分就在这页改：改分值 → 保存 → 落库；新增 / 删除也在同一页', () => {
+      G('Settings.initRules()'); G('Settings.renderRules()');
+      const rid = G(`document.querySelector('#rulesList .row').dataset.rid`);
+      assert(rid, '细则行该带 data-rid');
+      G(`(() => { document.querySelector('#rulesList .row[data-rid="${rid}"] .rule-delta').value = '7'; })()`);
+      G('Settings.saveRules()');
+      eq(G(`Store.list('quant_rules').find(x => x.id === '${rid}').delta`), 7, '改完分值该存下来');
+
+      const before = G(`Store.list('quant_rules').length`);
+      G(`(() => { document.getElementById('ruleSrc').value = 'cls'; document.getElementById('ruleName').value = '测试名目'; document.getElementById('ruleDelta').value = '-3'; })()`);
+      G('Settings.addRule()');
+      eq(G(`Store.list('quant_rules').length`), before + 1, '该能加一条新的');
+      assert(G(`Store.list('quant_rules').some(r => r.key === 'cls:测试名目' && r.delta === -3)`), '新条目要按填的名目和分值存');
+      G(`Settings.delRule('r_cls:测试名目')`);
+      eq(G(`Store.list('quant_rules').length`), before, '该能删掉');
+      eq(G(`document.getElementById('rulesCount').textContent.includes('共 ')`), true, '入口卡的条数说明该跟着刷新');
+    });
+
+    t('授课老师 / 学生拿不到这一页', () => {
+      const rt = html.match(/\{ id:'rules',[\s\S]{0,160}?roles:(\[[^\]]*\])/);
+      const roles = rt[1];
+      assert(!/teacher|student/.test(roles), '老师 / 学生不该有这个功能：' + roles);
+      const sp = html.match(/show\('rulesCard',\s*([^)]+)\)/);
+      assert(sp && /staff/.test(sp[1]), '入口卡该只对教务端显示：' + (sp && sp[1]));
+    });
+  }
+
   console.log();
   if (fail.length){
     fail.forEach(x => console.log('  \x1b[31m✗\x1b[0m ' + x));

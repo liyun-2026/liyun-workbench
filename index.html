@@ -1926,8 +1926,38 @@ window.__splashT0 = performance.now();</script>
         <button class="btn" onclick="Settings.saveKeys()">保存</button>
       </div>
 
-      <div class="card wide" id="rulesCard">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calc"></use></svg>  量化细则</h2>
+      <!-- 量化细则整块搬到独立页 page-rules（几十条加减分，摆在设置里太长、也容易误触）。
+           这里只留一张入口卡，样式跟上面的「老师管理」一致。 -->
+      <div class="card" id="rulesCard" style="display:none">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calc"></use></svg> 量化细则</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:10px" id="rulesCount"></p>
+        <button class="btn" onclick="App.go('rules')">打开量化细则</button>
+      </div>
+
+      <div class="card">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-warn"></use></svg> 危险操作</h2>
+        <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
+        <p class="hint">清空前请确认已经导出过备份，这个操作无法撤销。</p>
+      </div>
+
+      <div class="card">
+        <p class="hint" style="margin:0;text-align:center" id="footBrand">博艺教育 · liyun2026.top</p>
+      </div>
+    </section>
+    <!-- ==== 功能：设置 END ==== -->
+
+    <!-- ==== 功能：量化细则 START ====（从设置里拆出来的独立页）
+         为什么拆：这份表有近 30 条（8 条自动计分 + 20 条班级名目），每条都是
+         可编辑的「名称 + 分值」输入框，整块塞在设置里 → 设置页被撑得很长、
+         还得一路滑；输入框密集摆着也容易误触改错分值。
+         现在设置页只留一张入口卡（「打开量化细则」），加减分/加新条目全在这一页做。
+         本页**不进导航**（routes 里有、NAV_ORDER 里没有）—— 侧栏 / 底栏 / 全部功能
+         抽屉都不出现，只有教务端从设置页那张卡能进来，页面底部有「返回设置」。 -->
+    <section class="page" id="page-rules">
+      <div class="page-title">量化细则</div>
+
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calc"></use></svg> 计分项与分值</h2>
         <p class="hint" style="margin-top:0;margin-bottom:10px">
           每条 = 计分项 + 分值，扣分用负数。「班级名目」会变成量化页的快捷加减分按钮；
           「自动计分」按考勤 / 作业 / 晚自习的登记记录自动算，不用手动点。
@@ -1949,8 +1979,15 @@ window.__splashT0 = performance.now();</script>
         <div class="row" style="margin-top:10px">
           <button class="btn" onclick="Settings.saveRules()">保存细则</button>
         </div>
-        <div class="row" style="margin-top:12px;justify-content:space-between;align-items:center">
-          <span class="hint" style="margin:0">开会定的细则拍了照？传上来识别，自动拆成规则</span>
+        <p class="hint" style="margin-bottom:0">
+          改完名称或分值记得点「保存细则」，不然量化统计还是按老规则算。
+        </p>
+      </div>
+
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 照细则图片识别</h2>
+        <p class="hint" style="margin-top:0">开会定的细则拍了照？传上来识别，自动拆成规则。</p>
+        <div class="row">
           <button class="btn ghost" onclick="document.getElementById('rulesFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 传细则识别</button>
         </div>
         <input type="file" id="rulesFile" accept="image/*,.txt,.docx" style="display:none" onchange="Settings.importRulesFile(this)">
@@ -1962,17 +1999,11 @@ window.__splashT0 = performance.now();</script>
         </div>
       </div>
 
-      <div class="card">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-warn"></use></svg> 危险操作</h2>
-        <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
-        <p class="hint">清空前请确认已经导出过备份，这个操作无法撤销。</p>
-      </div>
-
-      <div class="card">
-        <p class="hint" style="margin:0;text-align:center" id="footBrand">博艺教育 · liyun2026.top</p>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" onclick="App.go('settings')">← 返回设置</button>
       </div>
     </section>
-    <!-- ==== 功能：设置 END ==== -->
+    <!-- ==== 功能：量化细则 END ==== -->
 
     <!-- ==== 功能：协作 START ====（教务端：收老师上报 + 发通知） -->
     <section class="page" id="page-coop">
@@ -3395,6 +3426,10 @@ const App = {
     { id:'coop',      icon:'inbox', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
     { id:'gather',    icon:'megaphone', name:'限时征集', roles:['super','admin','both'], onShow: () => Gather.render() },
     { id:'teachers',  icon:'teacher', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
+    /* 量化细则：有 route、**不进 NAV_ORDER** —— 侧栏 / 底栏 / 全部功能抽屉都不出现，
+       入口只在设置页那张「打开量化细则」的卡上。表太长（近 30 条可编辑的加减分），
+       摆进导航反而多一个菜单；放这里既好找又不会被误点。 */
+    { id:'rules',     icon:'calc', name:'量化细则', roles:['super','admin','both'], onShow: () => Settings.renderRules() },
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
        名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
        区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
@@ -8530,8 +8565,13 @@ const Settings = {
 
   renderRules(){
     const el = document.getElementById('rulesList');
+    const cnt = document.getElementById('rulesCount');
     if (!el) return;
     const rules = Store.list('quant_rules', (a,b) => (a.key||'') > (b.key||'') ? 1 : -1);
+    /* 设置页那张入口卡上的一句话：先报条数，再说明加减分都在这页里做 */
+    if (cnt) cnt.textContent = rules.length
+      ? `共 ${rules.length} 条计分项。加减分、加新名目都在里面，单独一页，不会在设置里误触。`
+      : '还没有细则，进去加第一条。';
     if (!rules.length){
       el.innerHTML = '<div class="empty">还没有细则，用下面那行加一条</div>';
       return;
