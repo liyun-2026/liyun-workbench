@@ -563,22 +563,29 @@ function distM(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/* 动态码：两种都认，教务设了就用教务那个。
-   ① 教务自设的固定码（sign_rules.code）—— 一节课内不变，学生慢慢输也来得及；
-      它不下发给学生端（SIGN_RULE_PUBLIC 里没有），学生只能从老师/教务屏幕上看到。
-   ② 教务没设时，退回每 60 秒换一个的派生码（由服务端密钥算出，学生端算不出来）。
-   注意：码现在只是「第二道」—— 第一道是定位。人在校区外打了也是「待核」。 */
+/* ── 动态码：**只有一种**，6 位、60 秒一换 ──
+   码由服务端密钥派生（HMAC），学生端算不出下一分钟的码，
+   所以「人在宿舍让同学代打」这条堵在这里。
+
+   为什么把「教务自设的固定码」去掉了（2026-09-29）：
+   固定码一节课不变，只要有一个学生把码发到群里，别人在宿舍也能打。
+   现在两样东西都是动态的 —— 屏幕上的数字和二维码里编的数，同一枚、60 秒一换，
+   二维码下面带倒计时。学生要打卡只有两条路：当场扫、或是当场抄。
+   （顺带把位数钉死成 6 位：以前固定码可长可短，4/6/8 位混着来，
+     字号要跟着伸缩、学生也不知道该输几位。）
+
+   码只是「第二道」—— 第一道是定位。人在校区外打了也只会记成「待核」。
+   向前兼容：上一窗口的码也认（学生抄完到按下去可能刚好跨过换码点）。 */
 const CODE_WINDOW_MS = 60000;
+const CODE_LEN = 6;
 async function codeAt(sec, slot) {
   const h = await hmacHex(sec, 'signcode|' + slot);
-  return String(parseInt(h.slice(0, 8), 16) % 1000000).padStart(6, '0');
+  return String(parseInt(h.slice(0, 8), 16) % Math.pow(10, CODE_LEN)).padStart(CODE_LEN, '0');
 }
-async function codeOK(sec, rules, code, ts) {
+async function codeOK(sec, code, ts) {
   const want = String(code == null ? '' : code).trim();
   if (!want) return false;
-  const mine = rules && rules.code != null ? String(rules.code).trim() : '';
-  if (mine) return want === mine;
-  if (!/^\d{6}$/.test(want)) return false;
+  if (!new RegExp('^\\d{' + CODE_LEN + '}$').test(want)) return false;
   const slot = Math.floor(ts / CODE_WINDOW_MS);
   for (const q of [slot, slot - 1]) if ((await codeAt(sec, q)) === want) return true;
   return false;
@@ -632,8 +639,8 @@ async function doSign(s, me, body) {
      ③ 教务配了校区坐标、学生这边却没给位置 → 也交教务核对（关掉定位想蒙混过关没用） */
   let way = 'self', dist = null;
   if (body.code != null && String(body.code) !== '') {
-    if (!(await codeOK(sec, rules, body.code, now)))
-      return json({ error: '动态码不对，问一下讲台上/教务当前的码' }, 400);
+    if (!(await codeOK(sec, body.code, now)))
+      return json({ error: '这个码已经过期了，扫一下屏幕上的二维码，或看一眼现在那 6 位数字' }, 400);
     way = 'code';
   }
   const hasGeo = body.lat != null && body.lng != null;
@@ -957,18 +964,18 @@ export async function onRequestPost(context) {
       return json({ ok: true, bound: true, replaced,
                     switchAccount: !knownAcct, devs: map.devs.length });
     }
-    /* 教务屏幕上要显示的动态码：教务自己设了就用那个（fixed:true，不会自己变），
-       没设就退回每 60 秒换一个的派生码。码不下发给学生端。 */
+    /* 屏幕（看板 / 打卡管理）上要显示的动态码：6 位、60 秒一换，由服务端密钥派生，
+       学生端算不出来，所以码不下发给学生端（学生只能在屏幕前当场看/当场扫）。
+       顺便把 serverNow 和 left 一起给回去 —— 客户端拿它校时，倒计时跟服务端是同一个。 */
     if (action === 'code') {
       if (me.isStudent) return json({ error: '学生端不需要动态码' }, 403);
       const now = Date.now();
-      const d2 = (await s.get('org/data', { type: 'json' })) || {};
-      const rr = d2.sign_rules || null;
-      const mine = rr && rr.code != null ? String(rr.code).trim() : '';
       return json({
-        ok: true, code: mine || await codeAt(await secret(s), Math.floor(now / CODE_WINDOW_MS)),
-        fixed: !!mine, serverNow: now,
-        left: mine ? 0 : CODE_WINDOW_MS - (now % CODE_WINDOW_MS),
+        ok: true,
+        code: await codeAt(await secret(s), Math.floor(now / CODE_WINDOW_MS)),
+        fixed: false, serverNow: now,
+        left: CODE_WINDOW_MS - (now % CODE_WINDOW_MS),
+        window: CODE_WINDOW_MS, len: CODE_LEN,
       });
     }
 

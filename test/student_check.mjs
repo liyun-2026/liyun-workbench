@@ -63,6 +63,15 @@ function cnHM(offsetMin = 0) {
   }
   return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 }
+/* 现在（北京时间）是当天的第几分钟 —— 服务端判迟到就是这么切的（p.min）。
+   用来把「迟到该是几分钟」从写死的 30 改成按实际起点倒推：
+   00:29 那种点跑的时候 cnHM 会把起点夹到 00:00，写死 30 必然假红。 */
+function cnMinNow() {
+  const d = new Date(Date.now() + 8 * 3600e3);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+/** "HH:MM" → 当天第几分钟 */
+const hm2min = hm => { const [h, m] = String(hm).split(':').map(Number); return h * 60 + m; };
 /** 直接改共享区里的打卡设置（绕开 push 的合并语义，测试意图才精确） */
 async function setRules(r) {
   const data = (await s.get('org/data', { type: 'json' })) || {};
@@ -296,7 +305,11 @@ await ta('迟到：按服务端时间算，跟学生手机几点无关', async (
   await setRules(RULES_OK(-30));
   const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 34.75, lng: 113.62 });
   eq(r.status, '迟到');
-  ok(r.lateMin >= 28, '迟到分钟数应该算出来（实际 ' + r.lateMin + '）');
+  /* 期望值按**实际配下去的起点**倒推，不写死 30：
+     00:2x 那种点跑的时候 cnHM 会把起点夹到当天 00:00，迟到自然只有二十几分钟。
+     这里验的是「服务端按服务端时间算迟到分钟」，不是「今天一定晚了半小时」。 */
+  const want = Math.max(0, cnMinNow() - hm2min(cnHM(-30)));
+  ok(Math.abs(r.lateMin - want) <= 2, '迟到分钟数该约等于 ' + want + '（实际 ' + r.lateMin + '）');
 });
 
 await ta('零宽限：只晚 1 分钟也算迟到（不是「宽限内」）', async () => {
@@ -345,10 +358,23 @@ await ta('动态码：码不对打不上', async () => {
 await ta('动态码：教务取到码，学生用它能打上', async () => {
   await setRules(RULES_OK(0));
   const c = await must({ action: 'code', token: su.token });
-  ok(/^\d{6}$/.test(c.code), '没设固定码时退回 6 位派生码');
+  ok(/^\d{6}$/.test(c.code), '码该是 6 位纯数字（实际「' + c.code + '」）');
+  eq(c.fixed, false, '码一律是动态的，不该再有 fixed 这条路');
+  eq(c.window, 60000, '换码窗口该是 60 秒');
+  ok(c.left > 0 && c.left <= 60000, '该带回落「这一枚还剩多少毫秒」（实际 ' + c.left + '）');
   const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 34.75, lng: 113.62 });
   eq(r.way, 'code');
   ok(r.status !== undefined, '应该给出判定');
+});
+/* 「一分钟一换」不是「每次要都是新的」—— 同一个窗口里要稳定不变，
+   否则屏幕上那 6 位数字会在学生眼皮底下乱跳。 */
+await ta('同一窗口内码不变、倒计时在往下走（60 秒一换，不是每次随机）', async () => {
+  const a = await must({ action: 'code', token: su.token });
+  await new Promise(r => setTimeout(r, 1200));
+  const b = await must({ action: 'code', token: su.token });
+  ok(b.left < a.left, '倒计时该在减少（' + a.left + ' → ' + b.left + '）');
+  /* 只有「这一枚还剩得够久」时才比码，免得正好卡在换码点上假红 */
+  if (a.left > 3000) eq(b.code, a.code, '同一个 60 秒窗口里，码不该变来变去');
 });
 
 await ta('学生拿不到动态码（码只对教务/老师有意义）', async () => {
@@ -356,24 +382,35 @@ await ta('学生拿不到动态码（码只对教务/老师有意义）', async 
   eq(r.status, 403);
 });
 
-await ta('教务自设打卡码：固定码，不会自己变', async () => {
+/* 「教务自己设一个固定码」这条路**已经拆掉了**（一节课不变 = 一次泄漏管一节课）。
+   这里守住「拆干净了」：老数据里残留的 sign_rules.code 不许再被认。 */
+await ta('固定码这条岔路已拆：老数据里残留的自设码不再生效', async () => {
   await setRules(Object.assign(RULES_OK(0), { code: '8866' }));
   const c = await must({ action: 'code', token: su.token });
-  eq(c.code, '8866', '返回的就是教务设的那个');
-  eq(c.fixed, true, '要标出来这是固定码（前端据此不再倒计时）');
-  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA', lat: 34.75, lng: 113.62 });
-  eq(r.way, 'code');
-  const bad = await call({ action: 'sign', token: s1.token, code: '000000', dev: 'devA' });
-  ok(bad.body.error, '码不对要直接打回，不记这一笔');
+  ok(/^\d{6}$/.test(c.code) && c.code !== '8866', '该忽略自设码、照常给 6 位派生码（实际「' + c.code + '」）');
+  eq(c.fixed, false, '不该再标 fixed');
+  const bad = await call({ action: 'sign', token: s1.token, code: '8866', dev: 'devA' });
+  ok(bad.body.error, '自设的 8866 该被拒（不再认它）');
+  const bad2 = await call({ action: 'sign', token: s1.token, code: '000000', dev: 'devA' });
+  ok(bad2.body.error, '码不对要直接打回，不记这一笔');
+  /* 位数钉死 6 位：4 位 / 8 位都不再收（以前固定码可长可短，学生不知道输几位） */
+  const bad3 = await call({ action: 'sign', token: s1.token, code: '1234', dev: 'devA' });
+  ok(bad3.body.error, '4 位码该被拒');
+  const bad4 = await call({ action: 'sign', token: s1.token, code: '12345678', dev: 'devA' });
+  ok(bad4.body.error, '8 位码该被拒');
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 34.75, lng: 113.62 });
+  eq(r.way, 'code', '换成当前那 6 位就该打得动');
 });
 
 await ta('关掉定位只用码：判定不了人在不在教室 → 待核', async () => {
-  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA' });
+  const c = await must({ action: 'code', token: su.token });
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
   eq(r.status, '待核', '教务配了校区坐标却没给位置，交教务核对（实际 ' + r.status + '）');
 });
 
 await ta('码被传到校外也没用：人在范围外 → 待核', async () => {
-  const r = await must({ action: 'sign', token: s1.token, code: '8866', dev: 'devA', lat: 35.5, lng: 114.5 });
+  const c = await must({ action: 'code', token: su.token });
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 35.5, lng: 114.5 });
   eq(r.status, '待核', '定位这一关过不了，码对了也只能是待核');
   eq(r.wrote, null, '不该替教务扣分');
 });

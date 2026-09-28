@@ -3,24 +3,29 @@
  *
  *   node test/board_check.mjs        # 截图落到 test/.shots/board/
  *
- * 纸色版（v38）：宣纸米白 + 三栏（左课表 / 中打卡码 / 右量化与未到），栏间只走一条细线，不用卡片。
+ * 纸色版：宣纸米白 + 三栏（左课表 / 中打卡码 / 右量化与未到），栏间只走一条细线，不用卡片。
  *
  * 核这几件事：
  *   1. 网址带 ?board=1 → 开机/刷新直接落在看板上（桌面快捷方式走的就是这条路）
  *   2. 落上去之后侧栏 / 顶栏 / 底栏全隐，屏上只剩数字；底是米白不是正白
- *   3. 应到 / 实到 两个大数算得对，迟到·请假·未到 收成一行小字 —— 含「请假不算未到」这条口径
- *   4. 时钟在走、打卡码画得出来，二维码**放中间且够大**，编的是那串数字本身（不是网址）
- *   5. 班级量化榜最多 5 格、按分数从高到低（真造 7 个班来验上限）
- *   6. 退出按钮能回工作台，而且**不带参数重开不会再掉进看板**（_lastPage 没被污染）
- *   7. 三处导航里都找不到「看板端」，入口只在设置页那张卡
- *   8. 五档屏宽都铺得满（宽屏三栏并排、≤900px 叠成一栏），没有横向溢出
- *   9. 学生用砺蕴自带的「扫一扫」扫那块码 → 只留数字、填进输入框、不抢焦点，
- *      定位就绪时直接提交；取景窗在扫完 / 切页 / 重复调时都收得干净
+ *   3. 应到 / 实到 两个大数算得对 —— 含「请假不算未到」这条口径，
+ *      以及「演示班 / 演示学员一个字都不许上屏」
+ *   4. 时钟在走；打卡码是 **6 位、60 秒一换**，底下带「N 秒后换码」倒计时
+ *      （固定码这条岔路已拆：源码里逐条验过）
+ *   5. 迟到 / 请假 / 未到**三个数放大**（原来一行 19px 小字，站远了看不见）
+ *   6. 二维码**放中间且够大**，编的是那串数字本身（不是网址），且与数字码是同一枚
+ *   7. 班级量化榜最多 5 格、按分数从高到低（真造 7 个班来验上限）
+ *   8. 退出按钮能回工作台，而且**不带参数重开不会再掉进看板**（_lastPage 没被污染）
+ *   9. 三处导航里都找不到「看板端」，入口只在设置页那张卡
+ *  10. 五档屏宽都铺得满（宽屏三栏并排、≤900px 叠成一栏），没有横向溢出
+ *  11. 学生「扫面前的二维码」= **扫到即打完**：扫码与手输二选一（点「手输」才出输入框），
+ *      扫到的码不经输入框也提交得上去（用户报过「扫完还要再输一遍」）；
+ *      取景窗在扫完 / 切页 / 重复调时都收得干净
  *
  * 一次性账号，结束 dev-reset 清场。
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +40,11 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots', 'board');
 const SUPER = { user: '看板测试教务', pass: 'boardpass123' };
+
+/* 源码原文：有几条判据只能看代码才验得准（「固定码这条岔路是不是真拆了」、
+   「换码窗口与码长是不是钉死的」）。当场读盘，不另抄一份 —— 抄的那份会过期。 */
+const BOARD_SRC = await readFile(path.join(dir, 'index.html'), 'utf8');
+const SYNC_SRC = await readFile(path.join(dir, 'edge-functions', 'api', 'sync.js'), 'utf8');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(5000) });
@@ -156,11 +166,36 @@ try {
     Store.upsert('tickets', { id: null, type: '学生请假', status: 'done', studentId: sto[31].id, date: d, name: sto[31].name });
     Store.upsert('tickets', { id: null, type: '学生请假', status: 'done', studentId: sto[32].id, from: d, to: d, name: sto[32].name });
     /* 33~39 一共 7 个人什么都没写 = 未到 */
-    return { cls: cls.id, n: Store.list('students').filter(s => s.classId === cls.id).length };
+
+    /* 故意把「演示班 + 演示学员」也摆进来（用户实机就踩到这个）：
+       演示数据是他自己按「第一次用：建好这四个账号」建出来的，
+       但它不该混进名册、人数、出勤、量化 —— 这块屏上一个字都不许露。 */
+    Store.upsert('classes',  { id: 'cls_demo', name: '演示班', demo: true });
+    Store.upsert('students', { id: 'stu_demo', name: '演示学员', classId: 'cls_demo', demo: true });
+    Store.upsert('quant_log', { id: 'q_demo_probe', clsId: 'cls_demo', date: d, label: '实测', delta: 99, _u: Date.now() });
+
+    return {
+      cls: cls.id,
+      n: Store.list('students').filter(s => s.classId === cls.id).length,
+      allStu: Store.list('students').length,
+      rawStu: Store.listRaw('students').length,
+      allCls: Store.list('classes').length,
+      rawCls: Store.listRaw('classes').length,
+    };
   })()`);
   t('造好一份数据（40 人：26 正常 / 4 迟到 / 3 请假 / 7 未到）', () => {
     assert(seeded.n === 40, '该有 40 个学生，实际 ' + seeded.n);
     return '班 ' + seeded.cls + ' / 40 人';
+  });
+  /* 用户三令五申的那条：演示班 / 演示学员不进正式系统。
+     滤在数据层（Store.list），所以名册、人数、出勤、量化、导出一起干净 ——
+     不是某一页忘了贴补丁就露出来。 */
+  t('演示班 / 演示学员被数据层挡住：名册、人数、班级都不认它们', () => {
+    assert(seeded.allStu === 40, 'list("students") 该只剩 40 个真学员，实际 ' + seeded.allStu);
+    assert(seeded.rawStu === 41, 'listRaw("students") 该连演示学员一起拿到 41 个，实际 ' + seeded.rawStu);
+    assert(seeded.allCls === 1, 'list("classes") 该只剩 1 个真班，实际 ' + seeded.allCls);
+    assert(seeded.rawCls === 2, 'listRaw("classes") 该连演示班一起拿到 2 个，实际 ' + seeded.rawCls);
+    return '真学员 40 / 底层 41 · 真班 1 / 底层 2（demo 标记与 cls_demo 两条判据都认）';
   });
 
   console.log('\n=== 1. 网址带 ?board=1 → 直接落在看板上 ===');
@@ -181,21 +216,63 @@ try {
     return '侧栏/顶栏/底栏 display=none';
   });
 
-  /* 打卡码：预览服务没实现取码接口，这里直接灌一发值验渲染链路
-     （固定码与派生码两种形态都过一遍） */
-  const code = await cdp.eval(`(() => {
-    Board._fixed = true; Board._code = '8866'; Board._until = 0; Board.paintCode();
-    const fixed = { txt: document.getElementById('bdCode').textContent, hint: document.getElementById('bdCodeHint').textContent };
-    Board._fixed = false; Board._code = '3172'; Board._until = Date.now() + 30000; Board.paintCode();
-    const live = { txt: document.getElementById('bdCode').textContent, bar: document.getElementById('bdBar').style.width, hint: document.getElementById('bdCodeHint').textContent };
-    return { fixed, live };
+  /* 真·拿一次码：预览服务跑的就是 edge-functions 里那份真 sync.js，
+     code 这个 action 是通的 —— 先验一遍「服务端给的确实是 6 位」。
+     （下面几节会往 Board._code 里灌固定值，那是为了截图和量尺寸时数值稳定。） */
+  const live = await cdp.eval(`(async () => {
+    await Board.refresh();
+    return { code: Board._code, until: Board._until - Date.now(), shown: document.getElementById('bdCode').textContent };
   })()`);
-  t('打卡码画得出来：固定码写明不变，派生码带倒计时进度', () => {
-    assert(code.fixed.txt === '8866', '固定码该显示 8866，实际 ' + code.fixed.txt);
-    assert(/固定码/.test(code.fixed.hint), '固定码该有说明，实际「' + code.fixed.hint + '」');
-    assert(code.live.txt === '3172', '派生码该显示 3172，实际 ' + code.live.txt);
-    assert(/秒自动换码/.test(code.live.hint), '派生码该带倒计时，实际「' + code.live.hint + '」');
-    return '固定码「' + code.fixed.hint + '」/ 派生码「' + code.live.hint + '」进度 ' + code.live.bar;
+  t('看板真的能从服务端取到 6 位动态码（不是写死的假值）', () => {
+    assert(/^\d{6}$/.test(live.code), '服务端该给 6 位码，实际「' + live.code + '」');
+    assert(live.shown === live.code, '屏上显示的该与服务端一致，实际屏上「' + live.shown + '」');
+    assert(live.until > 0 && live.until <= 60000, '该带回「这一枚还剩多久」用于倒计时，实际 ' + Math.round(live.until) + 'ms');
+    return live.code + '（还剩 ' + Math.round(live.until / 1000) + ' 秒）';
+  });
+
+  /* ⚠️ 固定码这条路已经拆了 —— 现在**只有**「6 位、60 秒一换」一种形态，
+     底下必须挂着倒计时（用户点名要的那个「还有几秒换」）。 */
+  const code = await cdp.eval(`(() => {
+    Board._code = '317204'; Board._until = Date.now() + 30000; Board.paintCode();
+    const a = {
+      txt: document.getElementById('bdCode').textContent,
+      bar: document.getElementById('bdBar').style.width,
+      left: document.getElementById('bdLeft').textContent,
+      unit: document.querySelector('.bd-cd span').textContent,
+      soon: document.getElementById('bdLeft').classList.contains('soon'),
+    };
+    /* 走到最后 10 秒：秒数该转朱砂（soon）催一下 */
+    Board._until = Date.now() + 6000; Board.paintCode();
+    const b = { left: document.getElementById('bdLeft').textContent,
+                soon: document.getElementById('bdLeft').classList.contains('soon'),
+                bar: document.getElementById('bdBar').style.width };
+    /* 还剩 30 秒 → 进度条该在半程附近；6 秒 → 该掉到尾巴上 */
+    Board._until = Date.now() + 30000; Board.paintCode();
+    return { a: a, b: b, early: document.getElementById('bdBar').style.width };
+  })()`);
+  t('打卡码画得出来：6 位数字 + 进度条 + 「N 秒后换码」倒计时', () => {
+    assert(code.a.txt === '317204', '该显示 317204，实际 ' + code.a.txt);
+    assert(/^\d+$/.test(code.a.left), '倒计时要有个秒数，实际「' + code.a.left + '」');
+    assert(code.a.unit === '秒后换码', '倒计时的单位该是「秒后换码」，实际「' + code.a.unit + '」');
+    /* ⚠️ CSSOM 会归一化：设进去的 "50.0%" 读回来是 "50%"。别把小数位写进判据。 */
+    assert(/^\d+(\.\d+)?%$/.test(code.a.bar), '进度条该有具体宽度，实际 ' + code.a.bar);
+    const w30 = parseFloat(code.early), w6 = parseFloat(code.b.bar);
+    assert(w30 > 40 && w30 < 60, '剩 30 秒时进度条该在半程（约 50%），实际 ' + code.early);
+    assert(w6 < 15, '剩 6 秒时进度条该快走完了，实际 ' + code.b.bar);
+    assert(!code.a.soon, '剩 30 秒不该转红');
+    assert(code.b.soon, '剩 6 秒该转朱砂催一下，实际没转');
+    return code.a.left + ' 秒后换码 · 进度 ' + code.a.bar + '（30s ' + code.early + ' → 6s ' + code.b.bar + '，末 10 秒转红）';
+  });
+  /* 码到底多久换一次、一位是几位 —— 这两件事以前是「教务自己设」，4/6/8 位混着来。
+     现在只认服务端派生的 6 位 / 60 秒，代码里不许再出现第二种形态。 */
+  t('动态码只有一种形态：6 位、60 秒一换（没有「教务自设固定码」这条岔路）', () => {
+    assert(!/localCode|saveCode|randCode|_fixed/.test(BOARD_SRC), 'index.html 里不该再有固定码的残迹');
+    const m = SYNC_SRC.match(/const CODE_WINDOW_MS = (\d+)/);
+    assert(m && Number(m[1]) === 60000, '服务端的换码窗口该是 60000ms，实际 ' + (m ? m[1] : '找不到'));
+    const n = SYNC_SRC.match(/const CODE_LEN = (\d+)/);
+    assert(n && Number(n[1]) === 6, '服务端的码长该钉在 6 位，实际 ' + (n ? n[1] : '找不到'));
+    assert(!/sign_rules\.code|rules\.code/.test(SYNC_SRC), '服务端不该再读教务自设的固定码了');
+    return 'CODE_WINDOW_MS=' + m[1] + ' · CODE_LEN=' + n[1] + ' · 固定码分支已拆除';
   });
 
   /* ── 尺寸体检：铺满屏是这块屏的第一要求，任何一层没撑开都要看得见 ── */
@@ -289,7 +366,7 @@ try {
 
   console.log('\n=== 2. 五个数算得对（含「请假不算未到」）===');
   const stats = await cdp.eval(`(() => {
-    Board._fixed = true; Board._code = '8866';   /* 让屏幕好看点，后面截图用 */
+    Board._code = '317204'; Board._until = Date.now() + 43000;   /* 让屏幕好看点，后面截图用 */
     Board._data = Board.collect(Util.today());
     Board.paint();
     return {
@@ -297,6 +374,11 @@ try {
       should: document.getElementById('bdShould').textContent,
       here: document.getElementById('bdHere').textContent,
       mini: document.getElementById('bdMini').textContent.replace(/\\s+/g, ' ').trim(),
+      miniItems: [...document.querySelectorAll('#bdMini .bd-m')].map(e => ({
+        k: e.querySelector('span').textContent, n: e.querySelector('b').textContent,
+        c: getComputedStyle(e.querySelector('b')).color,
+        fs: parseFloat(getComputedStyle(e.querySelector('b')).fontSize) })),
+      quantNames: [...document.querySelectorAll('#bdQuant .bd-q-n')].map(e => e.textContent),
       miss: [...document.querySelectorAll('#bdMiss .bd-row')].map(x => x.textContent),
       missTitle: document.getElementById('bdMissTitle').textContent,
     };
@@ -317,7 +399,14 @@ try {
     const all = stats.miss.join('、');
     ['学员31', '学员32', '学员33'].forEach(n =>
       assert(!all.includes(n), n + ' 已经批过假，不该出现在未到名单里'));
+    /* 用户实机报的那条：未到名单里冒出「演示学员」 */
+    assert(!all.includes('演示'), '演示学员不该出现在这块屏的未到名单里，实际名单：' + all);
     return '标题「' + stats.missTitle + '」名单 ' + all;
+  });
+  /* 演示班同样不许上量化榜 —— 它名下哪怕有 99 分也不该占一个格子 */
+  t('量化榜上没有「演示班」（演示数据连班级维度都进不来）', () => {
+    assert(!stats.quantNames.join('/').includes('演示'), '演示班不该出现在量化榜上，实际 ' + stats.quantNames.join(' / '));
+    return stats.quantNames.length ? stats.quantNames.join(' / ') : '（榜上暂时只有真班）';
   });
 
   /* 纸色版的「多少个」不再摊成六格矩阵，收成「应到 / 实到」两个大数 + 底下一行小字。
@@ -329,7 +418,17 @@ try {
       n: b.textContent, cls: b.parentElement.className, c: getComputedStyle(b).color }));
     const lab = [...box.querySelectorAll('span')].map(s => s.textContent);
     return { box: box.className, bg: getComputedStyle(box).backgroundColor,
-             cells: cells, lab: lab, mini: document.getElementById('bdMini').textContent.trim() };
+             cells: cells, lab: lab,
+             mini: document.getElementById('bdMini').textContent.replace(/\\s+/g, ' ').trim(),
+             miniItems: [...document.querySelectorAll('#bdMini .bd-m')].map(e => {
+               const cs = getComputedStyle(e);
+               return { k: e.querySelector('span').textContent, n: e.querySelector('b').textContent,
+                        cls: e.className,
+                        c: getComputedStyle(e.querySelector('b')).color,
+                        fs: parseFloat(getComputedStyle(e.querySelector('b')).fontSize),
+                        labFs: parseFloat(getComputedStyle(e.querySelector('span')).fontSize),
+                        bg: cs.backgroundColor, pad: cs.paddingTop, bw: cs.borderTopWidth };
+             }) };
   })()`);
   t('二维码下面是「应到 / 实到」两个大数（实到 = 正常 + 迟到），只有数字着色', () => {
     assert(tiles.cells.length === 2, '该是两块（应到 / 实到），实际 ' + tiles.cells.length);
@@ -341,11 +440,28 @@ try {
     assert(/bd-c-ok/.test(tiles.cells[1].cls), '「实到」该带 bd-c-ok（不能直接叫 ok），实际「' + tiles.cells[1].cls + '」');
     return tiles.cells.map(x => x.n).join(' / ' + '应到实到'.slice(0, 0)) + ' ｜ ' + tiles.mini;
   });
-  t('迟到 / 请假 / 未到 收成一行小字，未到那个数标红', () => {
-    assert(/迟到\s*4/.test(tiles.mini), '该写「迟到 4」，实际「' + tiles.mini + '」');
-    assert(/请假\s*3/.test(tiles.mini), '该写「请假 3」，实际「' + tiles.mini + '」');
-    assert(/未到\s*7/.test(tiles.mini), '该写「未到 7」，实际「' + tiles.mini + '」');
-    return tiles.mini;
+  /* 「已到、未到下面请假的等等这三个再放大一点，太小了看不到」—— 用户点名的。
+     验的是**实际算出来的字号**，不是 CSS 里写了多少 —— 写了 clamp 也可能被后面的规则压掉。 */
+  t('迟到 / 请假 / 未到 各自成格、数字放大到一眼能读（原来一行小字）', () => {
+    const it = tiles.miniItems;
+    assert(it.length === 3, '该是三个数（迟到 / 请假 / 未到），实际 ' + it.length);
+    assert(it.map(x => x.k).join('/') === '迟到/请假/未到', '三个标签该是迟到/请假/未到，实际 ' + it.map(x => x.k).join('/'));
+    assert(it.map(x => x.n).join('/') === '4/3/7', '三个数该是 4/3/7，实际 ' + it.map(x => x.n).join('/'));
+    assert(it[0].c === 'rgb(170, 122, 30)', '迟到该是赭黄，实际 ' + it[0].c);
+    assert(it[1].c === 'rgb(74, 110, 155)', '请假该是霁蓝，实际 ' + it[1].c);
+    assert(it[2].c === 'rgb(178, 58, 46)', '未到该是朱砂，实际 ' + it[2].c);
+    const min = Math.min(...it.map(x => x.fs));
+    assert(min >= 22, '这三个数字至少 22px（原来只有 12~19px），实际最小 ' + min + 'px');
+    assert(Math.min(...it.map(x => x.labFs)) >= 12, '标签也不该被压小，实际 ' + it.map(x => x.labFs).join('/'));
+    /* ⚠️ 类名一律带 bd- 前缀。系统里有一批通用类（`.warn` / `.ok` / …）自带底色、内边距、
+       甚至 font-size —— 直接借名会被一起吃掉：`未到` 那个数会平白多一圈黄底、
+       标签被压成 13px。这条就是守这个的（.ok 已经在「实到」那条里守过一回）。 */
+    it.forEach(x => {
+      assert(x.bg === 'rgba(0, 0, 0, 0)', '「' + x.k + '」不该有底色（被通用类吃了？类名 ' + x.cls + '），实际 ' + x.bg);
+      assert(x.pad === '0px', '「' + x.k + '」不该有内边距，实际 ' + x.pad);
+      assert(/^bd-/.test(x.cls), '类名该带 bd- 前缀，实际「' + x.cls + '」');
+    });
+    return it.map(x => x.k + ' ' + x.n + '（' + x.fs + 'px）').join(' · ') + ' ｜ 文字「' + tiles.mini + '」';
   });
 
   /* 「班级量化其实只留最多五个班级的格子就够了」—— 用户点名的上限。
@@ -615,7 +731,7 @@ try {
      这一节验到**屏幕像素**这一层：把那块像素截下来交给真解码器读，
      读回来必须正是屏上显示的那串数字。 */
   const qr = await cdp.eval(`(() => {
-    Board._fixed = true; Board._code = '8866'; Board.paintCode();
+    Board._code = '486205'; Board._until = Date.now() + 21000; Board.paintCode();
     const box = document.getElementById('bdQr');
     const svg = box.querySelector('svg');
     const code = (document.getElementById('bdCode').textContent || '').trim();
@@ -643,13 +759,13 @@ try {
     assert(qr.w >= 1080 * 0.3, '该够大（≥视口高的 3 成 ≈324px），实际 ' + qr.w + 'px');
     return qr.w + '×' + qr.h + '（约 ' + (qr.w / (qr.mods + 8)).toFixed(1) + 'px 一格）';
   });
-  t('二维码里编的是纯数字本身，不是网址（学生用砺蕴自带扫一扫）', () => {
-    assert(qr.code.length >= 4, '屏上没读到码：' + JSON.stringify(qr.code));
+  t('二维码里编的是那 6 位数字本身，不是网址（学生用砺蕴自带扫一扫）', () => {
+    assert(qr.code.length === 6, '屏上该是 6 位码，实际「' + qr.code + '」');
     assert(qr.scan === qr.code, '编进去的该就是屏上那串数字，实际 scanText()=「' + qr.scan + '」/ 屏上「' + qr.code + '」');
-    assert(/^\d+$/.test(qr.scan), '该是纯数字，实际「' + qr.scan + '」');
+    assert(/^\d{6}$/.test(qr.scan), '该是 6 位纯数字，实际「' + qr.scan + '」');
     ['http', '://', '?code=', 'liyun'].forEach(s =>
       assert(!qr.scan.includes(s), '不该编网址（含「' + s + '」）：' + qr.scan));
-    return '编的是「' + qr.scan + '」';
+    return '编的是「' + qr.scan + '」（二维码与数字码是同一枚）';
   });
   await shot(cdp, 'board-qr.png', { x: qr.x, y: qr.y, width: qr.w, height: qr.h, scale: 1 });
   const dec = qrDecode(path.join(OUT, 'board-qr.png'));
@@ -671,10 +787,15 @@ try {
     return '连调两次 paintCode，svg 节点没换';
   });
 
-  console.log('\n=== 9. 学生用砺蕴自带的「扫一扫」扫那块码 → 直接进打卡 ===');
+  console.log('\n=== 9. 学生扫面前的二维码 → 扫到即打完（扫码与手输二选一）===');
   /* 二维码里编的只是数字，所以扫码这条路**完全发生在砺蕴内部**：
-     学生打开打卡页 → 点「扫一扫」→ 对着屏上的码一照 → 码填进输入框（定位已就绪就直接提交）。
+     学生打开打卡页 → 点「扫面前的二维码」→ 对着屏一照 → 当场打完。
      全程不经过微信、不用把网址从聊天窗导进浏览器 —— 这正是用户要这条路的原因。
+
+     ⚠️ 用户报过一个「扫完还要再输一遍」的毛病，根子在这：
+        以前路口同时摆着输入框和「扫一扫」，onScan 只把码存进 _scanned 不落 DOM，
+        紧接着调 confirm() 却只读输入框 → 读到空 → 弹「输一下讲台上那个码」。
+        现在两处都改了：路口一次只摆一条（扫码 or 手输），confirm() 优先认 _scanned。
      这条必须真跑一遍：另开一台「学生手机」。 */
   const stuAcc = { user: '扫描测试员', pass: 'scanpass123' };
   const made = await cdp.eval(`(async () => {
@@ -727,52 +848,110 @@ try {
     return stuLogin.page;
   });
 
-  /* 走到打卡页、定位就绪：这一步该长得像「一个输入框 + 一个扫一扫按钮」。 */
+  /* 走进打卡页、定位就绪：路口**只该摆扫码一条**，输入框这时候不该出现
+     （以前两条并排摆，看着就像「先扫、再输」，这正是用户说别扭的地方）。 */
   const gate = await stu.eval(`(() => {
     App.go('stuSign');
     StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };   /* 定位直接塞结果，不去真要权限 */
-    StuSign._scanned = '';
+    StuSign._scanned = ''; StuSign._manual = false;
     StuSign.renderStep();
     const step = document.getElementById('stuSignStep');
-    return { has: !!document.getElementById('stuCode'),
-             scanBtn: [...step.querySelectorAll('button')].some(b => b.textContent.trim() === '扫一扫'),
+    const txt = [...step.querySelectorAll('button')].map(b => b.textContent.trim());
+    return { hasInput: !!document.getElementById('stuCode'),
+             btns: txt,
              box: !!document.getElementById('scanBox'),
-             hint: step.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) };
+             hint: step.textContent.replace(/\s+/g, ' ').trim().slice(0, 70) };
   })()`);
-  t('打卡页摆着「扫一扫」按钮，没点之前不弹取景框（不白开摄像头）', () => {
-    assert(gate.has, '该渲染出打卡码输入框');
-    assert(gate.scanBtn, '该有「扫一扫」按钮，实际按钮：' + gate.hint);
+  t('打卡页默认只摆「扫面前的二维码」一条路，输入框先不出现（二选一，不并排）', () => {
+    assert(!gate.hasInput, '没点「手输」之前不该出现输入框（两条并排会让人以为要先扫再输）');
+    assert(gate.btns.includes('扫面前的二维码'), '该有「扫面前的二维码」这个按钮，实际：' + gate.btns.join(' / '));
+    assert(gate.btns.includes('手输动态码'), '该有「手输动态码」的入口，实际：' + gate.btns.join(' / '));
     assert(!gate.box, '没点之前不该出现取景框');
-    return '提示「' + gate.hint + '」';
+    return '按钮 ' + gate.btns.join(' / ');
+  });
+  /* 文案：用户点名要的「扫描面前的二维码」—— 别再写黑板/讲台，
+     看板可能挂在走廊或办公室，学生面前那块屏才是他该看的。 */
+  t('提示文案写的是「面前的二维码」，不再提黑板 / 讲台', () => {
+    const all = BOARD_SRC;
+    assert(/面前的二维码/.test(all), 'index.html 里该有「面前的二维码」这句');
+    ['黑板上的二维码', '讲台上那个码', '讲台上/教务'].forEach(s =>
+      assert(!all.includes(s), '不该再出现「' + s + '」'));
+    return '提示：「' + gate.hint + '」';
   });
 
-  /* 仿真一次「扫到了」：定位还没拿到时先扫，码该被存下来、滤掉非数字。
-     onScan 的参数就是解码器吐出来的字符串 —— 这里换成带脏字符的形态，
-     顺带把「只留数字」这条守住。 */
-  const scanned = await stu.eval(`(() => {
-    StuSign._geo = null; StuSign._scanned = '';
-    StuSign.onScan(' 24-68 13 ');
-    return { scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox') };
+  /* 选「手输动态码」才出输入框 —— 而且这时是学生自己要打字，聚焦是对的行为。 */
+  const manual = await stu.eval(`(() => {
+    StuSign.manual(true);
+    const inp = document.getElementById('stuCode');
+    const step = document.getElementById('stuSignStep');
+    return { hasInput: !!inp, focused: inp ? document.activeElement === inp : null,
+             maxlen: inp ? inp.maxLength : 0, ph: inp ? inp.placeholder : '',
+             btns: [...step.querySelectorAll('button')].map(b => b.textContent.trim()) };
   })()`);
-  t('扫到码只留数字存下来，取景窗当场关掉（摄像头指示灯不许一直亮）', () => {
-    assert(scanned.scanned === '246813', '该存下 246813（滤掉空格和横杠），实际「' + scanned.scanned + '」');
-    assert(!scanned.cam && !scanned.box, '扫完该把取景窗和摄像头一起收掉');
-    return '「 24-68 13 」→ ' + scanned.scanned;
+  t('点「手输动态码」才出输入框：限 6 位、给到焦点（这时弹键盘正是他要的）', () => {
+    assert(manual.hasInput, '选了手输该出输入框');
+    assert(manual.maxlen === 6, '输入框该限 6 位（码就是 6 位），实际 ' + manual.maxlen);
+    assert(manual.focused === true, '自己点进来手输，该把焦点给上去');
+    assert(manual.btns.includes('改用扫码'), '手输这条路该留一个「改用扫码」的回退，实际：' + manual.btns.join(' / '));
+    return '限 ' + manual.maxlen + ' 位 · placeholder「' + manual.ph + '」· 按钮 ' + manual.btns.join(' / ');
   });
 
-  /* 定位到位之后再渲染：扫来的码该已经填在输入框里，而且**不抢焦点**
-     （手机上一点焦点就弹键盘，把上面那个大圈盖住）。 */
-  const filled = await stu.eval(`(() => {
+  /* 仿真一次「扫到了」：定位还没拿到时先扫，码该被存下来。
+     onScan 的参数就是解码器吐出来的字符串 —— 这里带脏字符，顺带守住「只留数字」。 */
+  const scanned = await stu.eval(`(() => {
+    StuSign._geo = null; StuSign._scanned = ''; StuSign._manual = false;
+    StuSign.onScan(' 24-68 13 ');
+    const a = { scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox'),
+                manual: StuSign._manual };
+    /* 定位补上之后再渲染：扫来的码该已经替他填好。
+       没定位时圈下面本来就是空的（圈自己就是按钮），不用摆输入框。 */
     StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
     StuSign.renderStep();
-    const inp = document.getElementById('stuCode');
-    return { val: inp ? inp.value : null, focused: inp ? document.activeElement === inp : null,
-             hint: document.getElementById('stuSignStep').textContent.replace(/\s+/g, ' ').trim().slice(0, 60) };
+    a.shown = (document.getElementById('stuCode') || {}).value;
+    StuSign._geo = null; StuSign._manual = false;
+    /* 位数不对的（扫到了屏幕上别的东西）该被挡回去，不截断、不猜 */
+    StuSign._scanned = '';
+    StuSign.onScan('12345');
+    const b = { scanned: StuSign._scanned };
+    StuSign.onScan('12345678');
+    const c = { scanned: StuSign._scanned };
+    return { a: a, b: b, c: c };
   })()`);
-  t('扫来的码已经填进输入框，而且不抢焦点（弹键盘会挡住打卡圈）', () => {
-    assert(filled.val === '246813', '该填好 246813，实际 ' + JSON.stringify(filled.val));
-    assert(filled.focused !== true, '扫来的码不该抢焦点（一聚焦就弹键盘盖住上面的圈）');
-    return '输入框 = ' + filled.val + '；提示「' + filled.hint + '」';
+  t('扫到码只留数字存下来，取景窗当场关掉（摄像头指示灯不许一直亮）', () => {
+    assert(scanned.a.scanned === '246813', '该存下 246813（滤掉空格和横杠），实际「' + scanned.a.scanned + '」');
+    assert(!scanned.a.cam && !scanned.a.box, '扫完该把取景窗和摄像头一起收掉');
+    assert(scanned.a.manual === true, '还没定位就扫到了，该把手输那条路摆出来让他看见码已进去');
+    assert(scanned.a.shown === '246813', '定位补上之后，码该已经替他填好，实际「' + scanned.a.shown + '」');
+    assert(scanned.b.scanned === '', '5 位的码该被挡回去（不猜、不补零），实际「' + scanned.b.scanned + '」');
+    assert(scanned.c.scanned === '', '8 位的码也该被挡回去（不截断），实际「' + scanned.c.scanned + '」');
+    return '「 24-68 13 」→ ' + scanned.a.scanned + ' · 5 位 / 8 位都拒收';
+  });
+
+  /* ⚠️ 用户报的那条：扫完还得再输一遍。
+     病根是 confirm() 只读输入框，而扫到码时输入框可能压根没渲染。
+     这里把 doSign 换成探针，**故意不让输入框存在**，走 _scanned 这条路提交。 */
+  const noRetype = await stu.eval(`(async () => {
+    const orig = StuSign.doSign;
+    let got = null;
+    StuSign.doSign = function(p){ got = p; };
+    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
+    StuSign._scanned = '246813';
+    StuSign._manual = false;
+    StuSign.renderStep();                       /* 走扫码那条路：此刻页面上没有 stuCode */
+    const hadInput = !!document.getElementById('stuCode');
+    const toasts = [];
+    const origToast = UI.toast; UI.toast = m => toasts.push(String(m));
+    StuSign.confirm();
+    UI.toast = origToast;
+    StuSign.doSign = orig;
+    return { hadInput: hadInput, code: got && got.code, geo: got && got.lat != null, toasts: toasts };
+  })()`);
+  t('扫到码之后直接提交，不会再要人「输一下码」（用户报的那个坑）', () => {
+    assert(!noRetype.hadInput, '这一趟故意走扫码那条路：页面上本来就没有输入框');
+    assert(noRetype.code === '246813', '提交上去的该是扫来的 246813，实际 ' + JSON.stringify(noRetype.code));
+    assert(noRetype.geo, '定位也该一起带上去');
+    assert(!noRetype.toasts.some(m => /输一下|输.*码/.test(m)), '不该再弹「输一下码」，实际弹了：' + noRetype.toasts.join(' / '));
+    return '无输入框 + _scanned=246813 → 直接提交 code=246813，一次提示都没弹';
   });
 
   /* 定位已经就绪时扫到码，该**直接提交** —— 扫完还要再按一下圈，那这趟就白扫了。
@@ -833,7 +1012,7 @@ try {
     assert(!leave.cam, '切页后 _cam 该清空');
     return 'App.go("stuHome") → 轨道 stop、框子摘掉';
   });
-  await stu.eval(`StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 }; StuSign._scanned = '246813'; StuSign.renderStep();`);
+  await stu.eval(`StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 }; StuSign._scanned = '246813'; StuSign._manual = true; StuSign.renderStep();`);
   await sleep(300);
   await shot(stu, 'board-scan-stu.png');
 

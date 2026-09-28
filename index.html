@@ -1248,12 +1248,23 @@ body.board-mode .page.on > *{animation:none}
    远看很碎；中式布告的做法是留白 + 栏线，整块纸看着才安静。 */
 .bd{
   flex:1;min-height:0;display:flex;flex-direction:column;
-  background:var(--bg);color:var(--ink);
+  /* 整块纸：底色之上压两团几乎看不见的暖金晕（左上、右下），
+     远看就是一张米白宣纸，近看才有那点半明暗 —— 比一块平色耐看，
+     也不会像纹理图那样在 55 寸屏上显出网纹。 */
+  background:
+    radial-gradient(120% 90% at 12% 6%, rgba(201,171,124,.10), transparent 58%),
+    radial-gradient(120% 90% at 88% 96%, rgba(201,171,124,.085), transparent 58%),
+    var(--bg);
+  color:var(--ink);
   font-variant-numeric:tabular-nums;
 }
+/* 顶带下面压一条**渐隐金线**（左浓右淡），像册页的天头 ——
+   比一道通长的灰线有分量，也不会抢下面三栏的注意力。 */
 .bd-top{display:flex;align-items:center;gap:clamp(10px,1.5vw,32px);
   padding:clamp(10px,1.6vh,24px) clamp(18px,2.6vw,54px);
-  border-bottom:1px solid var(--rule)}
+  border-bottom:1px solid var(--rule);position:relative}
+.bd-top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg, var(--gold) 0%, rgba(201,171,124,.28) 32%, transparent 72%)}
 .bd-lock{height:clamp(30px,4.2vh,56px);width:auto;flex:none;display:block}
 .bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
   letter-spacing:.05em;flex:none}
@@ -1274,13 +1285,22 @@ body.board-mode .page.on > *{animation:none}
 /* 中间那栏整列居中：二维码 + 数字码 + 应到实到，一块儿落在视觉正中 */
 .bd-gate{align-items:center;justify-content:center;text-align:center}
 
-/* 栏标题：宋体 + 一条延伸的细金线，像布告栏上的小标头 */
+/* 栏标题：宋体 + 一条延伸的细金线，像布告栏上的小标头。
+   金线用渐变收尾（近处金、远处隐），比一道灰线有手写的味道。 */
 .bd-h{font-family:var(--serif);font-size:clamp(13px,1.15vw,21px);font-weight:400;
   color:var(--ink);letter-spacing:.14em;margin:0;display:flex;align-items:baseline;
   gap:clamp(6px,.8vw,14px);flex:none;white-space:nowrap}
-.bd-h::after{content:"";flex:1;height:1px;background:var(--rule);position:relative;top:-.18em}
-.bd-lab{font-size:clamp(12px,1.05vw,19px);color:var(--dim);letter-spacing:.14em}
+.bd-h::after{content:"";flex:1;height:1px;position:relative;top:-.18em;
+  background:linear-gradient(90deg, rgba(168,135,63,.55), rgba(168,135,63,.06))}
 .bd-sub{font-size:clamp(12px,1.05vw,19px);color:var(--gold)}
+
+/* 中栏那行「今日打卡码」：宋体、字距放开，前面缀一枚小金点 ——
+   整块屏最要紧的一栏，标头不能跟左右两栏长得一样。 */
+.bd-lab{font-family:var(--serif);font-size:clamp(13px,1.25vw,23px);color:var(--ink);
+  letter-spacing:.34em;text-indent:.34em;display:flex;align-items:center;gap:clamp(8px,1vw,16px)}
+.bd-lab::before,.bd-lab::after{content:"";width:clamp(14px,1.6vw,30px);height:1px;
+  background:linear-gradient(90deg,transparent,rgba(168,135,63,.7))}
+.bd-lab::after{background:linear-gradient(90deg,rgba(168,135,63,.7),transparent)}
 
 /* ── 打卡二维码（居中 · 放大）──
    学生扫一下就把码带走，不必凑到屏前抄 6 位数字。
@@ -1295,15 +1315,26 @@ body.board-mode .page.on > *{animation:none}
   box-shadow:0 1px 0 rgba(34,31,26,.05), 0 8px 30px rgba(34,31,26,.10)}
 .bd-qr svg{display:block;width:100%;height:100%}
 
-/* 字号按「中栏内容宽 ÷ 6 位数字的占宽」倒推出来的：
-   ⚠️ 7vw 在 1024 宽的屏上会让 6 位码正好顶到栏边（余量只剩几个像素），这里取 6.2vw 留出余量。 */
-.bd-code{font-size:clamp(30px,6.2vw,120px);font-weight:500;line-height:1;color:var(--ink);
-  letter-spacing:.12em;white-space:nowrap}
-/* 教务要是设了个更长的固定码，再降一档，别撑出栏外 */
-.bd-code.long{font-size:clamp(22px,3.8vw,72px);letter-spacing:.05em}
-.bd-bar{width:min(78%,440px);height:clamp(4px,.7vh,9px);border-radius:99px;
+/* 6 位码：屏上第二大的东西（只让二维码压它一头）。等宽数字 + 宽字距，
+   站远一点也能一位一位数清楚。
+   ⚠️ 字号是按「中栏内容宽 ÷ 6 位数字的占宽」倒推的：7vw 在 1024 宽的屏上会顶到栏边，
+      取 6.2vw 留余量。位数已钉死 6 位（服务端派生），不必再做「长码降档」。 */
+.bd-code{font-family:var(--mono);font-size:clamp(30px,6.2vw,120px);font-weight:500;
+  line-height:1;color:var(--ink);letter-spacing:.14em;text-indent:.14em;white-space:nowrap}
+
+/* ── 换码倒计时 ──
+   进度条 + 一个大数字。**秒数才是要看的那个**（还有几秒就换），
+   所以数字给到跟码同一量级，最后 10 秒转朱砂催一下。 */
+.bd-timer{display:flex;align-items:center;gap:clamp(10px,1.4vw,26px);width:min(86%,470px)}
+.bd-bar{flex:1;height:clamp(5px,.8vh,10px);border-radius:99px;
   background:rgba(34,31,26,.1);overflow:hidden}
-.bd-bar > i{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .9s linear}
+.bd-bar > i{display:block;height:100%;border-radius:99px;background:var(--gold);
+  transition:width .9s linear}
+.bd-cd{display:flex;align-items:baseline;gap:4px;flex:none;font-family:var(--serif);
+  color:var(--dim);font-size:clamp(13px,1.15vw,21px);letter-spacing:.06em;white-space:nowrap}
+.bd-cd b{font-family:var(--mono);font-size:clamp(21px,2.3vw,46px);font-weight:500;
+  color:var(--ink);line-height:1;min-width:1.7em;text-align:right}
+.bd-cd b.soon{color:var(--red)}
 
 /* 二维码下面：应到 / 实到 —— 这块屏最该被一眼看见的两个数 */
 .bd-count{display:flex;gap:clamp(20px,3.4vw,72px);justify-content:center;align-items:flex-end;
@@ -1313,10 +1344,27 @@ body.board-mode .page.on > *{animation:none}
 .bd-count span{font-size:clamp(12px,1.05vw,19px);color:var(--dim);
   font-family:var(--serif);letter-spacing:.12em}
 .bd-count .bd-c-ok b{color:var(--green)}
-/* 迟到 / 请假 / 未到这几个细节数，一行小字跟在后面，不抢应到实到 */
-.bd-mini{font-size:clamp(12px,1.05vw,19px);color:var(--dim);letter-spacing:.04em}
-.bd-mini b{font-weight:500;color:var(--ink)}
-.bd-mini .warn{color:var(--red)}
+
+/* ── 迟到 / 请假 / 未到：三个带标签的中等数字 ──
+   原来这里只是一行 19px 的小字（「迟到 4 · 请假 3 · 未到 7」），
+   站两米外一个都认不出 —— 现在各自成格、数字放大到 22~50px，细线分隔。
+   颜色各归其位：迟到赭、请假蓝、未到朱砂。 */
+.bd-mini{display:flex;align-items:baseline;justify-content:center;
+  gap:clamp(12px,2vw,40px);width:100%}
+.bd-m{display:flex;align-items:baseline;gap:clamp(5px,.6vw,11px)}
+.bd-m b{font-family:var(--mono);font-size:clamp(22px,2.4vw,50px);font-weight:500;
+  line-height:1;color:var(--ink)}
+.bd-m span{font-family:var(--serif);font-size:clamp(12px,1.05vw,19px);
+  color:var(--dim);letter-spacing:.1em}
+.bd-m + .bd-m{border-left:1px solid var(--rule);padding-left:clamp(12px,2vw,40px)}
+.bd-m.late b{color:var(--amber)}
+.bd-m.leave b{color:var(--blue)}
+/* ⚠️ 类名必须带 bd- 前缀：系统里有个通用的
+   `.warn{background:#fff6e9;border:1px solid #f0d9a8;padding:10px;font-size:13px}`
+   （给排课页的提示条用的）。直接叫 .warn 会被它一起吃掉 ——
+   「未到」那个数会平白多出一圈黄底、标签还被压成 13px。
+   这套亏吃过一次了（见 .bd-c-ok 与 .ok 的关系），别再犯。 */
+.bd-m.bd-warn b{color:var(--red)}
 
 /* ── 左栏：今日课表 ──
    竖排，每行「时间 · 课名 · 班级」，细线分隔。课多、一列装不下时整列缓慢上滚。 */
@@ -1329,6 +1377,11 @@ body.board-mode .page.on > *{animation:none}
 .bd-s-n{font-size:clamp(15px,1.5vw,28px);color:var(--ink);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bd-s-w{margin-left:auto;font-size:clamp(12px,1.05vw,19px);color:var(--dim);flex:none;white-space:nowrap}
+/* 下一节课：左侧压一道金边、课名加重 —— 站在门口一眼就知道「接下来是哪个班」。
+   由 schedHtml() 比当前时刻（服务端校过的钟）挑出第一条还没开始的课。 */
+.bd-s.next{padding-left:clamp(9px,1.1vw,20px);border-left:3px solid var(--gold);
+  background:rgba(201,171,124,.11)}
+.bd-s.next .bd-s-n{font-weight:500}
 .bd-sched-in.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
 
 /* ── 右栏上半：班级量化榜（最多 5 格）──
@@ -1337,10 +1390,15 @@ body.board-mode .page.on > *{animation:none}
 .bd-q{display:flex;align-items:baseline;gap:clamp(8px,1vw,16px);min-width:0;
   padding:clamp(6px,1vh,14px) clamp(8px,1vw,16px);
   border:1px solid var(--rule);border-radius:4px;background:rgba(255,255,255,.55)}
+/* 名次「01~05」：宋体淡金两位序号。有它在，一眼就数得出这是「前五名」 */
+.bd-q-k{font-family:var(--serif);font-size:clamp(12px,1.1vw,20px);color:var(--gold);
+  flex:none;letter-spacing:.06em;font-variant-numeric:tabular-nums}
 .bd-q-n{font-size:clamp(13px,1.2vw,22px);color:var(--ink);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bd-q-v{margin-left:auto;font-size:clamp(18px,2vw,40px);font-weight:500;flex:none;
   font-variant-numeric:tabular-nums;line-height:1}
+/* 榜首：金线加重、底子透一点暖金 —— 榜是拿来给人争的，第一名该有分量 */
+.bd-q:first-child{border-color:rgba(168,135,63,.42);background:rgba(201,171,124,.13)}
 .bd-q.up .bd-q-v{color:var(--red)}
 .bd-q.down .bd-q-v{color:var(--green)}
 
@@ -1358,9 +1416,9 @@ body.board-mode .page.on > *{animation:none}
 /* 名单 .fit 只是「这趟装得下」的标记；真正的居中做在外层面板上（见 .bd-miss.fit）——
    只给这里加 align-content:center 是空转的：flex 容器没有高度，居中无处可居。 */
 .bd-rows.fit{align-content:center}
-.bd-row{font-size:clamp(12px,1.2vw,23px);color:var(--ink);
+.bd-row{font-size:clamp(13px,1.35vw,26px);color:var(--ink);
   background:rgba(178,58,46,.06);border:1px solid rgba(178,58,46,.16);
-  border-radius:6px;padding:clamp(3px,.5vh,8px) clamp(9px,.85vw,17px);
+  border-radius:6px;padding:clamp(4px,.62vh,10px) clamp(10px,.95vw,19px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bd-row.calm{background:rgba(47,125,93,.08);border-color:rgba(47,125,93,.2);color:var(--green)}
 /* 名单 / 课表超出面板高度时，整体缓慢上滚循环（内容由 Board.fill 复制一份） */
@@ -1403,6 +1461,21 @@ body.board-mode .page.on > *{animation:none}
 .scan-frame::before{left:-3px;top:-3px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
 .scan-frame::after{right:-3px;bottom:-3px;border-left:0;border-top:0;border-radius:0 0 10px 0}
 .scan-tip{text-align:center;font-size:13px;opacity:.72;margin:10px 0 0}
+
+/* ══════════ 打卡管理页：动态码（只读 · 60 秒一换）══════════════
+   二维码里的数和下面那 6 位数字是**同一枚码**：学生当场扫、或当场抄，
+   两样都过一分钟就作废。这里没有任何可编辑的地方 —— 固定码已经取消。
+   ⚠️ 二维码托盘必须纯白 + 带 4 格静默区（静默区由 QRLib.svg 自带），少了手机扫不出。 */
+.code-qr{width:176px;aspect-ratio:1;flex:none;background:#fff;border-radius:8px;
+  padding:8px;border:1px solid var(--line);box-shadow:var(--shadow)}
+.code-qr svg{display:block;width:100%;height:100%}
+.code-live{display:flex;flex-direction:column;gap:10px;min-width:190px;flex:1;max-width:360px}
+.live-code{font-family:var(--mono);font-size:40px;font-weight:500;line-height:1;
+  letter-spacing:.16em;color:var(--text)}
+.cd-bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.cd-bar > i{display:block;height:100%;border-radius:99px;background:var(--gold);
+  transition:width .9s linear}
+.cd-left{margin:0}
 </style>
 </head>
 <body>
@@ -2294,11 +2367,14 @@ try {
 
           <!-- 中栏：打卡码（二维码居中放大；码下面就是应到 / 实到） -->
           <div class="bd-col bd-gate">
-            <span class="bd-lab">今日打卡码</span>
+            <div class="bd-lab">今日打卡码</div>
             <div class="bd-qr" id="bdQr" role="img" aria-label="打卡二维码"></div>
             <div class="bd-code" id="bdCode">····</div>
-            <div class="bd-bar"><i id="bdBar" style="width:0%"></i></div>
-            <div class="bd-sub" id="bdCodeHint"></div>
+            <!-- 换码倒计时：进度条走到头就换新码；右边那个秒数才是要看的 -->
+            <div class="bd-timer">
+              <div class="bd-bar"><i id="bdBar" style="width:100%"></i></div>
+              <div class="bd-cd"><b id="bdLeft">—</b><span>秒后换码</span></div>
+            </div>
             <div class="bd-count">
               <div><b id="bdShould">0</b><span>应到</span></div>
               <div class="bd-c-ok"><b id="bdHere">0</b><span>实到</span></div>
@@ -2703,12 +2779,19 @@ try {
         <p class="hint" id="sgStat"></p>
 
         <h2 style="margin:18px 0 0"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-hash"></use></svg> 这个时段的打卡码</h2>
-        <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="sgCode" placeholder="自己设一个，如 8866" style="max-width:220px">
-          <button class="btn" onclick="Sign.saveCode()">保存</button>
-          <button class="btn ghost" onclick="Sign.randCode()">随机一个</button>
+        <!-- 动态码：**只读**。以前这里能自己设一个「固定码」，一节课不变 ——
+             但固定码一旦被学生转进群里，别人在宿舍也能打。
+             现在数字与二维码是同一枚、60 秒一换，下面带倒计时，没有可改的地方。 -->
+        <p class="hint" style="margin:0 0 10px">6 位动态码，<b>每 60 秒自动换一次</b>。
+          学生要么<b>当场扫</b>这块二维码，要么<b>当场抄</b>这 6 位 —— 两样都过一分钟就作废。</p>
+        <div class="row" style="flex-wrap:wrap;gap:22px;align-items:flex-start;margin-top:0">
+          <div class="code-qr" id="signCodeQr" role="img" aria-label="打卡二维码"></div>
+          <div class="code-live">
+            <div id="signCodeBox"></div>
+            <div class="cd-bar"><i id="signCodeBar" style="width:100%"></i></div>
+            <div class="hint cd-left" id="signCodeLeft"></div>
+          </div>
         </div>
-        <div id="signCodeBox" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 今日打卡 <span class="hint" id="signTodayMeta" style="display:inline;margin:0"></span></h2>
@@ -2798,6 +2881,17 @@ try {
 
    所以数组型一律用 upsert / softDelete，每条带修改时间，合并时逐条比对。
    ═══════════════════════════════════════════════════════════ */
+
+/* 演示实体（演示班 cls_demo / 演示学员 stu_demo）的判据。
+   放在 Store **之前** —— 数据层自己要用它；不能反过来调 Util（Util 里读 classes
+   又会绕回 list，成环）。Util.isDemoObj 是同一套规则再加「演示账号名」，
+   两处要一起改。 */
+function isDemoEntity(o){
+  if (!o) return false;
+  if (o.demo === true) return true;
+  return o.id === 'cls_demo' || o.id === 'stu_demo';
+}
+
 const Store = (() => {
   const NS  = 'bysdash:';
   const SEC = 'bysdash$secret:';
@@ -2834,6 +2928,25 @@ const Store = (() => {
 
   const now = () => Date.now();
 
+  /* ── 演示数据不进正式系统 ──
+     演示班 / 演示学员存在的唯一意义是「拿真操作演一遍，看系统有没有 bug」，
+     它们不属于博艺的名册。可它们一旦落进 classes / students，
+     学生人数、出勤、量化榜、导出、周末班统计……几十处都会把它们当真人算进去。
+
+     与其在几十个页面上各贴一道过滤（贴漏一处就露出来，而且以后新加的页面还会漏），
+     不如在数据层一次滤掉：list('classes') / list('students') 默认就看不见演示数据。
+     少数「就是要全部」的地方显式传 { demo: true }（备份导出、彻底清理、演示账号维护）。 */
+  function demoFilter(key, arr){
+    if (key === 'classes') return arr.filter(x => !isDemoEntity(x));
+    if (key === 'students'){
+      /* 演示班里的学员也算演示数据，哪怕他自己没带标记 —— 演示班底下不该有「真人」 */
+      const all = driver.get(NS + 'classes');
+      const dead = new Set((Array.isArray(all) ? all : []).filter(isDemoEntity).map(c => c.id));
+      return arr.filter(x => !isDemoEntity(x) && !dead.has(x.classId));
+    }
+    return arr;
+  }
+
   /** 按 id 逐条合并两个列表：同 id 取修改时间更新的那条 */
   function mergeList(a, b){
     const m = new Map();
@@ -2864,8 +2977,9 @@ const Store = (() => {
     },
 
     /* ── 数组型：一条一条存，可合并 ── */
-    /** 读列表：过滤掉墓碑，顺手清理过期墓碑 */
-    list(key, sort){
+    /** 读列表：过滤掉墓碑，顺手清理过期墓碑；classes / students 还默认滤掉演示数据。
+        要连演示数据一起拿（备份导出、彻底清理），传第三个参数 { demo: true }。 */
+    list(key, sort, opts){
       const raw = this.get(key, []);
       if (!Array.isArray(raw)) return [];
       const cut = now() - TOMB_TTL;
@@ -2875,8 +2989,12 @@ const Store = (() => {
         if (it) { alive.push(it); keep.push(it); }
       }
       if (keep.length !== raw.length) driver.set(NS + key, keep);  // 静默清理，不算一次写
-      return sort ? alive.sort(sort) : alive;
+      const out = sort ? alive.sort(sort) : alive;
+      return (opts && opts.demo) ? out : demoFilter(key, out);
     },
+
+    /** 读列表但要连演示数据一起（备份、彻底清理、演示账号维护用） */
+    listRaw(key, sort){ return this.list(key, sort, { demo: true }); },
 
     /** 增或改一条。没有 id 就生成一个；自动打修改时间 */
     upsert(key, item){
@@ -3187,25 +3305,32 @@ const Util = {
     return out;
   },
 
-  /** 班级名 */
-  clsName(id){ const c = Store.list('classes').find(x => x.id === id); return c ? c.name : ''; },
+  /** 班级名。⚠️ 这里用 listRaw：按 id 查名字是「具名取用」，不是统计 ——
+      演示账号挂着演示班，名字查不出来账号列表上就会缺一块。
+      （统计要走 realClasses()，那条路才滤演示数据。） */
+  clsName(id){ const c = Store.listRaw('classes').find(x => x.id === id); return c ? c.name : ''; },
 
   /* 演示实体（演示班 / 演示学员 / 四个演示账号）一律认 id 与 demo 标记，
-     真实系统里把它们从班级、名册、账号列表里隔离出去，跟真数据分清楚。 */
+     真实系统里把它们从班级、名册、账号列表里隔离出去，跟真数据分清楚。
+     ⚠️ 班级与学员这两类，Store.list 已经默认滤掉了（见 isDemoEntity / demoFilter），
+        这里主要是给「账号」那条线用 —— 演示账号是云端的 users，不走 Store。 */
   isDemoObj(o){
-    if (!o) return false;
-    if (o.demo === true) return true;
-    if (o.id === 'cls_demo' || o.id === 'stu_demo') return true;
+    if (isDemoEntity(o)) return true;
     if (o.user && typeof Settings !== 'undefined' && Settings.DEMO && Settings.DEMO.some(d => d.user === o.user)) return true;
     return false;
   },
+  /** 真班级：Store.list 已滤过一道，这里再兜一次（万一有人拿 listRaw 造了数据） */
   realClasses(){
     return Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1)
                .filter(c => !this.isDemoObj(c));
   },
+  /** 真学员：同理。名册、人数、出勤、量化一律走这个，不要直接拿 Store.list('students') */
+  realStudents(sort){
+    return Store.list('students', sort).filter(s => !this.isDemoObj(s));
+  },
 
-  /** 学员名 */
-  stuName(id){ const s = Store.list('students').find(x => x.id === id); return s ? s.name : ''; },
+  /** 学员名。同 clsName：按 id 查名字用 listRaw，统计才滤演示数据。 */
+  stuName(id){ const s = Store.listRaw('students').find(x => x.id === id); return s ? s.name : ''; },
 
   /** 数字转成好读的字符串，空值给占位符 */
   num(v, dash = '—'){ return (v === null || v === undefined || v === '' || isNaN(v)) ? dash : v; },
@@ -3937,6 +4062,9 @@ const App = {
     /* 离开打卡页就把扫一扫的摄像头关掉 —— 取景窗是挂在页面里的，切走了还开着，
        手机右上角那颗摄像指示灯会一直亮，学生要以为被偷拍了。 */
     if (id !== 'stuSign' && typeof StuSign !== 'undefined') StuSign.stopScan();
+    /* 离开打卡管理页就把动态码的秒表停了 —— 那块码是只读的，
+       切走了还每秒去要一次码，白打接口、也白烤机器。 */
+    if (id !== 'sign' && typeof Sign !== 'undefined') Sign.stopCode();
     this.routes.find(r => r.id === id)?.onShow?.();
     // 「看过就消红点」只认用户主动点进去这一次：同步在后台刷页面不算看过，
     // 否则人停在协作页时新工单会被瞬间自动已读，红点永远亮不起来
@@ -8783,7 +8911,9 @@ const Settings = {
     Store.upsert('classes',  { id:'cls_demo', name:'演示班', demo:true });
     Store.upsert('students', { id:'stu_demo', name:'演示学员', classId:'cls_demo', demo:true });
     try { await Sync.push(); } catch(e){}
-    const clsIds = Store.list('classes').map(c => c.id);
+    /* ⚠️ 这里要 listRaw：演示账号得挂着演示班，否则切过去什么都看不见。
+       平时 list('classes') 是看不见演示班的（数据层滤掉了），只有建演示账号这一处要全部。 */
+    const clsIds = Store.listRaw('classes').map(c => c.id);
     const list = this.DEMO.map(d => ({
       user: d.user, pass: this.DEMO_PASS, role: d.role, name: d.name, demo:true,
       studentId: d.role === 'student' ? 'stu_demo' : '',
@@ -9904,6 +10034,7 @@ const StuSign = {
   _again: false,     // 已经打过卡了，学生自己按了「重新打卡」：这一轮允许再打一次
   _cam: null,        // 扫一扫正在取景：{stop,stream,timer,cv}
   _scanned: '',      // 扫一扫读到的码（见 StuSign.scan / renderStep）
+  _manual: false,    // 学生选了「手输动态码」这条路（扫码和手输是二选一，不并排摆）
 
   render(){
     const box = document.getElementById('stuSignNow');
@@ -10002,10 +10133,16 @@ const StuSign = {
     this._tk = setInterval(paint, 1000);
   },
 
-  /* ── 两步打卡：① 定位 ② 输码 ──
+  /* ── 两步打卡：① 定位 ② 拿码 ──
      位置是「人在不在教室」的证据，码是「这次打卡是不是这节课」的证据。
-     两样都要，所以先取位置、再要码 —— 少一步都会被教务那边标成「需核对」。 */
-  /* 圈下面只在「定位好了、还差一个码」时才长东西 —— 其余时候干干净净 */
+     两样都要，所以先取位置、再要码 —— 少一步都会被教务那边标成「需核对」。
+
+     ⚠️ **扫码和手输是二选一，不是两道工序**。
+        以前这里同时摆着输入框和「扫一扫」按钮，学生扫完码还得再按一下圈 ——
+        看上去就像「扫完还得再输一遍」。现在路口只摆一条：
+        · 默认只给「扫面前的二维码」；
+        · 想自己敲的，点「手输动态码」才出输入框 —— 那时扫一扫就让位。
+     圈下面只在「定位好了、还差一个码」时才长东西，其余时候干干净净。 */
   renderStep(){
     const el = document.getElementById('stuSignStep');
     if (!el) return;
@@ -10014,38 +10151,51 @@ const StuSign = {
     const g = Stu.gate();
     if (!g.ok) { el.innerHTML = ''; return; }
     if (g.signed && g.rec && !this._again){ el.innerHTML = ''; return; }
-    /* 扫一扫读到的码（见 StuSign.scan）：定位好了就直接替他填上 —— 扫完还要手抄就白扫了。
-       这时候**不聚焦输入框**：手机一聚焦就弹键盘，把上面那个大圈盖住，
-       而他这趟只需要按圈。 */
+    if (!this._geo) { el.innerHTML = ''; return; }   /* 还没定位：圈自己就是按钮 */
+
+    const ok = this._geo.lat != null;
+    const head = ok
+      ? `已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''}`
+      : '没取到位置 —— 也可以先打卡，教务那边会标「需核对」';
+    const fix = ok
+      ? '<button class="btn ghost" onclick="StuSign.reset()">重定位</button>'
+      : '<button class="btn ghost" onclick="StuSign.start()">再试定位</button>';
+    /* 扫来的码优先摆出来：万一学生是「先扫、手机没定位、后来才定位上」，
+       回头还能看见码已经在这儿了，按圈就行。 */
     const scan = this._scanned || '';
-    if (this._geo && this._geo.lat != null){
+
+    if (!this._manual){
       el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''} —— ${scan ? '码已经从二维码读到了，' : '输一下码，或扫一下屏上的二维码，'}再按上面的圈。</p>
+        <p class="hint" style="margin:0 0 8px">${head} —— 对着面前屏幕上的二维码扫一下就能打卡。</p>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px" value="${Util.esc(scan)}">
-          <button class="btn ghost" onclick="StuSign.scan()">扫一扫</button>
-          <button class="btn ghost" onclick="StuSign.reset()">重定位</button>
-        </div>`;
-      const inp = document.getElementById('stuCode');
-      if (inp && !scan) inp.focus();
-      return;
-    }
-    if (this._geo && this._geo.fail){
-      el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">没取到位置：可以先打卡，教务那边会标「需核对」。</p>
-        <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px" value="${Util.esc(scan)}">
-          <button class="btn ghost" onclick="StuSign.scan()">扫一扫</button>
-          <button class="btn ghost" onclick="StuSign.start()">再试定位</button>
+          <button class="btn" onclick="StuSign.scan()">扫面前的二维码</button>
+          <button class="btn ghost" onclick="StuSign.manual(true)">手输动态码</button>
+          ${fix}
         </div>`;
       return;
     }
-    el.innerHTML = '';      /* 还没定位：圈自己就是按钮，下面不摆东西 */
+    el.innerHTML = `
+      <p class="hint" style="margin:0 0 8px">${head} —— 看一眼屏幕上那 <b>6 位数字</b>输进来，再按上面的圈。${scan ? '（已经读到了）' : ''}</p>
+      <div class="row" style="flex-wrap:wrap">
+        <input type="text" id="stuCode" inputmode="numeric" autocomplete="off" maxlength="6"
+               placeholder="6 位数字" style="max-width:150px" value="${Util.esc(scan)}">
+        <button class="btn ghost" onclick="StuSign.scan()">改用扫码</button>
+        ${fix}
+      </div>`;
   },
 
-  reset(){ this._geo = null; this.render(); },
+  /** 切到「手输动态码」这条路。这里**才**聚焦输入框 ——
+      是学生自己点进来的，弹键盘正是他要的；扫来的码则绝不抢焦点。 */
+  manual(on){
+    this._manual = !!on;
+    this.renderStep();
+    const inp = document.getElementById('stuCode');
+    if (inp && !this._scanned){ try { inp.focus(); } catch(e){} }
+  },
+
+  reset(){ this._geo = null; this._scanned = ''; this._manual = false; this.render(); },
   /** 已经打过了还想再打一次（比如刚才打错了）：重新走一遍 */
-  again(){ this._again = true; this._geo = null; this.render(); },
+  again(){ this._again = true; this._geo = null; this._scanned = ''; this._manual = false; this.render(); },
 
   /* ── 扫一扫：对着看板上那块二维码扫一下，读到的数字直接进打卡 ──
      用砺蕴自带的那份解码器（QRDec），不走浏览器的 BarcodeDetector ——
@@ -10054,7 +10204,7 @@ const StuSign = {
   async scan(){
     if (this._cam) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
-      return UI.toast('这个浏览器用不了摄像头，手输那 6 位码也一样');
+      return UI.toast('这个浏览器用不了摄像头，点「手输动态码」抄屏幕上那 6 位也一样');
     const host = document.getElementById('stuSignStep');
     if (!host) return;
 
@@ -10066,7 +10216,7 @@ const StuSign = {
       + '<video id="scanVideo" playsinline muted autoplay></video>'
       + '<div class="scan-frame"></div>'
       + '</div>'
-      + '<p class="scan-tip" id="scanTip">把屏上的二维码框进方框里</p>'
+      + '<p class="scan-tip" id="scanTip">把面前的二维码框进方框里</p>'
       + '<div class="row" style="justify-content:center;margin-top:10px">'
       + '<button class="btn ghost" onclick="StuSign.stopScan()">取消</button>'
       + '</div>';
@@ -10113,13 +10263,16 @@ const StuSign = {
   },
 
   onScan(code){
-    const c = String(code).replace(/\D/g, '').slice(0, 12);
+    const c = String(code).replace(/\D/g, '');
     this.stopScan();
-    if (!c) return UI.toast('扫到的不是打卡码，对着码再试一次');
+    /* 码就是 6 位。扫出别的位数 → 对错了码（或是屏幕上别的什么），不猜、不截断 */
+    if (c.length !== 6) return UI.toast('扫到的不是打卡码，对着面前屏幕上那块再试一次');
     this._scanned = c;
-    /* 位置已经拿到了就直接替他提交 —— 扫完还要再按一下圈，那这趟就白扫了 */
+    /* 位置已经拿到了就直接替他提交 —— **扫完还要再按一下圈，那这趟就白扫了**。
+       这就是「扫码代替输数字」该有的样子：扫到即打完。 */
     if (this._geo && this._geo.lat != null){ this.confirm(); return; }
-    UI.toast('扫到了：' + c);
+    this._manual = true;         // 还没定位：把输入框摆出来，让他看见码已经进去了
+    UI.toast('扫到了 ' + c + '，按一下上面那个圈就算打上');
     this.render();
   },
 
@@ -10162,8 +10315,11 @@ const StuSign = {
 
   confirm(){
     const el = document.getElementById('stuCode');
-    const code = (el && el.value || '').trim();
-    if (!code) return UI.toast('输一下讲台上那个码');
+    /* ⚠️ 扫来的码优先于输入框：走扫一扫那条路的人，不该再被要求照着抄一遍。
+       （这里以前只读输入框 —— 而扫到码时输入框可能还没渲染出来，
+        于是「扫完还得再输一次」，怎么输都说不清。） */
+    const code = (this._scanned || (el && el.value) || '').trim();
+    if (!code) return UI.toast(this._manual ? '输一下屏幕上那 6 位数字' : '扫一下面前的二维码就能打卡');
     const p = { code };
     if (this._geo && this._geo.lat != null){ p.lat = this._geo.lat; p.lng = this._geo.lng; p.acc = this._geo.acc; }
     this.doSign(p);
@@ -10212,6 +10368,7 @@ const StuSign = {
       this._geo = null;
       this._again = false;          // 这一轮打完了，「重新打卡」要再按一次才重来
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
+      this._manual = false;         // 路口回到默认那条：下次还是「扫一下」
       const el = document.getElementById('stuCode'); if (el) el.value = '';
       this.render();
       StuHome.render();
@@ -10546,11 +10703,17 @@ const StuHw = {
 const Sign = {
   /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
   DEF: { startAt:'08:30', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'' },
-  _code: '', _fixed: false, _timer: null,
+  _code: '', _until: 0, _timer: null,
 
   rules(){
     const r = Store.get('sign_rules');
-    return Object.assign({}, this.DEF, r && typeof r === 'object' ? r : {});
+    const out = Object.assign({}, this.DEF, r && typeof r === 'object' ? r : {});
+    /* ⚠️ 老数据里可能留着教务当年设的「固定码」（sign_rules.code）。
+       现在码一律由服务端每 60 秒派生，本地这个字段必须无视 ——
+       否则一台老设备会把「8866」这种永不过期的码一直认下去。
+       （不清掉，只是不再读：万一要回看历史设置还在。） */
+    delete out.code;
+    return out;
   },
   saveRules(){
     const num = (id, def) => { const v = Number(document.getElementById(id).value); return isNaN(v) ? def : v; };
@@ -10598,62 +10761,68 @@ const Sign = {
     this.stat();
   },
 
-  /* ── 打卡码：教务自己设，不会自己变 ──
-     以前这里每 30 秒去服务端取一次码、再回写进输入框：刚改的码还没同步上去，
-     就被服务端那个旧值盖回去了 —— 看起来就是「改不动、刷新很慢」。
-     现在改成：**本地就是唯一真相**，改完立刻生效；只有本地没设码时才去服务端要一个。 */
-  localCode(){ return String(this.rules().code || '').trim(); },
-
-  saveCode(){
-    const el = document.getElementById('sgCode');
-    const v = (el && el.value || '').trim();
-    if (!v) return UI.toast('先填一个码，比如 8866');
-    const r = this.rules();
-    r.code = v;
-    Store.set('sign_rules', r);
-    this._code = v; this._fixed = true;
-    UI.toast('打卡码已设为「' + v + '」');
-    this.paintCode();
-    this.pushRules();
-  },
-  randCode(){
-    const el = document.getElementById('sgCode');
-    const n = String(Math.floor(1000 + Math.random() * 9000));
-    if (el) el.value = n;
-    this.saveCode();
-  },
-
-  /** 改完立刻推一次，别等定时同步 —— 学生下一秒就可能要打卡 */
+  /** 改完规则立刻推一次，别等定时同步 —— 学生下一秒就可能要打卡 */
   pushRules(){
     try { if (typeof Sync !== 'undefined' && Sync.push) Sync.push(); } catch(e){}
   },
 
+  /* ── 打卡码：**只读**，60 秒一换 ──
+     以前这里能自己设一个固定码（一节课不变）—— 现在没了。
+     固定码最大的问题是「一次泄漏管一节课」：一个学生拍下来发群里，
+     全班在宿舍都能打。改成服务端派生、60 秒轮换之后，截屏也追不上。
+     屏幕上这枚码同时喂两处：二维码里编的就是它，数字也是它 —— 同一个值。 */
   async refreshCode(){
-    const local = this.localCode();
-    if (local){ this._code = local; this._fixed = true; this.paintCode(); return; }
     try {
       const j = await Auth.call('code');
-      this._code = j.code || ''; this._fixed = !!j.fixed;
+      this._code = j.code || '';
+      /* left = 服务端算的「这一枚还剩多少毫秒」。倒计时以服务端为准，
+         学生手机上看到的时间和这台电脑是同一个。 */
+      this._until = this._code ? Date.now() + (Number(j.left) || 60000) : 0;
       if (j && j.serverNow) StuSign.syncClock(j.serverNow);
     } catch(e){
-      this._code = ''; this._fixed = false;
+      /* 断网就留着上一枚，别把这块屏弄成空白；下面的倒计时会停在 0 并继续每秒重试 */
+      this._until = 0;
     }
     this.paintCode();
   },
   paintCode(){
+    const code = this._code || '';
     const box = document.getElementById('signCodeBox');
     if (box){
-      box.innerHTML = this._code
-        ? `<div class="hero num" style="font-size:44px;letter-spacing:6px">${this._code}</div>`
-        : '<div class="empty">还没设打卡码</div>';
+      const html = code
+        ? `<div class="live-code num">${Util.esc(code)}</div>`
+        : '<div class="empty">取不到动态码，正在重试…</div>';
+      if (box.dataset.raw !== html) { box.dataset.raw = html; box.innerHTML = html; }
     }
-    const el = document.getElementById('sgCode');
-    if (!el) return;
-    /* 正在输的时候绝不回写，否则刚敲进去的字会被冲掉 */
-    if (document.activeElement === el) return;
-    if (el.value !== this._code) el.value = this._code;
+    /* 二维码：编的就是同一枚数字码（学生用砺蕴自带「扫一扫」，不编网址） */
+    const qr = document.getElementById('signCodeQr');
+    if (qr){
+      const want = code ? QRLib.svg(code) : '';
+      if (qr.dataset.code !== code){
+        qr.dataset.code = code;
+        qr.style.display = want ? '' : 'none';
+        qr.innerHTML = want;
+      }
+    }
+    /* 倒计时：条形 + 数字。每秒被 tick 叫一次 */
+    const bar = document.getElementById('signCodeBar');
+    const left = this._until ? Math.max(0, this._until - Date.now()) : 0;
+    if (bar) bar.style.width = (left / 60000 * 100).toFixed(1) + '%';
+    const lab = document.getElementById('signCodeLeft');
+    if (lab){
+      const txt = !code ? ''
+        : left ? `${Math.ceil(left / 1000)} 秒后换码`
+        : '正在换码…';
+      if (lab.textContent !== txt) lab.textContent = txt;
+    }
   },
-  startCode(){ this.stopCode(); this.refreshCode(); },
+  /* 每秒走一格：只刷倒计时；走到头就立刻去要新码，不等下一趟定时器 */
+  tick(){
+    if (!document.getElementById('signCodeLeft')) return;
+    this.paintCode();
+    if (this._code && this._until && Date.now() >= this._until){ this._until = 0; this.refreshCode(); }
+  },
+  startCode(){ this.stopCode(); this.refreshCode(); this._timer = setInterval(() => this.tick(), 1000); },
   stopCode(){ clearInterval(this._timer); this._timer = null; },
 
   /* ── 今日打卡一览 ── */
@@ -10672,6 +10841,12 @@ const Sign = {
     if (sel) sel.innerHTML = slots.map(s =>
       `<option value="${s.id}" ${s.id === (r.pid || slots[0].id) ? 'selected' : ''}>${Util.esc(s.name)}</option>`).join('');
     this.stat();
+
+    /* ⚠️ 动态码的秒表必须**在这儿**起来，不能等到函数末尾。
+       下面有几处「还没建班级 / 没有这个元素」的提前 return ——
+       秒表要是挂在最后，新装的系统（还没建班）打开打卡页会看到一块空白码区，
+       而原因跟「有没有班级」半点关系都没有。 */
+    this.startCode();
 
     const dateEl = document.getElementById('sgDate');
     if (dateEl && !dateEl.value) dateEl.value = Store.get('_signDate') || Util.today();
@@ -10717,8 +10892,6 @@ const Sign = {
         </div>
       </div>`;
     }).join('') : '<div class="empty">这个班还没有学员</div>';
-
-    this.startCode();
   },
 
   /** 补签 / 改判：写进考勤，量化自动跟着走（跟教务在考勤页点名是同一条链路） */
@@ -11622,8 +11795,8 @@ const Board = {
   _vis: null, _esc: null,
   _lock: null,   /* 屏幕唤醒锁 —— 这台电脑没人碰，不锁住几分钟就息屏了 */
   _off: 0,       /* 本机时钟与服务端的偏差。三硬原则：时间以服务端为准 */
-  _until: 0,     /* 这一枚码还剩到什么时候（教务设的固定码时为 0） */
-  _code: '', _fixed: false, _stamp: 0, _data: null,
+  _until: 0,     /* 这一枚码还剩到什么时候（服务端派生的码一定有时间点） */
+  _code: '', _stamp: 0, _data: null,
 
   /* 只有教务端能看：老师那边没有打卡这一摊，学生更不该看到码 */
   ok(){ return Auth.isStaff(); },
@@ -11744,17 +11917,18 @@ const Board = {
 
   /* ── 取数 ── */
   async refresh(){
-    /* 打卡码：教务自己设了就用那个（固定不变），没设就是服务端每 60 秒派生的那枚。
+    /* 打卡码：服务端派生的那枚，6 位、60 秒一换。没有「固定码」这条路了 ——
+       固定码一次泄漏管一节课，现在这块屏上的数字和二维码里编的数都是这一枚，
+       过一分钟就换，截屏也追不上。
        顺手拿 serverNow 校正本机时钟 —— 打卡这件事上，时间只能以服务端为准。 */
     try {
       const j = await Auth.call('code');
       if (j && j.code){
         this._code = String(j.code);
-        this._fixed = !!j.fixed;
         if (j.serverNow) this._off = j.serverNow - Date.now();
-        this._until = j.fixed ? 0 : Date.now() + (j.left || 60000);
+        this._until = Date.now() + (Number(j.left) || 60000);
       }
-    } catch(e){ /* 断网时留着上一枚码，右上角那行「数据停留于」会亮出来提醒 */ }
+    } catch(e){ /* 断网时留着上一枚码，顶带那行「数据停留于」会亮出来提醒 */ }
 
     this._data = this.collect(Util.today());
     this._stamp = Date.now();
@@ -11767,9 +11941,11 @@ const Board = {
          否则教务会去催一个本来就不用来的人；
        · 迟到单独数 —— 这是值班第一眼要看的那个数；
        · 「应到」= 名册人数 − 请假，比总人数更能说明今天该来多少。
-     打卡(sign)和考勤(att)都认：学生自己打的、教务补点的，都算到过人。 */
+     打卡(sign)和考勤(att)都认：学生自己打的、教务补点的，都算到过人。
+     ⚠️ 名册走 Util.realStudents()：**演示学员 / 演示班绝不上这块屏** ——
+        它们不属于博艺的名册，混进来会让「应到 41」这种数字是假的。 */
   collect(date){
-    const students = Store.list('students', Util.byName);
+    const students = Util.realStudents(Util.byName);
     const bySid = {};
     Store.list('sign:' + date).forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
     const att = {};
@@ -11835,33 +12011,26 @@ const Board = {
   paintCode(){
     this.paintQr();
     const el = document.getElementById('bdCode');
-    if (el){
-      if (el.textContent !== this._code) el.textContent = this._code || '····';
-      /* 服务端派生的是 6 位码；教务要是设了个更长的固定码，降一档字号别撑到隔壁那栏 */
-      el.classList.toggle('long', (this._code || '').length > 6);
-    }
+    if (el && el.textContent !== this._code) el.textContent = this._code || '····';
+
+    /* 倒计时：进度条 + 一个大数字（「42 秒后换码」里的 42 才是要看的那个）。
+       进度条从满走到空，走到头立刻去要新码，不等下一趟半分钟。 */
+    const left = this._until ? Math.max(0, this._until - Date.now()) : 0;
     const bar = document.getElementById('bdBar');
-    const hint = document.getElementById('bdCodeHint');
-    if (this._fixed){
-      if (bar) bar.style.width = '100%';
-      if (hint) hint.textContent = '教务设的固定码';
-      return;
-    }
-    if (!this._until){
-      if (bar) bar.style.width = '0%';
-      if (hint && hint.textContent) hint.textContent = '';
-      return;
-    }
-    const left = Math.max(0, this._until - Date.now());
     if (bar) bar.style.width = (left / 60000 * 100).toFixed(1) + '%';
-    if (hint) hint.textContent = left ? `还有 ${Math.ceil(left / 1000)} 秒自动换码` : '正在换码…';
-    /* 走到头立刻换新码，不等下一趟半分钟 */
-    if (left <= 0){ this._until = 0; this.refresh(); }
+    const cd = document.getElementById('bdLeft');
+    if (cd){
+      const txt = this._code ? (left ? String(Math.ceil(left / 1000)) : '换') : '—';
+      if (cd.textContent !== txt) cd.textContent = txt;
+      cd.classList.toggle('soon', left > 0 && left <= 10000);   // 最后十秒转红，催一下
+    }
+    if (this._until && left <= 0){ this._until = 0; this.refresh(); }
   },
 
   /* ── 二维码：只在「码真的变了」时重画 ──
      paintCode() 每秒都被 tick() 叫一次，而编一次二维码要跑 8 张掩码的评分，
-     不能每秒重来（这块屏是常开的，白烧 CPU）。教务设的固定码更是只画这一回。 */
+     不能每秒重来（这块屏是常开的，白烧 CPU）。
+     60 秒换一次码 = 一分钟才重编一次，这点开销可以忽略。 */
   paintQr(){
     const box = document.getElementById('bdQr');
     if (!box) return;
@@ -11903,10 +12072,13 @@ const Board = {
     const here = D.ok + D.late;
     if (he && he.textContent !== String(here)) he.textContent = here;
 
-    /* 迟到 / 请假 / 未到 —— 一行小字跟在两个大数后面，不抢它们的位置 */
+    /* 迟到 / 请假 / 未到 —— 三个带标签的中等数字（原来是一行 19px 小字，
+       站两米外看不见）。颜色各归其位：迟到赭、请假蓝、未到朱砂。 */
     const mini = document.getElementById('bdMini');
     if (mini){
-      const txt = `迟到 <b>${D.late}</b> · 请假 <b>${D.leave}</b> · 未到 <b class="warn">${D.miss.length}</b>`;
+      const txt = `<div class="bd-m late"><b>${D.late}</b><span>迟到</span></div>`
+                + `<div class="bd-m leave"><b>${D.leave}</b><span>请假</span></div>`
+                + `<div class="bd-m bd-warn"><b>${D.miss.length}</b><span>未到</span></div>`;
       if (mini.innerHTML !== txt) mini.innerHTML = txt;
     }
 
@@ -11932,13 +12104,14 @@ const Board = {
   paintQuant(){
     const box = document.getElementById('bdQuant');
     if (!box) return;
-    const rows = Store.list('classes')
+    const rows = Util.realClasses()
       .map(c => ({ name: c.name || '', v: Quant.score(c.id) }))
       .sort((a, b) => b.v - a.v).slice(0, 5);
     const html = rows.length
-      ? rows.map(r => {
+      ? rows.map((r, i) => {
           const cls = r.v > 100 ? 'up' : (r.v < 100 ? 'down' : '');
           return `<div class="bd-q ${cls}">`
+               + `<span class="bd-q-k">${String(i + 1).padStart(2, '0')}</span>`
                + `<span class="bd-q-n">${Util.esc(r.name)}</span>`
                + `<b class="bd-q-v">${r.v}</b></div>`;
         }).join('')
@@ -11960,9 +12133,17 @@ const Board = {
     /* 左栏是竖排：一行一课 —— 时间 · 课名 · 老师/班级，细线分隔。
        课表长过一栏时，整列缓慢上滚（fill 里复制一份循环）。 */
     if (!rows.length) return '<div class="bd-s" style="color:#8B8072">今天没有排课</div>';
+    /* 挑出「下一节课」加金边：比较的是服务端校过的钟，
+       所以这块屏摆了一年也不会因为本机时间飘了而挑错。
+       没有比现在更晚的课（今天都上完了），就一条都不标。 */
+    const p2 = n => String(n).padStart(2, '0');
+    const nowHM = p2(d.getHours()) + ':' + p2(d.getMinutes());
+    let marked = false;
     return rows.slice(0, 24).map(r => {
       const who = r.x.teacher || r.x.cls || '';
-      return `<div class="bd-s">`
+      const next = !marked && r.t && String(r.t) >= nowHM;
+      if (next) marked = true;
+      return `<div class="bd-s${next ? ' next' : ''}">`
         + `<span class="bd-s-t">${r.t ? Util.esc(r.t) : '—'}</span>`
         + `<span class="bd-s-n">${Util.esc(r.x.title || '')}</span>`
         + (who ? `<span class="bd-s-w">${Util.esc(String(who).split('、')[0])}</span>` : '')
