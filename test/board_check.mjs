@@ -869,6 +869,13 @@ try {
     assert(!gate.box, '没点之前不该出现取景框');
     return '按钮 ' + gate.btns.join(' / ');
   });
+  /* 这一张单拍「默认态」：只有「扫面前的二维码」一条路，输入框还没出来。
+     终点那张（board-scan-stu.png）定格在「拒收 5 位码」的提示上，跟前因后果摆在一起
+     容易让人以为是 bug —— 默认态才是这次改动的门面。
+     ⚠️ 必须等一会儿再拍：`.page.on > *` 有入场动画（初态 opacity:0），
+        刚 renderStep 完就截会得到一片空白；顺带等登录那句 toast 自己散掉。 */
+  await stu.eval(`new Promise(r => setTimeout(r, 1400))`);
+  await shot(stu, 'board-scan-default.png');
   /* 文案：用户点名要的「扫描面前的二维码」—— 别再写黑板/讲台，
      看板可能挂在走廊或办公室，学生面前那块屏才是他该看的。 */
   t('提示文案写的是「面前的二维码」，不再提黑板 / 讲台', () => {
