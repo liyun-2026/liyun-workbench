@@ -938,7 +938,6 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 @media (min-width:1100px){
   :root{--fs-hero:56px;--fs-title:30px;--pad:30px;--gap:20px}
   .side{width:236px}
-  .side .brand .brand-lock{max-width:148px}
   .main{padding:36px 44px 52px}
   .page.on{
     display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
@@ -1092,18 +1091,43 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 /* ── ① 侧边栏门头（只在电脑出现）──
    侧栏底已经是端口的**浅色面**，融合标里有蓝白徽章，浅底上本就清楚。
    门头仍单独做成一枚**白牌**（--card）：牌上放融合标 + 系统名 + 端口名。
-   浅色栏 + 白牌 = 靠一根细线和小投影分层，不用再压一块重投影。 */
+   浅色栏 + 白牌 = 靠一根细线和小投影分层，不用再压一块重投影。
+
+   ⭐ v40 改**居中版**（用户 2026-09-28 定稿）：
+   原先整块靠左 —— 融合标只有 118~148px，靠在约 190px 宽的牌面里，
+   右边空出一大片，视觉重心整个偏到左上角；牌下的问候语又贴着左边。
+   现在牌内**融合标 / 系统名 / 端口名一律居中、收成一条中轴**，
+   牌面加一道极细暖金描边（中式册页的做法，比投影轻），
+   标与字之间压一条「短金线嵌金点」的分隔（登录门那根长金线的缩小版）：
+   上半是「标」、下半是「字」，一块小匾就立住了。
+   ⚠️ 别再改回 `.b-sys/.b-port{text-align:left}` —— 那是给「左对齐成一块」用的。 */
 .side .brand{
-  background:var(--card);border-radius:14px;padding:11px 11px 12px;margin:0 0 12px;
-  box-shadow:0 2px 10px rgba(0,0,0,.07);
+  position:relative;
+  background:var(--card);border-radius:14px;padding:15px 12px 14px;margin:0 0 12px;
+  border:1px solid rgba(201,171,124,.34);
+  box-shadow:0 2px 10px rgba(0,0,0,.06);
+  text-align:center;
 }
-.side .brand .b-row{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+.side .brand .b-row{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:0}
 .side .brand .b-row.wide{justify-content:space-between}
 .side .brand .brand-lock{width:100%;max-width:118px;height:auto}
-.side .brand .b-sys,.side .brand .b-port{text-align:left}   /* 侧栏故意左对齐成一块，覆盖全局居中 */
+/* ⚠️ 这一条**必须写在上面那条之后**：两个选择器特异性相同，靠先后定胜负。
+   它原先写在上面那段桌面媒体查询块里（.side{width:236px} 旁边），结果被
+   下面这条 118px 盖掉 —— 宽屏侧栏上的融合标一直没长到 148，牌面空一大圈。
+   现在挪到这里，宽屏（≥1100）牌面内容宽 186px，148px 的标居中后左右各留 19px。 */
+@media (min-width:1100px){ .side .brand .brand-lock{max-width:148px} }
+.side .brand .b-sys,.side .brand .b-port{text-align:center}
+/* 标与字之间：一条 46px 的短金线，正中嵌一枚小金点 */
+.side .brand .b-sys::before{
+  content:'';display:block;width:46px;height:4px;margin:1px auto 8px;
+  background:
+    radial-gradient(circle at 50% 50%, var(--gold) 0 2.4px, transparent 3px),
+    linear-gradient(90deg,transparent,rgba(201,171,124,.85),transparent);
+}
 .side .greet{
   flex:0 0 auto;font-size:12px;color:var(--rail-text);opacity:.9;
   padding:2px 8px 0;margin-bottom:14px;line-height:1.45;word-break:break-all;
+  text-align:center;   /* 跟着门头一起走中轴，不贴着左边各说各话 */
 }
 
 /* ── ② 登录门头 · 融合标竖式（居中，层次最全）── */
