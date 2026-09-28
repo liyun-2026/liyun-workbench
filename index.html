@@ -1265,7 +1265,14 @@ body.board-mode .page.on > *{animation:none}
   border-bottom:1px solid var(--rule);position:relative}
 .bd-top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
   background:linear-gradient(90deg, var(--gold) 0%, rgba(201,171,124,.28) 32%, transparent 72%)}
-.bd-lock{height:clamp(30px,4.2vh,56px);width:auto;flex:none;display:block}
+/* 顶带品牌标：**深墨底板版**（v42）。
+   ⚠️ 这里放过一版错的东西：brand-lock-alpha.png 是「给深色底做的米黄细线描」，本身没底色，
+      贴在这块米白纸上右侧的砺蕴章会整块化掉 —— 用户看到的「看不清」不是分辨率不够，
+      是拿错了变体。现在换成带深墨底板的 brand-plate.png：两枚印章都框在同一块板上，
+      浅底上墨板立得住、深底上墨板融进背景只剩金色与蓝色内容，到哪儿都读得清。
+   尺寸：底板比内容高（上下各留 15%），所以高度要比裸标放大一档，
+      内容才跟以前一样大（0.769 × 5.4vh ≈ 4.2vh，即改动前的高度）。 */
+.bd-lock{height:clamp(38px,5.4vh,72px);width:auto;flex:none;display:block}
 .bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
   letter-spacing:.05em;flex:none}
 .bd-clock{margin-left:auto;font-size:clamp(26px,3.4vw,68px);font-weight:400;
@@ -1282,8 +1289,15 @@ body.board-mode .page.on > *{animation:none}
   gap:clamp(8px,1.4vh,20px);
   padding:clamp(14px,2.4vh,34px) clamp(16px,2.2vw,44px)}
 .bd-col + .bd-col{border-left:1px solid var(--rule)}
-/* 中间那栏整列居中：二维码 + 数字码 + 应到实到，一块儿落在视觉正中 */
-.bd-gate{align-items:center;justify-content:center;text-align:center}
+/* 中间那栏整列居中：二维码 + 数字码 + 应到实到，一块儿落在视觉正中。
+   ⚠️ 中栏的纵向空间是**最紧**的（要塞 二维码 / 6 位码 / 倒计时 / 应到实到 / 三格 五块），
+   而 body.board-mode .main 是 overflow:hidden —— 溢出的部分会被**无声裁掉**，
+   底下那行「迟到 / 请假 / 未到」就这么消失过（v42 换 logo 把顶带撑高 10px 就露馅了）。
+   所以这一栏单独收一档间距与上下留白，把余量让出来；左右两栏不动。
+   board_check 现在每一档屏宽都会量「中栏有没有溢出」。 */
+.bd-gate{align-items:center;justify-content:center;text-align:center;
+  gap:clamp(6px,1.0vh,16px);
+  padding-top:clamp(10px,1.8vh,26px);padding-bottom:clamp(10px,1.8vh,26px)}
 
 /* 栏标题：宋体 + 一条延伸的细金线，像布告栏上的小标头。
    金线用渐变收尾（近处金、远处隐），比一道灰线有手写的味道。 */
@@ -1309,8 +1323,10 @@ body.board-mode .page.on > *{animation:none}
      ② 静默区由 QRLib.svg() 里写死的 4 格白边提供，这里只管给它大小；
      ③ 圆角要小：圆角是啃白底的，啃进静默区（4 格宽）就读不出来了；
      ④ 边长别小于 ~180px。
-   尺寸跟着栏宽和屏高一起伸缩（窗口矮的时候先缩它，别把数字码挤出屏幕）。 */
-.bd-qr{width:min(44vh,30vw,540px);aspect-ratio:1;flex:none;
+   尺寸跟着栏宽和屏高一起伸缩（窗口矮的时候先缩它，别把数字码挤出屏幕）。
+   v42 把 44vh 收到 43vh：中栏是最挤的一栏，收 1vh 换来「迟到/请假/未到」那行不被裁掉，
+   -2.3% 的边长肉眼看不出来。 */
+.bd-qr{width:min(43vh,30vw,540px);aspect-ratio:1;flex:none;
   background:#fff;border-radius:6px;padding:clamp(6px,.9vw,16px);
   box-shadow:0 1px 0 rgba(34,31,26,.05), 0 8px 30px rgba(34,31,26,.10)}
 .bd-qr svg{display:block;width:100%;height:100%}
@@ -1338,7 +1354,7 @@ body.board-mode .page.on > *{animation:none}
 
 /* 二维码下面：应到 / 实到 —— 这块屏最该被一眼看见的两个数 */
 .bd-count{display:flex;gap:clamp(20px,3.4vw,72px);justify-content:center;align-items:flex-end;
-  width:100%;border-top:1px solid var(--rule);padding-top:clamp(10px,1.6vh,22px)}
+  width:100%;border-top:1px solid var(--rule);padding-top:clamp(8px,1.1vh,16px)}
 .bd-count > div{display:flex;flex-direction:column;align-items:center;gap:3px}
 .bd-count b{font-size:clamp(32px,4.6vw,94px);font-weight:500;line-height:1}
 .bd-count span{font-size:clamp(12px,1.05vw,19px);color:var(--dim);
@@ -2350,8 +2366,11 @@ try {
     <section class="page" id="page-board">
       <div class="bd">
         <div class="bd-top">
-          <img class="bd-lock" src="assets/brand-lock-alpha.png"
-               srcset="assets/brand-lock-alpha.png 1x, assets/brand-lock-alpha@2x.png 2x"
+          <!-- v42：换成【深墨底板】那版。原来用的 brand-lock-alpha.png 是「给深色底做的
+               米黄细线描」，本身没有底色 —— 贴在这块米白纸上，右侧砺蕴章直接化掉，
+               用户说的是「看不清晰」。深墨底板把两枚印章框在一块板上，浅底深底都立得住。 -->
+          <img class="bd-lock" src="assets/brand-plate.png"
+               srcset="assets/brand-plate.png 1x, assets/brand-plate@2x.png 2x, assets/brand-plate@3x.png 3x"
                alt="博艺教育 · 砺蕴" draggable="false">
           <span class="bd-date" id="bdDate">—</span>
           <span class="bd-clock" id="bdClock">--:--:--</span>

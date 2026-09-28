@@ -344,24 +344,93 @@ try {
   });
 
   /* 品牌标必须真的渲染出来 —— 用户对 logo 一直很在意，图上不出东西是最难发现的坏法。
-     顺带守住它用的是「章不带米黄底」的那一版（brand-lock.png 贴在米白纸上会露淡黄方块）。 */
+     v42 又栽在「拿错变体」上：brand-lock-alpha.png 是给深色底做的米黄细线描、没有底色，
+     贴在米白纸上右侧砺蕴章整块化掉 —— 尺寸/加载都正常，**只有像素看得出来**。
+     所以这条判据不再只看文件名字，直接把图读到画布上量对比：右半必须真的有色差。
+     判据用一个「颜色差很大」的阈值：老 alpha 版在纸底上 p95−p05 只有个位数，一测就露。 */
   const brand = await cdp.eval(`(() => {
     const img = document.querySelector('.bd-lock');
     if (!img) return { err: '顶带里没有品牌标' };
     const r = img.getBoundingClientRect(), top = document.querySelector('.bd-top').getBoundingClientRect();
+    const mid = document.querySelector('.bd-gate') || document.querySelector('.bd-col:nth-child(2)');
+    const mr = mid.getBoundingClientRect(), mc = mid.querySelector('.bd-lab');
+    let fit = null;
+    if (mr && mc) {
+      /* ⚠️ 不能拿「子元素高度之和 + 间距」跟容器比 —— 那只在子元素恰好铺满时等价。
+         老老实实量首尾两个子元素的真实上下沿，跟容器的**内容盒**（去掉上下 padding）比。 */
+      const kids = [...mid.children];
+      const cs = getComputedStyle(mid);
+      const top = mr.top + (parseFloat(cs.paddingTop) || 0);
+      const bot = mr.bottom - (parseFloat(cs.paddingBottom) || 0);
+      const f = kids[0].getBoundingClientRect();
+      const l = kids[kids.length - 1].getBoundingClientRect();
+      fit = { innerH: Math.round(bot - top),
+              spanH: Math.round(l.bottom - f.top),
+              over: Math.round(Math.max(0, top - f.top) + Math.max(0, l.bottom - bot)),
+              slack: Math.round(Math.min(f.top - top, bot - l.bottom)) };
+    }
+    /* 把图读进画布：透明处按页底 #FAF7F0 合成，再看左右两半的亮度跨度 */
+    let lum = null;
+    try {
+      const N = img.naturalWidth, M = img.naturalHeight;
+      const cv = document.createElement('canvas'); cv.width = N; cv.height = M;
+      const cx = cv.getContext('2d');
+      cx.drawImage(img, 0, 0);
+      const px = cx.getImageData(0, 0, N, M).data;
+      const L = (i) => {                       /* 相对亮度，0~255 */
+        const a = px[i + 3] / 255;
+        const r0 = px[i] * a + 250 * (1 - a), g0 = px[i + 1] * a + 247 * (1 - a),
+              b0 = px[i + 2] * a + 240 * (1 - a);
+        return 0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
+      };
+      const half = (x0, x1) => {
+        const v = [];
+        for (let y = 0; y < M; y += 2) for (let x = x0; x < x1; x += 2) v.push(L((y * N + x) * 4));
+        v.sort((a, b) => a - b);
+        return { p05: v[Math.floor(v.length * 0.05)], p50: v[Math.floor(v.length * 0.5)],
+                 p95: v[Math.floor(v.length * 0.95)], p99: v[Math.floor(v.length * 0.99)],
+                 max: v[v.length - 1] };
+      };
+      /* ⚠️ 看 p99 而不是 p95：砺蕴章是**细线**，只占右半像素的 5% 左右，
+         p95 正好卡在线与底的交接处（实测只有 98），会误判成「读不出来」。 */
+      const right = half(Math.floor(N * 0.55), N);       /* 右半 = 砺蕴章（原来化掉的那块） */
+      const all = half(0, N);
+      lum = { right, all, rightSpread: right.p99 - right.p50, allSpread: all.p99 - all.p50,
+              bgLum: all.p50 };
+    } catch (e) { lum = { err: String(e && e.message || e) }; }
     return { src: img.currentSrc || img.src, complete: img.complete,
              nw: img.naturalWidth, nh: img.naturalHeight,
              w: Math.round(r.width), h: Math.round(r.height),
              inTop: r.top >= top.top - 1 && r.bottom <= top.bottom + 1,
-             scheme: getComputedStyle(document.documentElement).colorScheme };
+             lum, fit };
   })()`);
   t('顶带有博艺的品牌标，图真加载出来了（不是空白占位）', () => {
     assert(!brand.err, brand.err);
     assert(brand.complete && brand.nw > 0, '图没加载出来：' + JSON.stringify(brand));
-    assert(/brand-lock-alpha/.test(brand.src), '该用透明底那版（米白纸上不露黄块），实际 ' + brand.src);
+    assert(/brand-plate/.test(brand.src), '该用带深墨底板那版，实际 ' + brand.src);
     assert(brand.inTop, '标该在顶带里，实际位置 ' + JSON.stringify(brand));
     assert(brand.w >= 60, '标不该小到看不清，实际 ' + brand.w + 'px 宽');
     return brand.nw + '×' + brand.nh + ' 原图 → 屏上 ' + brand.w + '×' + brand.h + 'px';
+  });
+  t('品牌标在米白纸上**真的读得出**（拿错变体这里会挂）', () => {
+    assert(!brand.lum.err, '取像素失败：' + brand.lum.err);
+    const L = brand.lum;
+    assert(L.rightSpread >= 90,
+      '右半（砺蕴章）最亮的 1% 与底板差只有 ' + L.rightSpread.toFixed(0) +
+      ' —— 贴在纸底上化掉了。换回「给深色底做的透明版」就是这个数：' + JSON.stringify(L.right));
+    assert(L.bgLum <= 80,
+      '底板该是深墨（中位亮度 ≤80），实际 ' + L.bgLum.toFixed(0) + ' —— 没有底板就是这个数');
+    return '底板中位亮度 ' + L.bgLum.toFixed(0) + ' · 右半 p99−p50 = ' + L.rightSpread.toFixed(0) +
+           '（p50 ' + L.right.p50.toFixed(0) + ' → p99 ' + L.right.p99.toFixed(0) +
+           '，最亮 ' + L.right.max.toFixed(0) + '）';
+  });
+  t('中栏没被顶带挤溢出（挤出去会被 body 的 overflow:hidden 默默裁掉，图上少一行）', () => {
+    assert(brand.fit, '没量到中栏尺寸');
+    assert(brand.fit.over <= 1,
+      '中栏溢出了 ' + brand.fit.over + 'px：内容 ' + brand.fit.spanH + 'px / 内容盒 ' +
+      brand.fit.innerH + 'px —— 迟到请假未到那一行会被裁掉');
+    return '中栏 内容 ' + brand.fit.spanH + 'px / 内容盒 ' + brand.fit.innerH +
+           'px（上下各余 ' + brand.fit.slack + 'px）';
   });
 
   console.log('\n=== 2. 五个数算得对（含「请假不算未到」）===');
@@ -695,6 +764,16 @@ try {
       const side = cols.length === 3 && Math.abs(cols[0].y - cols[1].y) < 2 && Math.abs(cols[1].y - cols[2].y) < 2;
       const stacked = cols.length === 3 && cols[1].y >= cols[0].b - 1 && cols[2].y >= cols[1].b - 1;
       const disjoint = cols.every((c, i) => i === 0 || c.x >= cols[i - 1].r - 1);
+      /* 中栏（打卡码那列）在宽屏下是**不许溢出**的：body.board-mode .main 是
+         overflow:hidden，多出来的部分会被无声裁掉 —— 迟到/请假/未到那一行就这么没的
+         （v42 换 logo 时把顶带撑高了 10px，底下立刻少一行，图上才看出来）。 */
+      const gate = document.querySelector('.bd-gate');
+      const gr = gate.getBoundingClientRect(), gcs = getComputedStyle(gate);
+      const gk = [...gate.children];
+      const gt = gr.top + (parseFloat(gcs.paddingTop) || 0);
+      const gb = gr.bottom - (parseFloat(gcs.paddingBottom) || 0);
+      const gf = gk[0].getBoundingClientRect(), gl = gk[gk.length - 1].getBoundingClientRect();
+      const over = Math.round(Math.max(0, gt - gf.top) + Math.max(0, gl.bottom - gb));
       return { vw: innerWidth, vh: innerHeight, w: Math.round(bd.width), h: Math.round(bd.height),
         /* 「铺满」＝铺满**内容区**：窄屏时 .main 自己会出纵向滚动条（约 15px），
            拿 innerWidth 比会误判成「没铺满」。所以参照系取 .main 的 clientWidth。 */
@@ -702,7 +781,8 @@ try {
         n: cols.length, side: side, stacked: stacked, disjoint: disjoint, cols: cols,
         qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width),
         codeFs: getComputedStyle(document.getElementById('bdCode')).fontSize,
-        spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)) };
+        spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)),
+        gateOver: over, gateH: Math.round(gl.bottom - gf.top) };
     })()`);
     t(w + '×' + h + '：铺满整屏、三栏不叠、没有横向溢出', () => {
       assert(Math.abs(m.w - m.cw) < 2, '该铺满内容区 ' + m.cw + '，实际 ' + m.w + '（视口 ' + m.vw + '）');
@@ -716,8 +796,11 @@ try {
       }
       assert(m.qr >= 120, '二维码哪一档都该有可用尺寸，实际 ' + m.qr + 'px');
       assert(m.spill === 0, '横向溢出了 ' + m.spill + 'px');
+      if (m.vw > 900) assert(m.gateOver <= 1,
+        '中栏纵向溢出 ' + m.gateOver + 'px（内容 ' + m.gateH + 'px）—— 会被 overflow:hidden 裁掉底下那一行');
       return '铺满 ' + m.w + '×' + m.h + '，' + (m.vw <= 900 ? '叠成一栏' : '三栏并排')
-           + '，二维码 ' + m.qr + 'px，数字码 ' + m.codeFs;
+           + '，二维码 ' + m.qr + 'px，数字码 ' + m.codeFs
+           + (m.vw > 900 ? '，中栏 ' + m.gateH + 'px 不溢出' : '');
     });
   }
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
