@@ -1,153 +1,172 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""带【深墨底板】的横版组合标 —— 一劳永逸版。
+"""看板品牌标：博艺圆章**原样**，砺蕴印章压在「暖米黄圆底」上（v43 定稿）。
 
-## 为什么要这个
+## 为什么是这个做法
 
-`brand-lock.png`（米黄底版）与 `brand-lock-alpha.png`（透明底版）其实是**两个用途**：
-- 米黄底版：右侧砺蕴章自带米黄圆盘 + 品牌金纹（从「砺蕴圆章_带底原稿」重着色来的），
-  **浅底上读得清**。
-- 透明底版：右侧砺蕴章是**给深色底做的米黄细线描**，本身**没有底色**。
-  贴到纸上（看板 #FAF7F0）就化成一团浅色 —— 看板左上角「看不清晰」就是这个原因，
-  不是分辨率不够，是把「深底专用」的那一版贴到了浅底上。
+看板是整屏宣纸米白（`#FAF7F0`）。而融合标里的**砺蕴印章是「品牌金细线描」**——
+那是给深色底做的线，直接贴在纸上化成一团浅色。用户连着报了几次「看不清晰」。
 
-用户要的是：**给组合标加一块底板**，这样不管贴到什么颜色的背景上都能看清，
-以后不用再一版一版地修。
+中间试过「整条加一块**深墨**底板」：清晰是清晰了，但被否了——
+「整体都是白色的，突然有一个黑色的很丑……博艺的 logo 是白色跟蓝色的」。
+于是改成 **只给砺蕴那半加底**（用户原话：「只给砺蕴的 logo 加个底色」），
+底色走**暖米黄**（跟宣纸同族，不发暗），印章换成官方**暗金**版
+（暗金 `#9A7B45` 压在米黄 `#F3E7CD` 上对比度约 3.3:1，浅底上读得出）。
 
-## 做法
+造型上用**圆形**底而不是圆角方底：砺蕴那枚本身就是圆印，圆底跟左边的博艺圆章
+并排成「一对印」，不是两块形状各异的贴纸。底内一道品牌金细描边 + 极轻暖影。
 
-底板 = 深墨 `#1A1815`（和 `make_fusion_v2.py` 里 `DARK` 同色）的圆角矩形，
-外面透明 —— 于是这张图**同时**能在浅底（墨板立得住）和深底（墨板融进背景、
-只剩金色与蓝色内容）上成立。内容取 `融合Logo_横版_透明.png` 的**内容区**原样贴上去，
-一个像素都不重画。
-
-⚠️ 深墨版 `融合Logo_横版_深墨.png` 是同一份内容铺在一块**满幅**墨底上的成品；
-这里不用它，是为了自己掌控圆角、内边距与描边 —— 直接裁它的圆角会在边缘留下硬边。
+博艺圆章（左）**不加任何底色**、原样裸摆——它本来就是蓝 + 白，浅底上读得清。
 
 ## 产出
 
-- 桌面归档（用户口头指定的「桌面那个 logo 的文件」）：
-  `~/Desktop/砺蕴logo_五版颜色/砺蕴横版组合标_深墨底板.png`
-- 网页三档：`砺蕴工作台/assets/brand-plate.png` / `@2x` / `@3x`
+- 网页三档：`assets/brand-plate.png` / `@2x` / `@3x`（看板顶带用；文件名不变，HTML 无需改）
+- 桌面归档：`~/Desktop/砺蕴logo_五版颜色/砺蕴横版组合标_砺蕴章米黄圆底.png`
 
-重跑：`~/.workbuddy/binaries/python/envs/default/bin/python3 test/make_brand_plate.py`
-另加 `--sheet` 会在 /tmp 出几张对比图（几档内边距 × 几档显示尺寸），供挑版式用。
+## 用法
+
+    python3 test/make_brand_plate.py           # 出三档 + 桌面归档
+    python3 test/make_brand_plate.py --sheet   # 另出配色/造型对比图到 /tmp/plate_sheet.png
 """
 import os
 import sys
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = "/Users/xielihui/Desktop/砺蕴教务系统"
-SRC = os.path.join(ROOT, "品牌运营", "交付", "融合logo", "融合Logo_横版_透明.png")
+BRAND = os.path.join(ROOT, "品牌运营")
+FUSION = os.path.join(BRAND, "交付", "融合logo", "融合Logo_横版_透明.png")  # 博艺圆章取自这里
+LY_DARK = os.path.join(BRAND, "assets", "logo_logo1_暗金.png")              # 砺蕴主标识·暗金
+LY_WHITE = os.path.join(BRAND, "assets", "logo_logo1_霜白.png")
 WEB = os.path.join(ROOT, "砺蕴工作台", "assets")
-DESK_LOGO_DIR = os.path.expanduser("~/Desktop/砺蕴logo_五版颜色")
+DESK = os.path.expanduser("~/Desktop/砺蕴logo_五版颜色/砺蕴横版组合标_砺蕴章米黄圆底.png")
 
-INK = (26, 24, 21, 255)          # #1A1815 深墨（与 make_fusion_v2.py 的 DARK 同色）
-GOLD = (201, 171, 124)           # #C9AB7C 品牌金
+# ── 定色 ──
+CREAM = (243, 231, 205, 255)        # #F3E7CD 暖米黄圆底（同宣纸一族，但压得住纸）
+CREAM_LINE = (190, 160, 100, 130)   # 圆底内一道品牌金细描边
+SHADOW = (150, 138, 116, 36)        # 极轻暖影（在纸面上立起来一点点）
+GOLD = (201, 171, 124, 255)         # 品牌金（对比图用）
 
-# 版式参数（都按「内容高度」的比例来，换尺寸不用重算）
-PAD_Y = 0.150        # 上下内边距（0.17 版留白更足但字变小；0.10 版太挤，取中间）
-PAD_X = 0.230        # 左右内边距
-RADIUS = 0.115       # 圆角半径（按底板高度）
-HAIRLINE = True      # 板内压一道品牌金细描边：让它读起来像一块「匾」，不是一块黑方块
-HAIRLINE_INSET = 0.048   # 描边距板边
-HAIRLINE_W = 0.0055      # 描边粗细（按底板高度）
+# ── 版式（都按「章高」的比例算，换尺寸不用重算）──
+PLATE_PAD = 0.085     # 圆底比章大多少（单边）
+INSET = 0.035         # 描边距圆底边缘
+STROKE = 0.006        # 描边粗细
+GAP = 0.062           # 博艺圆章与砺蕴圆底之间
+SS = 4                # 圆底超采样倍数（圆弧/细描边按目标尺寸画会有锯齿）
+
+MASTER_H = 414        # 主图高度（= 3x 档）；章 354 / 圆底 414
 
 
-def content(src=SRC):
-    """取透明底融合标的**内容区**（去掉四周空白），原样返回。"""
-    im = Image.open(src).convert("RGBA")
-    a = np.array(im)
+def bbox(im):
+    a = np.array(im.convert("RGBA"))
     ys, xs = np.where(a[:, :, 3] > 30)
-    return im.crop((int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1))
+    return int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
 
 
-def plate_of(art, pad_y=PAD_Y, pad_x=PAD_X, radius=RADIUS,
-             hairline=HAIRLINE, ink=INK, ss=4):
-    """把内容贴到一块圆角深墨底板上，板外透明。
+def square(im, size):
+    """取内容、按最长边装进 size×size 方盒（居中）。"""
+    x0, y0, x1, y1 = bbox(im)
+    c = im.crop((x0, y0, x1, y1)).convert("RGBA")
+    s = size / max(c.size)
+    c = c.resize((max(1, round(c.size[0] * s)), max(1, round(c.size[1] * s))), Image.LANCZOS)
+    cv = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    cv.alpha_composite(c, ((size - c.size[0]) // 2, (size - c.size[1]) // 2))
+    return cv
 
-    ⚠️ 只把**底板**放在 `ss` 倍超采样下画、再降采样回来（圆角与 1px 级描边
-       直接按目标尺寸画会有锯齿）；内容始终以**原生像素**贴上去，不缩放 ——
-       否则等于把图放大了再缩回来，白掉一层锐度（第一版就踩了这个：
-       整块画布按 ss 倍放大、内容却按 1 倍贴，结果缩成左上角一小坨）。
+
+def plate_of(art, S, bg=CREAM, line=CREAM_LINE, pad=PLATE_PAD,
+             inset=INSET, stroke=STROKE, shadow=SHADOW, ss=SS):
+    """圆形底：直径 S，板外透明，章按 pad 内缩居中。
+
+    ⚠️ 只把**圆底**放在 ss 倍超采样下画、再降采样回来（圆弧与细描边直接按
+       目标尺寸画会有锯齿）；章始终以**原生像素**贴上去，不放大再缩回。
     """
-    cw, ch = art.size
-    py, px = round(ch * pad_y), round(ch * pad_x)
-    W, H = cw + px * 2, ch + py * 2
-    big = Image.new("RGBA", (W * ss, H * ss), (0, 0, 0, 0))
+    big = Image.new("RGBA", (S * ss, S * ss), (0, 0, 0, 0))
     d = ImageDraw.Draw(big)
-    r = round(H * radius) * ss
-    d.rounded_rectangle([0, 0, W * ss - 1, H * ss - 1], radius=r, fill=ink)
-    if hairline:
-        ins = round(H * HAIRLINE_INSET) * ss
-        hw = max(ss // 2, round(H * HAIRLINE_W) * ss)
-        d.rounded_rectangle([ins, ins, W * ss - 1 - ins, H * ss - 1 - ins],
-                            radius=max(1, r - ins), outline=GOLD + (150,), width=hw)
-    plate = big.resize((W, H), Image.LANCZOS)
-    plate.alpha_composite(art, (px, py))
-    return plate
+    d.ellipse([0, 0, S * ss - 1, S * ss - 1], fill=bg)
+    if line:
+        i = round(S * inset) * ss
+        d.ellipse([i, i, S * ss - 1 - i, S * ss - 1 - i], outline=line,
+                  width=max(ss, round(S * stroke) * ss))
+    out = big.resize((S, S), Image.LANCZOS)
+    inner = round(S / (1 + pad * 2))
+    o = (S - inner) // 2
+    out.alpha_composite(square(art, inner), (o, o))
+    if shadow:
+        p = 9
+        sh = Image.new("RGBA", (S + p * 2, S + p * 2), (0, 0, 0, 0))
+        ImageDraw.Draw(sh).ellipse([p + 5, p + 7, S + p + 3, S + p + 5], fill=shadow)
+        sh = sh.filter(ImageFilter.GaussianBlur(5))
+        sh.alpha_composite(out, (p, p))
+        return sh
+    return out
 
 
-def check_on(im, bg, pad=0):
-    """把成品贴到指定底色上，看它在那个底上成不成立。"""
-    w, h = im.size
-    canvas = Image.new("RGBA", (w + pad * 2, h + pad * 2), bg)
-    canvas.alpha_composite(im, (pad, pad))
-    return canvas.convert("RGB")
+def lockup(ly=LY_DARK, bg=CREAM, line=CREAM_LINE, pad=PLATE_PAD, h=MASTER_H, shadow=True):
+    """整条横版标：左 = 博艺圆章（裸摆、不加底）；右 = 砺蕴印 + 圆底。"""
+    inner = round(h / (1 + pad * 2))
+    fusion = Image.open(FUSION).convert("RGBA")
+    fw, fh = fusion.size
+    boyi = square(fusion.crop((0, 0, fw // 2, fh)), inner)      # 左半就是博艺圆章
+    right = plate_of(Image.open(ly).convert("RGBA"), h, bg=bg, line=line,
+                     pad=pad, shadow=(SHADOW if shadow else None))
+    gap = round(inner * GAP)
+    W = boyi.size[0] + gap + right.size[0]
+    H = max(boyi.size[1], right.size[1])
+    out = Image.new("RGBA", (W + 12, H + 12), (0, 0, 0, 0))
+    out.alpha_composite(boyi, (6, (H - boyi.size[1]) // 2 + 6))
+    out.alpha_composite(right, (6 + boyi.size[0] + gap, (H - right.size[1]) // 2 + 6))
+    x0, y0, x1, y1 = bbox(out)
+    return out.crop((x0, y0, x1, y1))
 
 
 def main():
-    art = content()
-    print("内容区", art.size, "宽高比 %.3f" % (art.size[0] / art.size[1]))
-    os.makedirs(DESK_LOGO_DIR, exist_ok=True)
-
-    # ── 正式产出 ──
-    master = plate_of(art)
-    print("底板成品", master.size, "宽高比 %.3f" % (master.size[0] / master.size[1]))
-
-    arc = os.path.join(DESK_LOGO_DIR, "砺蕴横版组合标_深墨底板.png")
-    master.save(arc)
-    print("  -> 桌面归档 %s  %d KB" % (arc, os.path.getsize(arc) // 1024))
-
-    W0 = master.size[0]
-    for name, w in (("brand-plate.png", 300), ("brand-plate@2x.png", 600),
-                    ("brand-plate@3x.png", 900)):
-        h = max(1, round(master.size[1] * w / W0))
+    master = lockup()
+    print("成品 %dx%d  宽高比 %.3f" % (master.size[0], master.size[1],
+                                       master.size[0] / master.size[1]))
+    for name, k in (("brand-plate@3x.png", 1.0), ("brand-plate@2x.png", 2 / 3),
+                    ("brand-plate.png", 1 / 3)):
+        w = max(1, round(master.size[0] * k))
+        hh = max(1, round(master.size[1] * k))
         p = os.path.join(WEB, name)
-        master.resize((w, h), Image.LANCZOS).save(p, optimize=True)
-        print("  -> %-20s %dx%d  %4d KB" % (name, w, h, os.path.getsize(p) // 1024))
+        master.resize((w, hh), Image.LANCZOS).save(p, optimize=True)
+        print("  -> %-22s %dx%d  %4d KB" % (name, w, hh, os.path.getsize(p) // 1024))
+    master.save(DESK, "PNG")
+    print("  -> 桌面归档 %s  %d KB" % (DESK, os.path.getsize(DESK) // 1024))
 
-    if "--sheet" not in sys.argv:
-        return
 
-    # ── 挑版式用的对比图（不进仓库） ──
-    variants = {
-        "A_无描边": plate_of(art, hairline=False),
-        "B_带金线": plate_of(art, hairline=True),
-        "C_紧凑": plate_of(art, pad_y=0.10, pad_x=0.16, radius=0.09, hairline=True),
-        "D_宽松": plate_of(art, pad_y=0.24, pad_x=0.32, radius=0.14, hairline=True),
-    }
-    for k, v in variants.items():
-        v.save("/tmp/plate_%s.png" % k)
-        print("  对比 %-10s %s" % (k, v.size))
-
-    # 在真实底色上看：宣纸米白 / 纯白 / 深墨
-    backgrounds = {"paper": (250, 247, 240, 255), "white": (255, 255, 255, 255),
-                   "ink": (26, 24, 21, 255)}
-    for k, v in variants.items():
-        for bn, bg in backgrounds.items():
-            check_on(v.resize((300, round(300 * v.size[1] / v.size[0])), Image.LANCZOS),
-                     bg, 24).save("/tmp/chk_%s_%s.png" % (k, bn))
-
-    # 三档显示尺寸（看板实际约 130px 宽）
-    for w in (130, 200, 300):
-        v = variants["B_带金线"]
-        check_on(v.resize((w, round(w * v.size[1] / v.size[0])), Image.LANCZOS),
-                 (250, 247, 240, 255), 30).save("/tmp/size_%d.png" % w)
-    print("对比图 -> /tmp/plate_*.png /tmp/chk_*.png /tmp/size_*.png")
+def sheet():
+    from PIL import ImageFont
+    paper = (250, 247, 240, 255)
+    H = 58
+    f = ImageFont.truetype("/System/Library/Fonts/Hiragino Sans GB.ttc", 18)
+    opts = [
+        ("① 暖米黄圆底 + 暗金章   ← 定稿", lockup(LY_DARK, CREAM, CREAM_LINE)),
+        ("② 品牌金圆底 + 霜白章", lockup(LY_WHITE, GOLD, (255, 250, 235, 135))),
+        ("③ 霁蓝圆底 + 霜白章", lockup(LY_WHITE, (74, 100, 137, 255), GOLD)),
+        ("④ 朱砂圆底 + 霜白章", lockup(LY_WHITE, (178, 58, 46, 255), (255, 244, 236, 120))),
+        ("⑤ 米黄方底（对照：圆底更好看）", lockup(LY_DARK, CREAM, CREAM_LINE, shadow=False)),
+    ]
+    blocks = []
+    for lab, im in opts:
+        b = Image.new("RGBA", (1180, 30 + H + 12 + im.size[1] // 3), paper)
+        d = ImageDraw.Draw(b)
+        d.text((8, 4), lab, font=f, fill=(52, 46, 40, 255))
+        b.alpha_composite(im.resize((round(im.size[0] * H / im.size[1]), H), Image.LANCZOS), (8, 30))
+        b.alpha_composite(im.resize((im.size[0] // 3, im.size[1] // 3), Image.LANCZOS), (8, 30 + H + 12))
+        blocks.append(b)
+    gap = 20
+    s = Image.new("RGBA", (1196, sum(x.size[1] + gap for x in blocks) + 12), paper)
+    y = 12
+    for b in blocks:
+        s.alpha_composite(b, (8, y))
+        y += b.size[1] + gap
+    s.convert("RGB").save("/tmp/plate_sheet.png")
+    print("对比图 -> /tmp/plate_sheet.png", s.size)
 
 
 if __name__ == "__main__":
+    if "--sheet" in sys.argv:
+        sheet()
     main()

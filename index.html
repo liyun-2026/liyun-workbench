@@ -1265,13 +1265,15 @@ body.board-mode .page.on > *{animation:none}
   border-bottom:1px solid var(--rule);position:relative}
 .bd-top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
   background:linear-gradient(90deg, var(--gold) 0%, rgba(201,171,124,.28) 32%, transparent 72%)}
-/* 顶带品牌标：**深墨底板版**（v42）。
-   ⚠️ 这里放过一版错的东西：brand-lock-alpha.png 是「给深色底做的米黄细线描」，本身没底色，
-      贴在这块米白纸上右侧的砺蕴章会整块化掉 —— 用户看到的「看不清」不是分辨率不够，
-      是拿错了变体。现在换成带深墨底板的 brand-plate.png：两枚印章都框在同一块板上，
-      浅底上墨板立得住、深底上墨板融进背景只剩金色与蓝色内容，到哪儿都读得清。
-   尺寸：底板比内容高（上下各留 15%），所以高度要比裸标放大一档，
-      内容才跟以前一样大（0.769 × 5.4vh ≈ 4.2vh，即改动前的高度）。 */
+/* 顶带品牌标（v43）：博艺圆章**原样裸摆**，只给砺蕴那半加一块**暖米黄圆底**，
+   章色由「品牌金细线」换成官方**暗金**版 —— 于是浅纸上也读得清。
+   ⚠️ 走过两条弯路，别再回去：
+     ① brand-lock-alpha.png（原 v41 用）是「给深色底做的米黄细线描」，本身没底色，
+        贴在这块米白纸上右侧的砺蕴章整块化掉 —— 「看不清」不是分辨率，是拿错了变体；
+     ② v42 整条套一块**深墨**底板：清楚是清楚了，但整屏宣纸白里插一块黑，用户否了
+        （「很丑」「博艺的 logo 是白色跟蓝色的」）。
+   尺寸：圆底比章高（单边 8.5%），所以高度要比裸标放大一档，内容才跟以前一样大
+      （5.4vh 这块按圆底高度算：0.845 × 5.4vh ≈ 4.56vh 的章）。 */
 .bd-lock{height:clamp(38px,5.4vh,72px);width:auto;flex:none;display:block}
 .bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
   letter-spacing:.05em;flex:none}
@@ -2366,9 +2368,10 @@ try {
     <section class="page" id="page-board">
       <div class="bd">
         <div class="bd-top">
-          <!-- v42：换成【深墨底板】那版。原来用的 brand-lock-alpha.png 是「给深色底做的
-               米黄细线描」，本身没有底色 —— 贴在这块米白纸上，右侧砺蕴章直接化掉，
-               用户说的是「看不清晰」。深墨底板把两枚印章框在一块板上，浅底深底都立得住。 -->
+          <!-- v43：博艺圆章原样裸摆（它本来就蓝+白，浅纸上读得清），只给**砺蕴那半**
+               加一块暖米黄圆底、章换官方暗金版。v42 那版整条套深墨底板被用户否了：
+               「整体都是白色的，突然有一个黑色的很丑」「博艺的 logo 是白色跟蓝色的」；
+               也别退回 brand-lock-alpha.png（给深色底做的米黄细线，纸上会化掉）。 -->
           <img class="bd-lock" src="assets/brand-plate.png"
                srcset="assets/brand-plate.png 1x, assets/brand-plate@2x.png 2x, assets/brand-plate@3x.png 3x"
                alt="博艺教育 · 砺蕴" draggable="false">

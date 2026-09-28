@@ -344,10 +344,10 @@ try {
   });
 
   /* 品牌标必须真的渲染出来 —— 用户对 logo 一直很在意，图上不出东西是最难发现的坏法。
-     v42 又栽在「拿错变体」上：brand-lock-alpha.png 是给深色底做的米黄细线描、没有底色，
-     贴在米白纸上右侧砺蕴章整块化掉 —— 尺寸/加载都正常，**只有像素看得出来**。
-     所以这条判据不再只看文件名字，直接把图读到画布上量对比：右半必须真的有色差。
-     判据用一个「颜色差很大」的阈值：老 alpha 版在纸底上 p95−p05 只有个位数，一测就露。 */
+     这块标连着翻过两次车：① v41 用 brand-lock-alpha.png（给深色底做的米黄细线描，
+     本身没底色），贴米白纸上右侧砺蕴章整块化掉；② v42 整条套深墨底板，清楚但「白屏里插一块黑」，
+     被用户否掉。v43 定稿 = 博艺圆章裸摆 + 只给砺蕴那半套暖米黄圆底。两次都是
+     「尺寸、加载、文件名全正常，只有像素看得出来」，所以判据落在像素上。 */
   const brand = await cdp.eval(`(() => {
     const img = document.querySelector('.bd-lock');
     if (!img) return { err: '顶带里没有品牌标' };
@@ -369,60 +369,83 @@ try {
               over: Math.round(Math.max(0, top - f.top) + Math.max(0, l.bottom - bot)),
               slack: Math.round(Math.min(f.top - top, bot - l.bottom)) };
     }
-    /* 把图读进画布：透明处按页底 #FAF7F0 合成，再看左右两半的亮度跨度 */
-    let lum = null;
+    /* 把图读进画布量像素（**不铺底色**，保住 alpha）：
+       ① 左半大半是透明的 → 说明「板只加在砺蕴那半」，博艺圆章仍是裸摆的；
+       ② 右半是暖米黄圆底 + 暗金章 → 板底要亮、章线要明显暗于板，才叫「读得出」。
+       这两条正是用户的要求（「只给砺蕴的 logo 加个底色」「换其他颜色」）——
+       尺寸、加载、文件名全都正常，只有像素看得出来，所以判据落在像素上。 */
+    let pix = null;
     try {
       const N = img.naturalWidth, M = img.naturalHeight;
       const cv = document.createElement('canvas'); cv.width = N; cv.height = M;
       const cx = cv.getContext('2d');
+      cx.clearRect(0, 0, N, M);
       cx.drawImage(img, 0, 0);
-      const px = cx.getImageData(0, 0, N, M).data;
-      const L = (i) => {                       /* 相对亮度，0~255 */
-        const a = px[i + 3] / 255;
-        const r0 = px[i] * a + 250 * (1 - a), g0 = px[i + 1] * a + 247 * (1 - a),
-              b0 = px[i + 2] * a + 240 * (1 - a);
-        return 0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0;
+      const raw = cx.getImageData(0, 0, N, M).data;
+      const region = (x0, x1) => {
+        const n = { t: 0, all: 0 };
+        const rs = [], gs = [], bs = [], lums = [];
+        for (let y = 0; y < M; y++) for (let x = x0; x < x1; x++) {
+          const i = (y * N + x) * 4, a = raw[i + 3];
+          n.all++;
+          if (a < 20) n.t++;
+          if (a > 128) { rs.push(raw[i]); gs.push(raw[i + 1]); bs.push(raw[i + 2]); }
+          const k = a / 255;
+          const r0 = raw[i] * k + 250 * (1 - k), g0 = raw[i + 1] * k + 247 * (1 - k),
+                b0 = raw[i + 2] * k + 240 * (1 - k);
+          lums.push(0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0);
+        }
+        const mid = (arr) => { arr.sort((a, b) => a - b);
+                               return arr.length ? arr[Math.floor(arr.length / 2)] : 0; };
+        lums.sort((a, b) => a - b);
+        const q = (p) => lums[Math.floor(lums.length * p)] || 0;
+        return { trans: n.t / n.all * 100, med: [mid(rs), mid(gs), mid(bs)],
+                 p05: q(0.05), p50: q(0.5), p99: q(0.99) };
       };
-      const half = (x0, x1) => {
-        const v = [];
-        for (let y = 0; y < M; y += 2) for (let x = x0; x < x1; x += 2) v.push(L((y * N + x) * 4));
-        v.sort((a, b) => a - b);
-        return { p05: v[Math.floor(v.length * 0.05)], p50: v[Math.floor(v.length * 0.5)],
-                 p95: v[Math.floor(v.length * 0.95)], p99: v[Math.floor(v.length * 0.99)],
-                 max: v[v.length - 1] };
-      };
-      /* ⚠️ 看 p99 而不是 p95：砺蕴章是**细线**，只占右半像素的 5% 左右，
-         p95 正好卡在线与底的交接处（实测只有 98），会误判成「读不出来」。 */
-      const right = half(Math.floor(N * 0.55), N);       /* 右半 = 砺蕴章（原来化掉的那块） */
-      const all = half(0, N);
-      lum = { right, all, rightSpread: right.p99 - right.p50, allSpread: all.p99 - all.p50,
-              bgLum: all.p50 };
-    } catch (e) { lum = { err: String(e && e.message || e) }; }
+      /* 左右取样区留开中间那道空（圆章与圆底之间）：左 0~48%、右 55%~100% */
+      pix = { w: N, h: M, left: region(0, Math.floor(N * 0.48)),
+              right: region(Math.floor(N * 0.55), N) };
+    } catch (e) { pix = { err: String(e && e.message || e) }; }
     return { src: img.currentSrc || img.src, complete: img.complete,
              nw: img.naturalWidth, nh: img.naturalHeight,
              w: Math.round(r.width), h: Math.round(r.height),
              inTop: r.top >= top.top - 1 && r.bottom <= top.bottom + 1,
-             lum, fit };
+             pix, fit };
   })()`);
   t('顶带有博艺的品牌标，图真加载出来了（不是空白占位）', () => {
     assert(!brand.err, brand.err);
     assert(brand.complete && brand.nw > 0, '图没加载出来：' + JSON.stringify(brand));
-    assert(/brand-plate/.test(brand.src), '该用带深墨底板那版，实际 ' + brand.src);
+    assert(/brand-plate/.test(brand.src), '该用「博艺圆章 + 砺蕴米黄圆底」那版，实际 ' + brand.src);
     assert(brand.inTop, '标该在顶带里，实际位置 ' + JSON.stringify(brand));
     assert(brand.w >= 60, '标不该小到看不清，实际 ' + brand.w + 'px 宽');
     return brand.nw + '×' + brand.nh + ' 原图 → 屏上 ' + brand.w + '×' + brand.h + 'px';
   });
-  t('品牌标在米白纸上**真的读得出**（拿错变体这里会挂）', () => {
-    assert(!brand.lum.err, '取像素失败：' + brand.lum.err);
-    const L = brand.lum;
-    assert(L.rightSpread >= 90,
-      '右半（砺蕴章）最亮的 1% 与底板差只有 ' + L.rightSpread.toFixed(0) +
-      ' —— 贴在纸底上化掉了。换回「给深色底做的透明版」就是这个数：' + JSON.stringify(L.right));
-    assert(L.bgLum <= 80,
-      '底板该是深墨（中位亮度 ≤80），实际 ' + L.bgLum.toFixed(0) + ' —— 没有底板就是这个数');
-    return '底板中位亮度 ' + L.bgLum.toFixed(0) + ' · 右半 p99−p50 = ' + L.rightSpread.toFixed(0) +
-           '（p50 ' + L.right.p50.toFixed(0) + ' → p99 ' + L.right.p99.toFixed(0) +
-           '，最亮 ' + L.right.max.toFixed(0) + '）';
+  t('底色**只加在砺蕴那半**（左＝博艺圆章裸摆，右＝砺蕴圆底）', () => {
+    assert(!brand.pix.err, '取像素失败：' + brand.pix.err);
+    const p = brand.pix;
+    /* 圆章/圆底都是圆形，两侧本该各留一圈透明；差别在「有没有一块铺满半边的板」：
+       左半若被套板，透明占比会掉到个位数。 */
+    assert(p.left.trans >= 35,
+      '左半（博艺圆章）透明占比只有 ' + p.left.trans.toFixed(0) + '% —— ' +
+      '看着像给博艺那半也套了底板，用户要的是「只给砺蕴的 logo 加个底色」');
+    assert(p.right.trans <= 30,
+      '右半（砺蕴）透明占比 ' + p.right.trans.toFixed(0) + '% —— 圆底没画出来？');
+    return '左半透明 ' + p.left.trans.toFixed(0) + '%（裸摆）· 右半透明 ' +
+           p.right.trans.toFixed(0) + '%（圆底）';
+  });
+  t('砺蕴那半的板是**暖米黄**（用了深墨/杂色这里会挂），且章线在板上读得出', () => {
+    assert(!brand.pix.err, '取像素失败：' + brand.pix.err);
+    const R = brand.pix.right;
+    assert(R.med[0] > R.med[1] && R.med[1] > R.med[2] && R.med[0] >= 225,
+      '圆底该是暖米黄（不透明像素中位色 R>G>B 且 R≥225），实际 rgb(' +
+      R.med.join(',') + ') —— 深墨底板会给出 20 上下的数');
+    assert(R.p50 >= 210,
+      '板底亮度只有 ' + R.p50.toFixed(0) + '（暖米黄该在 230 上下）');
+    assert(R.p50 - R.p05 >= 35,
+      '章线跟板底几乎同亮度（p50 ' + R.p50.toFixed(0) + ' vs p05 ' + R.p05.toFixed(0) +
+      '）—— 印章在纸上化掉了，正是用户报的「看不清晰」');
+    return '板色 rgb(' + R.med.join(',') + ') · 亮度 p50 ' + R.p50.toFixed(0) +
+           ' / 章线 p05 ' + R.p05.toFixed(0) + '（差 ' + (R.p50 - R.p05).toFixed(0) + '）';
   });
   t('中栏没被顶带挤溢出（挤出去会被 body 的 overflow:hidden 默默裁掉，图上少一行）', () => {
     assert(brand.fit, '没量到中栏尺寸');
