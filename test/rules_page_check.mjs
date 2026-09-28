@@ -152,6 +152,10 @@ try {
     .sort((a, b) => b.h - a.h)`);
   console.log('     设置页各卡高度（高→低）：' + cards.map(c => `${c.t} ${c.h}px`).join(' / '));
   await shot(cdp, 'm-settings.png');
+  /* 整页 3000px 高、视口只有 788px，把入口卡滚进视野单拍一张，方便目检 */
+  await cdp.eval(`document.getElementById('rulesCard').scrollIntoView({block:'center'})`);
+  await sleep(500);
+  await shot(cdp, 'm-settings-rulescard.png');
 
   /* ══ 2. 导航里没有它 ══ */
   console.log('\n=== 2. 三处导航都找不到「量化细则」===');
