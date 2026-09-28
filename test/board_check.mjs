@@ -13,7 +13,7 @@
  *
  * 一次性账号，结束 dev-reset 清场。
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -71,12 +71,19 @@ const t = (name, fn) => {
 };
 const assert = (c, m) => { if (!c) throw new Error(m); };
 async function devReset(){ try { await jfetch(`${BASE}/api/dev-reset`, { method: 'POST' }); } catch {} }
-async function shot(cdp, name){
-  const r = await cdp.send('Page.captureScreenshot', { format: 'png' });
+async function shot(cdp, name, clip){
+  const r = await cdp.send('Page.captureScreenshot', clip ? { format: 'png', clip } : { format: 'png' });
   const f = path.join(OUT, name);
   await writeFile(f, Buffer.from(r.data, 'base64'));
   shots.push(f);
   console.log('  📸 ' + name);
+}
+/* 把一张图里的二维码读出来。用的是托管 venv 里的 OpenCV（真解码器）——
+   自己画的矩阵「看着像二维码」不算数，得真读回来。 */
+const PY = path.join(process.env.HOME, '.workbuddy/binaries/python/envs/default/bin/python3');
+function qrDecode(png){
+  const r = spawnSync(PY, [path.join(dir, 'test', 'qr_decode.py'), png], { encoding: 'utf8' });
+  return { ok: r.status === 0, text: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
 }
 async function go(cdp, url){
   const loaded = cdp.once('Page.loadEventFired');
@@ -290,8 +297,16 @@ try {
   const clip = await cdp.eval(`(() => {
     const rows = document.getElementById('bdMiss');
     const box = rows.parentElement;
+    const panel = rows.closest('.bd-miss');
+    const h3 = panel.querySelector('h3');
+    const pr = panel.getBoundingClientRect(), hr = h3.getBoundingClientRect(), lr = box.getBoundingClientRect();
+    const cs = getComputedStyle(panel);
     const fits = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
-                   rowsH: rows.scrollHeight, boxH: box.clientHeight };
+                   panelFit: panel.classList.contains('fit'),
+                   rowsH: rows.scrollHeight, boxH: box.clientHeight,
+                   /* 标题上方、名单下方各剩多少 —— 真居中就该差不多相等 */
+                   above: Math.round(hr.top - (pr.top + parseFloat(cs.paddingTop))),
+                   below: Math.round((pr.bottom - parseFloat(cs.paddingBottom)) - lr.bottom) };
     const many = Array.from({ length: 260 }, (_, i) => '<div class="bd-row">学员' + (i + 1) + '</div>').join('');
     Board.fill(rows, many);
     const over = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
@@ -305,12 +320,18 @@ try {
   t('名单装得下就居中不滚；塞不下才复制一份上滚，且不会越滚越多', () => {
     assert(!clip.fits.loop, '7 个人在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
     assert(clip.fits.fit, '7 个人放得下时该加 .fit 居中摆着，实际没加（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）');
+    /* ⚠️ 光看类名不够：.fit 曾经挂在 .bd-rows 上、而 .bd-rows 没有高度，
+       align-content:center 是空转的 —— 类名加了，名字照样顶在上边。所以这里量几何。 */
+    assert(clip.fits.panelFit, '.fit 该挂在 .bd-miss 面板上（居中要连标题一起，不是只居中名单）');
+    assert(Math.abs(clip.fits.above - clip.fits.below) <= 4,
+      '标题上方剩 ' + clip.fits.above + 'px、名单下方剩 ' + clip.fits.below + 'px —— 没真居中');
     assert(clip.over.loop, '260 个人该开滚动（实际内容 ' + clip.over.rowsH + ' / 面板 ' + clip.over.boxH + '）');
     assert(!clip.over.fit, '要滚了就不该再挂 .fit —— 居中和滚动一起上，上下两头都会露不出来');
     assert(clip.over.rowsH > clip.over.boxH, '复制后总高该超出面板，实际 ' + clip.over.rowsH + ' ≤ ' + clip.over.boxH);
     assert(clip.again.rowsH === clip.over.rowsH, '同一份内容重灌不该再复制（' + clip.over.rowsH + ' → ' + clip.again.rowsH + '）');
     assert(parseFloat(clip.over.dur) >= 14, '滚动时长该有个下限，实际 ' + clip.over.dur);
-    return '装得下：居中不滚（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）· 塞不下：高 '
+    return '装得下：整组居中（上 ' + clip.fits.above + ' / 下 ' + clip.fits.below + 'px，内容 '
+         + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）· 塞不下：高 '
          + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
   });
 
@@ -436,6 +457,140 @@ try {
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(500);
   await shot(cdp, 'board-1920x1080.png');
+
+  console.log('\n=== 8. 打卡二维码（数字码上面那一块）===');
+  /* 二维码是这次新加的「第二条路」：学生扫一下就直接落进打卡页、码已填好，
+     不必凑到屏前抄 6 位数字。这一节验到**屏幕像素**这一层 —— 把那块像素截下来
+     交给真解码器读，读回来必须正是这一秒显示的那条链接。 */
+  const qr = await cdp.eval(`(() => {
+    const box = document.getElementById('bdQr');
+    const svg = box.querySelector('svg');
+    const code = (document.getElementById('bdCode').textContent || '').trim();
+    const link = Board.scanLink();
+    const enc = QRLib.encode(link);
+    const r = box.getBoundingClientRect();
+    const vb = (svg.getAttribute('viewBox') || '').split(' ').map(Number);
+    return { code: code, link: link, version: enc.version, mods: enc.size, vb: vb,
+             bg: getComputedStyle(box).backgroundColor, w: Math.round(r.width), h: Math.round(r.height),
+             pad: Math.round((vb[2] - enc.size) / 2),
+             x: r.x, y: r.y };
+  })()`);
+  t('二维码块是纯白底（深墨底上反色二维码，手机多半认不出）', () => {
+    assert(qr.bg === 'rgb(255, 255, 255)', '底色该是纯白，实际 ' + qr.bg);
+    return qr.bg;
+  });
+  t('SVG 自带 4 格静默区（少了手机直接扫不出）', () => {
+    assert(qr.pad === 4, '每边该留 4 格静默区，实际 ' + qr.pad + ' 格');
+    return '码 ' + qr.mods + ' 格（v' + qr.version + '）+ 每边 4 格 → viewBox ' + qr.vb[2];
+  });
+  t('二维码画得够大、是正方形（站在门口也扫得动）', () => {
+    assert(qr.w >= 180, '边长该 ≥180px，实际 ' + qr.w);
+    assert(Math.abs(qr.w - qr.h) < 2, '该是正方形，实际 ' + qr.w + '×' + qr.h);
+    return qr.w + '×' + qr.h + '（约 ' + (qr.w / (qr.mods + 8)).toFixed(1) + 'px 一格）';
+  });
+  t('二维码编的是本站 ?code= 链接，跟屏上那串数字一致', () => {
+    assert(qr.code.length >= 4, '屏上没读到码：' + JSON.stringify(qr.code));
+    const want = BASE + '/?code=' + qr.code;
+    assert(qr.link === want, '链接不对：' + qr.link + '（期望 ' + want + '）');
+    return qr.link;
+  });
+  await shot(cdp, 'board-qr.png', { x: qr.x, y: qr.y, width: qr.w, height: qr.h, scale: 1 });
+  const dec = qrDecode(path.join(OUT, 'board-qr.png'));
+  t('屏幕上的二维码能被真解码器读回那条链接（截屏 → OpenCV 解码）', () => {
+    assert(dec.ok, '解码器没读出来' + (dec.err ? '（' + dec.err + '）' : '') + '，输出「' + dec.text + '」');
+    assert(dec.text === qr.link, '读出来是「' + dec.text + '」，期望「' + qr.link + '」');
+    return dec.text;
+  });
+  /* paintCode() 每秒都被 tick() 叫一次，重编码一次要跑 8 张掩码的评分。
+     dataset.code 那道闸要是漏了，这块常开的屏就在白烧 CPU。 */
+  const redraw = await cdp.eval(`(() => {
+    const a = document.querySelector('#bdQr svg');
+    Board.paintCode(); Board.paintCode();
+    return { same: a === document.querySelector('#bdQr svg'), n: document.querySelectorAll('#bdQr svg').length };
+  })()`);
+  t('同一枚码不重画（每秒都调 paintCode，也不能每秒重编码）', () => {
+    assert(redraw.same, '同一枚码下把二维码重画了 —— dataset.code 那道闸没拦住');
+    assert(redraw.n === 1, '二维码块里不该堆出多张 svg，实际 ' + redraw.n + ' 张');
+    return '连调两次 paintCode，svg 节点没换';
+  });
+
+  console.log('\n=== 9. 学生扫这条链接 → 落在打卡页、码已填好 ===');
+  /* 二维码要是不落进打卡页、或者码没替他填上，那它就只是个装饰。
+     这条必须真跑一遍：另开一台「学生手机」。 */
+  const stuAcc = { user: '扫描测试员', pass: 'scanpass123' };
+  const made = await cdp.eval(`(async () => {
+    const cls = Store.upsert('classes', { id: null, name: '扫描测试班' });
+    const st = Store.upsert('students', { id: null, name: '扫描测试员', classId: cls.id, ord: 1 });
+    await Sync.push();
+    const r = await Auth.call('users', { op: 'create', user: '扫描测试员', name: '扫描测试员',
+      role: 'student', pass: 'scanpass123', studentId: st.id });
+    return { cls: cls.id, sid: st.id, note: JSON.stringify(r).slice(0, 80) };
+  })()`);
+  t('教务建好一个学生账号（专供扫码那条路验）', () => {
+    assert(!!made.sid, '学生没建出来：' + made.note);
+    return '班 ' + made.cls + ' / 学员 ' + made.sid;
+  });
+
+  const DBG2 = PORT + 3;
+  const profile2 = await mkdtemp(path.join(tmpdir(), 'board-stu-'));
+  const chrome2 = spawn(CHROME, [
+    '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage',
+    `--remote-debugging-port=${DBG2}`, `--user-data-dir=${profile2}`,
+    '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--no-proxy-server', 'about:blank',
+  ], { stdio: 'ignore', env: { ...process.env, NO_PROXY: '*' } });
+  chromes.push(chrome2);
+  const tgt2 = await waitFor(async () => {
+    const list = await (await jfetch(`http://127.0.0.1:${DBG2}/json/list`)).json();
+    return list.find(x => x.type === 'page' && x.webSocketDebuggerUrl);
+  }, { what: '学生端 Chrome', tries: 40 });
+  const stu = await Cdp.connect(tgt2.webSocketDebuggerUrl);
+  await stu.send('Runtime.enable');
+  await stu.send('Page.enable');
+  await stu.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 1, mobile: true });
+
+  /* 扫的就是屏幕那块二维码里编的那条链接（带上 ?nosw=1 免得 SW 换版重载打断登录） */
+  await go(stu, `${BASE}/?nosw=1&code=${qr.code}`);
+  const caught = await stu.eval(`({ saved: Store.get('_scanCode') || '', search: location.search })`);
+  t('扫码进来当场收下码，并把它从地址栏抹掉（不留在历史里、不当普通链接转发）', () => {
+    assert(caught.saved === qr.code, '该存下 ' + qr.code + '，实际「' + caught.saved + '」');
+    assert(caught.search.indexOf('code=') < 0, '地址栏里的码该被抹掉，实际 ' + caught.search);
+    return '存下 ' + caught.saved + '；location.search = "' + caught.search + '"';
+  });
+
+  const stuLogin = await stu.eval(`(async () => {
+    if (typeof Auth === 'undefined') return { err: '模块没接上' };
+    if (!Auth.mode) await Auth.probe();
+    document.getElementById('gUser').value = ${JSON.stringify(stuAcc.user)};
+    document.getElementById('gPass').value = ${JSON.stringify(stuAcc.pass)};
+    await Auth.submit();
+    await new Promise(r => setTimeout(r, 1800));
+    return { gateOff: !document.getElementById('gate').classList.contains('on'),
+             err: document.getElementById('gErr').textContent,
+             page: (document.querySelector('.page.on') || {}).id || '' };
+  })()`);
+  t('学生登录后直接落在打卡页（不走「上次停在哪」）', () => {
+    assert(stuLogin.gateOff, '学生登录失败：' + (stuLogin.err || ''));
+    assert(stuLogin.page === 'page-stuSign', '该落在 page-stuSign，实际「' + stuLogin.page + '」');
+    return stuLogin.page;
+  });
+
+  const filled = await stu.eval(`(() => {
+    /* 定位直接塞结果，不去真要权限 —— 这一趟只验「码有没有替他填上」 */
+    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
+    StuSign.renderStep();
+    const inp = document.getElementById('stuCode');
+    const step = document.getElementById('stuSignStep');
+    return { val: inp ? inp.value : null, has: !!inp,
+             focused: inp ? document.activeElement === inp : null,
+             hint: step ? step.textContent.replace(/\\s+/g, ' ').trim().slice(0, 46) : '' };
+  })()`);
+  t('输入框已经填好扫来的码，而且不抢焦点（手机上弹键盘会挡住打卡圈）', () => {
+    assert(filled.has, '没渲染出打卡码输入框：' + JSON.stringify(filled));
+    assert(filled.val === qr.code, '该填好 ' + qr.code + '，实际 ' + JSON.stringify(filled.val));
+    assert(filled.focused !== true, '扫来的码不该抢焦点（会弹键盘盖住上面的圈）');
+    return '输入框 = ' + filled.val + '；提示「' + filled.hint + '」';
+  });
+  await shot(stu, 'board-scan-stu.png');
 
 } catch (e) {
   fail.push('脚本异常 → ' + e.message);
