@@ -1183,11 +1183,23 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    进这一页时 body 带 board-mode —— 侧栏 / 顶栏 / 底栏全隐、内容区去边距铺满整屏，
    屏幕上只剩数字，看着就不像办公界面，也没有任何能误点改数据的地方。
 
-   固定深墨底 + 古铜金，**不跟系统深浅色**：这块屏 24 小时亮着，深底更耐看、
-   也正好和开屏动画那套气质对上；更要紧的是，「深底 = 这不是办公界面」一眼可辨，
-   教务不会以为自己把系统弄坏了。
+   底色 = **宣纸米白**（不是正白）：这块屏 24 小时亮着，正白 #FFF 太晃眼，
+   米白压一点、暖一点，久看不累。**不跟系统深浅色** —— 看板永远是这一种纸色，
+   教务不用管系统设的是浅色还是深色。
    ⚠️ 字号全部 clamp(…vw/vh)：同一套代码在小笔记本和 55 寸电视上都能铺满，不用改。 */
-body.board-mode{background:#1B2028}
+body.board-mode{
+  --bg:#FAF7F0;                 /* 宣纸 · 米白 */
+  --ink:#221F1A;                /* 墨 */
+  --dim:#8B8072;                /* 淡墨（次级文字） */
+  --rule:rgba(34,31,26,.13);    /* 栏线 */
+  --gold:#A8873F;               /* 品牌金（浅底上要比原 #C8AC7C 深一档才立得住） */
+  --red:#B23A2E;                /* 朱砂：未到 / 警示（即系统签名色） */
+  --green:#2F7D5D;              /* 已到 */
+  --amber:#AA7A1E;              /* 迟到 */
+  --blue:#4A6E9B;               /* 请假 */
+  --serif:"Songti SC","STSong","SimSun",serif;   /* 报头用宋体，出「布告」的味道 */
+  background:var(--bg);
+}
 body.board-mode .side,
 body.board-mode .topbar,
 body.board-mode .tabbar{display:none}
@@ -1207,78 +1219,114 @@ body.board-mode #page-board{
 /* 看板不要入场动画：一屏数字挨个往上冒，看着像卡顿 */
 body.board-mode .page.on > *{animation:none}
 
-/* 版面：顶带（时间轴）/ 中带（左码右数）/ 底带（课表跑马灯）—— 像机场的航班显示屏，
-   信息分带铺满，课表再长也不会留出大片空白。
-   （旧版是「上时钟下卡片」的仪表盘思路，下半屏常年空着半块，已换掉。） */
+/* 版面：顶带（品牌 · 日期 · 大时钟 · 数据新鲜度）+ 三栏（左课表 / 中打卡码 / 右量化与未到）。
+   栏与栏之间只用一条细线分开 —— **不用卡片**。一圈圆角白卡会把整块屏切成一格一格，
+   远看很碎；中式布告的做法是留白 + 栏线，整块纸看着才安静。 */
 .bd{
   flex:1;min-height:0;display:flex;flex-direction:column;
-  background:#1B2028;color:#F2EFE8;
+  background:var(--bg);color:var(--ink);
   font-variant-numeric:tabular-nums;
 }
 .bd-top{display:flex;align-items:center;gap:clamp(10px,1.5vw,32px);
-  padding:clamp(9px,1.5vh,22px) clamp(16px,2.4vw,48px);
-  border-bottom:1px solid rgba(200,172,124,.22)}
-.bd-brand{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C;letter-spacing:.1em;flex:none}
-.bd-date{font-size:clamp(12px,1.05vw,19px);color:#8E887E;flex:none}
-.bd-arrive{margin-left:auto;font-size:clamp(12px,1.2vw,22px);color:#7FBF97;flex:none;white-space:nowrap}
-.bd-fresh{font-size:clamp(11px,.85vw,16px);color:#6E6A63;flex:none;white-space:nowrap;
-  border-left:1px solid rgba(200,172,124,.3);padding-left:clamp(8px,1vw,20px)}
-.bd-fresh.warn{color:#E0A15C}
+  padding:clamp(10px,1.6vh,24px) clamp(18px,2.6vw,54px);
+  border-bottom:1px solid var(--rule)}
+.bd-lock{height:clamp(30px,4.2vh,56px);width:auto;flex:none;display:block}
+.bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
+  letter-spacing:.05em;flex:none}
+.bd-clock{margin-left:auto;font-size:clamp(26px,3.4vw,68px);font-weight:400;
+  line-height:1;letter-spacing:.02em;flex:none;white-space:nowrap}
+.bd-fresh{font-size:clamp(11px,.85vw,16px);color:var(--dim);flex:none;white-space:nowrap;
+  border-left:1px solid var(--rule);padding-left:clamp(10px,1.2vw,22px)}
+.bd-fresh.warn{color:var(--red)}
 
-.bd-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
-.bd-gate{display:flex;flex-direction:column;justify-content:center;gap:clamp(8px,1.5vh,20px);min-width:0;
-  padding:clamp(12px,2.4vh,34px) clamp(16px,2.4vw,48px);
-  border-right:1px solid rgba(200,172,124,.14)}
-.bd-side{display:flex;flex-direction:column;min-height:0;gap:clamp(8px,1.4vh,20px);
-  padding:clamp(12px,2.4vh,34px) clamp(16px,2.4vw,48px)}
+/* 三栏：左课表 / 中打卡码（用户要的「二维码摆中间」）/ 右量化与未到。
+   中间那栏给得最宽 —— 二维码要够大，站远一点也扫得动。 */
+.bd-main{flex:1;min-height:0;display:grid;
+  grid-template-columns:minmax(0,.92fr) minmax(0,1.2fr) minmax(0,1fr)}
+.bd-col{display:flex;flex-direction:column;min-height:0;min-width:0;
+  gap:clamp(8px,1.4vh,20px);
+  padding:clamp(14px,2.4vh,34px) clamp(16px,2.2vw,44px)}
+.bd-col + .bd-col{border-left:1px solid var(--rule)}
+/* 中间那栏整列居中：二维码 + 数字码 + 应到实到，一块儿落在视觉正中 */
+.bd-gate{align-items:center;justify-content:center;text-align:center}
 
-/* 字号走 vw：同一套代码在 13 寸笔记本和 55 寸电视上都能铺满。
-   ⚠️ 系数按「码栏 ≈ 视口 52%」倒推 —— 6 位码要在左半屏里放得下；
-   上限 228px 是防 4K 屏把码撑到跟右栏打架。 */
-.bd-lab{font-size:clamp(12px,1.15vw,21px);color:#8E887E;letter-spacing:.16em}
-.bd-clock{font-size:clamp(25px,3.2vw,62px);font-weight:500;line-height:1;letter-spacing:.02em;flex:none;white-space:nowrap}
-.bd-sub{font-size:clamp(12px,1.15vw,21px);color:#C8AC7C}
+/* 栏标题：宋体 + 一条延伸的细金线，像布告栏上的小标头 */
+.bd-h{font-family:var(--serif);font-size:clamp(13px,1.15vw,21px);font-weight:400;
+  color:var(--ink);letter-spacing:.14em;margin:0;display:flex;align-items:baseline;
+  gap:clamp(6px,.8vw,14px);flex:none;white-space:nowrap}
+.bd-h::after{content:"";flex:1;height:1px;background:var(--rule);position:relative;top:-.18em}
+.bd-lab{font-size:clamp(12px,1.05vw,19px);color:var(--dim);letter-spacing:.14em}
+.bd-sub{font-size:clamp(12px,1.05vw,19px);color:var(--gold)}
 
-/* ── 二维码（在数字码上方）──
-   学生扫一下就直接落进打卡页、码已填好，不必凑到屏前抄 6 位数字。
+/* ── 打卡二维码（居中 · 放大）──
+   学生扫一下就把码带走，不必凑到屏前抄 6 位数字。
    ⚠️ 四条不能动，动了就扫不出来：
-     ① 底色必须白：深墨底上做反色二维码，手机多数认不出；
-     ② 边长别小于 ~180px：29 格码 + 两边各 4 格静默区 = 37 格，缩小了站在门口扫不动；
+     ① 码下面给一块纯白托盘：纸色底直接画码会损失对比度；
+     ② 静默区由 QRLib.svg() 里写死的 4 格白边提供，这里只管给它大小；
      ③ 圆角要小：圆角是啃白底的，啃进静默区（4 格宽）就读不出来了；
-     ④ 静默区由 QRLib.svg() 里写死的 4 格白边提供，这里只管给它一块白底和大小。
-   尺寸用 vh 兜底（窗口矮的时候先缩二维码，别把数字码挤出屏幕）。 */
-.bd-qr{width:min(34vh,21vw,380px);aspect-ratio:1;flex:none;
-  background:#fff;border-radius:8px;box-shadow:0 2px 14px rgba(0,0,0,.35)}
+     ④ 边长别小于 ~180px。
+   尺寸跟着栏宽和屏高一起伸缩（窗口矮的时候先缩它，别把数字码挤出屏幕）。 */
+.bd-qr{width:min(44vh,30vw,540px);aspect-ratio:1;flex:none;
+  background:#fff;border-radius:6px;padding:clamp(6px,.9vw,16px);
+  box-shadow:0 1px 0 rgba(34,31,26,.05), 0 8px 30px rgba(34,31,26,.10)}
 .bd-qr svg{display:block;width:100%;height:100%}
 
-.bd-code{font-size:clamp(40px,9.4vw,178px);font-weight:500;line-height:1;color:#C8AC7C;letter-spacing:.05em;white-space:nowrap}
-.bd-code.long{font-size:clamp(26px,4.6vw,86px);letter-spacing:.02em}
-.bd-bar{height:clamp(4px,.75vh,10px);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
-.bd-bar > i{display:block;height:100%;border-radius:99px;background:#C8AC7C;transition:width .9s linear}
+/* 字号按「中栏内容宽 ÷ 6 位数字的占宽」倒推出来的：
+   ⚠️ 7vw 在 1024 宽的屏上会让 6 位码正好顶到栏边（余量只剩几个像素），这里取 6.2vw 留出余量。 */
+.bd-code{font-size:clamp(30px,6.2vw,120px);font-weight:500;line-height:1;color:var(--ink);
+  letter-spacing:.12em;white-space:nowrap}
+/* 教务要是设了个更长的固定码，再降一档，别撑出栏外 */
+.bd-code.long{font-size:clamp(22px,3.8vw,72px);letter-spacing:.05em}
+.bd-bar{width:min(78%,440px);height:clamp(4px,.7vh,9px);border-radius:99px;
+  background:rgba(34,31,26,.1);overflow:hidden}
+.bd-bar > i{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .9s linear}
 
-/* 数字矩阵：3 列 2 行。第 6 格是「距上课」，由 tick() 每秒单独刷（不跟 paint 一起重建）。 */
-.bd-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:clamp(8px,1.3vh,20px) clamp(6px,1vw,18px)}
-.bd-stat{display:flex;flex-direction:column;gap:1px;min-width:0}
-.bd-stat b{font-size:clamp(22px,3.9vw,76px);font-weight:500;line-height:1.05}
-.bd-stat span{font-size:clamp(11px,.95vw,17px);color:#8E887E}
-/* ⚠️ 类名一律带 bd- 前缀：系统里已有一个通用 `.ok{background:#eafaf0;…}` 状态条样式，
-   直接写 .bd-stat.ok 会把它一起吃掉 —— 「已到」那块会平白多出一片浅绿底。 */
-.bd-stat.bd-ok b{color:#7FBF97}
-.bd-stat.bd-late b{color:#E0A15C}
-.bd-stat.bd-leave b{color:#9BB6D8}
-.bd-stat.bd-miss b{color:#D98A80}
-.bd-stat.bd-soon b{color:#C8AC7C}
+/* 二维码下面：应到 / 实到 —— 这块屏最该被一眼看见的两个数 */
+.bd-count{display:flex;gap:clamp(20px,3.4vw,72px);justify-content:center;align-items:flex-end;
+  width:100%;border-top:1px solid var(--rule);padding-top:clamp(10px,1.6vh,22px)}
+.bd-count > div{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bd-count b{font-size:clamp(32px,4.6vw,94px);font-weight:500;line-height:1}
+.bd-count span{font-size:clamp(12px,1.05vw,19px);color:var(--dim);
+  font-family:var(--serif);letter-spacing:.12em}
+.bd-count .bd-c-ok b{color:var(--green)}
+/* 迟到 / 请假 / 未到这几个细节数，一行小字跟在后面，不抢应到实到 */
+.bd-mini{font-size:clamp(12px,1.05vw,19px);color:var(--dim);letter-spacing:.04em}
+.bd-mini b{font-weight:500;color:var(--ink)}
+.bd-mini .warn{color:var(--red)}
 
-.bd-miss{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.8vh,11px);
-  border-top:1px solid rgba(200,172,124,.16);padding-top:clamp(8px,1.3vh,18px)}
-/* 人少、装得下的时候，「标题 + 名单」整组居中 —— 三五个名字却顶在上边、底下空一大片，不好看。
-   ⚠️ 居中的是整组，不是让名单在剩余空间里单独居中：只给 .bd-rows 加 align-content:center
-      的话，标题还钉在顶上，中间会被拉开一大段空。.fit 由 Board.fill() 实时加/删。
-   装不下的那趟不挂 .fit，.bd-list 照旧撑满 + 上滚循环。 */
-.bd-miss.fit{justify-content:center}
+/* ── 左栏：今日课表 ──
+   竖排，每行「时间 · 课名 · 班级」，细线分隔。课多、一列装不下时整列缓慢上滚。 */
+.bd-sched{flex:1;min-height:0;overflow:hidden}
+.bd-sched-in{display:flex;flex-direction:column}
+.bd-s{display:flex;align-items:baseline;gap:clamp(8px,1vw,18px);min-width:0;
+  padding:clamp(8px,1.2vh,17px) 0;border-bottom:1px solid var(--rule)}
+.bd-s:last-child{border-bottom:none}
+.bd-s-t{font-size:clamp(14px,1.4vw,26px);color:var(--gold);flex:none;font-variant-numeric:tabular-nums}
+.bd-s-n{font-size:clamp(15px,1.5vw,28px);color:var(--ink);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-s-w{margin-left:auto;font-size:clamp(12px,1.05vw,19px);color:var(--dim);flex:none;white-space:nowrap}
+.bd-sched-in.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
+
+/* ── 右栏上半：班级量化榜（最多 5 格）──
+   按分数从高到低排。分数颜色走中式口径：高于 100 红、低于 100 绿、正好 100 墨。 */
+.bd-quant{display:flex;flex-direction:column;gap:clamp(4px,.7vh,11px);flex:none}
+.bd-q{display:flex;align-items:baseline;gap:clamp(8px,1vw,16px);min-width:0;
+  padding:clamp(6px,1vh,14px) clamp(8px,1vw,16px);
+  border:1px solid var(--rule);border-radius:4px;background:rgba(255,255,255,.55)}
+.bd-q-n{font-size:clamp(13px,1.2vw,22px);color:var(--ink);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-q-v{margin-left:auto;font-size:clamp(18px,2vw,40px);font-weight:500;flex:none;
+  font-variant-numeric:tabular-nums;line-height:1}
+.bd-q.up .bd-q-v{color:var(--red)}
+.bd-q.down .bd-q-v{color:var(--green)}
+
+/* ── 右栏下半：还没到 · 名单 ── */
+.bd-miss{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.8vh,11px)}
+/* 右栏现在是「班级量化 + 未到名单」两块。名单若还居中，会在两块之间裂开一大段空
+   —— 纸色底上留白不难看，**裂开的缝**才难看。所以装得下时也靠上排，留白统一沉到栏底。
+   .fit 由 Board.fill() 实时加/删，含义是「这趟装得下，别复制一份上滚」。 */
+.bd-miss.fit{justify-content:flex-start}
 .bd-miss.fit .bd-list{flex:none}
-.bd-miss h3{font-size:clamp(12px,1.05vw,19px);font-weight:500;color:#C8AC7C;letter-spacing:.08em;margin:0;flex:none}
 .bd-list{flex:1;min-height:0;overflow:hidden}
 /* ⚠️ 别给 .bd-rows 加 height:100% —— 那会让名单在剩余空间里单独居中，
    标题就留出一条大缝（见上面 .bd-miss.fit）。居中交给外面那层面板做。 */
@@ -1286,45 +1334,51 @@ body.board-mode .page.on > *{animation:none}
 /* 名单 .fit 只是「这趟装得下」的标记；真正的居中做在外层面板上（见 .bd-miss.fit）——
    只给这里加 align-content:center 是空转的：flex 容器没有高度，居中无处可居。 */
 .bd-rows.fit{align-content:center}
-.bd-row{font-size:clamp(12px,1.25vw,24px);color:#E8E4DC;background:rgba(255,255,255,.06);
-  border-radius:8px;padding:clamp(3px,.5vh,8px) clamp(9px,.85vw,17px);
+.bd-row{font-size:clamp(12px,1.2vw,23px);color:var(--ink);
+  background:rgba(178,58,46,.06);border:1px solid rgba(178,58,46,.16);
+  border-radius:6px;padding:clamp(3px,.5vh,8px) clamp(9px,.85vw,17px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* 名单超出面板高度时，整体缓慢上滚循环（内容由 Board.fill 复制一份） */
+.bd-row.calm{background:rgba(47,125,93,.08);border-color:rgba(47,125,93,.2);color:var(--green)}
+/* 名单 / 课表超出面板高度时，整体缓慢上滚循环（内容由 Board.fill 复制一份） */
 .bd-rows.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
 @keyframes bdUp{from{transform:translateY(0)}to{transform:translateY(calc(-1 * var(--bd-h,0px)))}}
 
-/* 底带：今日课表跑马灯。一条细带，多长的课表都滚着放得完，不占主屏。 */
-.bd-ticker{flex:none;display:flex;align-items:center;gap:clamp(10px,1.4vw,26px);
-  padding:clamp(9px,1.4vh,20px) clamp(16px,2.4vw,48px);
-  border-top:1px solid rgba(200,172,124,.22);background:rgba(255,255,255,.025);
-  overflow:hidden;white-space:nowrap}
-.bd-tk-lab{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C;letter-spacing:.1em;flex:none}
-.bd-tk{flex:1;min-width:0;overflow:hidden}
-.bd-tk-in{display:inline-flex;align-items:center;gap:clamp(10px,1.4vw,26px);
-  font-size:clamp(12px,1.15vw,22px);color:#B9B4AA}
-/* 装不下才横向循环；装得下就静静摆着，别让一条短课表也滚个不停 */
-.bd-tk-in.loop{animation-name:bdLeft;animation-timing-function:linear;animation-iteration-count:infinite}
-@keyframes bdLeft{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--bd-w,0px)))}}
-.bd-dot{color:#6E6A63}
-
 /* 退出：平时完全看不见（这块屏是给路过的人看的，不该出现任何按钮），
    鼠标挪到右下角才浮出来；Esc 也能退 */
-.bd-exit{position:fixed;right:12px;bottom:12px;z-index:60;
-  border:none;background:rgba(255,255,255,.08);color:#6E6A63;font-family:inherit;
-  font-size:12px;padding:6px 13px;border-radius:99px;cursor:pointer;opacity:0;transition:opacity .2s}
-.bd-exit:hover,.bd-exit:focus{opacity:1;background:rgba(255,255,255,.16);color:#D6D1C7}
+.bd-exit{position:fixed;right:14px;bottom:14px;z-index:60;
+  border:1px solid var(--rule);background:rgba(250,247,240,.92);color:var(--dim);
+  font-family:inherit;font-size:12px;padding:6px 13px;border-radius:99px;cursor:pointer;
+  opacity:0;transition:opacity .2s}
+.bd-exit:hover,.bd-exit:focus{opacity:1;background:#fff;color:var(--ink)}
 
-@media (max-width:760px){
+/* 窄屏（笔记本竖屏 / 有人把窗口拖窄）：三栏叠成一栏，能滚着看。
+   ⚠️ 真实的看板是 1920×1080 横屏，这条只管「顺手在窄窗里也能看」。 */
+@media (max-width:900px){
   body.board-mode .main{overflow-y:auto}
   .bd{flex:none;height:auto;min-height:100%}
   .bd-top{flex-wrap:wrap;gap:8px 16px}
-  .bd-arrive{margin-left:0}
+  .bd-clock{margin-left:0}
   .bd-main{grid-template-columns:minmax(0,1fr)}
-  .bd-gate{border-right:none;border-bottom:1px solid rgba(200,172,124,.14);padding-bottom:22px}
-  .bd-clock{font-size:clamp(30px,9vw,54px)}
-  .bd-qr{width:min(52vw,260px)}
-  .bd-code{font-size:clamp(38px,14vw,110px)}
+  .bd-col + .bd-col{border-left:none;border-top:1px solid var(--rule)}
+  .bd-qr{width:min(64vw,340px)}
+  .bd-code{font-size:clamp(34px,13vw,110px)}
 }
+
+/* ══════════ 扫一扫（学生端打卡用）══════════════════════════════
+   对着看板上那块二维码扫一下，把码读出来填进打卡。
+   ⚠️ 取景框必须「中间留亮、四周压暗」—— 不给出「该框哪儿」，学生会举着手机乱晃。
+   ⚠️ 取景框是正方形：二维码本身是方的，留个方框比留个横条好对。 */
+.scan-box{margin-top:12px}
+.scan-wrap{position:relative;width:min(100%,360px);margin:0 auto;border-radius:12px;
+  overflow:hidden;background:#000}
+.scan-wrap video{display:block;width:100%;aspect-ratio:1;object-fit:cover}
+.scan-frame{position:absolute;left:14%;right:14%;top:14%;bottom:14%;border-radius:10px;
+  pointer-events:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.42)}
+.scan-frame::before,.scan-frame::after{content:"";position:absolute;width:34px;height:34px;
+  border:3px solid #E8C98A}
+.scan-frame::before{left:-3px;top:-3px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
+.scan-frame::after{right:-3px;bottom:-3px;border-left:0;border-top:0;border-radius:0 0 10px 0}
+.scan-tip{text-align:center;font-size:13px;opacity:.72;margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -2199,33 +2253,44 @@ try {
     <section class="page" id="page-board">
       <div class="bd">
         <div class="bd-top">
-          <span class="bd-brand">砺蕴教务</span>
-          <span class="bd-clock" id="bdClock">--:--:--</span>
+          <img class="bd-lock" src="assets/brand-lock-alpha.png"
+               srcset="assets/brand-lock-alpha.png 1x, assets/brand-lock-alpha@2x.png 2x"
+               alt="博艺教育 · 砺蕴" draggable="false">
           <span class="bd-date" id="bdDate">—</span>
-          <span class="bd-arrive" id="bdArrive">—</span>
+          <span class="bd-clock" id="bdClock">--:--:--</span>
           <span class="bd-fresh" id="bdFresh"></span>
         </div>
 
         <div class="bd-main">
-          <div class="bd-gate">
-            <span class="bd-lab">今日打卡码 · 扫码或输码</span>
+          <!-- 左栏：今日课表 -->
+          <div class="bd-col">
+            <h3 class="bd-h">今日课表 <span class="bd-sub" id="bdSoon"></span></h3>
+            <div class="bd-sched"><div class="bd-sched-in" id="bdSched"></div></div>
+          </div>
+
+          <!-- 中栏：打卡码（二维码居中放大；码下面就是应到 / 实到） -->
+          <div class="bd-col bd-gate">
+            <span class="bd-lab">今日打卡码</span>
             <div class="bd-qr" id="bdQr" role="img" aria-label="打卡二维码"></div>
             <div class="bd-code" id="bdCode">····</div>
             <div class="bd-bar"><i id="bdBar" style="width:0%"></i></div>
             <div class="bd-sub" id="bdCodeHint"></div>
+            <div class="bd-count">
+              <div><b id="bdShould">0</b><span>应到</span></div>
+              <div class="bd-c-ok"><b id="bdHere">0</b><span>实到</span></div>
+            </div>
+            <div class="bd-mini" id="bdMini"></div>
           </div>
-          <div class="bd-side">
-            <div class="bd-stats" id="bdStats"></div>
+
+          <!-- 右栏：班级量化榜 + 还没到 -->
+          <div class="bd-col">
+            <h3 class="bd-h">班级量化</h3>
+            <div class="bd-quant" id="bdQuant"></div>
             <div class="bd-miss">
-              <h3 id="bdMissTitle">还没到</h3>
+              <h3 class="bd-h" id="bdMissTitle">还没到</h3>
               <div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div>
             </div>
           </div>
-        </div>
-
-        <div class="bd-ticker">
-          <span class="bd-tk-lab">今日课表</span>
-          <div class="bd-tk"><div class="bd-tk-in" id="bdSched"></div></div>
         </div>
       </div>
       <button class="bd-exit" onclick="Board.leave()">退出看板（Esc）</button>
@@ -3845,6 +3910,9 @@ const App = {
        真要常驻看板，走的是网址带 ?board=1 那条路（App.boot 里判），
        不靠这个键 —— 否则在这块屏上点一次，以后不带参数重开也回不到工作台了。 */
     if (id !== 'board') Store.set('_lastPage', id);
+    /* 离开打卡页就把扫一扫的摄像头关掉 —— 取景窗是挂在页面里的，切走了还开着，
+       手机右上角那颗摄像指示灯会一直亮，学生要以为被偷拍了。 */
+    if (id !== 'stuSign' && typeof StuSign !== 'undefined') StuSign.stopScan();
     this.routes.find(r => r.id === id)?.onShow?.();
     // 「看过就消红点」只认用户主动点进去这一次：同步在后台刷页面不算看过，
     // 否则人停在协作页时新工单会被瞬间自动已读，红点永远亮不起来
@@ -3852,38 +3920,6 @@ const App = {
     else if ((id === 'today' || id === 'stuHome') && !Auth.isStaff()) Store.set('_noticeReadAt', Date.now());
     else if (id === 'tickets' && !Auth.isStaff()) Store.set('_tkReadAt', Date.now());
     this.refreshDots();
-  },
-
-  /* ── 扫看板上的二维码进来 ──
-     二维码里编的是 https://…/?code=XXXXXX（见 Board.scanLink）。
-     学生手机扫完就落到本站，这里当场把码收下来，等登录之后送他进打卡页。 */
-  scanCatch(){
-    const m = /[?&]code=([A-Za-z0-9]{1,16})/.exec(location.search || '');
-    if (!m) return;
-    Store.set('_scanCode', m[1]);
-    Store.set('_scanAt', Date.now());
-    /* 顺手把地址栏里的码抹掉：留着会进浏览器历史，也容易被当成一条普通链接转出去。
-       （码本身 60 秒一换，但「方便转发」这件事没必要自己送上去。） */
-    try { history.replaceState(null, '', location.pathname + location.hash); } catch(e){}
-  },
-
-  /* 取扫来的码。超过 3 分钟就当没有 —— 服务端只认当前 + 上一轮窗口（≈2 分钟），
-     留着过期的码，只会让学生在打卡页白按一次。 */
-  scanCode(){
-    const c = Store.get('_scanCode');
-    if (!c) return '';
-    if (Date.now() - (Store.get('_scanAt') || 0) > 180000){ Store.set('_scanCode', ''); return ''; }
-    return String(c);
-  },
-
-  /* 登录之后：扫过码的学生直接落到打卡页（码由 StuSign.renderStep 填进输入框）。
-     返回 true ＝ 去处已经安排好了，不必再走「上次停在哪」那条路。 */
-  handOffScan(){
-    const code = this.scanCode();
-    if (!code || !Auth.isStudent()) return false;
-    this.go('stuSign');
-    UI.toast('读到打卡码 ' + code + ' —— 按一下圈就打上了');
-    return true;
   },
 
   /** 登录成功后进入工作台 */
@@ -3900,8 +3936,7 @@ const App = {
     /* 网址带 ?board=1 = 这台机器是当看板用的（桌面快捷方式里写死这个参数）：
        直接落在看板上，不走「上次停在哪」。教务端才有看板，老师/学生照旧。 */
     if (/[?&]board=1/.test(location.search) && Board.ok()) Board.enter();
-    /* 扫看板二维码进来的学生：直接落到打卡页，码已经替他填好。 */
-    else if (!this.handOffScan()) this.go(this.can(last) ? last : this.defaultPage());
+    else this.go(this.can(last) ? last : this.defaultPage());
     this.checkBackup();
     Staff.reset();                              // 换了账号，老师名单缓存作废
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
@@ -3913,7 +3948,6 @@ const App = {
 
   async init(){
     Store.migrate();          // 旧版数据补齐 id，无感升级
-    this.scanCatch();         // 扫看板二维码进来的话，先把码收下（登录前就得收）
 
     /* ── 启动时绝不把网络往返挡在第一屏后面 ──
        旧写法是 await probe() → await boot()：两次串行的跨境请求（约 1.5 秒）
@@ -9844,6 +9878,8 @@ const StuSign = {
   _geo: null,        // 本次定位结果：{lat,lng,acc} 或 {fail:true}
   _busy: false,
   _again: false,     // 已经打过卡了，学生自己按了「重新打卡」：这一轮允许再打一次
+  _cam: null,        // 扫一扫正在取景：{stop,stream,timer,cv}
+  _scanned: '',      // 扫一扫读到的码（见 StuSign.scan / renderStep）
 
   render(){
     const box = document.getElementById('stuSignNow');
@@ -9949,18 +9985,21 @@ const StuSign = {
   renderStep(){
     const el = document.getElementById('stuSignStep');
     if (!el) return;
+    /* 重绘会把取景框整个冲掉，摄像头得跟着关 —— 不然就开着忘在那儿了 */
+    if (this._cam && !document.getElementById('scanVideo')) this.stopScan();
     const g = Stu.gate();
     if (!g.ok) { el.innerHTML = ''; return; }
     if (g.signed && g.rec && !this._again){ el.innerHTML = ''; return; }
-    /* 扫看板二维码进来的：码已经到手了，直接替他填上 —— 扫完还要手抄就白扫了。
+    /* 扫一扫读到的码（见 StuSign.scan）：定位好了就直接替他填上 —— 扫完还要手抄就白扫了。
        这时候**不聚焦输入框**：手机一聚焦就弹键盘，把上面那个大圈盖住，
        而他这趟只需要按圈。 */
-    const scan = App.scanCode();
+    const scan = this._scanned || '';
     if (this._geo && this._geo.lat != null){
       el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''} —— ${scan ? '码已经从二维码读到了，' : '输一下码，'}再按上面的圈。</p>
+        <p class="hint" style="margin:0 0 8px">已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''} —— ${scan ? '码已经从二维码读到了，' : '输一下码，或扫一下屏上的二维码，'}再按上面的圈。</p>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px" value="${Util.esc(scan)}">
+          <button class="btn ghost" onclick="StuSign.scan()">扫一扫</button>
           <button class="btn ghost" onclick="StuSign.reset()">重定位</button>
         </div>`;
       const inp = document.getElementById('stuCode');
@@ -9972,6 +10011,7 @@ const StuSign = {
         <p class="hint" style="margin:0 0 8px">没取到位置：可以先打卡，教务那边会标「需核对」。</p>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="stuCode" inputmode="numeric" placeholder="码" style="max-width:150px" value="${Util.esc(scan)}">
+          <button class="btn ghost" onclick="StuSign.scan()">扫一扫</button>
           <button class="btn ghost" onclick="StuSign.start()">再试定位</button>
         </div>`;
       return;
@@ -9982,6 +10022,95 @@ const StuSign = {
   reset(){ this._geo = null; this.render(); },
   /** 已经打过了还想再打一次（比如刚才打错了）：重新走一遍 */
   again(){ this._again = true; this._geo = null; this.render(); },
+
+  /* ── 扫一扫：对着看板上那块二维码扫一下，读到的数字直接进打卡 ──
+     用砺蕴自带的那份解码器（QRDec），不走浏览器的 BarcodeDetector ——
+     iPhone 的 Safari 根本没有那个接口，指不上；自己带一份，
+     两台手机行为一致，真出了毛病也只查一处。 */
+  async scan(){
+    if (this._cam) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+      return UI.toast('这个浏览器用不了摄像头，手输那 6 位码也一样');
+    const host = document.getElementById('stuSignStep');
+    if (!host) return;
+
+    const box = document.createElement('div');
+    box.id = 'scanBox';
+    box.className = 'scan-box';
+    box.innerHTML =
+      '<div class="scan-wrap">'
+      + '<video id="scanVideo" playsinline muted autoplay></video>'
+      + '<div class="scan-frame"></div>'
+      + '</div>'
+      + '<p class="scan-tip" id="scanTip">把屏上的二维码框进方框里</p>'
+      + '<div class="row" style="justify-content:center;margin-top:10px">'
+      + '<button class="btn ghost" onclick="StuSign.stopScan()">取消</button>'
+      + '</div>';
+    host.appendChild(box);
+
+    this._cam = { stop: false, stream: null, timer: null, cv: null };
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false
+      });
+      /* 等权限弹窗那几秒里，学生可能已经点了「取消」—— 那这路视频就别接了 */
+      if (!this._cam) { stream.getTracks().forEach(t => t.stop()); return; }
+      this._cam.stream = stream;
+      const v = document.getElementById('scanVideo');
+      v.srcObject = stream;
+      await v.play();
+      this._tickScan();
+    } catch (e) {
+      this.stopScan();
+      UI.toast('打不开摄像头：' + ((e && e.message) || '多半是没给相机权限'));
+    }
+  },
+
+  /* 每 1/4 秒抓一帧来解。不逐帧解 —— 一帧解码要几十毫秒，逐帧跑会把手机烤热、也费电；
+     扫码这件事，四分之一秒一轮已经够跟手了。 */
+  _tickScan(){
+    const c = this._cam;
+    if (!c || c.stop) return;
+    const v = document.getElementById('scanVideo');
+    if (!v || !v.videoWidth){ c.timer = setTimeout(() => this._tickScan(), 120); return; }
+    const W = 480, H = Math.max(1, Math.round(v.videoHeight * W / v.videoWidth));
+    if (!c.cv) c.cv = document.createElement('canvas');
+    const cv = c.cv;
+    if (cv.width !== W || cv.height !== H){ cv.width = W; cv.height = H; }
+    const g = cv.getContext('2d', { willReadFrequently: true });
+    let got = '';
+    try {
+      g.drawImage(v, 0, 0, W, H);
+      got = QRDec.decode(g.getImageData(0, 0, W, H).data, W, H);
+    } catch (e) { got = ''; }
+    if (got){ this.onScan(got); return; }
+    c.timer = setTimeout(() => this._tickScan(), 250);
+  },
+
+  onScan(code){
+    const c = String(code).replace(/\D/g, '').slice(0, 12);
+    this.stopScan();
+    if (!c) return UI.toast('扫到的不是打卡码，对着码再试一次');
+    this._scanned = c;
+    /* 位置已经拿到了就直接替他提交 —— 扫完还要再按一下圈，那这趟就白扫了 */
+    if (this._geo && this._geo.lat != null){ this.confirm(); return; }
+    UI.toast('扫到了：' + c);
+    this.render();
+  },
+
+  /* 关取景窗。可以重复调（没在扫的时候什么也不做）——
+     renderStep 和切页都会来叫它一声。 */
+  stopScan(){
+    const c = this._cam;
+    this._cam = null;
+    if (c){
+      if (c.timer) clearTimeout(c.timer);
+      try { if (c.stream) c.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+    }
+    const box = document.getElementById('scanBox');
+    if (box) box.remove();
+  },
 
   start(){
     if (this._busy) return;
@@ -10058,6 +10187,7 @@ const StuSign = {
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来
       this._geo = null;
       this._again = false;          // 这一轮打完了，「重新打卡」要再按一次才重来
+      this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
       const el = document.getElementById('stuCode'); if (el) el.value = '';
       this.render();
       StuHome.render();
@@ -10911,9 +11041,527 @@ const QRLib = (function () {
       `</svg>`;
   }
 
-  return { encode, svg, capacity, VERSIONS };
+  /* _fn / _mask / _spec 是给同文件里的解码器（QRDec）复用的：
+     「哪些格是功能格」「掩码怎么算」「版本表长什么样」这三件事
+     编一遍解一遍，各写一份早晚会写岔 —— 解码器直接拿编码器的同一份。 */
+  return { encode, svg, capacity, VERSIONS, _fn: buildMatrix, _mask: maskAt, _spec: SPEC };
 })();
 /* QR-ENCODER-END */
+
+/* QR-DECODER-START */
+/* ══════════════════════════════════════════════════════════════════
+   QRDec · 二维码解码器（学生端「扫一扫」的读码端）
+   ──────────────────────────────────────────────────────────────────
+   为什么要自带一份：让学生用砺蕴自己的「扫一扫」扫看板上那块码。
+   iPhone 的 Safari **没有** BarcodeDetector（只有安卓 Chrome 有），指望不上；
+   系统又是零外部依赖的底色（连识别用的 Tesseract 都自托管），
+   所以解码器也自带 —— 一个外链都不引。
+
+   输入：一帧 RGBA 像素 + 宽高。输出：码里的字符串；读不出返回 ''。
+   链路：灰度 → 局部自适应二值化 → 找定位图案 → 定仿射 → 采样 →
+        读格式信息（拿到掩码号）→ 读码字 → 解交错 → RS 纠错 → 取字节段。
+   ══════════════════════════════════════════════════════════════════ */
+const QRDec = (function () {
+  'use strict';
+
+  /* ── GF(256)，与编码器同一套（本原多项式 0x11D） ── */
+  const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+  (function () {
+    let x = 1;
+    for (let i = 0; i < 255; i++) {
+      EXP[i] = x; LOG[x] = i;
+      x <<= 1; if (x & 0x100) x ^= 0x11d;
+    }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+  })();
+  const mul = (a, b) => (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]];
+  const inv = a => EXP[255 - LOG[a]];
+  const pw  = i => EXP[((i % 255) + 255) % 255];
+
+  /* ── 1. 灰度（Rec.601）── */
+  function toGray(d, w, h) {
+    const g = new Uint8Array(w * h);
+    for (let i = 0, p = 0; i < g.length; i++, p += 4)
+      g[i] = (d[p] * 77 + d[p + 1] * 150 + d[p + 2] * 29) >> 8;
+    return g;
+  }
+
+  /* ── 2. 局部自适应二值化（Bradley）──
+     摄像头画面「一半亮一半暗」是常态，一个全局阈值会把暗侧整片判成黑。
+     这里用积分图取每个像素的邻域均值当阈值，光照不匀也啃得动。1 = 深色。 */
+  function binarize(g, w, h) {
+    const I = new Int32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      let row = 0; const o = y * w;
+      for (let x = 0; x < w; x++) {
+        row += g[o + x];
+        I[o + x] = (y ? I[o - w + x] : 0) + row;
+      }
+    }
+    const s = Math.max(6, (w >> 4) | 0), k = 0.15;
+    const b = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      const y1 = Math.max(0, y - s), y2 = Math.min(h - 1, y + s), o = y * w;
+      for (let x = 0; x < w; x++) {
+        const x1 = Math.max(0, x - s), x2 = Math.min(w - 1, x + s);
+        const cnt = (x2 - x1 + 1) * (y2 - y1 + 1);
+        let sum = I[y2 * w + x2];
+        if (y1) sum -= I[(y1 - 1) * w + x2];
+        if (x1) sum -= I[y2 * w + x1 - 1];
+        if (y1 && x1) sum += I[(y1 - 1) * w + x1 - 1];
+        b[o + x] = (g[o + x] * cnt < sum * (1 - k)) ? 1 : 0;
+      }
+    }
+    return b;
+  }
+
+  /* ── 2b. 去孤立点 ──
+     画面里总有零星判反的像素（坏点、压缩块、屏幕的像素网格），
+     它们会把定位图案那条 1:1:3:1:1 的比例切碎，连三个定位图案都凑不齐。
+     只抹「孤零零一个」的那种（八个邻居里几乎没有同类），成线的细边一律不动。 */
+  function denoise(b, w, h) {
+    const out = new Uint8Array(b.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let n = 0, cnt = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const yy = y + dy; if (yy < 0 || yy >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx; if (xx < 0 || xx >= w) continue;
+            n += b[yy * w + xx]; cnt++;
+          }
+        }
+        const i = y * w + x;
+        out[i] = (n <= 1) ? 0 : (n >= cnt - 1 ? 1 : b[i]);
+      }
+    }
+    return out;
+  }
+
+  /* ── 3. 定位图案 ──
+     定位图案横切过去是「深 浅 深 浅 深」，宽度比 1:1:3:1:1 —— 这是它好认的原因。
+     先在每一行找这个签名，再在原处竖着复核一遍，把偶然凑巧的假命中滤掉。 */
+  function crossOk(c) {
+    const t = c[0] + c[1] + c[2] + c[3] + c[4];
+    if (t < 7) return 0;
+    const u = t / 7, v = u * 0.6;
+    if (Math.abs(c[0] - u) > v) return 0;
+    if (Math.abs(c[1] - u) > v) return 0;
+    if (Math.abs(c[2] - 3 * u) > 3 * v) return 0;
+    if (Math.abs(c[3] - u) > v) return 0;
+    if (Math.abs(c[4] - u) > v) return 0;
+    return u;                                   /* 返回估算的「一格」有多少像素 */
+  }
+
+  /* 竖着复核：以 (cx,cy) 为中心往上往下数，同样要 1:1:3:1:1 */
+  function checkVert(b, w, h, cx, cy) {
+    const c = [0, 0, 0, 0, 0];
+    let y = cy;
+    while (y < h && b[y * w + cx]) { c[2]++; y++; }
+    if (y === h) return false;
+    while (y < h && !b[y * w + cx]) { c[3]++; y++; }
+    while (y < h && b[y * w + cx]) { c[4]++; y++; }
+    y = cy - 1;
+    while (y >= 0 && b[y * w + cx]) { c[2]++; y--; }
+    if (y < 0) return false;
+    while (y >= 0 && !b[y * w + cx]) { c[1]++; y--; }
+    while (y >= 0 && b[y * w + cx]) { c[0]++; y--; }
+    return !!crossOk(c);
+  }
+
+  function findFinders(b, w, h) {
+    const cand = [];
+    for (let y = 0; y < h; y++) {
+      const o = y * w;
+      /* 把这一行切成连通段 */
+      const seg = [];
+      let st = 0, col = b[o];
+      for (let x = 1; x <= w; x++) {
+        const c = x < w ? b[o + x] : -1;
+        if (c !== col) { seg.push({ s: st, e: x, c: col }); st = x; col = c; }
+      }
+      for (let i = 4; i < seg.length; i++) {
+        const r0 = seg[i - 4], r1 = seg[i - 3], r2 = seg[i - 2], r3 = seg[i - 1], r4 = seg[i];
+        if (r0.c !== 1 || r1.c !== 0 || r2.c !== 1 || r3.c !== 0 || r4.c !== 1) continue;
+        const u = crossOk([r0.e - r0.s, r1.e - r1.s, r2.e - r2.s, r3.e - r3.s, r4.e - r4.s]);
+        if (!u) continue;
+        const cx = (r2.s + r2.e) >> 1;
+        if (!checkVert(b, w, h, cx, y)) continue;
+        cand.push({ x: cx, y: y, u: u });
+      }
+    }
+    return cand;
+  }
+
+  /* ── 4. 把同一枚定位图案的多次命中并成一个 ──
+     一个定位图案会被十几行扫到，位置略有出入，合并取平均才稳。 */
+  function cluster(pts) {
+    const out = [];
+    for (const p of pts) {
+      let hit = null;
+      for (const o of out) {
+        if (Math.abs(o.x - p.x) < o.u * 3 && Math.abs(o.y - p.y) < o.u * 3) { hit = o; break; }
+      }
+      if (hit) {
+        const n = hit.n + 1;
+        hit.x = (hit.x * hit.n + p.x) / n;
+        hit.y = (hit.y * hit.n + p.y) / n;
+        hit.u = (hit.u * hit.n + p.u) / n;
+        hit.n = n;
+      } else out.push({ x: p.x, y: p.y, u: p.u, n: 1 });
+    }
+    /* 一个真的定位图案会被十几行扫到；只在背景上闪过一两行的，是噪点。
+       但码很小的时候真点也扫不到几行 —— 所以滤完不够三个就整个不滤。 */
+    const keep = out.filter(o => o.n >= 3);
+    return keep.length >= 3 ? keep : out;
+  }
+
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  /* ── 5. 从候选里挑出 QR 的三个定位图案 ──
+     QR 的三个定位图案构成一个等腰直角三角形：两条腰相等、斜边 ≈ √2 倍腰。
+     光看形状还不够 —— 噪声偶尔也能凑出一个「像那么回事」的三角形。
+     真正的三个定位图案还有两个特征：**被扫到的行数**和**量出来的格宽**都该差不多；
+     噪声凑出来的假点往往出现得少、格宽也对不上。用这两项给每组打折再排序。
+
+     返回排好序的前几组：万一名声最大的那组是假的，后面还有真组接着试
+     （多试一次比让学生重新对准重扫一遍便宜）。 */
+  function pick3(pts, want) {
+    const out = [];
+    for (let i = 0; i < pts.length; i++)
+      for (let j = i + 1; j < pts.length; j++)
+        for (let k = j + 1; k < pts.length; k++) {
+          const a = pts[i], b = pts[j], c = pts[k];
+          const ds = [dist(a, b), dist(b, c), dist(c, a)].sort((p, q) => p - q);
+          const s1 = ds[0], s2 = ds[1], l = ds[2];
+          if (s1 < 8) continue;
+          if (Math.abs(s1 - s2) > s1 * 0.4) continue;                 /* 两条腰要差不多长 */
+          if (Math.abs(l - s1 * Math.SQRT2) > s1 * 0.4) continue;     /* 斜边 ≈ √2·腰 */
+          const ns = [a.n, b.n, c.n], us = [a.u, b.u, c.u];
+          const score = s1 * (Math.min.apply(null, ns) / Math.max.apply(null, ns))
+                           * (Math.min.apply(null, us) / Math.max.apply(null, us));
+          out.push({ p: [a, b, c], s: s1, score: score });
+        }
+    out.sort((x, y) => y.score - x.score);
+    return out.slice(0, want || 1);
+  }
+
+  /* ── 6. 分清楚哪个是左上、哪个是右上、哪个是左下 ──
+     斜边（最长边）两头是右上和左下，剩下那个点是左上。
+     再用叉积定左右手：图像坐标 y 向下，标准朝向时「左上→右上」叉乘「左上→左下」为正。 */
+  function orient(t) {
+    const a = t.p[0], b = t.p[1], c = t.p[2];
+    const ab = dist(a, b), bc = dist(b, c), ca = dist(c, a);
+    let lt, p1, p2;
+    if (ab >= bc && ab >= ca) { lt = c; p1 = a; p2 = b; }
+    else if (bc >= ab && bc >= ca) { lt = a; p1 = b; p2 = c; }
+    else { lt = b; p1 = a; p2 = c; }
+    const v1 = { x: p1.x - lt.x, y: p1.y - lt.y };
+    const v2 = { x: p2.x - lt.x, y: p2.y - lt.y };
+    const cross = v1.x * v2.y - v1.y * v2.x;
+    return cross > 0 ? { lt: lt, rt: p1, lb: p2 } : { lt: lt, rt: p2, lb: p1 };
+  }
+
+  /* ── 7. 估版本（＝估边长多少个格）──
+     两个定位图案的中心相隔 (size−7) 个格；拿像素距离除以「一格多少像素」就是它。 */
+  function estimateSize(o) {
+    const u = (o.lt.u + o.rt.u + o.lb.u) / 3;
+    if (!u) return 0;
+    let size = Math.round(((dist(o.lt, o.rt) + dist(o.lt, o.lb)) / 2) / u) + 7;
+    size = Math.round((size - 17) / 4) * 4 + 17;      /* 合法边长只可能是 4k+17 */
+    return (size >= 21 && size <= 41) ? size : 0;     /* 我们只用到版本 6 */
+  }
+
+  /* ── 8. 仿射变换：模块坐标 (mx,my) → 图像坐标 ──
+     三个定位图案的中心落在模块坐标 (3.5,3.5)、(size−3.5,3.5)、(3.5,size−3.5)，
+     三点正好定一个仿射变换（三点之外的那一角由它外推）。 */
+  function affine(lt, rt, lb, size) {
+    const u0 = 3.5, u1 = size - 3.5, d = u1 - u0;
+    const a = (rt.x - lt.x) / d, b = (lb.x - lt.x) / d;
+    const dd = (rt.y - lt.y) / d, e = (lb.y - lt.y) / d;
+    return { a: a, b: b, c: lt.x - a * u0 - b * u0, d: dd, e: e, f: lt.y - dd * u0 - e * u0 };
+  }
+
+  /* ── 9. 逐格采样 ──
+     一格在画面里够大（≥5 像素）时取中心 3×3 投票，而不是只信正中那一个像素 ——
+     噪点、屏幕像素网格、摩尔纹只要压在采样点上，这一位就判反了。 */
+  function sample(b, w, h, T, size) {
+    const m = Array.from({ length: size }, () => new Uint8Array(size));
+    const rad = Math.hypot(T.a, T.d) >= 5 ? 1 : 0;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const mx = x + 0.5, my = y + 0.5;
+        const ix = Math.round(T.a * mx + T.b * my + T.c);
+        const iy = Math.round(T.d * mx + T.e * my + T.f);
+        if (ix - rad < 0 || ix + rad >= w || iy - rad < 0 || iy + rad >= h) return null;
+        let n = 0, cnt = 0;
+        for (let dy = -rad; dy <= rad; dy++)
+          for (let dx = -rad; dx <= rad; dx++) { n += b[(iy + dy) * w + ix + dx]; cnt++; }
+        m[y][x] = (n * 2 > cnt) ? 1 : 0;
+      }
+    }
+    return m;
+  }
+
+  /* ── 10. 读格式信息 → 掩码号 ──
+     格式信息一共 15 位，在码里放了两份（环绕左上定位图案的那份 + 右上左下各半份）。
+     两份互相校验：取 BCH 过得了的那份；都过不了就取「像得比较近」的那份。 */
+  function formatRaw(m, size) {
+    const c1 = i => {
+      if (i <= 5) return m[i][8];
+      if (i === 6) return m[7][8];
+      if (i === 7) return m[8][8];
+      if (i === 8) return m[8][7];
+      return m[8][14 - i];
+    };
+    const c2 = i => (i <= 7) ? m[8][size - 1 - i] : m[size - 15 + i][8];
+    const pack = f => { let v = 0; for (let i = 0; i <= 14; i++) v |= f(i) << i; return v; };
+    return [pack(c1), pack(c2)];
+  }
+
+  /* 与编码器 drawFormat 同一套：给定掩码号，算出 15 位格式信息 */
+  function formatCode(mk) {
+    const data = (0 << 3) | mk;               /* M 等级 = 00 */
+    let rem = data << 10;
+    for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+    return ((data << 10) | rem) ^ 0x5412;
+  }
+
+  function readFormat(m, size) {
+    const f = formatRaw(m, size);
+    const maskOf = v => ((v ^ 0x5412) >> 10) & 7;
+    if (formatCode(maskOf(f[0])) === f[0]) return maskOf(f[0]);
+    if (formatCode(maskOf(f[1])) === f[1]) return maskOf(f[1]);
+    /* 两份都校验不过：退一步，比一比哪份离某个合法格式信息最近（差 3 位以内就认） */
+    let best = 9, bm = -1;
+    for (let mk = 0; mk < 8; mk++) {
+      const code = formatCode(mk);
+      for (let q = 0; q < 2; q++) {
+        let x = code ^ f[q], d = 0;
+        while (x) { d += x & 1; x >>= 1; }
+        if (d < best) { best = d; bm = mk; }
+      }
+    }
+    return best <= 3 ? bm : -1;
+  }
+
+  /* ── 11. 读码字：按编码器「填数据」的相反顺序走一遍，顺手把掩码去掉 ──
+     数据从右下角起、两列一组上下蛇形；功能格（定位/定时/对齐/格式…）跳过。
+     功能格图直接拿编码器那份（QRLib._fn），不另写一份，免得两边写岔。 */
+  function readCodewords(m, size, v, mask) {
+    const fn = QRLib._fn(v).fn, maskAt = QRLib._mask;
+    const bits = [];
+    for (let right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;                       /* 跳过竖向定时列 */
+      const up = ((right + 1) & 2) === 0;
+      for (let vert = 0; vert < size; vert++) {
+        const y = up ? size - 1 - vert : vert;
+        for (const x of [right, right - 1]) {
+          if (fn[y][x]) continue;
+          bits.push(m[y][x] ^ (maskAt(mask, x, y) ? 1 : 0));
+        }
+      }
+    }
+    const cw = [];
+    for (let i = 0; i + 8 <= bits.length; i += 8) {
+      let w = 0;
+      for (let k = 0; k < 8; k++) w = (w << 1) | bits[i + k];
+      cw.push(w);
+    }
+    return cw;
+  }
+
+  /* ── 12. 解交错：把「各块轮流吐一个码字」的序列还原成一块一块 ── */
+  function deinterleave(cw, v) {
+    const spec = QRLib._spec[v], ec = spec.ec, blocks = spec.blocks;
+    const parts = [];
+    for (const bl of blocks) for (let i = 0; i < bl[0]; i++) parts.push({ d: new Array(bl[1]), e: new Array(ec) });
+    const maxD = Math.max.apply(null, parts.map(p => p.d.length));
+    let p = 0;
+    for (let i = 0; i < maxD; i++) for (const b of parts) if (i < b.d.length) b.d[i] = cw[p++] | 0;
+    for (let i = 0; i < ec; i++) for (const b of parts) b.e[i] = cw[p++] | 0;
+    return parts;
+  }
+
+  /* ── 13. RS 纠错 ──
+     屏幕有摩尔纹、摄像头有噪点，二值化后个别格判反是常事。
+     纠错能把「读出来有小错」的码字救回来，不用学生重新对准扫一次。
+     错误超过纠错能力就返回 null —— 宁可让他再扫一遍，也不能读出一个错的码。 */
+  function rsFix(cw, ecLen) {
+    const n = cw.length;
+    const S = [];
+    let clean = true;
+    for (let i = 0; i < ecLen; i++) {
+      let s = 0;
+      for (let j = 0; j < n; j++) s = mul(s, EXP[i]) ^ cw[j];
+      S.push(s);
+      if (s) clean = false;
+    }
+    if (clean) return cw.slice();
+
+    /* Berlekamp-Massey：求错误定位多项式 */
+    const syn = [0].concat(S);
+    let el = [1], ol = [1];
+    for (let i = 0; i < ecLen; i++) {
+      const K = i + 1;
+      let delta = syn[K];
+      for (let j = 1; j < el.length; j++) delta ^= mul(el[el.length - 1 - j], syn[K - j] || 0);
+      ol = ol.concat([0]);
+      if (delta !== 0) {
+        if (ol.length > el.length) {
+          const nl = ol.map(q => mul(q, delta));
+          ol = el.map(q => mul(q, inv(delta)));
+          el = nl;
+        }
+        /* ⚠️ 两项相加必须**右对齐** —— 多项式最高次在前，短的那一截要往左补零。
+           写成从左对齐，等于把低次项整体挪了位，算出来的定位多项式是错的；
+           现象很坑人：明明只错了 1 个码字，却怎么都纠不回来。 */
+        const L = Math.max(el.length, ol.length);
+        const ne = new Array(L).fill(0);
+        for (let q = 0; q < el.length; q++) ne[q + L - el.length] = el[q];
+        for (let q = 0; q < ol.length; q++) ne[q + L - ol.length] ^= mul(ol[q], delta);
+        el = ne;
+      }
+    }
+    /* ⚠️ 去掉最高次前面那串 0 —— 多项式次数偶尔会被高估，留下前导零。
+       不清掉的话，错误个数会被多算一个，Chien search 找不齐那么多个根，
+       结果就是「明明只错了一位，却报纠不回来」。 */
+    let lead = 0;
+    while (lead < el.length - 1 && el[lead] === 0) lead++;
+    if (lead) el = el.slice(lead);
+
+    const errs = el.length - 1;
+    if (errs < 1 || errs * 2 > ecLen) return null;
+
+    /* Chien search：找错误落在哪几个位置。
+       ⚠️ 代入的是 α^(−i)，不是 α^i —— 定位多项式的根是 X⁻¹（X = α^(n−1−p)）。
+          漏掉这个负号，根会整段跑到 α^230…α^255 那一带，一个都搜不着，
+          表现就是「明明只错了一位，却怎么都纠不回来」。 */
+    const pos = [];
+    for (let i = 0; i < n; i++) {
+      const x = EXP[255 - i];
+      let val = 0;
+      for (let j = 0; j < el.length; j++) val = mul(val, x) ^ el[j];
+      if (val === 0) pos.push(n - 1 - i);
+    }
+    if (pos.length !== errs) return null;
+
+    /* 直接解一个小线性方程组求错误值（错误个数 ≤ 10，够快也够好懂） */
+    const A = [], B = [];
+    for (let i = 0; i < errs; i++) {
+      A.push(pos.map(pp => pw(i * (n - 1 - pp))));
+      B.push(S[i]);
+    }
+    const sol = solveGF(A, B, errs);
+    if (!sol) return null;
+
+    const out = cw.slice();
+    for (let i = 0; i < errs; i++) out[pos[i]] ^= sol[i];
+    /* 纠正完再验一遍：还有残余就是没救对，别把错的当选对 */
+    for (let i = 0; i < ecLen; i++) {
+      let s = 0;
+      for (let j = 0; j < n; j++) s = mul(s, EXP[i]) ^ out[j];
+      if (s) return null;
+    }
+    return out;
+  }
+
+  /* GF(256) 上的高斯消元 */
+  function solveGF(A, B, n) {
+    const M = A.map((row, i) => row.concat([B[i]]));
+    for (let c = 0; c < n; c++) {
+      let piv = -1;
+      for (let r = c; r < n; r++) if (M[r][c]) { piv = r; break; }
+      if (piv < 0) return null;
+      const tmp = M[c]; M[c] = M[piv]; M[piv] = tmp;
+      const iv = inv(M[c][c]);
+      for (let k = c; k <= n; k++) M[c][k] = mul(M[c][k], iv);
+      for (let r = 0; r < n; r++) {
+        if (r === c || !M[r][c]) continue;
+        const f = M[r][c];
+        for (let k = c; k <= n; k++) M[r][k] ^= mul(f, M[c][k]);
+      }
+    }
+    return M.map(row => row[n]);
+  }
+
+  /* ── 14. 码字 → 文本 ──
+     只认字节模式（我们自己的编码器就用这一种）；读到终止符或读不下去就停。 */
+  function utf8(bytes) {
+    let s = '';
+    for (let i = 0; i < bytes.length;) {
+      const c = bytes[i++];
+      if (c < 0x80) s += String.fromCharCode(c);
+      else if (c < 0xe0) s += String.fromCharCode(((c & 0x1f) << 6) | (bytes[i++] & 63));
+      else if (c < 0xf0) s += String.fromCharCode(((c & 0xf) << 12) | ((bytes[i++] & 63) << 6) | (bytes[i++] & 63));
+      else {
+        const cp = ((c & 7) << 18) | ((bytes[i++] & 63) << 12) | ((bytes[i++] & 63) << 6) | (bytes[i++] & 63);
+        const v = cp - 0x10000;
+        s += String.fromCharCode(0xd800 + (v >> 10), 0xdc00 + (v & 0x3ff));
+      }
+    }
+    return s;
+  }
+
+  function parse(cw) {
+    const bits = [];
+    for (const w of cw) for (let i = 7; i >= 0; i--) bits.push((w >> i) & 1);
+    let p = 0;
+    const take = n => { let v = 0; for (let i = 0; i < n; i++) v = (v << 1) | (bits[p++] || 0); return v; };
+    let out = '';
+    while (p + 4 <= bits.length) {
+      const mode = take(4);
+      if (mode === 0) break;                        /* 终止符 */
+      if (mode !== 4) break;                        /* 只发字节模式 */
+      const len = take(8);
+      const bytes = [];
+      for (let i = 0; i < len && p + 8 <= bits.length; i++) bytes.push(take(8));
+      out += utf8(bytes);
+    }
+    return out;
+  }
+
+  /* 一次完整的读码尝试 */
+  function tryDecode(b, w, h, o) {
+    const size = estimateSize(o);
+    if (!size) return '';
+    const v = (size - 17) / 4;
+    if (!QRLib._spec[v]) return '';
+    const m = sample(b, w, h, affine(o.lt, o.rt, o.lb, size), size);
+    if (!m) return '';
+    const mask = readFormat(m, size);
+    if (mask < 0) return '';
+    const parts = deinterleave(readCodewords(m, size, v, mask), v);
+    const data = [];
+    for (const p of parts) {
+      const fixed = rsFix(p.d.concat(p.e), p.e.length);
+      if (!fixed) return '';
+      for (let i = 0; i < p.d.length; i++) data.push(fixed[i]);
+    }
+    return parse(data);
+  }
+
+  /* ── 主函数：一帧 RGBA 像素进去，码里的文本出来；读不出返回 '' ── */
+  function decode(data, w, h) {
+    let b, pts;
+    try {
+      b = denoise(binarize(toGray(data, w, h), w, h), w, h);
+      pts = cluster(findFinders(b, w, h));
+    } catch (e) { return ''; }
+    if (pts.length < 3) return '';
+    const cands = pick3(pts, 4);
+    for (const t of cands) {
+      const o = orient(t);
+      /* 正着读不出就左右对调再试一次 —— 手抖着扫，定位图案偶尔会被配错左右 */
+      const got = tryDecode(b, w, h, o) || tryDecode(b, w, h, { lt: o.lt, rt: o.lb, lb: o.rt });
+      if (got) return got;
+    }
+    return '';
+  }
+
+  return { decode: decode };
+})();
+/* QR-DECODER-END */
 
 
 /* ══════════════════════════════════════════════════════════════════
@@ -10958,14 +11606,13 @@ const Board = {
 
   link(){ return location.href.replace(/[?#].*$/, '') + '?board=1'; },
 
-  /* 本机网址（抹掉 ?board=1 这类参数）—— 看板网址和二维码都基于它算，
-     这样换域名（自定义域 / 预览地址）不用改代码。 */
-  base(){ return location.href.replace(/[?#].*$/, ''); },
-
-  /* 二维码里编的那条链接：同一个域名，换成 ?code= 参数。
-     学生扫完直接落进打卡页、码已经替他填好 —— 不用凑到屏前抄 6 位数字。
-     （学生端的接收逻辑见 App.scanCatch / App.handOffScan） */
-  scanLink(){ return this.base() + '?code=' + (this._code || ''); },
+  /* 二维码里编什么 —— **就编那 6 位数字本身**，不编网址。
+     学生用的是砺蕴自带的「扫一扫」（学生端打卡页那个，见 StuSign.scan），
+     扫的是屏上这块码，读出来就是数字、直接填进打卡流程。
+     编网址是绕远路：手机自带相机 / 微信扫出来是一段网址，还得从微信导进浏览器，
+     多好几步，也丢了「把码摆在门上一扫就走」的意义。
+     （顺带的好处：码里不含任何链接，也就没什么能被顺手转出去的东西。） */
+  scanText(){ return this._code || ''; },
 
   copyLink(){
     const url = this.link();
@@ -11145,19 +11792,16 @@ const Board = {
     }
 
     /* 距上课还有多久 —— 比钟点本身更有用，一眼知道还来不来得及。
-       摆在中带数字矩阵的第 6 格，数字和标签分开两个元素，所以这里只填数不拼整句。 */
-    const sub = document.getElementById('bdSub');
-    if (sub){
+       摆在左栏课表标题右边，跟课表待在一起最自然。 */
+    const soon = document.getElementById('bdSoon');
+    if (soon){
       const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : { startAt: '08:30' };
       const hm = String(r.startAt || '08:30').split(':');
       const at = new Date(d);
       at.setHours(Number(hm[0]) || 0, Number(hm[1]) || 0, 0, 0);
       const mins = Math.round((at - d) / 60000);
-      const val = mins > 0 ? String(mins) : String(Math.abs(mins));
-      const lab = mins > 0 ? '分后上课' : (mins === 0 ? '正在上课' : '已经上课');
-      if (sub.textContent !== val) sub.textContent = val;
-      const lb = document.getElementById('bdSubLab');
-      if (lb && lb.textContent !== lab) lb.textContent = lab;
+      const txt = mins > 0 ? `${mins} 分钟后上课` : (mins === 0 ? '正在上课' : '已经上课');
+      if (soon.textContent !== txt) soon.textContent = txt;
     }
 
     this.paintCode();
@@ -11201,9 +11845,9 @@ const Board = {
     if (!code){ box.style.display = 'none'; return; }
     if (box.dataset.code === code) return;          // 码没换，不动它
     let svg = '';
-    try { svg = QRLib.svg(this.scanLink()); } catch(e){ svg = ''; }
-    /* 编不下（域名特别长之类）就只留数字码 —— 二维码是条便道，不是唯一入口，
-       不能因为它把整块屏弄成空白。编不出来是确定性的，所以记下 code 不再重试。 */
+    try { svg = QRLib.svg(this.scanText()); } catch(e){ svg = ''; }
+    /* 编不出来（理论上不会：6 位数字只要版本 1 就装得下）就只留数字码 ——
+       二维码是条便道，不是唯一入口，不能因为它把整块屏弄成空白。 */
     box.dataset.code = code;
     box.style.display = svg ? '' : 'none';
     box.innerHTML = svg;
@@ -11227,27 +11871,22 @@ const Board = {
   paint(){
     const D = this._data;
     if (!D) return;
-    const stats = document.getElementById('bdStats');
-    if (stats){
-      stats.innerHTML = [
-        ['应到', D.should, ''],
-        ['已到', D.ok + D.late, 'bd-ok'],
-        ['迟到', D.late, 'bd-late'],
-        ['请假', D.leave, 'bd-leave'],
-        ['未到', D.miss.length, 'bd-miss'],
-      ].map(([k, v, c]) => `<div class="bd-stat ${c}"><b>${v}</b><span>${k}</span></div>`).join('')
-        /* 第 6 格是「距上课」。数字和标签留两个 id 给 tick() 每秒单独刷那一格 ——
-           paint 半分钟才跑一趟，等它刷就迟了。 */
-        + '<div class="bd-stat bd-soon"><b id="bdSub">0</b><span id="bdSubLab">分后上课</span></div>';
-      this.tick();   /* 刚重建出来的那一格立刻填上，别让 0 在那儿闪着 */
+
+    /* 中栏那两个大数：应到 / 实到。实到 = 正常 + 迟到（迟到了但人确实来了）。 */
+    const sh = document.getElementById('bdShould');
+    if (sh && sh.textContent !== String(D.should)) sh.textContent = D.should;
+    const he = document.getElementById('bdHere');
+    const here = D.ok + D.late;
+    if (he && he.textContent !== String(here)) he.textContent = here;
+
+    /* 迟到 / 请假 / 未到 —— 一行小字跟在两个大数后面，不抢它们的位置 */
+    const mini = document.getElementById('bdMini');
+    if (mini){
+      const txt = `迟到 <b>${D.late}</b> · 请假 <b>${D.leave}</b> · 未到 <b class="warn">${D.miss.length}</b>`;
+      if (mini.innerHTML !== txt) mini.innerHTML = txt;
     }
 
-    /* 顶带右上那行「已到 30 / 37」 */
-    const ar = document.getElementById('bdArrive');
-    if (ar){
-      const txt = `已到 ${D.ok + D.late} / ${D.should}`;
-      if (ar.textContent !== txt) ar.textContent = txt;
-    }
+    this.paintQuant();
 
     const t = document.getElementById('bdMissTitle');
     if (t) t.textContent = D.miss.length ? `还没到 · ${D.miss.length} 人` : '还没到';
@@ -11255,11 +11894,35 @@ const Board = {
     const miss = document.getElementById('bdMiss');
     if (miss) this.fill(miss, D.miss.length
       ? D.miss.map(s => `<div class="bd-row">${Util.esc(s.name)}</div>`).join('')
-      : '<div class="bd-row" style="color:#7FBF97">全部到齐</div>');
+      : '<div class="bd-row calm">全部到齐</div>');
 
-    /* 课表走横向跑马灯（底带），所以用 fillH 不是 fill */
     const sc = document.getElementById('bdSched');
-    if (sc) this.fillH(sc, this.schedHtml());
+    if (sc) this.fill(sc, this.schedHtml());
+  },
+
+  /* ── 班级量化榜（最多 5 格）──
+     班级分 = 100 + 该班全部加减分，加减分流水就存在本地（quant_log），
+     所以主系统里一记分，这块屏半分钟之后就跟着变 —— 不用新增接口。
+     只取前 5 名：屏就这么大，排到第六名的班也没人真去看。
+     颜色走中式口径：高于 100 红、低于 100 绿、正好 100 墨。 */
+  paintQuant(){
+    const box = document.getElementById('bdQuant');
+    if (!box) return;
+    const rows = Store.list('classes')
+      .map(c => ({ name: c.name || '', v: Quant.score(c.id) }))
+      .sort((a, b) => b.v - a.v).slice(0, 5);
+    const html = rows.length
+      ? rows.map(r => {
+          const cls = r.v > 100 ? 'up' : (r.v < 100 ? 'down' : '');
+          return `<div class="bd-q ${cls}">`
+               + `<span class="bd-q-n">${Util.esc(r.name)}</span>`
+               + `<b class="bd-q-v">${r.v}</b></div>`;
+        }).join('')
+      : '<div class="bd-q"><span class="bd-q-n" style="color:#8B8072">还没有班级</span></div>';
+    /* 内容没变就不动它：paint 半分钟跑一趟，重排会让数字闪 */
+    if (box.dataset.raw === html && box.innerHTML) return;
+    box.dataset.raw = html;
+    box.innerHTML = html;
   },
 
   schedHtml(){
@@ -11270,12 +11933,16 @@ const Board = {
       const pd = periods.find(q => q.id === x.periodId) || {};
       return { t: x.time || pd.start || '', x };
     }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
-    /* 底带是横向跑马灯，所以出的是行内片段（span），不是 .bd-row 那种块 */
-    if (!rows.length) return '<span style="color:#6E6A63">今天没有排课</span>';
-    return rows.slice(0, 20).map(r => {
-      const who = r.x.cls ? ' · ' + String(r.x.cls).split('、')[0] : '';
-      return `<span>${r.t ? Util.esc(r.t) + ' ' : ''}${Util.esc(r.x.title || '')}${Util.esc(who)}</span>`
-           + '<span class="bd-dot">·</span>';
+    /* 左栏是竖排：一行一课 —— 时间 · 课名 · 老师/班级，细线分隔。
+       课表长过一栏时，整列缓慢上滚（fill 里复制一份循环）。 */
+    if (!rows.length) return '<div class="bd-s" style="color:#8B8072">今天没有排课</div>';
+    return rows.slice(0, 24).map(r => {
+      const who = r.x.teacher || r.x.cls || '';
+      return `<div class="bd-s">`
+        + `<span class="bd-s-t">${r.t ? Util.esc(r.t) : '—'}</span>`
+        + `<span class="bd-s-n">${Util.esc(r.x.title || '')}</span>`
+        + (who ? `<span class="bd-s-w">${Util.esc(String(who).split('、')[0])}</span>` : '')
+        + `</div>`;
     }).join('');
   },
 
@@ -11308,24 +11975,6 @@ const Board = {
     box.style.animationDuration = Math.max(14, Math.round(h / host.clientHeight * 9)) + 's';
   },
 
-  /* 底带课表：跟上面 fill() 一个套路（先还原再量、内容没变就跳过），
-     只是方向从竖改成横 —— 装得下就静静摆着，装不下才复制一份循环。 */
-  fillH(box, html){
-    if (box.dataset.raw === html && box.innerHTML) return;
-    box.dataset.raw = html;
-    box.style.animation = '';
-    box.style.animationDuration = '';
-    box.classList.remove('loop');
-    box.style.removeProperty('--bd-w');
-    box.innerHTML = html;
-    const host = box.parentElement;
-    const w = box.scrollWidth;
-    if (w <= host.clientWidth + 2) return;
-    box.innerHTML += html;
-    box.classList.add('loop');
-    box.style.setProperty('--bd-w', w + 'px');
-    box.style.animationDuration = Math.max(20, Math.round(w / Math.max(1, host.clientWidth) * 14)) + 's';
-  }
 };
 
 

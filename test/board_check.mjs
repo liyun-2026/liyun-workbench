@@ -3,13 +3,19 @@
  *
  *   node test/board_check.mjs        # 截图落到 test/.shots/board/
  *
+ * 纸色版（v38）：宣纸米白 + 三栏（左课表 / 中打卡码 / 右量化与未到），栏间只走一条细线，不用卡片。
+ *
  * 核这几件事：
- *   1. 网址带 ?board=1 → 开机/刷新直接落在看板上（Windows 桌面快捷方式走的就是这条路）
- *   2. 落上去之后侧栏 / 顶栏 / 底栏全隐，屏上只剩数字
- *   3. 五个数（应到 / 已到 / 迟到 / 请假 / 未到）算得对 —— 含「请假不算未到」这条口径
- *   4. 时钟在走、打卡码画得出来（固定码与派生码两种）
- *   5. 退出按钮能回工作台，而且**不带参数重开不会再掉进看板**（_lastPage 没被污染）
- *   6. 三处导航里都找不到「看板端」，入口只在设置页那张卡
+ *   1. 网址带 ?board=1 → 开机/刷新直接落在看板上（桌面快捷方式走的就是这条路）
+ *   2. 落上去之后侧栏 / 顶栏 / 底栏全隐，屏上只剩数字；底是米白不是正白
+ *   3. 应到 / 实到 两个大数算得对，迟到·请假·未到 收成一行小字 —— 含「请假不算未到」这条口径
+ *   4. 时钟在走、打卡码画得出来，二维码**放中间且够大**，编的是那串数字本身（不是网址）
+ *   5. 班级量化榜最多 5 格、按分数从高到低（真造 7 个班来验上限）
+ *   6. 退出按钮能回工作台，而且**不带参数重开不会再掉进看板**（_lastPage 没被污染）
+ *   7. 三处导航里都找不到「看板端」，入口只在设置页那张卡
+ *   8. 五档屏宽都铺得满（宽屏三栏并排、≤900px 叠成一栏），没有横向溢出
+ *   9. 学生用砺蕴自带的「扫一扫」扫那块码 → 只留数字、填进输入框、不抢焦点，
+ *      定位就绪时直接提交；取景窗在扫完 / 切页 / 重复调时都收得干净
  *
  * 一次性账号，结束 dev-reset 清场。
  */
@@ -229,15 +235,56 @@ try {
     return '.bd ' + dim.bd.w + '×' + dim.bd.h + '，banner display=none';
   });
 
-  /* 航显版把时钟挪进了顶带、码留在中带 —— 判据也跟着从「左不压右」改成「上不压下」。
-     两个矩形不相交仍然是要守的那条线，只是现在该守的是纵向。 */
-  t('时钟在顶带、码在中带，两条带各占一层，不叠在一起', () => {
+  /* 纸色版：时钟在顶带右端，二维码与数字码在中间那栏 ——
+     两块的矩形仍然不能相交，这条判据一直要守。 */
+  t('时钟在顶带、打卡码在中栏，各占一层，不叠在一起', () => {
     assert(dim.clock.b <= dim.code.y + 1,
       '时钟底边 ' + dim.clock.b + ' 该在打卡码顶边 ' + dim.code.y + ' 之上（字号给大了会压下去）');
     assert(dim.clock.w > 100 && dim.code.w > 200,
       '两块都该有足够的尺寸，实际时钟 ' + dim.clock.w + ' / 码 ' + dim.code.w);
     return '时钟 ' + dim.clock.fs + '（y=' + dim.clock.y + ' 底 ' + dim.clock.b + '）→ 码 '
          + dim.code.fs + '（y=' + dim.code.y + ' 宽 ' + dim.code.w + 'px）';
+  });
+
+  /* 「看板要白色页面吧……要米白或者是黄白，不要正白晃眼」—— 用户这一轮点名的。
+     这块屏 24 小时亮着，正白 #FFF 会刺眼；米白压一点、暖一点（R ≥ G ≥ B 且不是纯白）。 */
+  const paper = await cdp.eval(`(() => {
+    const cs = getComputedStyle(document.body);
+    const bd = getComputedStyle(document.querySelector('.bd'));
+    const m = (bd.backgroundColor || '').match(/\\d+/g) || [];
+    const hex = (cs.getPropertyValue('--bg') || '').trim();
+    return { varBg: hex, bg: bd.backgroundColor, rgb: m.slice(0, 3).map(Number),
+             scheme: cs.colorScheme, dark: matchMedia('(prefers-color-scheme: dark)').matches };
+  })()`);
+  t('底是宣纸米白，不是正白（久看不刺眼；且不跟系统深浅色变）', () => {
+    const [r, g, b] = paper.rgb;
+    assert(paper.rgb.length === 3, '量不到底色：' + JSON.stringify(paper));
+    assert(!(r === 255 && g === 255 && b === 255), '不该是正白 #FFF（晃眼），实际 ' + paper.bg);
+    assert(r >= g && g >= b, '该是暖色（R ≥ G ≥ B），实际 ' + paper.bg);
+    assert(r >= 235 && r <= 253, '该是「米白/黄白」这一档亮度，实际 ' + paper.bg);
+    assert(paper.varBg.toUpperCase() === '#FAF7F0', '底色该钉在 #FAF7F0，实际 ' + paper.varBg);
+    return paper.bg + '（' + (paper.varBg || '') + '，系统当前' + (paper.dark ? '深色' : '浅色') + '，看板不受影响）';
+  });
+
+  /* 品牌标必须真的渲染出来 —— 用户对 logo 一直很在意，图上不出东西是最难发现的坏法。
+     顺带守住它用的是「章不带米黄底」的那一版（brand-lock.png 贴在米白纸上会露淡黄方块）。 */
+  const brand = await cdp.eval(`(() => {
+    const img = document.querySelector('.bd-lock');
+    if (!img) return { err: '顶带里没有品牌标' };
+    const r = img.getBoundingClientRect(), top = document.querySelector('.bd-top').getBoundingClientRect();
+    return { src: img.currentSrc || img.src, complete: img.complete,
+             nw: img.naturalWidth, nh: img.naturalHeight,
+             w: Math.round(r.width), h: Math.round(r.height),
+             inTop: r.top >= top.top - 1 && r.bottom <= top.bottom + 1,
+             scheme: getComputedStyle(document.documentElement).colorScheme };
+  })()`);
+  t('顶带有博艺的品牌标，图真加载出来了（不是空白占位）', () => {
+    assert(!brand.err, brand.err);
+    assert(brand.complete && brand.nw > 0, '图没加载出来：' + JSON.stringify(brand));
+    assert(/brand-lock-alpha/.test(brand.src), '该用透明底那版（米白纸上不露黄块），实际 ' + brand.src);
+    assert(brand.inTop, '标该在顶带里，实际位置 ' + JSON.stringify(brand));
+    assert(brand.w >= 60, '标不该小到看不清，实际 ' + brand.w + 'px 宽');
+    return brand.nw + '×' + brand.nh + ' 原图 → 屏上 ' + brand.w + '×' + brand.h + 'px';
   });
 
   console.log('\n=== 2. 五个数算得对（含「请假不算未到」）===');
@@ -247,7 +294,9 @@ try {
     Board.paint();
     return {
       d: Board._data,
-      tiles: [...document.querySelectorAll('#bdStats .bd-stat')].map(x => x.querySelector('b').textContent + x.querySelector('span').textContent),
+      should: document.getElementById('bdShould').textContent,
+      here: document.getElementById('bdHere').textContent,
+      mini: document.getElementById('bdMini').textContent.replace(/\\s+/g, ' ').trim(),
       miss: [...document.querySelectorAll('#bdMiss .bd-row')].map(x => x.textContent),
       missTitle: document.getElementById('bdMissTitle').textContent,
     };
@@ -260,7 +309,7 @@ try {
     assert(d.ok === 26, '正常该 26 人，实际 ' + d.ok);
     assert(d.late === 4, '迟到该 4 人，实际 ' + d.late);
     assert(d.miss.length === 7, '未到该 7 人，实际 ' + d.miss.length);
-    return stats.tiles.join(' / ');
+    return '应到 ' + stats.should + ' / 实到 ' + stats.here + '（' + stats.mini + '）';
   });
   t('未到名单是「学员34~40」，三位请假的一个都没被算成欠勤', () => {
     assert(stats.miss.length === 7, '名单该 7 人，实际 ' + stats.miss.length);
@@ -271,19 +320,64 @@ try {
     return '标题「' + stats.missTitle + '」名单 ' + all;
   });
 
-  /* 五块统计只该上数字色。系统里有个通用 `.ok{background:#eafaf0}` 状态条样式，
-     早先 .bd-stat.ok 被它一起吃掉 —— 「已到」那块会平白多出一片浅绿底。 */
-  const tiles = await cdp.eval(`[...document.querySelectorAll('#bdStats .bd-stat')].map(e => ({
-    k: e.querySelector('span').textContent, cls: e.className,
-    bg: getComputedStyle(e).backgroundColor, c: getComputedStyle(e.querySelector('b')).color }))`);
-  t('六块统计只有数字着色，没被系统的通用 .ok 背景污染', () => {
-    assert(tiles.length === 6, '该有 6 块（5 个考勤数 + 1 个距上课），实际 ' + tiles.length);
-    tiles.forEach(x => assert(x.bg === 'rgba(0, 0, 0, 0)', '「' + x.k + '」不该有底色，实际 ' + x.bg + '（类名 ' + x.cls + '）'));
-    assert(tiles[1].cls === 'bd-stat bd-ok', '类名该带 bd- 前缀，实际「' + tiles[1].cls + '」');
-    /* 这格的标签随时间变：还没到点是「分后上课」、正点是「正在上课」、过了是「已经上课」 */
-    assert(tiles[5].cls === 'bd-stat bd-soon' && ['分后上课', '正在上课', '已经上课'].includes(tiles[5].k),
-      '第 6 格该是「距上课」，实际「' + tiles[5].k + '」类名「' + tiles[5].cls + '」');
-    return tiles.map(x => x.k + ' ' + x.c).join(' / ');
+  /* 纸色版的「多少个」不再摊成六格矩阵，收成「应到 / 实到」两个大数 + 底下一行小字。
+     这是用户点名的排法：二维码下面就直接是「应到多少人、实到多少人」。
+     颜色仍然只上数字，系统里那个通用 `.ok{background:#eafaf0}` 不许渗进来。 */
+  const tiles = await cdp.eval(`(() => {
+    const box = document.querySelector('.bd-count');
+    const cells = [...box.querySelectorAll('b')].map(b => ({
+      n: b.textContent, cls: b.parentElement.className, c: getComputedStyle(b).color }));
+    const lab = [...box.querySelectorAll('span')].map(s => s.textContent);
+    return { box: box.className, bg: getComputedStyle(box).backgroundColor,
+             cells: cells, lab: lab, mini: document.getElementById('bdMini').textContent.trim() };
+  })()`);
+  t('二维码下面是「应到 / 实到」两个大数（实到 = 正常 + 迟到），只有数字着色', () => {
+    assert(tiles.cells.length === 2, '该是两块（应到 / 实到），实际 ' + tiles.cells.length);
+    assert(tiles.lab.join('/') === '应到/实到', '两个标签该是「应到 / 实到」，实际 ' + tiles.lab.join('/'));
+    assert(tiles.cells[0].n === '37', '应到该 37，实际 ' + tiles.cells[0].n);
+    assert(tiles.cells[1].n === '30', '实到该 30（26 正常 + 4 迟到），实际 ' + tiles.cells[1].n);
+    assert(tiles.bg === 'rgba(0, 0, 0, 0)', '这一块不该有底色，实际 ' + tiles.bg + '（类名 ' + tiles.box + '）');
+    /* 类名必须带 bd- 前缀：系统的 .ok{background:#eafaf0} 会把「已到」的绿底换成浅绿块 */
+    assert(/bd-c-ok/.test(tiles.cells[1].cls), '「实到」该带 bd-c-ok（不能直接叫 ok），实际「' + tiles.cells[1].cls + '」');
+    return tiles.cells.map(x => x.n).join(' / ' + '应到实到'.slice(0, 0)) + ' ｜ ' + tiles.mini;
+  });
+  t('迟到 / 请假 / 未到 收成一行小字，未到那个数标红', () => {
+    assert(/迟到\s*4/.test(tiles.mini), '该写「迟到 4」，实际「' + tiles.mini + '」');
+    assert(/请假\s*3/.test(tiles.mini), '该写「请假 3」，实际「' + tiles.mini + '」');
+    assert(/未到\s*7/.test(tiles.mini), '该写「未到 7」，实际「' + tiles.mini + '」');
+    return tiles.mini;
+  });
+
+  /* 「班级量化其实只留最多五个班级的格子就够了」—— 用户点名的上限。
+     样本里只有一个班，靠它是验不出上限的；这里临时造 7 个班、给 7 个不同的分，
+     看榜上是不是真的只留 5 格、而且是从高到低排。验完把临时班清掉。 */
+  const quant = await cdp.eval(`(() => {
+    const made = [];
+    const before = Store.list('classes').length;
+    [30, -12, 8, 20, -5, 14, 2].forEach((dl, i) => {
+      const c = Store.upsert('classes', { id: null, name: '榜' + String(i + 1).padStart(2, '0') + '班' });
+      made.push(c.id);
+      Store.upsert('quant_log', { id: Util.uid(), clsId: c.id, date: Util.today(), label: '实测', delta: dl, _u: Date.now() });
+    });
+    Board.paintQuant();
+    const rows = [...document.querySelectorAll('#bdQuant .bd-q')].map(e => ({
+      n: e.querySelector('.bd-q-n').textContent, v: Number(e.querySelector('.bd-q-v').textContent),
+      cls: e.className, bg: getComputedStyle(e).backgroundColor }));
+    const nClasses = Store.list('classes').length;
+    /* 清场：临时班连流水一起删掉，别污染后面的截图和名单 */
+    Store.list('quant_log').filter(x => made.includes(x.clsId)).forEach(x => Store.softDelete('quant_log', x.id));
+    made.forEach(id => Store.softDelete('classes', id));
+    Board.paintQuant();
+    return { rows: rows, before: before, nClasses: nClasses, back: document.querySelectorAll('#bdQuant .bd-q').length };
+  })()`);
+  t('班级量化榜最多 5 格、按分数从高到低排（造 7 个班也只显示 5 个）', () => {
+    assert(quant.nClasses === quant.before + 7, '此时该有 ' + (quant.before + 7) + ' 个班，实际 ' + quant.nClasses);
+    assert(quant.rows.length === 5, '最多该 5 格（用户点名），实际 ' + quant.rows.length);
+    const vs = quant.rows.map(r => r.v);
+    assert(vs.join(',') === '130,120,114,108,102', '该是 130/120/114/108/102（前 5 高分），实际 ' + vs.join('/'));
+    quant.rows.forEach(r => assert(/bd-q up/.test(r.cls), '分了该带 up（中式口径：涨红），实际「' + r.cls + '」'));
+    assert(quant.back === quant.before, '临时班清掉后榜上该只剩原有的 ' + quant.before + ' 个班，实际 ' + quant.back);
+    return vs.join(' / ') + '（第 6、7 名的 95、88 分没上屏）';
   });
 
   const paints = await cdp.eval(`[...document.querySelectorAll('#page-board *')]
@@ -292,21 +386,26 @@ try {
     .map(x => x.t + '→' + x.bg).slice(0, 12)`);
   console.log('     看板里带底色的元素：' + paints.join(' | '));
 
-  /* 滚动只该在「塞不下」时开：7 个人放得下，就该老老实实不滚、而且居中摆着（.fit）；
-     人一多才该复制一份上滚，而且只复制一份 —— 不能每半分钟刷新就翻一倍。 */
+  /* 滚动只该在「塞不下」时开：7 个人放得下，就该老老实实不滚、内容靠上排；
+     人一多才该复制一份上滚，而且只复制一份 —— 不能每半分钟刷新就翻一倍。
+     另外守一条版面的事：右栏是「量化榜 + 未到名单」两块，名单**不能**被居中，
+     否则两块之间会裂开一大段空（纸色底上留白不难看，裂缝难看）。 */
   const clip = await cdp.eval(`(() => {
     const rows = document.getElementById('bdMiss');
     const box = rows.parentElement;
     const panel = rows.closest('.bd-miss');
     const h3 = panel.querySelector('h3');
+    const quant = document.getElementById('bdQuant');
     const pr = panel.getBoundingClientRect(), hr = h3.getBoundingClientRect(), lr = box.getBoundingClientRect();
     const cs = getComputedStyle(panel);
+    const gap = Math.round(hr.top - quant.getBoundingClientRect().bottom);
     const fits = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
                    panelFit: panel.classList.contains('fit'),
                    rowsH: rows.scrollHeight, boxH: box.clientHeight,
-                   /* 标题上方、名单下方各剩多少 —— 真居中就该差不多相等 */
+                   /* 标题上方、名单下方各剩多少 —— 靠上排就该「上≈0、下很大」 */
                    above: Math.round(hr.top - (pr.top + parseFloat(cs.paddingTop))),
-                   below: Math.round((pr.bottom - parseFloat(cs.paddingBottom)) - lr.bottom) };
+                   below: Math.round((pr.bottom - parseFloat(cs.paddingBottom)) - lr.bottom),
+                   gap: gap };
     const many = Array.from({ length: 260 }, (_, i) => '<div class="bd-row">学员' + (i + 1) + '</div>').join('');
     Board.fill(rows, many);
     const over = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
@@ -317,22 +416,19 @@ try {
     Board.paint();            /* 还原成真实数据 */
     return { fits, over, again };
   })()`);
-  t('名单装得下就居中不滚；塞不下才复制一份上滚，且不会越滚越多', () => {
+  t('量化榜与未到名单贴着排（中间不裂缝）；名单装得下就不滚', () => {
     assert(!clip.fits.loop, '7 个人在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
-    assert(clip.fits.fit, '7 个人放得下时该加 .fit 居中摆着，实际没加（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）');
-    /* ⚠️ 光看类名不够：.fit 曾经挂在 .bd-rows 上、而 .bd-rows 没有高度，
-       align-content:center 是空转的 —— 类名加了，名字照样顶在上边。所以这里量几何。 */
-    assert(clip.fits.panelFit, '.fit 该挂在 .bd-miss 面板上（居中要连标题一起，不是只居中名单）');
-    assert(Math.abs(clip.fits.above - clip.fits.below) <= 4,
-      '标题上方剩 ' + clip.fits.above + 'px、名单下方剩 ' + clip.fits.below + 'px —— 没真居中');
+    assert(clip.fits.fit, '7 个人放得下时该加 .fit 摆着，实际没加（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）');
+    assert(clip.fits.gap < 40, '量化榜底边到名单标题顶边隔了 ' + clip.fits.gap + 'px —— 两块被推开了');
+    assert(clip.fits.above <= 2, '名单该贴着量化榜往下排，实际标题上方还空着 ' + clip.fits.above + 'px');
+    assert(clip.fits.below > clip.fits.above, '留白该沉在栏底（下 ' + clip.fits.below + 'px > 上 ' + clip.fits.above + 'px）');
     assert(clip.over.loop, '260 个人该开滚动（实际内容 ' + clip.over.rowsH + ' / 面板 ' + clip.over.boxH + '）');
-    assert(!clip.over.fit, '要滚了就不该再挂 .fit —— 居中和滚动一起上，上下两头都会露不出来');
+    assert(!clip.over.fit, '要滚了就不该再挂 .fit');
     assert(clip.over.rowsH > clip.over.boxH, '复制后总高该超出面板，实际 ' + clip.over.rowsH + ' ≤ ' + clip.over.boxH);
     assert(clip.again.rowsH === clip.over.rowsH, '同一份内容重灌不该再复制（' + clip.over.rowsH + ' → ' + clip.again.rowsH + '）');
     assert(parseFloat(clip.over.dur) >= 14, '滚动时长该有个下限，实际 ' + clip.over.dur);
-    return '装得下：整组居中（上 ' + clip.fits.above + ' / 下 ' + clip.fits.below + 'px，内容 '
-         + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）· 塞不下：高 '
-         + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
+    return '两块间距 ' + clip.fits.gap + 'px（上 ' + clip.fits.above + ' / 下 ' + clip.fits.below
+         + 'px）· 塞不下：高 ' + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
   });
 
   console.log('\n=== 3. 时钟在走 / 数据新鲜度有话说 ===');
@@ -356,6 +452,41 @@ try {
     assert(/可能已断网/.test(fresh.old.t) && fresh.old.warn, '五分钟没更新该警示，实际「' + fresh.old.t + '」warn=' + fresh.old.warn);
     return '「' + fresh.now.t + '」→「' + fresh.old.t + '」';
   });
+
+  /* 左栏「今日课表」：之前没被任何断言盖到，但它是用户点名的三栏之一。
+     排几节课进来，验竖排行（时间 · 课名 · 老师/班级）真的出得来。 */
+  const sched = await cdp.eval(`(() => {
+    const w = ['周日','周一','周二','周三','周四','周五','周六'][new Date().getDay()];
+    const rows = [['07:30','早功·口腔操','陈老师'], ['09:00','即兴评述','刘老师'], ['14:00','新闻播报','王老师']];
+    rows.forEach(([t, title, teacher], i) => {
+      const pd = Store.upsert('periods', { id: null, name: '第' + (i + 1) + '节', start: t });
+      Store.upsert('schedule', { id: null, day: w, periodId: pd.id, time: t, title: title, teacher: teacher });
+    });
+    Board.paint();
+    const got = [...document.querySelectorAll('#bdSched .bd-s')].map(e => ({
+      t: (e.querySelector('.bd-s-t') || {}).textContent || '',
+      n: (e.querySelector('.bd-s-n') || {}).textContent || '',
+      w: (e.querySelector('.bd-s-w') || {}).textContent || '' }));
+    return { w: w, got: got, empty: /今天没有排课/.test(document.getElementById('bdSched').textContent) };
+  })()`);
+  t('左栏今日课表出来了：一行一课，带时间与老师（竖排、细线分隔）', () => {
+    assert(!sched.empty, '课表还是空的（今天 ' + sched.w + '）');
+    assert(sched.got.length === 3, '该有 3 行课，实际 ' + sched.got.length);
+    assert(sched.got[0].t === '07:30' && sched.got[2].t === '14:00',
+      '该按时间排序，实际 ' + sched.got.map(x => x.t).join(' / '));
+    assert(sched.got[1].n === '即兴评述', '课名没对上，实际「' + sched.got[1].n + '」');
+    assert(sched.got[1].w === '刘老师', '右侧该是老师，实际「' + sched.got[1].w + '」');
+    return sched.got.map(x => x.t + ' ' + x.n + '/' + x.w).join(' · ');
+  });
+
+  /* 顺手把量化榜灌满 5 个班 —— 下面的截图才像真实用途的样子（不是只有一格空榜） */
+  await cdp.eval(`(() => {
+    ['播音一班','播音二班','编导班','表演班','复读班'].forEach((n, i) => {
+      const c = Store.upsert('classes', { id: null, name: n });
+      Store.upsert('quant_log', { id: Util.uid(), clsId: c.id, date: Util.today(), label: '本周', delta: [18, 6, -9, 12, -3][i], _u: Date.now() });
+    });
+    Board.paintQuant();
+  })()`);
 
   await cdp.eval(`Board._stamp = Date.now(); Board.paintFresh();`);
   await sleep(300);
@@ -425,9 +556,10 @@ try {
     return 'roles=' + roles.roles.join('/');
   });
 
-  console.log('\n=== 7. 换一台屏也铺得满、不重叠 ===');
+  console.log('\n=== 7. 换一台屏也铺得满、三栏不叠 ===');
   /* 这块屏要挂的可能是 55 寸电视，也可能是办公室那台老笔记本 —— 字号全走 vw/vh，
-     同一套代码都得铺满。窄屏（顺手用手机打开）走单列，时钟和码上下排，更不会叠。 */
+     同一套代码都得铺满。宽屏三栏并排（左课表 / 中码 / 右量化），
+     窄到 900px 以下（顺手用手机打开）叠成一栏，能滚着看。 */
   /* ⚠️ 必须走 Board.enter()（会带上 board-mode），不能只 App.go('board') ——
      第 4 段退出时已经把 board-mode 摘掉了，光切页的话 .bd 会落回宽屏那条两栏网格里，
      量出来的宽度只有一半，看着像布局坏了。 */
@@ -438,44 +570,64 @@ try {
     await sleep(350);
     const m = await cdp.eval(`(() => {
       const bd = document.querySelector('.bd').getBoundingClientRect();
-      const ck = document.getElementById('bdClock').getBoundingClientRect();
-      const cd = document.getElementById('bdCode').getBoundingClientRect();
+      const cols = [...document.querySelectorAll('.bd-main > .bd-col')].map(e => {
+        const r = e.getBoundingClientRect();
+        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+                 r: Math.round(r.right), b: Math.round(r.bottom) }; });
+      /* 宽屏：三栏同一行（y 相等）、横向各占一段不压线。
+         窄屏：横向位置一致、纵向依次往下。 */
+      const side = cols.length === 3 && Math.abs(cols[0].y - cols[1].y) < 2 && Math.abs(cols[1].y - cols[2].y) < 2;
+      const stacked = cols.length === 3 && cols[1].y >= cols[0].b - 1 && cols[2].y >= cols[1].b - 1;
+      const disjoint = cols.every((c, i) => i === 0 || c.x >= cols[i - 1].r - 1);
       return { vw: innerWidth, vh: innerHeight, w: Math.round(bd.width), h: Math.round(bd.height),
-        overlap: ck.right > cd.left + 1 && !(ck.bottom < cd.top || cd.bottom < ck.top),
-        ckFs: getComputedStyle(document.getElementById('bdClock')).fontSize,
-        cdFs: getComputedStyle(document.getElementById('bdCode')).fontSize,
+        /* 「铺满」＝铺满**内容区**：窄屏时 .main 自己会出纵向滚动条（约 15px），
+           拿 innerWidth 比会误判成「没铺满」。所以参照系取 .main 的 clientWidth。 */
+        cw: document.querySelector('.main').clientWidth,
+        n: cols.length, side: side, stacked: stacked, disjoint: disjoint, cols: cols,
+        qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width),
+        codeFs: getComputedStyle(document.getElementById('bdCode')).fontSize,
         spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)) };
     })()`);
-    t(w + '×' + h + '：铺满整屏、时钟与码不重叠、没有横向溢出', () => {
-      assert(Math.abs(m.w - m.vw) < 2, '该满宽 ' + m.vw + '，实际 ' + m.w);
-      assert(m.vw <= 760 || m.h >= m.vh * 0.9, '该吃满高度，实际 ' + m.h + ' / ' + m.vh);
-      assert(!m.overlap, '时钟和码叠在一起了（时钟 ' + m.ckFs + ' / 码 ' + m.cdFs + '）');
+    t(w + '×' + h + '：铺满整屏、三栏不叠、没有横向溢出', () => {
+      assert(Math.abs(m.w - m.cw) < 2, '该铺满内容区 ' + m.cw + '，实际 ' + m.w + '（视口 ' + m.vw + '）');
+      assert(m.n === 3, '该有三栏（课表 / 码 / 量化），实际 ' + m.n);
+      if (m.vw <= 900) {
+        assert(m.stacked, '窄屏该把三栏叠成一栏往下排，实际没叠：' + JSON.stringify(m.cols));
+      } else {
+        assert(m.h >= m.vh * 0.9, '宽屏该吃满高度，实际 ' + m.h + ' / ' + m.vh);
+        assert(m.side, '宽屏该三栏并排，实际纵向位置不一致：' + JSON.stringify(m.cols));
+        assert(m.disjoint, '三栏横向互相压线了：' + JSON.stringify(m.cols));
+      }
+      assert(m.qr >= 120, '二维码哪一档都该有可用尺寸，实际 ' + m.qr + 'px');
       assert(m.spill === 0, '横向溢出了 ' + m.spill + 'px');
-      return '铺满 ' + m.w + '×' + m.h + '，时钟 ' + m.ckFs + ' / 码 ' + m.cdFs;
+      return '铺满 ' + m.w + '×' + m.h + '，' + (m.vw <= 900 ? '叠成一栏' : '三栏并排')
+           + '，二维码 ' + m.qr + 'px，数字码 ' + m.codeFs;
     });
   }
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(500);
   await shot(cdp, 'board-1920x1080.png');
 
-  console.log('\n=== 8. 打卡二维码（数字码上面那一块）===');
-  /* 二维码是这次新加的「第二条路」：学生扫一下就直接落进打卡页、码已填好，
-     不必凑到屏前抄 6 位数字。这一节验到**屏幕像素**这一层 —— 把那块像素截下来
-     交给真解码器读，读回来必须正是这一秒显示的那条链接。 */
+  console.log('\n=== 8. 打卡二维码（编的是那 6 位数字本身）===');
+  /* 二维码里**只编那串数字**，不编网址 —— 这是用户定的：学生用的是砺蕴自带的「扫一扫」，
+     编网址是绕远路（手机相机/微信扫出来是一段链接，还得从微信导进浏览器，
+     多好几步，也丢了「把码摆在门上一扫就走」的意义）。
+     这一节验到**屏幕像素**这一层：把那块像素截下来交给真解码器读，
+     读回来必须正是屏上显示的那串数字。 */
   const qr = await cdp.eval(`(() => {
+    Board._fixed = true; Board._code = '8866'; Board.paintCode();
     const box = document.getElementById('bdQr');
     const svg = box.querySelector('svg');
     const code = (document.getElementById('bdCode').textContent || '').trim();
-    const link = Board.scanLink();
-    const enc = QRLib.encode(link);
+    const enc = QRLib.encode(Board.scanText());
     const r = box.getBoundingClientRect();
     const vb = (svg.getAttribute('viewBox') || '').split(' ').map(Number);
-    return { code: code, link: link, version: enc.version, mods: enc.size, vb: vb,
+    return { code: code, scan: Board.scanText(), version: enc.version, mods: enc.size, vb: vb,
              bg: getComputedStyle(box).backgroundColor, w: Math.round(r.width), h: Math.round(r.height),
              pad: Math.round((vb[2] - enc.size) / 2),
              x: r.x, y: r.y };
   })()`);
-  t('二维码块是纯白底（深墨底上反色二维码，手机多半认不出）', () => {
+  t('二维码块是纯白底（米白纸上贴一张纯白托盘，码才立得住）', () => {
     assert(qr.bg === 'rgb(255, 255, 255)', '底色该是纯白，实际 ' + qr.bg);
     return qr.bg;
   });
@@ -483,22 +635,27 @@ try {
     assert(qr.pad === 4, '每边该留 4 格静默区，实际 ' + qr.pad + ' 格');
     return '码 ' + qr.mods + ' 格（v' + qr.version + '）+ 每边 4 格 → viewBox ' + qr.vb[2];
   });
-  t('二维码画得够大、是正方形（站在门口也扫得动）', () => {
+  t('二维码放得够大、是正方形（放中间了，就该让站远一点也扫得动）', () => {
     assert(qr.w >= 180, '边长该 ≥180px，实际 ' + qr.w);
     assert(Math.abs(qr.w - qr.h) < 2, '该是正方形，实际 ' + qr.w + '×' + qr.h);
+    /* 用户这一轮点名的就是「二维码稍稍有点小了，给放大一点」—— 这里守个下限：
+       至少占视口高的三成，别又缩回去。 */
+    assert(qr.w >= 1080 * 0.3, '该够大（≥视口高的 3 成 ≈324px），实际 ' + qr.w + 'px');
     return qr.w + '×' + qr.h + '（约 ' + (qr.w / (qr.mods + 8)).toFixed(1) + 'px 一格）';
   });
-  t('二维码编的是本站 ?code= 链接，跟屏上那串数字一致', () => {
+  t('二维码里编的是纯数字本身，不是网址（学生用砺蕴自带扫一扫）', () => {
     assert(qr.code.length >= 4, '屏上没读到码：' + JSON.stringify(qr.code));
-    const want = BASE + '/?code=' + qr.code;
-    assert(qr.link === want, '链接不对：' + qr.link + '（期望 ' + want + '）');
-    return qr.link;
+    assert(qr.scan === qr.code, '编进去的该就是屏上那串数字，实际 scanText()=「' + qr.scan + '」/ 屏上「' + qr.code + '」');
+    assert(/^\d+$/.test(qr.scan), '该是纯数字，实际「' + qr.scan + '」');
+    ['http', '://', '?code=', 'liyun'].forEach(s =>
+      assert(!qr.scan.includes(s), '不该编网址（含「' + s + '」）：' + qr.scan));
+    return '编的是「' + qr.scan + '」';
   });
   await shot(cdp, 'board-qr.png', { x: qr.x, y: qr.y, width: qr.w, height: qr.h, scale: 1 });
   const dec = qrDecode(path.join(OUT, 'board-qr.png'));
-  t('屏幕上的二维码能被真解码器读回那条链接（截屏 → OpenCV 解码）', () => {
+  t('屏幕上的二维码能被真解码器读回那串数字（截屏 → OpenCV 解码）', () => {
     assert(dec.ok, '解码器没读出来' + (dec.err ? '（' + dec.err + '）' : '') + '，输出「' + dec.text + '」');
-    assert(dec.text === qr.link, '读出来是「' + dec.text + '」，期望「' + qr.link + '」');
+    assert(dec.text === qr.code, '读出来是「' + dec.text + '」，期望「' + qr.code + '」');
     return dec.text;
   });
   /* paintCode() 每秒都被 tick() 叫一次，重编码一次要跑 8 张掩码的评分。
@@ -514,8 +671,10 @@ try {
     return '连调两次 paintCode，svg 节点没换';
   });
 
-  console.log('\n=== 9. 学生扫这条链接 → 落在打卡页、码已填好 ===');
-  /* 二维码要是不落进打卡页、或者码没替他填上，那它就只是个装饰。
+  console.log('\n=== 9. 学生用砺蕴自带的「扫一扫」扫那块码 → 直接进打卡 ===');
+  /* 二维码里编的只是数字，所以扫码这条路**完全发生在砺蕴内部**：
+     学生打开打卡页 → 点「扫一扫」→ 对着屏上的码一照 → 码填进输入框（定位已就绪就直接提交）。
+     全程不经过微信、不用把网址从聊天窗导进浏览器 —— 这正是用户要这条路的原因。
      这条必须真跑一遍：另开一台「学生手机」。 */
   const stuAcc = { user: '扫描测试员', pass: 'scanpass123' };
   const made = await cdp.eval(`(async () => {
@@ -548,15 +707,9 @@ try {
   await stu.send('Page.enable');
   await stu.send('Emulation.setDeviceMetricsOverride', { width: 420, height: 900, deviceScaleFactor: 1, mobile: true });
 
-  /* 扫的就是屏幕那块二维码里编的那条链接（带上 ?nosw=1 免得 SW 换版重载打断登录） */
-  await go(stu, `${BASE}/?nosw=1&code=${qr.code}`);
-  const caught = await stu.eval(`({ saved: Store.get('_scanCode') || '', search: location.search })`);
-  t('扫码进来当场收下码，并把它从地址栏抹掉（不留在历史里、不当普通链接转发）', () => {
-    assert(caught.saved === qr.code, '该存下 ' + qr.code + '，实际「' + caught.saved + '」');
-    assert(caught.search.indexOf('code=') < 0, '地址栏里的码该被抹掉，实际 ' + caught.search);
-    return '存下 ' + caught.saved + '；location.search = "' + caught.search + '"';
-  });
-
+  /* 学生就是照常打开系统 —— 地址栏里**不需要**任何参数（编网址那条路已经删了）。
+     ?nosw=1 只是免得 SW 换版重载打断登录。 */
+  await go(stu, `${BASE}/?nosw=1`);
   const stuLogin = await stu.eval(`(async () => {
     if (typeof Auth === 'undefined') return { err: '模块没接上' };
     if (!Auth.mode) await Auth.probe();
@@ -568,28 +721,120 @@ try {
              err: document.getElementById('gErr').textContent,
              page: (document.querySelector('.page.on') || {}).id || '' };
   })()`);
-  t('学生登录后直接落在打卡页（不走「上次停在哪」）', () => {
+  t('学生照常登录（地址栏里不带任何码）', () => {
     assert(stuLogin.gateOff, '学生登录失败：' + (stuLogin.err || ''));
-    assert(stuLogin.page === 'page-stuSign', '该落在 page-stuSign，实际「' + stuLogin.page + '」');
+    assert(stuLogin.page === 'page-stuHome', '学生该落在「今日」，实际「' + stuLogin.page + '」');
     return stuLogin.page;
   });
 
+  /* 走到打卡页、定位就绪：这一步该长得像「一个输入框 + 一个扫一扫按钮」。 */
+  const gate = await stu.eval(`(() => {
+    App.go('stuSign');
+    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };   /* 定位直接塞结果，不去真要权限 */
+    StuSign._scanned = '';
+    StuSign.renderStep();
+    const step = document.getElementById('stuSignStep');
+    return { has: !!document.getElementById('stuCode'),
+             scanBtn: [...step.querySelectorAll('button')].some(b => b.textContent.trim() === '扫一扫'),
+             box: !!document.getElementById('scanBox'),
+             hint: step.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) };
+  })()`);
+  t('打卡页摆着「扫一扫」按钮，没点之前不弹取景框（不白开摄像头）', () => {
+    assert(gate.has, '该渲染出打卡码输入框');
+    assert(gate.scanBtn, '该有「扫一扫」按钮，实际按钮：' + gate.hint);
+    assert(!gate.box, '没点之前不该出现取景框');
+    return '提示「' + gate.hint + '」';
+  });
+
+  /* 仿真一次「扫到了」：定位还没拿到时先扫，码该被存下来、滤掉非数字。
+     onScan 的参数就是解码器吐出来的字符串 —— 这里换成带脏字符的形态，
+     顺带把「只留数字」这条守住。 */
+  const scanned = await stu.eval(`(() => {
+    StuSign._geo = null; StuSign._scanned = '';
+    StuSign.onScan(' 24-68 13 ');
+    return { scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox') };
+  })()`);
+  t('扫到码只留数字存下来，取景窗当场关掉（摄像头指示灯不许一直亮）', () => {
+    assert(scanned.scanned === '246813', '该存下 246813（滤掉空格和横杠），实际「' + scanned.scanned + '」');
+    assert(!scanned.cam && !scanned.box, '扫完该把取景窗和摄像头一起收掉');
+    return '「 24-68 13 」→ ' + scanned.scanned;
+  });
+
+  /* 定位到位之后再渲染：扫来的码该已经填在输入框里，而且**不抢焦点**
+     （手机上一点焦点就弹键盘，把上面那个大圈盖住）。 */
   const filled = await stu.eval(`(() => {
-    /* 定位直接塞结果，不去真要权限 —— 这一趟只验「码有没有替他填上」 */
     StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
     StuSign.renderStep();
     const inp = document.getElementById('stuCode');
-    const step = document.getElementById('stuSignStep');
-    return { val: inp ? inp.value : null, has: !!inp,
-             focused: inp ? document.activeElement === inp : null,
-             hint: step ? step.textContent.replace(/\\s+/g, ' ').trim().slice(0, 46) : '' };
+    return { val: inp ? inp.value : null, focused: inp ? document.activeElement === inp : null,
+             hint: document.getElementById('stuSignStep').textContent.replace(/\s+/g, ' ').trim().slice(0, 60) };
   })()`);
-  t('输入框已经填好扫来的码，而且不抢焦点（手机上弹键盘会挡住打卡圈）', () => {
-    assert(filled.has, '没渲染出打卡码输入框：' + JSON.stringify(filled));
-    assert(filled.val === qr.code, '该填好 ' + qr.code + '，实际 ' + JSON.stringify(filled.val));
-    assert(filled.focused !== true, '扫来的码不该抢焦点（会弹键盘盖住上面的圈）');
+  t('扫来的码已经填进输入框，而且不抢焦点（弹键盘会挡住打卡圈）', () => {
+    assert(filled.val === '246813', '该填好 246813，实际 ' + JSON.stringify(filled.val));
+    assert(filled.focused !== true, '扫来的码不该抢焦点（一聚焦就弹键盘盖住上面的圈）');
     return '输入框 = ' + filled.val + '；提示「' + filled.hint + '」';
   });
+
+  /* 定位已经就绪时扫到码，该**直接提交** —— 扫完还要再按一下圈，那这趟就白扫了。
+     confirm() 换成探针，不然会真去提交打卡。 */
+  const auto = await stu.eval(`(() => {
+    const orig = StuSign.confirm;
+    let hit = 0;
+    StuSign.confirm = function(){ hit++; };
+    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
+    StuSign._scanned = '';
+    StuSign.onScan('135790');
+    StuSign.confirm = orig;
+    return { hit: hit, scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox') };
+  })()`);
+  t('定位已就绪时扫到码直接提交，不用再按一下圈', () => {
+    assert(auto.hit === 1, '该当场调 confirm() 一次，实际 ' + auto.hit + ' 次');
+    assert(auto.scanned === '135790', '提交前该把码存好，实际「' + auto.scanned + '」');
+    assert(!auto.cam && !auto.box, '提交的同时该把取景窗收掉');
+    return 'onScan → confirm() ×1';
+  });
+
+  /* 取景窗的关法：stream 的每个 track 都要 stop、取景框要从 DOM 里摘掉、重复调不报错。
+     拿一个假的 stream 进来量 —— 无头浏览器里开不了真摄像头。 */
+  const cleanup = await stu.eval(`(() => {
+    let stopped = 0;
+    StuSign._cam = { stop: false, stream: { getTracks: () => [{ stop(){ stopped++; } }, { stop(){ stopped++; } }] },
+                     timer: setTimeout(() => {}, 100000), cv: null };
+    const box = document.createElement('div'); box.id = 'scanBox'; document.body.appendChild(box);
+    StuSign.stopScan();
+    const first = { stopped: stopped, box: !!document.getElementById('scanBox'), cam: StuSign._cam };
+    let threw = '';
+    try { StuSign.stopScan(); StuSign.stopScan(); } catch (e) { threw = e.message; }
+    return { first: first, threw: threw };
+  })()`);
+  t('关取景窗：每条视频轨都 stop、框子摘掉、重复调也不报错', () => {
+    assert(cleanup.first.stopped === 2, '两条轨道都该 stop，实际 ' + cleanup.first.stopped + ' 条');
+    assert(!cleanup.first.box, '取景框该从 DOM 里摘掉');
+    assert(!cleanup.first.cam, '_cam 该清空');
+    assert(!cleanup.threw, '重复调不该报错：' + cleanup.threw);
+    return '轨道 stop ×2，框子已摘，再调两次无异常';
+  });
+
+  /* 切页也要关 —— 学生扫到一半切走，摄像头不能留在那儿开着。 */
+  const leave = await stu.eval(`(async () => {
+    let stopped = 0;
+    StuSign._cam = { stop: false, stream: { getTracks: () => [{ stop(){ stopped++; } }] }, timer: null, cv: null };
+    const box = document.createElement('div'); box.id = 'scanBox'; document.body.appendChild(box);
+    App.go('stuHome');
+    await new Promise(r => setTimeout(r, 300));
+    const out = { stopped: stopped, box: !!document.getElementById('scanBox'), cam: !!StuSign._cam };
+    App.go('stuSign');
+    StuSign._scanned = '';
+    return out;
+  })()`);
+  t('从打卡页切走时自动收掉取景窗（学生扫到一半走了也不留摄像头）', () => {
+    assert(leave.stopped === 1, '切页该把轨道 stop，实际 ' + leave.stopped);
+    assert(!leave.box, '切页后取景框该没了');
+    assert(!leave.cam, '切页后 _cam 该清空');
+    return 'App.go("stuHome") → 轨道 stop、框子摘掉';
+  });
+  await stu.eval(`StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 }; StuSign._scanned = '246813'; StuSign.renderStep();`);
+  await sleep(300);
   await shot(stu, 'board-scan-stu.png');
 
 } catch (e) {
