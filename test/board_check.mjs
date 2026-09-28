@@ -198,10 +198,12 @@ try {
       banner: (() => { const b = document.querySelector('#page-board .banner');
         return b ? getComputedStyle(b).display : 'none'; })(),
       clock: (() => { const r = document.getElementById('bdClock').getBoundingClientRect();
-        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), r: Math.round(r.right),
+        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+                 r: Math.round(r.right), b: Math.round(r.bottom),
                  fs: getComputedStyle(document.getElementById('bdClock')).fontSize }; })(),
       code: (() => { const r = document.getElementById('bdCode').getBoundingClientRect();
-        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), r: Math.round(r.right),
+        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+                 r: Math.round(r.right), b: Math.round(r.bottom),
                  fs: getComputedStyle(document.getElementById('bdCode')).fontSize }; })(),
       app: g('.app'), col: g('.col'), main: g('#main'), page: g('#page-board'), bd: g('.bd'), rows: g('.bd-rows') };
   })()`);
@@ -220,11 +222,15 @@ try {
     return '.bd ' + dim.bd.w + '×' + dim.bd.h + '，banner display=none';
   });
 
-  t('时钟和打卡码各占一栏，不叠在一起', () => {
-    assert(dim.clock.r < dim.code.x,
-      '时钟右边界 ' + dim.clock.r + ' 该在打卡码左边界 ' + dim.code.x + ' 左侧（字号给大了会重叠）');
-    assert(dim.clock.w > 200 && dim.code.w > 200, '两块都该有足够的宽度');
-    return '时钟 ' + dim.clock.fs + ' 宽 ' + dim.clock.w + 'px → 码 ' + dim.code.fs + ' 宽 ' + dim.code.w + 'px';
+  /* 航显版把时钟挪进了顶带、码留在中带 —— 判据也跟着从「左不压右」改成「上不压下」。
+     两个矩形不相交仍然是要守的那条线，只是现在该守的是纵向。 */
+  t('时钟在顶带、码在中带，两条带各占一层，不叠在一起', () => {
+    assert(dim.clock.b <= dim.code.y + 1,
+      '时钟底边 ' + dim.clock.b + ' 该在打卡码顶边 ' + dim.code.y + ' 之上（字号给大了会压下去）');
+    assert(dim.clock.w > 100 && dim.code.w > 200,
+      '两块都该有足够的尺寸，实际时钟 ' + dim.clock.w + ' / 码 ' + dim.code.w);
+    return '时钟 ' + dim.clock.fs + '（y=' + dim.clock.y + ' 底 ' + dim.clock.b + '）→ 码 '
+         + dim.code.fs + '（y=' + dim.code.y + ' 宽 ' + dim.code.w + 'px）';
   });
 
   console.log('\n=== 2. 五个数算得对（含「请假不算未到」）===');
@@ -263,10 +269,13 @@ try {
   const tiles = await cdp.eval(`[...document.querySelectorAll('#bdStats .bd-stat')].map(e => ({
     k: e.querySelector('span').textContent, cls: e.className,
     bg: getComputedStyle(e).backgroundColor, c: getComputedStyle(e.querySelector('b')).color }))`);
-  t('五块统计只有数字着色，没被系统的通用 .ok 背景污染', () => {
-    assert(tiles.length === 5, '该有 5 块，实际 ' + tiles.length);
+  t('六块统计只有数字着色，没被系统的通用 .ok 背景污染', () => {
+    assert(tiles.length === 6, '该有 6 块（5 个考勤数 + 1 个距上课），实际 ' + tiles.length);
     tiles.forEach(x => assert(x.bg === 'rgba(0, 0, 0, 0)', '「' + x.k + '」不该有底色，实际 ' + x.bg + '（类名 ' + x.cls + '）'));
     assert(tiles[1].cls === 'bd-stat bd-ok', '类名该带 bd- 前缀，实际「' + tiles[1].cls + '」');
+    /* 这格的标签随时间变：还没到点是「分后上课」、正点是「正在上课」、过了是「已经上课」 */
+    assert(tiles[5].cls === 'bd-stat bd-soon' && ['分后上课', '正在上课', '已经上课'].includes(tiles[5].k),
+      '第 6 格该是「距上课」，实际「' + tiles[5].k + '」类名「' + tiles[5].cls + '」');
     return tiles.map(x => x.k + ' ' + x.c).join(' / ');
   });
 
@@ -276,28 +285,33 @@ try {
     .map(x => x.t + '→' + x.bg).slice(0, 12)`);
   console.log('     看板里带底色的元素：' + paints.join(' | '));
 
-  /* 滚动只该在「塞不下」时开：7 个人在 254px 的面板里放得下，就该老老实实不滚；
-     灌 60 个名字进去才该复制一份上滚，而且只复制一份 —— 不能每半分钟刷新就翻一倍。 */
+  /* 滚动只该在「塞不下」时开：7 个人放得下，就该老老实实不滚、而且居中摆着（.fit）；
+     人一多才该复制一份上滚，而且只复制一份 —— 不能每半分钟刷新就翻一倍。 */
   const clip = await cdp.eval(`(() => {
     const rows = document.getElementById('bdMiss');
     const box = rows.parentElement;
-    const fits = { loop: rows.classList.contains('loop'), rowsH: rows.scrollHeight, boxH: box.clientHeight };
-    const many = Array.from({ length: 60 }, (_, i) => '<div class="bd-row">学员' + (i + 1) + '</div>').join('');
+    const fits = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
+                   rowsH: rows.scrollHeight, boxH: box.clientHeight };
+    const many = Array.from({ length: 260 }, (_, i) => '<div class="bd-row">学员' + (i + 1) + '</div>').join('');
     Board.fill(rows, many);
-    const over = { loop: rows.classList.contains('loop'), rowsH: rows.scrollHeight, boxH: box.clientHeight,
+    const over = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
+                   rowsH: rows.scrollHeight, boxH: box.clientHeight,
                    dur: rows.style.animationDuration, h: rows.style.getPropertyValue('--bd-h') };
     Board.fill(rows, many);   /* 同一份内容再灌一次：该直接跳过，不能又复制一遍 */
     const again = { rowsH: rows.scrollHeight, loop: rows.classList.contains('loop') };
     Board.paint();            /* 还原成真实数据 */
     return { fits, over, again };
   })()`);
-  t('名单装得下就不滚；塞不下才复制一份上滚，且不会越滚越多', () => {
+  t('名单装得下就居中不滚；塞不下才复制一份上滚，且不会越滚越多', () => {
     assert(!clip.fits.loop, '7 个人在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
-    assert(clip.over.loop, '60 个人该开滚动');
+    assert(clip.fits.fit, '7 个人放得下时该加 .fit 居中摆着，实际没加（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）');
+    assert(clip.over.loop, '260 个人该开滚动（实际内容 ' + clip.over.rowsH + ' / 面板 ' + clip.over.boxH + '）');
+    assert(!clip.over.fit, '要滚了就不该再挂 .fit —— 居中和滚动一起上，上下两头都会露不出来');
     assert(clip.over.rowsH > clip.over.boxH, '复制后总高该超出面板，实际 ' + clip.over.rowsH + ' ≤ ' + clip.over.boxH);
     assert(clip.again.rowsH === clip.over.rowsH, '同一份内容重灌不该再复制（' + clip.over.rowsH + ' → ' + clip.again.rowsH + '）');
     assert(parseFloat(clip.over.dur) >= 14, '滚动时长该有个下限，实际 ' + clip.over.dur);
-    return '装得下不滚 / 60 人高 ' + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
+    return '装得下：居中不滚（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）· 塞不下：高 '
+         + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
   });
 
   console.log('\n=== 3. 时钟在走 / 数据新鲜度有话说 ===');

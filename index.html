@@ -1207,63 +1207,84 @@ body.board-mode #page-board{
 /* 看板不要入场动画：一屏数字挨个往上冒，看着像卡顿 */
 body.board-mode .page.on > *{animation:none}
 
+/* 版面：顶带（时间轴）/ 中带（左码右数）/ 底带（课表跑马灯）—— 像机场的航班显示屏，
+   信息分带铺满，课表再长也不会留出大片空白。
+   （旧版是「上时钟下卡片」的仪表盘思路，下半屏常年空着半块，已换掉。） */
 .bd{
-  flex:1;min-height:0;display:grid;
-  grid-template-rows:auto minmax(0,1.4fr) auto minmax(0,.95fr);
-  gap:clamp(10px,1.3vh,22px);
-  padding:clamp(12px,2.2vh,30px) clamp(16px,2.4vw,48px);
+  flex:1;min-height:0;display:flex;flex-direction:column;
   background:#1B2028;color:#F2EFE8;
   font-variant-numeric:tabular-nums;
 }
-.bd-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;
-  border-bottom:1px solid rgba(200,172,124,.22);padding-bottom:clamp(6px,1vh,14px)}
-.bd-brand{font-size:clamp(13px,1.15vw,20px);color:#C8AC7C;letter-spacing:.06em}
-.bd-date{font-size:clamp(13px,1.15vw,20px);color:#B9B4AA}
-.bd-fresh{font-size:clamp(11px,.85vw,15px);color:#807B72}
+.bd-top{display:flex;align-items:center;gap:clamp(10px,1.5vw,32px);
+  padding:clamp(9px,1.5vh,22px) clamp(16px,2.4vw,48px);
+  border-bottom:1px solid rgba(200,172,124,.22)}
+.bd-brand{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C;letter-spacing:.1em;flex:none}
+.bd-date{font-size:clamp(12px,1.05vw,19px);color:#8E887E;flex:none}
+.bd-arrive{margin-left:auto;font-size:clamp(12px,1.2vw,22px);color:#7FBF97;flex:none;white-space:nowrap}
+.bd-fresh{font-size:clamp(11px,.85vw,16px);color:#6E6A63;flex:none;white-space:nowrap;
+  border-left:1px solid rgba(200,172,124,.3);padding-left:clamp(8px,1vw,20px)}
 .bd-fresh.warn{color:#E0A15C}
 
-.bd-main{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);
-  gap:clamp(14px,2.4vw,48px);align-items:center;min-height:0}
-.bd-block{display:flex;flex-direction:column;justify-content:center;gap:clamp(3px,.7vh,11px);min-width:0}
+.bd-main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
+.bd-gate{display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,2.2vh,30px);min-width:0;
+  padding:clamp(12px,2.4vh,34px) clamp(16px,2.4vw,48px);
+  border-right:1px solid rgba(200,172,124,.14)}
+.bd-side{display:flex;flex-direction:column;min-height:0;gap:clamp(8px,1.4vh,20px);
+  padding:clamp(12px,2.4vh,34px) clamp(16px,2.4vw,48px)}
+
 /* 字号走 vw：同一套代码在 13 寸笔记本和 55 寸电视上都能铺满。
-   ⚠️ 系数按「列宽 ≈ 视口 41%」倒推 —— 时钟 8 个字符要在半屏里放得下，
-   系数给大了就会和旁边的打卡码叠在一起（7vw 在 1600 宽的窗口里实测溢出）。 */
-.bd-lab{font-size:clamp(12px,1vw,17px);color:#807B72;letter-spacing:.1em}
-.bd-clock{font-size:clamp(34px,6.2vw,104px);font-weight:500;line-height:1;letter-spacing:.01em;white-space:nowrap}
-.bd-sub{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C}
-.bd-code{font-size:clamp(50px,8.6vw,150px);font-weight:500;line-height:1;color:#C8AC7C;letter-spacing:.06em;white-space:nowrap}
-.bd-code.long{font-size:clamp(30px,5.4vw,94px);letter-spacing:.02em}
-.bd-bar{height:clamp(4px,.7vh,10px);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:clamp(4px,.8vh,12px)}
+   ⚠️ 系数按「码栏 ≈ 视口 52%」倒推 —— 6 位码要在左半屏里放得下；
+   上限 228px 是防 4K 屏把码撑到跟右栏打架。 */
+.bd-lab{font-size:clamp(12px,1.15vw,21px);color:#8E887E;letter-spacing:.16em}
+.bd-clock{font-size:clamp(25px,3.2vw,62px);font-weight:500;line-height:1;letter-spacing:.02em;flex:none;white-space:nowrap}
+.bd-sub{font-size:clamp(12px,1.15vw,21px);color:#C8AC7C}
+.bd-code{font-size:clamp(46px,13.5vw,265px);font-weight:500;line-height:1;color:#C8AC7C;letter-spacing:.05em;white-space:nowrap}
+.bd-code.long{font-size:clamp(30px,7vw,140px);letter-spacing:.02em}
+.bd-bar{height:clamp(4px,.75vh,10px);border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
 .bd-bar > i{display:block;height:100%;border-radius:99px;background:#C8AC7C;transition:width .9s linear}
 
-.bd-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:clamp(8px,1vw,22px);
-  border-top:1px solid rgba(200,172,124,.16);border-bottom:1px solid rgba(200,172,124,.16);
-  padding:clamp(8px,1.3vh,18px) 0}
+/* 数字矩阵：3 列 2 行。第 6 格是「距上课」，由 tick() 每秒单独刷（不跟 paint 一起重建）。 */
+.bd-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(8px,1.3vh,20px) clamp(6px,1vw,18px)}
 .bd-stat{display:flex;flex-direction:column;gap:1px;min-width:0}
-.bd-stat b{font-size:clamp(22px,3.2vw,54px);font-weight:500;line-height:1.05}
-.bd-stat span{font-size:clamp(11px,.9vw,15px);color:#807B72}
+.bd-stat b{font-size:clamp(22px,3.9vw,76px);font-weight:500;line-height:1.05}
+.bd-stat span{font-size:clamp(11px,.95vw,17px);color:#8E887E}
 /* ⚠️ 类名一律带 bd- 前缀：系统里已有一个通用 `.ok{background:#eafaf0;…}` 状态条样式，
    直接写 .bd-stat.ok 会把它一起吃掉 —— 「已到」那块会平白多出一片浅绿底。 */
 .bd-stat.bd-ok b{color:#7FBF97}
 .bd-stat.bd-late b{color:#E0A15C}
 .bd-stat.bd-leave b{color:#9BB6D8}
 .bd-stat.bd-miss b{color:#D98A80}
+.bd-stat.bd-soon b{color:#C8AC7C}
 
-.bd-foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:clamp(12px,1.6vw,32px);min-height:0}
-.bd-panel{display:flex;flex-direction:column;min-height:0;gap:clamp(4px,.7vh,10px)}
-/* 右栏一条细金线分栏：名单和课表是两件事，隔开一眼就分得清 */
-.bd-panel + .bd-panel{border-left:1px solid rgba(200,172,124,.14);padding-left:clamp(14px,2.2vw,44px)}
-.bd-panel h3{font-size:clamp(12px,1vw,17px);font-weight:500;color:#C8AC7C;letter-spacing:.06em;margin:0}
+.bd-miss{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.8vh,11px);
+  border-top:1px solid rgba(200,172,124,.16);padding-top:clamp(8px,1.3vh,18px)}
+.bd-miss h3{font-size:clamp(12px,1.05vw,19px);font-weight:500;color:#C8AC7C;letter-spacing:.08em;margin:0;flex:none}
 .bd-list{flex:1;min-height:0;overflow:hidden}
-.bd-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(96px,9vw,190px),1fr));
-  gap:clamp(5px,.65vw,12px);align-content:start}
-.bd-row{font-size:clamp(13px,1.1vw,20px);color:#E8E4DC;background:rgba(255,255,255,.05);
-  border-radius:8px;padding:clamp(2px,.45vh,8px) clamp(8px,.8vw,16px);
+.bd-rows{display:flex;flex-wrap:wrap;gap:clamp(5px,.6vw,11px);align-content:flex-start}
+/* 人少、装得下的时候不贴着顶，整块居中 —— 就三五个名字却顶在上边、下面空一大片，不好看。
+   这个 .fit 由 Board.fill() 按「这趟要不要滚」实时加/删。 */
+.bd-rows.fit{align-content:center}
+.bd-row{font-size:clamp(12px,1.25vw,24px);color:#E8E4DC;background:rgba(255,255,255,.06);
+  border-radius:8px;padding:clamp(3px,.5vh,8px) clamp(9px,.85vw,17px);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* 名单 / 课表超出面板高度时，整体缓慢上滚循环（内容由 Board.autoScroll 复制一份） */
+/* 名单超出面板高度时，整体缓慢上滚循环（内容由 Board.fill 复制一份） */
 .bd-rows.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
 @keyframes bdUp{from{transform:translateY(0)}to{transform:translateY(calc(-1 * var(--bd-h,0px)))}}
+
+/* 底带：今日课表跑马灯。一条细带，多长的课表都滚着放得完，不占主屏。 */
+.bd-ticker{flex:none;display:flex;align-items:center;gap:clamp(10px,1.4vw,26px);
+  padding:clamp(9px,1.4vh,20px) clamp(16px,2.4vw,48px);
+  border-top:1px solid rgba(200,172,124,.22);background:rgba(255,255,255,.025);
+  overflow:hidden;white-space:nowrap}
+.bd-tk-lab{font-size:clamp(12px,1.05vw,19px);color:#C8AC7C;letter-spacing:.1em;flex:none}
+.bd-tk{flex:1;min-width:0;overflow:hidden}
+.bd-tk-in{display:inline-flex;align-items:center;gap:clamp(10px,1.4vw,26px);
+  font-size:clamp(12px,1.15vw,22px);color:#B9B4AA}
+/* 装不下才横向循环；装得下就静静摆着，别让一条短课表也滚个不停 */
+.bd-tk-in.loop{animation-name:bdLeft;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes bdLeft{from{transform:translateX(0)}to{transform:translateX(calc(-1 * var(--bd-w,0px)))}}
+.bd-dot{color:#6E6A63}
 
 /* 退出：平时完全看不见（这块屏是给路过的人看的，不该出现任何按钮），
    鼠标挪到右下角才浮出来；Esc 也能退 */
@@ -1274,11 +1295,13 @@ body.board-mode .page.on > *{animation:none}
 
 @media (max-width:760px){
   body.board-mode .main{overflow-y:auto}
-  .bd{flex:none;height:auto;min-height:100%;grid-template-rows:none;gap:20px}
-  .bd-main,.bd-foot{grid-template-columns:minmax(0,1fr)}
-  .bd-panel + .bd-panel{border-left:none;padding-left:0;border-top:1px solid rgba(200,172,124,.14);padding-top:14px}
-  .bd-clock{font-size:clamp(44px,15vw,92px)}
-  .bd-code{font-size:clamp(54px,19vw,112px)}
+  .bd{flex:none;height:auto;min-height:100%}
+  .bd-top{flex-wrap:wrap;gap:8px 16px}
+  .bd-arrive{margin-left:0}
+  .bd-main{grid-template-columns:minmax(0,1fr)}
+  .bd-gate{border-right:none;border-bottom:1px solid rgba(200,172,124,.14);padding-bottom:22px}
+  .bd-clock{font-size:clamp(30px,9vw,54px)}
+  .bd-code{font-size:clamp(52px,17vw,124px)}
 }
 </style>
 </head>
@@ -2063,7 +2086,12 @@ try {
         <div class="row" style="gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="Board.enter()">打开看板端</button>
           <button class="btn ghost" onclick="Board.copyLink()">复制看板网址</button>
+          <button class="btn ghost" id="bdNewAcct" onclick="Board.createAccount()">新建看板专用账号</button>
         </div>
+        <p class="hint" style="margin-top:10px;margin-bottom:0">
+          那台电脑要单独登一个号 —— 别用您自己的：每个账号只有 2 台设备额度，拿自己的号登看板电脑，
+          会把您手机或常用的那台挤下线。点「新建看板专用账号」一行搞定。
+        </p>
         <p class="hint" style="margin-bottom:0" id="boardTip"></p>
       </div>
 
@@ -2149,36 +2177,32 @@ try {
     <section class="page" id="page-board">
       <div class="bd">
         <div class="bd-top">
-          <span class="bd-brand">博艺教育 · 砺蕴教务</span>
+          <span class="bd-brand">砺蕴教务</span>
+          <span class="bd-clock" id="bdClock">--:--:--</span>
           <span class="bd-date" id="bdDate">—</span>
+          <span class="bd-arrive" id="bdArrive">—</span>
           <span class="bd-fresh" id="bdFresh"></span>
         </div>
 
         <div class="bd-main">
-          <div class="bd-block">
-            <span class="bd-lab">当前时间</span>
-            <div class="bd-clock" id="bdClock">--:--:--</div>
-            <div class="bd-sub" id="bdSub"></div>
-          </div>
-          <div class="bd-block">
+          <div class="bd-gate">
             <span class="bd-lab">今日打卡码</span>
             <div class="bd-code" id="bdCode">····</div>
             <div class="bd-bar"><i id="bdBar" style="width:0%"></i></div>
             <div class="bd-sub" id="bdCodeHint"></div>
           </div>
+          <div class="bd-side">
+            <div class="bd-stats" id="bdStats"></div>
+            <div class="bd-miss">
+              <h3 id="bdMissTitle">还没到</h3>
+              <div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div>
+            </div>
+          </div>
         </div>
 
-        <div class="bd-stats" id="bdStats"></div>
-
-        <div class="bd-foot">
-          <div class="bd-panel">
-            <h3 id="bdMissTitle">还没到</h3>
-            <div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div>
-          </div>
-          <div class="bd-panel">
-            <h3>今日课表</h3>
-            <div class="bd-list"><div class="bd-rows" id="bdSched"></div></div>
-          </div>
+        <div class="bd-ticker">
+          <span class="bd-tk-lab">今日课表</span>
+          <div class="bd-tk"><div class="bd-tk-in" id="bdSched"></div></div>
         </div>
       </div>
       <button class="bd-exit" onclick="Board.leave()">退出看板（Esc）</button>
@@ -8520,6 +8544,7 @@ const Settings = {
     show('apiCard', staff);
     show('rulesCard', staff);
     show('boardCard', staff && cloud);   // 看板端：给办公室那台电脑挂的只读屏
+    show('bdNewAcct', Auth.isSuper() && cloud);   // 建号只有首位教务能做（服务端也拦着）
     show('tEntryCard', Auth.isSuper() && cloud);
     show('syncNowBtn', cloud);
     show('syncCard', true);
@@ -10533,6 +10558,13 @@ const Sign = {
 /* ══════════════════════════════════════════════════════════════════
    看板端（副屏）：办公室那台电脑挂着的一块只读屏
    ──────────────────────────────────────────────────────────────────
+   版面 = 航显分带（像机场的航班显示屏），上中下三条带，内容再多也铺得满：
+     顶带 品牌 · 大时钟 · 日期 ·「已到 30 / 37」· 数据新鲜度
+     中带 左＝今日打卡码（整屏最大的一块，学生在门口就该看清）+ 换码倒计时
+          右＝6 格数字矩阵（应到/已到/迟到/请假/未到/距上课）+ 未到名单
+     底带 今日课表跑马灯（装得下就静静摆着，装不下才滚）
+   v37 换掉的是旧版「上时钟下卡片」的仪表盘 —— 那版下半屏常年空着半块。
+
    屏幕上只有数字 —— 当前时间、今日打卡码、来了多少人、谁还没到、今天上什么课。
    没有按钮、没有导航、没有任何能改数据的地方：它不是这个账号待的地方，
    是给路过的人看的（所以退出按钮平时完全隐形，鼠标挪到右下角才浮出来）。
@@ -10547,6 +10579,9 @@ const Sign = {
    ⚠️ 打卡码本来就是给教务屏幕显示的东西，这里只是把它放大 ——
       但一块朝外的屏等于把码公开了（学生自己看、甚至拍了转出去），
       摆放位置得教务自己拿主意；朝内一侧则没有任何影响。
+
+   那台电脑要单独登一个账号 —— Board.createAccount() 一键建一个「看板」教务号：
+   每个账号只留 2 台设备，拿自己的号登看板电脑，会把自己手机或常用的那台挤下线。
    ══════════════════════════════════════════════════════════════════ */
 const Board = {
   _sec: null,    /* 每秒走一格：时钟 + 换码倒计时 + 新鲜度 */
@@ -10569,6 +10604,41 @@ const Board = {
       if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => prompt('复制这个网址：', url));
       else prompt('复制这个网址：', url);
     } catch(e){ prompt('复制这个网址：', url); }
+  },
+
+  /* 给看板那台电脑单独建一个教务号。
+     为什么非建不可：每个账号只留 2 台设备（手机 + 一台电脑），
+     拿自己的号登那台电脑，会把自己手机或常用的那台挤下线，还得重新要密钥。
+     看板要取打卡码，所以角色必须是教务(admin) —— 老师号看不到打卡这一摊。 */
+  async createAccount(){
+    if (!Auth.isSuper()) return UI.toast('建账号要超级管理员权限');
+    const user = (prompt('给看板那台电脑建一个专用教务号。\n\n用户名（登录时输入，建议就用 board）：', 'board') || '').trim();
+    if (!user) return;
+    const bad = userErr(user);
+    if (bad) return UI.toast(bad);
+
+    let list = [];
+    try { const j = await Auth.call('users', { op:'list' }); list = (j && j.users) || []; } catch(e){}
+    if (list.some(u => u.user === user)) return UI.toast('已经有一个叫「' + user + '」的账号了');
+
+    /* 随机密码：人不用记，反正要复制过去；去掉了 0/O/1/l/I 这些容易看错的字符 */
+    const A = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const rnd = new Uint8Array(10);
+    try { crypto.getRandomValues(rnd); } catch(e){ for (let i = 0; i < 10; i++) rnd[i] = Math.floor(Math.random() * 256); }
+    const pass = Array.from(rnd, b => A[b % A.length]).join('');
+
+    try {
+      await Auth.call('users', { op:'create', user, name:'看板（办公室那台）', role:'admin', pass });
+      Util.copy('砺蕴教务 · 看板账号\n'
+        + '看板网址  ' + this.link() + '\n'
+        + '用户名    ' + user + '\n'
+        + '密码      ' + pass + '\n\n'
+        + '说明：这个号只给办公室那台挂看板的电脑用，别拿去登手机 —— '
+        + '每个账号只有 2 台设备额度，两边抢会把彼此挤下线。');
+      const tip = document.getElementById('boardTip');
+      if (tip) tip.innerHTML = `已建好，账号密码已复制。用户名 <b>${Util.esc(user)}</b> · 密码 <b>${Util.esc(pass)}</b>`;
+      UI.toast('看板账号已建好，账号密码已复制到剪贴板');
+    } catch(e){ UI.toast(e.message); }
   },
 
   enter(){
@@ -10691,7 +10761,8 @@ const Board = {
       if (dt.textContent !== txt) dt.textContent = txt;
     }
 
-    /* 距上课还有多久 —— 比钟点本身更有用，一眼知道还来不来得及 */
+    /* 距上课还有多久 —— 比钟点本身更有用，一眼知道还来不来得及。
+       摆在中带数字矩阵的第 6 格，数字和标签分开两个元素，所以这里只填数不拼整句。 */
     const sub = document.getElementById('bdSub');
     if (sub){
       const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : { startAt: '08:30' };
@@ -10699,11 +10770,11 @@ const Board = {
       const at = new Date(d);
       at.setHours(Number(hm[0]) || 0, Number(hm[1]) || 0, 0, 0);
       const mins = Math.round((at - d) / 60000);
-      /* 只在临近上课时给倒计时；一节课过了大半就不必再报「已开始 532 分钟」这种数了 */
-      const txt = mins > 0 ? `距上课 ${mins} 分钟（${r.startAt}）`
-                : mins === 0 ? `现在就是上课时间（${r.startAt}）`
-                : (-mins <= 90 ? `上课时间 ${r.startAt} · 已开始 ${-mins} 分钟` : `上课时间 ${r.startAt}`);
-      if (sub.textContent !== txt) sub.textContent = txt;
+      const val = mins > 0 ? String(mins) : String(Math.abs(mins));
+      const lab = mins > 0 ? '分后上课' : (mins === 0 ? '正在上课' : '已经上课');
+      if (sub.textContent !== val) sub.textContent = val;
+      const lb = document.getElementById('bdSubLab');
+      if (lb && lb.textContent !== lab) lb.textContent = lab;
     }
 
     this.paintCode();
@@ -10762,7 +10833,18 @@ const Board = {
         ['迟到', D.late, 'bd-late'],
         ['请假', D.leave, 'bd-leave'],
         ['未到', D.miss.length, 'bd-miss'],
-      ].map(([k, v, c]) => `<div class="bd-stat ${c}"><b>${v}</b><span>${k}</span></div>`).join('');
+      ].map(([k, v, c]) => `<div class="bd-stat ${c}"><b>${v}</b><span>${k}</span></div>`).join('')
+        /* 第 6 格是「距上课」。数字和标签留两个 id 给 tick() 每秒单独刷那一格 ——
+           paint 半分钟才跑一趟，等它刷就迟了。 */
+        + '<div class="bd-stat bd-soon"><b id="bdSub">0</b><span id="bdSubLab">分后上课</span></div>';
+      this.tick();   /* 刚重建出来的那一格立刻填上，别让 0 在那儿闪着 */
+    }
+
+    /* 顶带右上那行「已到 30 / 37」 */
+    const ar = document.getElementById('bdArrive');
+    if (ar){
+      const txt = `已到 ${D.ok + D.late} / ${D.should}`;
+      if (ar.textContent !== txt) ar.textContent = txt;
     }
 
     const t = document.getElementById('bdMissTitle');
@@ -10773,8 +10855,9 @@ const Board = {
       ? D.miss.map(s => `<div class="bd-row">${Util.esc(s.name)}</div>`).join('')
       : '<div class="bd-row" style="color:#7FBF97">全部到齐</div>');
 
+    /* 课表走横向跑马灯（底带），所以用 fillH 不是 fill */
     const sc = document.getElementById('bdSched');
-    if (sc) this.fill(sc, this.schedHtml());
+    if (sc) this.fillH(sc, this.schedHtml());
   },
 
   schedHtml(){
@@ -10785,10 +10868,12 @@ const Board = {
       const pd = periods.find(q => q.id === x.periodId) || {};
       return { t: x.time || pd.start || '', x };
     }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
-    if (!rows.length) return '<div class="bd-row" style="color:#807B72">今天没有排课</div>';
-    return rows.slice(0, 14).map(r => {
+    /* 底带是横向跑马灯，所以出的是行内片段（span），不是 .bd-row 那种块 */
+    if (!rows.length) return '<span style="color:#6E6A63">今天没有排课</span>';
+    return rows.slice(0, 20).map(r => {
       const who = r.x.cls ? ' · ' + String(r.x.cls).split('、')[0] : '';
-      return `<div class="bd-row">${r.t ? Util.esc(r.t) + ' ' : ''}${Util.esc(r.x.title || '')}${Util.esc(who)}</div>`;
+      return `<span>${r.t ? Util.esc(r.t) + ' ' : ''}${Util.esc(r.x.title || '')}${Util.esc(who)}</span>`
+           + '<span class="bd-dot">·</span>';
     }).join('');
   },
 
@@ -10801,15 +10886,36 @@ const Board = {
     box.style.animation = '';
     box.style.animationDuration = '';
     box.classList.remove('loop');
+    box.classList.remove('fit');
     box.style.removeProperty('--bd-h');
     box.innerHTML = html;
     const host = box.parentElement;
     const h = box.scrollHeight;
-    if (h <= host.clientHeight + 2) return;
+    /* 装得下：整块居中摆着（见 .bd-rows.fit），别顶在上边留一大片空 */
+    if (h <= host.clientHeight + 2){ box.classList.add('fit'); return; }
     box.innerHTML += html;
     box.classList.add('loop');
     box.style.setProperty('--bd-h', h + 'px');
     box.style.animationDuration = Math.max(14, Math.round(h / host.clientHeight * 9)) + 's';
+  },
+
+  /* 底带课表：跟上面 fill() 一个套路（先还原再量、内容没变就跳过），
+     只是方向从竖改成横 —— 装得下就静静摆着，装不下才复制一份循环。 */
+  fillH(box, html){
+    if (box.dataset.raw === html && box.innerHTML) return;
+    box.dataset.raw = html;
+    box.style.animation = '';
+    box.style.animationDuration = '';
+    box.classList.remove('loop');
+    box.style.removeProperty('--bd-w');
+    box.innerHTML = html;
+    const host = box.parentElement;
+    const w = box.scrollWidth;
+    if (w <= host.clientWidth + 2) return;
+    box.innerHTML += html;
+    box.classList.add('loop');
+    box.style.setProperty('--bd-w', w + 'px');
+    box.style.animationDuration = Math.max(20, Math.round(w / Math.max(1, host.clientWidth) * 14)) + 's';
   }
 };
 
