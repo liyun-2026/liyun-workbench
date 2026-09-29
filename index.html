@@ -10285,9 +10285,9 @@ const StuHome = {
             ${Stu.statusChip(s)}
           </div>
           <p class="hint">打卡时间 ${new Date(s.at).toLocaleTimeString('zh-CN')}${s.offline ? '（当时没网，联网后补传）' : ''} ·
-            方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}</p>
+            方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', key:'位置密钥', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}</p>
           <div class="row" style="margin-top:10px">
-            <button class="btn ghost" onclick="App.go('stuSign')">重新打卡 / 看记录</button>
+            <button class="btn ghost" onclick="App.go('stuSign')">看这个月的记录</button>
           </div>`;
       } else {
         box.innerHTML = `
@@ -10341,7 +10341,8 @@ const StuHome = {
 const StuSign = {
   _geo: null,        // 本次定位结果：{lat,lng,acc} 或 {fail:true}
   _busy: false,
-  _again: false,     // 已经打过卡了，学生自己按了「重新打卡」：这一轮允许再打一次
+  /* 打卡只打一次：打上了就是打上了，圈里只显示状态，不给「再打一次」的口子。
+     打错了、打歪了，由教务在后台改 —— 学生这边不留这个按钮。 */
   _cam: null,        // 扫一扫正在取景：{stop,stream,timer,cv}
   _scanned: '',      // 扫一扫读到的码（见 StuSign.scan / renderStep）
   _manual: false,    // 学生选了「手输动态码」这条路（扫码和手输是二选一，不并排摆）
@@ -10359,7 +10360,7 @@ const StuSign = {
           ${this.ring({ cls:'off', word:'不用打卡', ico:'dash', time:this.hms(this.now()) })}
           <div class="p-state">${Util.esc(g.text)}</div>
         </div>`;
-      } else if (g.signed && g.rec && !this._again){
+      } else if (g.signed && g.rec){
         const s = g.rec;
         const late = s.status === '迟到';
         const way = {code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', key:'位置密钥', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—';
@@ -10370,9 +10371,6 @@ const StuSign = {
           <div class="p-state">${Util.esc(Stu.statusText(s))} · ${Util.esc(way)}
             ${s.dist != null ? ' · 距校区 ' + s.dist + ' 米' : ''}
             ${s.offline ? '<br>当时没网，' + this.hms(s.recvAt || s.at) + ' 补传上来（按按下那一刻算的）' : ''}</div>
-          <div class="row" style="margin-top:12px">
-            <button class="btn ghost" onclick="StuSign.again()">重新打卡</button>
-          </div>
         </div>`;
       } else {
         /* 还没打卡：圈本身就是按钮。定位好了再按＝提交，没定位按＝先定位 */
@@ -10463,7 +10461,7 @@ const StuSign = {
     if (this._cam && !document.getElementById('scanVideo')) this.stopScan();
     const g = Stu.gate();
     if (!g.ok) { el.innerHTML = ''; return; }
-    if (g.signed && g.rec && !this._again){ el.innerHTML = ''; return; }
+    if (g.signed && g.rec){ el.innerHTML = ''; return; }
     /* 还没定位时圈自己就是按钮 —— 但已经要用户填密钥的时候就别收走，得把框摆出来 */
     if (!this._geo && !this._needKey && !this._keyOpen) { el.innerHTML = ''; return; }
 
@@ -10537,8 +10535,6 @@ const StuSign = {
   },
 
   reset(){ this._geo = null; this._scanned = ''; this._manual = false; this._key = ''; this._needKey = false; this._keyOpen = false; this.render(); },
-  /** 已经打过了还想再打一次（比如刚才打错了）：重新走一遍 */
-  again(){ this._again = true; this._geo = null; this._scanned = ''; this._manual = false; this._key = ''; this._needKey = false; this._keyOpen = false; this.render(); },
 
   /* ── 扫一扫：对着看板上那块二维码扫一下，读到的数字直接进打卡 ──
      用砺蕴自带的那份解码器（QRDec），不走浏览器的 BarcodeDetector ——
@@ -10649,7 +10645,10 @@ const StuSign = {
       () => {
         this._busy = false;
         this._geo = { fail: true };
-        UI.toast('取不到位置，直接输码也能打（会标需核对）');
+        /* v47：取不到位置 ≠ 还能照打 —— 服务端会直接拒（GEOFAR）。
+           这儿就得把下一步说清楚（找教务要位置密钥），别让学生白按一圈再被拒。
+           密钥框也跟着摆出来（keyBox 见 _geo.fail）。 */
+        UI.toast('取不到位置 —— 在教室里的话，用教务老师给的位置密钥打卡');
         this.render();
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
@@ -10716,7 +10715,6 @@ const StuSign = {
              : `打上了，${this.hm(payload.at)} · 正常`);
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来
       this._geo = null;
-      this._again = false;          // 这一轮打完了，「重新打卡」要再按一次才重来
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
       this._manual = false;         // 路口回到默认那条：下次还是「扫一下」
       this._key = '';               // 位置密钥也一起清掉

@@ -69,7 +69,12 @@ try {
   console.log('预览服务就绪 →', BASE, '\n');
 
   const profile = await mkdtemp(path.join(tmpdir(), 'stutut-chrome-'));
+  /* --use-fake-device-for-media-stream：无头环境里没有真摄像头，加这两个开关后
+     getUserMedia 会返回一路合成的测试画面。教程要拍「扫一扫」的取景窗，
+     没有它 StuSign.scan() 会直接走 catch 分支、什么都拍不到。
+     --use-fake-ui-for-media-stream 顺带跳过权限弹窗（不然卡在那儿）。 */
   chrome = spawn(CHROME, ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=5342',
+    '--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream',
     `--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-extensions','--no-proxy-server','about:blank'], { stdio: 'ignore' });
   const target = await waitFor(async () => { const list = await (await jfetch('http://127.0.0.1:5342/json/list')).json(); return list.find(t => t.type === 'page' && t.webSocketDebuggerUrl); }, { what: 'Chrome 调试端口', tries: 40 });
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
@@ -145,7 +150,8 @@ try {
     const h2 = Store.upsert('homework', { clsId: c1.id, date: today, text: '即兴评述提纲：我的家乡' });
     const hk = (sid, done) => Store.upsert('hwchk:' + today, { clsId: c1.id, studentId: sid, done });
     hk(s1[0].id, true); hk(s1[1].id, true);
-    Store.upsert('hw:' + h1.id, { studentId: s1[0].id, done: true });
+    /* hw:{作业id} 是 v47 班干部登记那张表（done 用 1/0，前端是 === 1 判的） */
+    Store.upsert('hw:' + h1.id, { id: 'hwr-' + s1[0].id, studentId: s1[0].id, done: 1 });
 
     // 教务通知（今日卡不空）
     Store.upsert('notices', { text: '明天早功 7:20 在形体房集合，请提前十分钟到，带上练声稿。', date: today, by: '王敏', at: Date.now() - 3600e3 });
@@ -174,10 +180,46 @@ try {
     };
     await mkAcc('王敏', '王敏', 'admin', []);
     await mkAcc('王梓涵', '王梓涵', 'student', [], s1[0].id);
+    /* v47：再建一个「班长」账号 —— 教程要拍班干部视角。
+       刻意不让王梓涵当班干部：他是主角，普通学生的那些页（我的作业列表等）
+       还得用他的干净图。 */
+    await mkAcc('李思远', '李思远', 'student', [], s1[1].id);
+
+    /* ── v47 四项新功能：教程配图要用的演示数据 ── */
+    // ① 班干部：教务先定职务名，再指定是谁
+    Store.upsert('officers', { clsId: c1.id, title: '班长', studentId: s1[1].id });
+    // ② 位置密钥：今天这个班的一枚 4 位码 + 已经有 3 个人用它打上了（进度条有内容）
+    const sk = Store.upsert('sign_keys', { clsId: c1.id, code: '4821', date: today, limit: 5, by: '王敏', createdAt: Date.now() });
+    const useKey = (sid2, min) => Store.upsert('sign:' + today, {
+      id: sid2, studentId: sid2, date: today, way: 'key', status: '正常', lateMin: 0,
+      keyId: sk.id, at: Date.now() - min * 60000, dev: 'tut-' + sid2, by: 'self' });
+    useKey(s1[2].id, 42); useKey(s1[3].id, 37); useKey(s1[4].id, 33);
+    // ③ 学生消息：一条已经回过话的（学生这页要能看出「办公室回复」长什么样）
+    Store.upsert('tickets', { type: '学生消息', status: 'open', createdAt: Date.now() - 5400e3,
+      studentId: s1[0].id, toId: '',
+      text: '老师，我今天就在教室里，可是定位一直不准，打不上卡，怎么办？',
+      reply: '在教室里的话，找我要一枚当天的位置密钥（4 位数字），填进去就能打上。' });
+    // ④ 作业登记：今晚两项作业，让「登记今晚作业」那张卡有东西可打勾
+    Store.upsert('hw:' + h2.id, { id: s1[0].id, studentId: s1[0].id, done: 1, by: '李思远' });
+    Store.upsert('hw:' + h2.id, { id: s1[1].id, studentId: s1[1].id, done: 1, by: '李思远' });
+    Store.upsert('hw:' + h2.id, { id: s1[3].id, studentId: s1[3].id, done: 0, by: '李思远' });
 
     return { c1: c1.id, sid: s1[0].id, today };
   })()`);
   console.log('   数据就绪：砺蕴一班 7 人 + 通知/抽签/评语/请假/征集/成绩\n');
+
+  // ── 教室里那块屏（看板端）───────────────────────────
+  // 学生打卡要抬头看的那块屏幕。用宽一点的桌面尺寸拍，跟教室电视的比例对得上。
+  console.log('②.5 教室那块屏（看板）');
+  await view(cdp, { width: 1600, height: 900, dsf: 1, mobile: false });
+  {
+    const bl = cdp.once('Page.loadEventFired');
+    await cdp.send('Page.navigate', { url: `${BASE}/?board=1` }); await bl;
+    // 看板要等唤醒锁 / 首次取数 / 二维码画出来，给足时间
+    await sleep(3600);
+    await shot(cdp, 'board.png');
+  }
+  console.log('');
 
   // ── 切学生账号 ──────────────────────────────────────
   const asStudent = async () => {
@@ -193,6 +235,11 @@ try {
     })()`);
     if (!r.ok) throw new Error('学生登录失败');
     console.log('   已登录学生：王梓涵（' + r.role + '）\n');
+    /* 手册用干净图：把学生端整页水印关掉。
+       （水印是防截屏外传的，叠加在每张图上都是「砺蕴一班 · 王梓涵」，
+         裁开放进手册会糊住正文。inline display:none 不会被 StuMark.paint 重置 ——
+         它只设 maskImage，从不碰 display。） */
+    await cdp.eval(`(() => { const w = document.getElementById('watermark'); if (w) w.style.display = 'none'; return 1; })()`);
   };
 
   // ── 手机端逐页（主角）────────────────────────────────
@@ -213,12 +260,23 @@ try {
   await shot(cdp, 'm-home-scroll.png');
 
   // 打卡：① 初始（还没定位，圈就是按钮）
-  await cdp.eval(`(() => { StuSign._geo=null; StuSign._again=false; StuSign.render(); return 1; })()`);
+  await cdp.eval(`(() => { StuSign._geo=null; StuSign.render(); return 1; })()`);
   await mgo('stuSign', 'm-sign-step0.png');
-  // 打卡：② 已定位，出现输码框
+  // 打卡：② 已定位 —— 默认路口只摆「扫面前的二维码」，手输是备选
   await cdp.eval(`(() => { StuSign._geo={lat:34.75,lng:113.62,acc:12}; StuSign.render(); return 1; })()`);
   await sleep(300);
   await shot(cdp, 'm-sign-step1.png');
+  // 打卡：②b 扫一扫取景窗（v41 起这是默认那条路）
+  await cdp.eval(`(async () => { await StuSign.scan(); await new Promise(r=>setTimeout(r,1400)); return 1; })()`);
+  await shot(cdp, 'm-sign-scan.png');
+  await cdp.eval(`(() => { StuSign.stopScan(); return 1; })()`);
+  await sleep(300);
+  // 打卡：②c 手输那条路 —— 点了「手输动态码」才长出 6 位输入框
+  await cdp.eval(`(() => { StuSign.manual(true); return 1; })()`);
+  await sleep(300);
+  await shot(cdp, 'm-sign-manual.png');
+  await cdp.eval(`(() => { StuSign.manual(false); return 1; })()`);
+  await sleep(200);
   // 打卡：③ 定位失败，提示可直接输码
   await cdp.eval(`(() => { StuSign._geo={fail:true}; StuSign.render(); return 1; })()`);
   await sleep(300);
@@ -227,7 +285,7 @@ try {
   await cdp.eval(`(() => {
     const sid = Auth.studentId();
     Store.upsert('sign:' + Util.today(), { studentId: sid, status:'正常', at: Date.now()-3600e3, way:'code', dist: 36 });
-    StuSign._geo=null; StuSign._again=false; StuSign.render(); StuHome.render(); return 1;
+    StuSign._geo=null; StuSign.render(); StuHome.render(); return 1;
   })()`);
   await sleep(300);
   await shot(cdp, 'm-sign-done.png');
@@ -235,7 +293,7 @@ try {
   await cdp.eval(`(() => {
     const sid = Auth.studentId();
     Store.upsert('sign:' + Util.today(), { studentId: sid, status:'迟到', lateMin: 6, at: Date.now()-1800e3, way:'geo', dist: 42 });
-    StuSign._again=false; StuSign.render(); return 1;
+    StuSign.render(); return 1;
   })()`);
   await sleep(300);
   await shot(cdp, 'm-sign-late.png');
@@ -258,6 +316,9 @@ try {
   await mgo('stuProfile','m-profile.png');
   await mgo('stuHw',     'm-hw.png');
   await mgo('stuGather', 'm-gather.png');
+  // 给老师发消息（v47）：render() 要先去后端要收件人名单，多等一会儿
+  await cdp.eval(`(async () => { App.go('stuMsg'); window.scrollTo(0,0); const m=document.querySelector('.main,#main,.content'); if(m) m.scrollTop=0; await new Promise(r=>setTimeout(r,1100)); return 1; })()`);
+  await shot(cdp, 'm-msg.png');
   await mgo('settings',  'm-settings.png');
   // 全部功能抽屉
   await cdp.eval(`(async () => { App.drawer(true); await new Promise(r=>setTimeout(r,520)); return 1; })()`);
@@ -288,8 +349,37 @@ try {
   await dgo('stuGather', 'd-gather.png');
   await dgo('settings',  'd-settings.png');
 
+  // ── 班干部视角（李思远 = 班长，v47）──────────────────
+  // 班长用学生账号登录，能看到全班的量化加扣分，还能替全班登记今晚的作业。
+  // 王梓涵（普通学生）的图不能被这几张污染，所以单开一个账号来拍。
+  console.log('⑤ 班干部视角（班长）');
+  await view(cdp, MOB);
+  {
+    const l3 = cdp.once('Page.loadEventFired');
+    await cdp.eval(`(async () => { Store.setSecret('token',''); Store.setSecret('acct',''); return 1; })()`);
+    await cdp.send('Page.navigate', { url: `${BASE}/` }); await l3; await sleep(2400);
+    const r3 = await cdp.eval(`(async () => {
+      if (!Auth.mode) await Auth.probe();
+      document.getElementById('gUser').value = '李思远';
+      document.getElementById('gPass').value = 'liyun2026';
+      await Auth.submit(); await new Promise(r => setTimeout(r, 2200));
+      return { ok: !document.getElementById('gate').classList.contains('on'),
+               title: (typeof StuQuant !== 'undefined' ? StuQuant.myTitle() : '') };
+    })()`);
+    if (!r3.ok) throw new Error('班长登录失败');
+    console.log('   已登录班长：李思远（职务：' + (r3.title || '—') + '）\n');
+    await cdp.eval(`(() => { const w = document.getElementById('watermark'); if (w) w.style.display = 'none'; return 1; })()`);
+    /* 同一台设备换到第二个学生账号会弹出「换账号要密钥」那道门（这是对的，
+       线上就该拦）。教程只要页面本身的样子，把门收掉再拍。 */
+    await cdp.eval(`(() => { if (typeof StuDev !== 'undefined') StuDev.close(); return 1; })()`);
+    await sleep(400);
+    await mgo('stuQuant', 'm-quant-officer.png');
+    await cdp.eval(`(() => { if (typeof StuDev !== 'undefined') StuDev.close(); return 1; })()`);
+    await mgo('stuHw',    'm-hw-entry.png');
+  }
+
   // ── 登录页（电脑 + 手机）白底干净 ────────────────────
-  console.log('⑤ 登录页');
+  console.log('⑥ 登录页');
   const showGate = async () => {
     await cdp.eval(`(async () => {
       Store.setSecret('token',''); Store.setSecret('acct','');

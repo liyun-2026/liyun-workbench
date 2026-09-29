@@ -275,7 +275,10 @@ try {
   const bad = await B.eval(`(async () => {
     App.go('stuSign');
     await new Promise(r => setTimeout(r, 300));
-    StuSign.again();                       // 打过了要再打一次，得先按「重新打卡」
+    /* 2026-09-29：系统里「重新打卡」已整个拿掉（用户：「没有重新打卡这一说」），
+       打卡打上之后圈里只剩状态、renderStep 那一块也收干净了。
+       下面这段「拿错码再打一次」的老走法已经走不通（没有 stuCode 这个元素了），
+       留在这里等这个文件整体重写 —— 它本来就常年跑不通（欠账）。 */
     await new Promise(r => setTimeout(r, 200));
     StuSign.start();
     await new Promise(r => setTimeout(r, 300));
