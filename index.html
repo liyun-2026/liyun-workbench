@@ -10632,7 +10632,9 @@ const StuSign = {
     if (this._busy) return;
     if (!navigator.geolocation){
       this._geo = { fail: true }; this.render();
-      return UI.toast('这个浏览器不支持定位，直接输码也能打（会标需核对）');
+      /* v47 起定位是硬门槛：没位置服务 → 服务端一样 400 GEOFAR。
+         所以别再哄「直接输码也能打」，直接给可走的路。 */
+      return UI.toast('这个浏览器不支持定位 —— 在教室里的话，用教务老师给的位置密钥打卡');
     }
     this._busy = true;
     UI.toast('正在定位…');
@@ -11192,7 +11194,7 @@ const Sign = {
         UI.toast('已把当前位置设为校区');
         this.stat();
       },
-      () => UI.toast('取不到位置，电脑上定位常不可用 —— 不采集也能用动态码打卡')
+      () => UI.toast('取不到位置 —— 电脑上定位常不可用。请在教室里用手机点这个按钮')
     );
   },
   clearPos(){

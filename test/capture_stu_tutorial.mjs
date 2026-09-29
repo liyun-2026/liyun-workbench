@@ -277,7 +277,8 @@ try {
   await shot(cdp, 'm-sign-manual.png');
   await cdp.eval(`(() => { StuSign.manual(false); return 1; })()`);
   await sleep(200);
-  // 打卡：③ 定位失败，提示可直接输码
+  // 打卡：③ 定位失败 —— v47 起定位是硬门槛，这一屏该给的是「要位置密钥」那条路
+  // （所以 keyBox 会自己摆出来，裁卡框要把它一起圈进去，见 crop_cards.py 的 m-sign-geofail）
   await cdp.eval(`(() => { StuSign._geo={fail:true}; StuSign.render(); return 1; })()`);
   await sleep(300);
   await shot(cdp, 'm-sign-geofail.png');
