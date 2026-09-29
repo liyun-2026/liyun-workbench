@@ -12318,20 +12318,32 @@ setTimeout(() => { const sp = document.getElementById('splash'); if (sp) Auth._s
    这个站部署在境外节点，每次冷启动光握手就要约一秒；没有 SW 时那一秒是白屏。
    装上之后从第二次打开起，index.html 直接走本地缓存，开屏动画立刻就能动。
 
-   ⭐ 更新机制（2026-09-28 收紧）：
+   ⭐ 更新机制（2026-09-29 再放宽）：
    新 SW 装完 → skipWaiting → activate → claim → 浏览器自动派发 controllerchange。
-   页面**只在开屏层还盖着的时候**借这次机会重载一下，而且每个会话最多重载一次；
-   重载那一趟会跳过开屏（见上面 __quietReload 那段），所以用户看到的永远是
-   **一整段连续的入场动画**。
+   页面借这次机会重载一下，每个会话最多重载一次；重载那一趟跳过开屏
+   （见上面 __quietReload 那段），用户看到的永远是一整段连续的入场动画。
 
-   为什么这么改：旧版只看一个内存变量 window._swReloading，reload 一次它就被重置了，
+   为什么不能只看一个内存变量 window._swReloading：reload 一次它就被重置了，
    于是挡不住第二次；而 SW 有两条通知路径（controllerchange + shell-updated），
    部署刚推上 CDN 的 30~75 秒里缓存指纹还可能对不上，一进站能连跳两三次开场动画。
    实测（test/splash_probe.mjs）：首次访问 2 次文档加载 = 开屏播 2 遍，
    而且第二次落在 t+6.7s / t+18s —— 人已经在用了才突然重放，所以「感觉像故障」。
 
-   开屏收掉之后就不再重载：没赶上的更新留到下次打开自然生效
-   （新 SW 已经装好、缓存里已经是新版），**依旧不用手刷**。
+   🔴 2026-09-29 用户直接问：「桌面上的砺蕴系统，我怎么见没有更新呢？」
+   查下来不是没更新（线上、本机缓存都已是最新版），是**换版永远赶不上**：
+   这套壳子在境外节点，新 SW 装完要下 index.html（644KB）外加十几个资源，
+   跨境实测 5~10 秒；而开屏只有 1.2 秒 + 0.55 秒淡出 —— 按老规矩「只在开屏期换」，
+   controllerchange 回来时开屏早收了，于是**发版后第一次打开必然是旧版**，
+   得关掉窗口再开一次才是新的。看板那块 24 小时常亮的屏更是永远换不了（它从不重开）。
+
+   现在改成三种情况都允许静默换版，共同前提是**用户还没开始用**：
+     ① 开屏层还盖着        —— 老规矩，换来的是「一整段连续入场动画」
+     ② 打开 30 秒内、用户一次都没动过（没点 / 没按 / 没滚 / 没输入）
+     ③ 看板屏（board-mode）空闲 2 分钟 —— 只读屏没人碰，挂着自己换到新版
+   用户一旦动过手就一律不换，留到下次打开（新 SW 已装好、缓存已是新版），
+   不会把正在填的表单、正在看的页面刷掉。配套：常亮的屏每 20 分钟主动
+   registration.update() 问一次有没有新版（浏览器默认只在导航时才会去问）。
+
    调试时加 ?nosw=1 可跳过注册，直接读源文件。 */
 if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -12340,14 +12352,36 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   const hadController = !!navigator.serviceWorker.controller;
   const KEY_DONE = 'liyun_sw_reloaded';     // 本会话已经为换版重载过（不消费）
   const KEY_QUIET = 'liyun_quiet_reload';   // 下一趟别放开屏（读后即清）
+  const OPEN_GRACE = 30000;                 // 打开后 30 秒内还没动手 → 允许换版
+  const IDLE_GAP   = 120000;                // 看板那种常亮的屏：空闲 2 分钟 → 允许换版
+  const CHECK_EVERY = 20 * 60 * 1000;       // 常亮屏每隔 20 分钟主动问一次有没有新版
   const _splashStillUp = () => {
     const sp = document.getElementById('splash');
     return !!sp && !sp.classList.contains('off');
   };
+  /* 用户动过手没有？只要碰过一下（点、按、滚、输入），就再也不主动换版 ——
+     宁可让他下次打开时自然生效，也不能把正在填的表单/正在看的页刷掉。 */
+  let _touched = false, _lastAct = Date.now(), _openedAt = Date.now();
+  ['pointerdown', 'keydown', 'touchstart', 'wheel', 'input', 'scroll', 'focusin']
+    .forEach((ev) => window.addEventListener(ev,
+      () => { _touched = true; _lastAct = Date.now(); }, { passive: true, capture: true }));
+  const _boardMode = () => !!document.body && document.body.classList.contains('board-mode');
+  const _editingNow = () => {
+    const a = document.activeElement;
+    return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable === true);
+  };
+  /* 这一趟能不能静默换版 —— 三种「用户还没开始用」的情况，见上面注释。 */
+  const _mayQuietReload = () => {
+    if (_splashStillUp()) return true;                                // ① 开屏期
+    if (!_touched && Date.now() - _openedAt < OPEN_GRACE) return true; // ② 刚打开没动手
+    /* ③ 看板那块常亮的只读屏：没人操作、也没停在输入框里 → 空闲久了直接换 */
+    if (_boardMode() && !_editingNow() && Date.now() - _lastAct > IDLE_GAP) return true;
+    return false;
+  };
   const _onShellReady = () => {
     if (window._swReloading) return;                 // 同一趟里只认一次
     if (!hadController) return;                      // 首次安装，没有「旧版」要换掉
-    if (!_splashStillUp()) return;                   // 已过开屏期：这次不重载，留给下次打开
+    if (!_mayQuietReload()) return;                  // 用户已经在用了：留到下次打开
     let done = false;
     try { done = sessionStorage.getItem(KEY_DONE) === '1'; } catch (e) {}
     if (done) return;                                // 本会话已经刷过一次，不再刷
@@ -12364,6 +12398,16 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'shell-updated') _onShellReady();
   });
+  /* 常亮屏（看板）不会自己重开，浏览器也只在导航时才去问 sw.js 有没有变 ——
+     这里每隔 20 分钟主动问一次。发现新版就走上面那条路径，空闲中就静默换掉。
+     页面在后台（document.hidden）时跳过：没人看，省电省流量。 */
+  setInterval(() => {
+    if (document.hidden) return;
+    try {
+      const p = navigator.serviceWorker.getRegistration();
+      if (p && p.then) p.then((reg) => { try { reg && reg.update(); } catch (e) {} }).catch(() => {});
+    } catch (e) {}
+  }, CHECK_EVERY);
 }
 </script>
 </body>

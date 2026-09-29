@@ -216,6 +216,21 @@ try {
   const cold = await measure(cdp, { fresh: true });
   const fp1 = cold.marks['first-paint'];
   console.log(`     第一次（无 SW）：第一帧 ${fp1}ms  文档传输 ${cold.transfer} 字节`);
+  /* 判据挂了就把现场打出来：是「开屏压根没画」还是「这一趟被系统自己刷掉了」，
+     两者的修法完全不同（前者查 HTML 结构，后者查换版守门）。 */
+  if (cold.marks['第一帧（开屏已出现）'] === undefined) {
+    const d = await cdp.eval(`({
+      marks: Object.fromEntries(window.__t ? window.__t.marks : []),
+      quiet: sessionStorage.getItem('liyun_quiet_reload'),
+      done: sessionStorage.getItem('liyun_sw_reloaded'),
+      hasSplash: !!document.getElementById('splash'),
+      splashOff: (() => { const s = document.getElementById('splash'); return !!(s && s.classList.contains('off')); })(),
+      navType: (performance.getEntriesByType('navigation')[0] || {}).type,
+      navCount: performance.getEntriesByType('navigation').length,
+      controlled: !!navigator.serviceWorker.controller,
+    })`);
+    console.log('     [诊断] ' + JSON.stringify(d));
+  }
   ok(cold.marks['第一帧（开屏已出现）'] !== undefined, '开屏层在第一次打开时就出现了（不是白屏）');
   /* ⚠️ 不能拿 navigator.serviceWorker.controller 判「有没有被接管」——
      SW 装好会立刻 clients.claim()，那一刻当前这个页面也会被接管。
