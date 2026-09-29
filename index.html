@@ -11180,11 +11180,11 @@ const Sign = {
     const lateTxt = Number(r.lateAfter) > 0 ? `宽限 ${r.lateAfter} 分钟` : '零宽限（到点就迟到）';
     el.textContent = r.lat != null
       ? `校区已采集：${r.lat.toFixed(5)}, ${r.lng.toFixed(5)} · 半径 ${r.radius} 米 · 上课 ${r.startAt} · ${lateTxt}`
-      : `还没有采集校区位置。不采集也能打卡，但学生定位那条路会一直标「需核对」。上课 ${r.startAt} · ${lateTxt}`;
+      : `还没有采集校区位置 —— 采集之前没有位置校验（学生在哪儿都打得上）。请用手机站在教室里点「📍采集当前位置为校区」。上课 ${r.startAt} · ${lateTxt}`;
   },
 
   pickHere(){
-    if (!navigator.geolocation) return UI.toast('这个浏览器不支持定位，可以手动不采集（学生用动态码打卡）');
+    if (!navigator.geolocation) return UI.toast('这台设备取不到位置 —— 请在教室里用手机点这个按钮');
     UI.toast('正在取位置…');
     navigator.geolocation.getCurrentPosition(
       pos => {
