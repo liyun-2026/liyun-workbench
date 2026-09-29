@@ -78,13 +78,17 @@ try {
        覆盖发生在定时器已经排上之后，而 App.init() 是同步调用的，
        页内定时器根本没有插进去的机会。）
      做法：DOMContentLoaded + 一帧之后取样（那时开屏一定已经渲染出来），
-     把文字/字体/是否可见存到 window 上，后面直接读这份快照。 */
+     把文字/字体/是否可见存到 window 上，后面直接读这份快照。
+     ⚠️ 2026-09-29：判据原选 `#splash .s-name` —— 那个元素在「圆盘旋转进入/文字上浮」
+     那套旧开屏删掉时就没了，只剩三条同名 keyframes 的残骸，于是这里一直取不到样、
+     白挂 3 条（跑起来才发现）。现在开屏里用行书的是 `.s-tag`（「博学宏才 艺德卓绝」），
+     选择器跟着改成它。 */
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
     source: `addEventListener('DOMContentLoaded', () => requestAnimationFrame(() => {
       const sp = document.getElementById('splash');
       if (!sp) return;
       window.__splashHTML = sp.outerHTML;
-      const el = sp.querySelector('.s-name');
+      const el = sp.querySelector('.s-tag');
       if (!el) return;
       const r = el.getBoundingClientRect();
       window.__splashProbe = {
@@ -122,8 +126,8 @@ try {
       return { h, ink };
     };
     return { ready, font: px('LiYunXingShu'), kai: px('"Kaiti SC", serif'), serif: px('serif'),
-             fam: (document.querySelector('#splash .s-name')
-                    ? getComputedStyle(document.querySelector('#splash .s-name')).fontFamily
+             fam: (document.querySelector('#splash .s-tag')
+                    ? getComputedStyle(document.querySelector('#splash .s-tag')).fontFamily
                     : ((window.__splashProbe || {}).font || '')),
              display: [...document.styleSheets].flatMap(s => { try { return [...s.cssRules] } catch { return [] } })
                         .filter(r => r.constructor.name === 'CSSFontFaceRule')
@@ -143,12 +147,12 @@ try {
     const p = window.__splashProbe;
     if (p) return p;
     /* 万一样没取到（线上极慢等），退回读当前 DOM */
-    const el = document.querySelector('#splash .s-name');
+    const el = document.querySelector('#splash .s-tag');
     if (!el) return { text: '(开屏已收走，也没取到样)', visible: false };
     const r  = el.getBoundingClientRect();
     return { text: el.textContent.trim(), visible: r.width > 0 && r.height > 0, top: Math.round(r.top) };
   })()`);
-  ok(s2.text === '砺蕴', `开屏主字是「砺蕴」（实测「${s2.text}」，取的是开屏刚出现那一刻）`);
+  ok(s2.text === '博学宏才 艺德卓绝', `开屏主字是「博学宏才 艺德卓绝」（实测「${s2.text}」，取的是开屏刚出现那一刻）`);
   ok(s2.visible === true, '开屏主字确实占了可见面积（不是 0×0 的隐藏元素）');
   ok(/LiYunXingShu/.test(s1.fam || s2.font || ''),
     `开屏主字用的就是行书字体，不是回退字体（${(s1.fam || s2.font || '').split(',')[0]}）`);
