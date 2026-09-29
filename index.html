@@ -1692,6 +1692,10 @@ try {
           <button class="btn" onclick="Roster.addStudent()">加入</button>
         </div>
         <div id="stuList" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost" onclick="Roster.toggleOfficers()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg> 班干部</button>
+        </div>
+        <div id="officerBox" style="margin-top:10px"></div>
       </div>
       <!-- ==== 功能：单独建号 START ==== -->
       <div class="card">
@@ -2442,6 +2446,11 @@ try {
         </div>
         <div class="pane-main">
           <div class="card">
+            <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-envelope"></use></svg> 学生消息 <span class="hint" id="stuMsgCount" style="display:inline;margin:0"></span></h2>
+            <p class="hint" style="margin:0 0 10px">学生在「给老师发消息」里发来的。回一句，学生那边就能看到。</p>
+            <div id="coopStuMsg"></div>
+          </div>
+          <div class="card">
             <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 发通知</h2>
             <textarea id="noticeText" placeholder="写一条通知，老师打开「今天」就能看到"></textarea>
             <div class="row" style="margin-top:8px">
@@ -2766,11 +2775,39 @@ try {
     <!-- ==== 功能：学生我的作业 START ==== -->
     <section class="page" id="page-stuHw">
       <div class="page-title">我的作业</div>
+      <!-- 班干部（教务在名册里指定的）在这儿替全班登记今晚的作业，
+           普通学生看不到这块（StuHw.renderEntry 会清空它） -->
+      <div class="card wide" id="stuHwEntryCard">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 登记今晚作业（班干部）</h2>
+        <div id="stuHwEntry"></div>
+      </div>
       <div class="card wide">
         <div id="stuHwList"></div>
       </div>
     </section>
     <!-- ==== 功能：学生我的作业 END ==== -->
+
+    <!-- ==== 功能：学生给老师发消息 START ====
+         学生只发给「教务办公室」（首位教务 / 教务老师 / 教务兼授课）——
+         授课老师不在名单里。消息落到 tickets（type:'学生消息'），
+         教务在「协作 → 学生消息」那栏看、在那儿回一句，学生这边能看到回复。 -->
+    <section class="page" id="page-stuMsg">
+      <div class="page-title">给老师发消息</div>
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-envelope"></use></svg> 发一条消息</h2>
+        <p class="hint" style="margin:0 0 10px">有不明白的、打卡出了问题的、想请假问一句的，都发在这儿。消息会送到<b>教务办公室</b>，回复你能在下面看到。</p>
+        <div id="stuMsgTo"></div>
+        <textarea id="stuMsgText" placeholder="写清楚你遇到的问题，比如：今天打卡时定位不对" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="StuMsg.send()">发给办公室</button>
+        </div>
+      </div>
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-scroll"></use></svg> 我发过的</h2>
+        <div id="stuMsgList"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：学生给老师发消息 END ==== -->
 
     <!-- ==== 功能：学生端·限时征集 START ==== -->
     <section class="page" id="page-stuGather">
@@ -2827,6 +2864,25 @@ try {
             <div class="hint cd-left" id="signCodeLeft"></div>
           </div>
         </div>
+      </div>
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 位置密钥</h2>
+        <!-- 学生定位不准就打不上卡（服务端直接拒），得找教务要这样一枚 4 位码放行。
+             密钥当天有效、只对当前这个班生效；一枚放行几个人由教务定。
+             密钥只有教务端读得到（学生端的读白名单里没有这个键），学生只能从教务手里拿。 -->
+        <p class="hint" style="margin:0 0 10px">学生定位不准、<b>打不上卡</b>的时候，给他一枚 4 位数字的密钥，他输进去就能打。
+          密钥<b>当天有效</b>，只对选中的这个班生效。</p>
+        <div class="row" style="flex-wrap:wrap">
+          <select id="skCls" onchange="Sign.pickKeyCls(this.value)" style="max-width:190px"></select>
+          <input id="skCode" type="text" inputmode="numeric" maxlength="4" placeholder="4 位数字" style="max-width:130px">
+          <select id="skLimit" style="max-width:130px">
+            <option value="3">3 个名额</option>
+            <option value="5" selected>5 个名额</option>
+            <option value="10">10 个名额</option>
+          </select>
+          <button class="btn" onclick="Sign.makeKey()">生成 / 更新</button>
+        </div>
+        <div id="skBody" style="margin-top:12px"></div>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 今日打卡 <span class="hint" id="signTodayMeta" style="display:inline;margin:0"></span></h2>
@@ -3275,6 +3331,30 @@ const Util = {
            String(d.getDate()).padStart(2,'0');
   },
   esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+
+  /** 作业简称：去掉标点空白后取头一个字（「数学卷子」→「数」）。
+      班干部录作业时，学生名字后面挂的就是它；教务端那条作业也用它做小标签。 */
+  abbr(text){
+    const s = String(text || '').replace(/[\s，。、,.;；:：!！?？~～\-—_（）()【】\[\]{}\/\\|]/g, '');
+    return s.slice(0, 1) || '?';
+  },
+
+  /** 账号显示名：**除自己外，老师/教务这类账号在系统里一律显示成「学管办公室」**。
+      学生照旧实名 —— 教务得知道是哪位同学交的假条、发的消息。
+      自己看自己（设置页、头像、自己发的东西）仍用真名。
+      ⚠️ 两处**故意不走**这里，走了就没法用：
+        · 选人控件（排课挑授课老师、指派工单、学生消息收件人）—— 全叫「学管办公室」就选不出来
+        · 课表上的授课老师（教务排课查课的核心信息，不是「账号显示名」） */
+  dispName(id, name){
+    const me = (typeof Auth !== 'undefined' && Auth.me) ? Auth.me() : null;
+    const nm = name || '';
+    /* 自己：真名。老数据只有名字没 id，就拿名字对一下 */
+    if (me && ((id && String(me.id) === String(id)) || (!id && nm && nm === me.name))) return nm || me.name || '';
+    /* 学生：实名 —— 教务得知道是哪位同学交的假条、发的消息 */
+    if (id && typeof Store !== 'undefined'
+        && Store.list('students').some(s => s && String(s.id) === String(id))) return nm;
+    return '学管办公室';
+  },
 
   /** 按姓名排序学生时的通用比较器 */
   byName(a, b){ return (a.name || '') > (b.name || '') ? 1 : -1; },
@@ -3937,6 +4017,7 @@ const App = {
     { id:'stuQuant',  icon:'chart', name:'本班量化', roles:['student'], onShow: () => StuQuant.render() },
     { id:'stuProfile',icon:'card', name:'我的档案', roles:['student'], onShow: () => StuProfile.render() },
     { id:'stuHw',     icon:'memo', name:'我的作业', roles:['student'], onShow: () => StuHw.render() },
+    { id:'stuMsg',    icon:'envelope', name:'给老师发消息', roles:['student'], onShow: () => StuMsg.render() },
     { id:'stuGather', icon:'megaphone', name:'限时征集', roles:['student'], onShow: () => StuGather.render() },
 
     /* ── 教务端：学生打卡的收口 ── */
@@ -3974,7 +4055,7 @@ const App = {
        教务那摊排完，再接自己班的授课那摊。 */
     both:    ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
-    student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','settings']
+    student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -4405,17 +4486,88 @@ const Roster = {
     }).join('')
       : '<div class="empty">还没有班级，先建一个</div>';
 
-    const students = Store.list('students', Util.byName).filter(s => s.classId === cur && !Util.isDemoObj(s));
-    document.getElementById('stuList').innerHTML = students.length
-      ? students.map(s => `<div class="item">
-          <span class="grow">${Util.esc(s.name)}</span>
-          <button class="del" onclick="Roster.delStu('${s.id}')">✕</button>
-        </div>`).join('')
-      : '<div class="empty">这个班还没有学员</div>';
+    this.renderStuList();
+    this.renderOfficers();
 
     this._fillClsSelect('singleCls');
     this._fillClsSelect('batchCls');
     Weekend.render();     // 周末班名单取自全部在册学员，学员有变要跟着重画
+  },
+
+  /** 这个班的学员名单：名字后面挂职务标签（是班干部才挂） */
+  renderStuList(){
+    const box = document.getElementById('stuList');
+    if (!box) return;
+    const cur = Store.get('_rosterCls');
+    const students = Store.list('students', Util.byName).filter(s => s.classId === cur && !Util.isDemoObj(s));
+    box.innerHTML = students.length
+      ? students.map(s => {
+          const o = Store.list('officers').find(x => x && x.studentId === s.id && x.title);
+          return `<div class="item">
+            <span class="grow">${Util.esc(s.name)}${o
+              ? ` <span class="chip" style="pointer-events:none">${Util.esc(o.title)}</span>` : ''}</span>
+            <button class="del" onclick="Roster.delStu('${s.id}')">✕</button>
+          </div>`;
+        }).join('')
+      : '<div class="empty">这个班还没有学员</div>';
+  },
+
+  /* ── 班干部 ──
+     教务先给这个班定几位班干部（写职务名，如「班长」「学习委员」），再指定是谁。
+     定完，名册里那位学员名字后面就挂上职务。
+     权限：班干部用学生账号登录后能看全班姓名 + 每人的量化加扣分（见 StuQuant）。 */
+  _offOpen: false,
+  toggleOfficers(){ this._offOpen = !this._offOpen; this.renderOfficers(); },
+  officers(clsId){ return Store.list('officers').filter(o => o && o.clsId === clsId); },
+  renderOfficers(){
+    const box = document.getElementById('officerBox');
+    if (!box) return;
+    if (!this._offOpen){ box.innerHTML = ''; return; }
+    const clsId = Store.get('_rosterCls');
+    if (!clsId){ box.innerHTML = '<p class="hint" style="margin:0">先建一个班级</p>'; return; }
+    const stu = Store.list('students', Util.byName).filter(s => s.classId === clsId && !Util.isDemoObj(s));
+    const list = this.officers(clsId);
+    box.innerHTML = `
+      <div style="padding:12px;background:var(--tint,#f1efe9);border-radius:12px">
+        <p class="hint" style="margin:0 0 10px">先写职务名（如 <b>班长</b>、<b>学习委员</b>），再选是哪位学员。
+          点「＋ 加一个职务」可以加好几位。定完以后，学员用学生账号登录就能看到全班的量化加扣分。</p>
+        ${list.length ? list.map(o => `
+          <div class="row" style="align-items:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap">
+            <input type="text" value="${Util.esc(o.title || '')}" placeholder="职务名"
+                   onchange="Roster.setOfficerTitle('${o.id}', this.value)" style="max-width:118px">
+            <select onchange="Roster.setOfficerStu('${o.id}', this.value)" style="flex:1;min-width:0">
+              <option value="">— 选学员 —</option>
+              ${stu.map(s => `<option value="${s.id}" ${s.id === o.studentId ? 'selected' : ''}>${Util.esc(s.name)}</option>`).join('')}
+            </select>
+            <button class="del" onclick="Roster.delOfficer('${o.id}')">✕</button>
+          </div>`).join('')
+          : '<p class="hint" style="margin:0 0 8px">这个班还没有班干部。</p>'}
+        <button class="btn ghost" onclick="Roster.addOfficer()">＋ 加一个职务</button>
+      </div>`;
+  },
+  addOfficer(){
+    const clsId = Store.get('_rosterCls');
+    if (!clsId) return UI.toast('先建一个班级');
+    Store.upsert('officers', { clsId, title: '', studentId: '' });
+    this.renderOfficers();
+    setTimeout(() => { const i = document.querySelector('#officerBox input[type=text]'); if (i) i.focus(); }, 30);
+  },
+  setOfficerTitle(id, v){
+    const o = Store.list('officers').find(x => x && x.id === id);
+    if (!o) return;
+    Store.upsert('officers', Object.assign({}, o, { title: String(v || '').trim().slice(0, 10) }));
+    this.renderStuList();      // 名册里名字后的标签跟着变
+  },
+  setOfficerStu(id, sid){
+    const o = Store.list('officers').find(x => x && x.id === id);
+    if (!o) return;
+    Store.upsert('officers', Object.assign({}, o, { studentId: sid }));
+    this.renderStuList();
+  },
+  delOfficer(id){
+    Store.softDelete('officers', id);
+    this.renderOfficers();
+    this.renderStuList();
   },
 
   pickCls(v){ Store.set('_rosterCls', v); this.render(); },
@@ -6400,15 +6552,20 @@ const Homework = {
   renderSubs(h){
     const students = Store.list('students', Util.byName).filter(s => s.classId === h.clsId);
     if (!students.length) return '<p class="hint">这个班还没有学员</p>';
+    const recs = Store.list('hw:' + h.id);
     const subs = {};
-    Store.list('hw:' + h.id).forEach(x => { subs[x.studentId] = x.done; });
+    recs.forEach(x => { subs[x.studentId] = x.done; });
+    /* 谁录的：班干部用学生账号登记时会盖上 by（见后端 sanitizeStudent） */
+    const bys = [...new Set(recs.filter(x => x && x.by).map(x => x.by))];
     return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">` +
       students.map(s => {
         const st = subs[s.id];
+        const rec = recs.find(x => x && x.studentId === s.id);
         const cls = st === 1 ? 'chip-on' : st === 0 ? 'chip-no' : '';
-        return `<button class="chip ${cls}" onclick="Homework.mark('${h.id}','${s.id}')">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</button>`;
+        return `<button class="chip ${cls}" title="${rec && rec.by ? '由 ' + Util.esc(rec.by) + ' 登记' : ''}" onclick="Homework.mark('${h.id}','${s.id}')">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</button>`;
       }).join('') +
-      `</div><p class="hint">点一下 = 已交，再点 = 未交，第三下 = 清除。未登记的不计分。</p>`;
+      `</div><p class="hint">点一下 = 已交，再点 = 未交，第三下 = 清除。未登记的不计分。${
+        bys.length ? ' 登记人：' + bys.map(x => Util.esc(x)).join('、') : ''}</p>`;
   },
 
   toggle(id){
@@ -6434,7 +6591,7 @@ const Homework = {
     const targets = this._pick.filter(id => Store.list('classes').some(c => c.id === id));
     if (!targets.length) return UI.toast('先在上面勾一下布置给哪些班');
     if (!text) return UI.toast('写一下作业内容');
-    targets.forEach(clsId => Store.upsert('homework', { clsId, date, text }));
+    targets.forEach(clsId => Store.upsert('homework', { clsId, date, text, abbr: Util.abbr(text) }));
     document.getElementById('hwText').value = '';
     UI.toast(targets.length > 1 ? `已布置给 ${targets.length} 个班` : '布置好了');
     this.renderList();
@@ -6968,7 +7125,7 @@ const Exam = {
     const cur = draws[0];
     if (!cur){ box.innerHTML = '<div class="empty">还没有抽过签。上面填个名字，点「开抽」。</div>'; if (stat) stat.textContent = ''; return; }
     const order = Draw.order(cur.ids || [], cur.seed);
-    if (stat) stat.textContent = `${Util.esc(cur.name)} · ${order.length} 人 · 第 ${cur.round || 1} 次抽签 · ${Util.esc(cur.by || '')}`;
+    if (stat) stat.textContent = `${Util.esc(cur.name)} · ${order.length} 人 · 第 ${cur.round || 1} 次抽签 · ${Util.esc(Util.dispName('', cur.by))}`;
     box.innerHTML = order.map((id, i) => `
       <div class="item">
         <span class="hint num" style="margin:0;width:44px;flex-shrink:0">${i+1}</span>
@@ -7721,7 +7878,7 @@ const Student = {
           if (r.hw) bits.push(`<span class="chip ${r.hw === '未交' ? 'chip-no' : 'chip-on'}" style="pointer-events:none">作业${Util.esc(r.hw)}</span>`);
           return `<div class="item">
             <span class="grow">${bits.join(' ') || '（空记录）'}
-              <br><span class="hint" style="display:inline;margin:0">${r.date} · ${Util.esc(r.byName || '')}</span></span>
+              <br><span class="hint" style="display:inline;margin:0">${r.date} · ${Util.esc(Util.dispName(r.byId, r.byName))}</span></span>
             ${canEdit ? `<button class="del" onclick="Student.delNote('${r.id}')">✕</button>` : ''}
           </div>`;
         }).join('') : '<div class="empty">还没有记录</div>'}
@@ -7755,15 +7912,56 @@ const Student = {
 
 /* ==== 功能：协作 START ====（教务端） */
 const Coop = {
-  render(){ this.renderList(); this.renderNotices(); },
+  render(){ this.renderStuMsgs(); this.renderList(); this.renderNotices(); },
+
+  /* ── 学生消息：学生在「给老师发消息」里发来的 ──
+     和老师的上报分开摆 —— 那边是校内同事之间的事，这边是学生找办公室。
+     谁发的用学生实名（教务得知道是哪位同学），回一句学生那页就能看到。 */
+  renderStuMsgs(){
+    const el = document.getElementById('coopStuMsg');
+    if (!el) return;
+    const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
+                      .filter(t => t && t.type === '学生消息');
+    const open = list.filter(t => t.status !== 'done').length;
+    const cnt = document.getElementById('stuMsgCount');
+    if (cnt) cnt.textContent = open ? '（' + open + ' 条待回）' : '';
+    el.innerHTML = list.length ? list.map(t => `
+      <div class="item" style="flex-direction:column;align-items:stretch">
+        <div class="row" style="justify-content:space-between;align-items:baseline">
+          <b style="font-weight:500">${Util.esc(Util.stuName(t.studentId) || '')}</b>
+          <span class="chip ${t.status === 'done' ? '' : 'chip-no'}" style="pointer-events:none">${t.status === 'done' ? '已回复' : '待回复'}</span>
+        </div>
+        <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
+        <p class="hint" style="margin:4px 0 0">${t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
+        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
+          <input type="text" class="smReply" data-tid="${t.id}" placeholder="回一句，学生那边能看到" style="margin-top:8px">
+          <div class="row" style="margin-top:6px">
+            <button class="btn" onclick="Coop.replyStu('${t.id}')">回复</button>
+            <button class="btn ghost" onclick="Coop.replyStu('${t.id}', true)">直接标已回</button>
+          </div>`}
+      </div>`).join('') : '<div class="empty">学生还没有发来消息</div>';
+  },
+  replyStu(id, noText){
+    const t = Store.list('tickets').find(x => x && x.id === id);
+    if (!t) return;
+    const el = document.querySelector('.smReply[data-tid="' + id + '"]');
+    const text = noText ? '' : ((el && el.value) || '').trim();
+    if (!noText && !text) return UI.toast('写一句再回');
+    Store.upsert('tickets', Object.assign({}, t, {
+      status: 'done', reply: text, repliedAt: Date.now(),
+    }));
+    UI.toast('已回复');
+    this.renderStuMsgs();
+  },
 
   renderList(){
     const el = document.getElementById('coopList');
     if (!el) return;
     /* 学生请假不在这儿处理 —— 它是考勤的事，统一在「考勤 → 学生请假」批。
-       两摊分开摆：协作页只收老师的调课/请假/异常，不跟学生的事混在一起。 */
+       两摊分开摆：协作页只收老师的调课/请假/异常，不跟学生的事混在一起。
+       学生消息另有自己那一栏（renderStuMsgs），这里一并排掉，免得同一条出现两遍。 */
     const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
-                      .filter(t => t && t.type !== '学生请假');
+                      .filter(t => t && t.type !== '学生请假' && t.type !== '学生消息');
     const open = list.filter(t => t.status === 'open' || t.status === undefined);
     const cnt = document.getElementById('coopCount');
     if (cnt) cnt.textContent = open.length ? '（' + open.length + ' 条待处理）' : '';
@@ -7777,7 +7975,7 @@ const Coop = {
           <button class="del" onclick="Coop.delTicket('${t.id}')" title="删除这条">✕</button>
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
-        <p class="hint" style="margin:4px 0 0">${Util.esc(t.userName || '')}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
+        <p class="hint" style="margin:4px 0 0" title="${Util.esc(t.userName || '')}">${Util.esc(Util.dispName(t.userId, t.userName))}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
         ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
           <input type="text" class="tkReply" data-tid="${t.id}" placeholder="回一句，老师那边能看到" style="margin-top:8px">
           <div class="row" style="margin-top:6px">
@@ -7832,7 +8030,7 @@ const Coop = {
     const el = document.getElementById('noticeText');
     const text = (el.value || '').trim();
     if (!text) return UI.toast('先写点内容');
-    Store.upsert('notices', { date: Util.today(), text, by: Auth.name(), at: Date.now() });
+    Store.upsert('notices', { date: Util.today(), text, by: Auth.name(), byId: Auth.me() ? Auth.me().id : '', at: Date.now() });
     el.value = '';
     UI.toast('已发出，老师打开「今天」就能看到');
     this.renderNotices();
@@ -7845,7 +8043,7 @@ const Coop = {
     el.innerHTML = list.length ? list.slice(0, 8).map(n => `
       <div class="item">
         <span class="grow pre">${Util.esc(n.text)}
-          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(n.by || '')}</span></span>
+          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}</span></span>
         <button class="del" onclick="Coop.delNotice('${n.id}')">✕</button>
       </div>`).join('') : '<div class="empty">还没发过通知</div>';
   },
@@ -7914,6 +8112,62 @@ const Gather = {
     this.render();
   }
 };
+
+/* ══════════ 学生端：给老师发消息 ══════════
+   学生能选的收件人只有「教务办公室」（服务端只回教务类账号，授课老师不在名单里）。
+   名字统一显示成「学管办公室」—— 学生看不到教务老师的真名。
+   消息本身就是一张 tickets 工单（type:'学生消息'），
+   落到教务端「协作 → 学生消息」那一栏，教务在那儿回一句，学生这页就能看到。 */
+const StuMsg = {
+  _staff: null,
+  async staffList(){
+    if (this._staff) return this._staff;
+    try { const j = await Auth.call('staff'); this._staff = (j && j.staff) || []; }
+    catch(e){ this._staff = []; }
+    return this._staff;
+  },
+  async render(){
+    this.renderList();
+    const box = document.getElementById('stuMsgTo');
+    if (!box) return;
+    const list = await this.staffList();
+    box.innerHTML = list.length
+      ? `<select id="stuMsgToSel" style="max-width:240px">${
+          list.map((u, i) => `<option value="${u.id}">学管办公室${list.length > 1 ? ' ' + (i + 1) : ''}</option>`).join('')
+        }</select>`
+      : '<p class="hint" style="margin:0">还没有教务账号。等教务开通以后再来。</p>';
+  },
+  renderList(){
+    const el = document.getElementById('stuMsgList');
+    if (!el) return;
+    const sid = Stu.sid();
+    const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
+      .filter(t => t && t.type === '学生消息' && t.studentId === sid);
+    el.innerHTML = list.length ? list.map(t => `
+      <div class="item" style="flex-direction:column;align-items:stretch">
+        <span class="pre">${Util.esc(t.text || '')}</span>
+        <span class="hint" style="margin:4px 0 0">${new Date(t.createdAt).toLocaleString('zh-CN')}</span>
+        ${t.reply
+          ? `<p style="margin:8px 0 0;padding:8px 10px;background:var(--tint,#f1efe9);border-radius:8px;font-size:13px">办公室回复：${Util.esc(t.reply)}</p>`
+          : '<p class="hint" style="margin:6px 0 0">还没有回复</p>'}
+      </div>`).join('') : '<div class="empty">还没有给老师发过消息</div>';
+  },
+  send(){
+    const sid = Stu.sid();
+    if (!sid) return UI.toast('这个账号还没关联到学员档案，请联系教务');
+    const text = (document.getElementById('stuMsgText').value || '').trim();
+    if (!text) return UI.toast('写一句再发');
+    const sel = document.getElementById('stuMsgToSel');
+    Store.upsert('tickets', {
+      type: '学生消息', text, status: 'open', createdAt: Date.now(),
+      studentId: sid, toId: sel ? sel.value : '',
+    });
+    document.getElementById('stuMsgText').value = '';
+    UI.toast('已发给教务办公室，回复你能在这页看到');
+    this.renderList();
+  }
+};
+
 
 const StuGather = {
   render(){
@@ -8082,9 +8336,11 @@ const Teachers = {
     const meIsSuper = Auth.isSuper();
     el.innerHTML = list.length ? list.map(u => {
       const isSuper = u.role === 'super';
-      /* 首位教务不对外露名：不是他本人看的那一条，只显示「办公室」，
-         也不带用户名、不显示角色括注和管理按钮 —— 这些他自己知道就行 */
-      const shown  = isSuper && !meIsSuper ? '办公室' : (u.name || u.user);
+      const mine = !!(Auth.me() && u.id === Auth.me().id);
+      /* 除自己以外，账号名一律不露真名 —— 统一成「学管办公室」。
+         登录用户名（@xxx）留着：那是登录凭据、不算「系统显示的名字」，
+         没有它这一页就分辨不出谁是谁，改密码/停用也没法点。 */
+      const shown  = mine ? (u.name || u.user) : (isSuper && !meIsSuper ? '办公室' : '学管办公室');
       const handle = isSuper && !meIsSuper ? '' : ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
       const sub    = isSuper ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
       const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
@@ -8477,7 +8733,7 @@ const Today = {
     const nb = document.getElementById('tdNotice');
     if (nb) nb.innerHTML = notices.map(n => `
       <div class="item"><span class="grow pre">${Util.esc(n.text)}
-        <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(n.by || '')}</span></span></div>`).join('');
+        <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}</span></span></div>`).join('');
 
     const te = document.getElementById('tdToday');
     if (te) te.innerHTML = todays.length ? todays.map(x => this.lessonRow(x)).join('')
@@ -10048,7 +10304,7 @@ const StuHome = {
       const list = Store.list('notices', (a,b) => (a.at||0) < (b.at||0) ? 1 : -1).slice(0, 5);
       nb.innerHTML = list.length ? list.map(n => `
         <div class="item"><span class="grow pre">${Util.esc(n.text)}
-          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(n.by || '')}</span></span></div>`).join('')
+          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}</span></span></div>`).join('')
         : '<div class="empty">还没有通知</div>';
     }
 
@@ -10089,6 +10345,9 @@ const StuSign = {
   _cam: null,        // 扫一扫正在取景：{stop,stream,timer,cv}
   _scanned: '',      // 扫一扫读到的码（见 StuSign.scan / renderStep）
   _manual: false,    // 学生选了「手输动态码」这条路（扫码和手输是二选一，不并排摆）
+  _key: '',          // 位置密钥：定位不准时教务给的那 4 位数
+  _needKey: false,   // 打卡被服务端拒了（人不在校区范围）→ 把密钥框摆出来
+  _keyOpen: false,   // 学生自己点开的密钥框
 
   render(){
     const box = document.getElementById('stuSignNow');
@@ -10103,7 +10362,7 @@ const StuSign = {
       } else if (g.signed && g.rec && !this._again){
         const s = g.rec;
         const late = s.status === '迟到';
-        const way = {code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—';
+        const way = {code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', key:'位置密钥', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—';
         box.innerHTML = `<div class="punch">
           ${this.ring({ cls: late ? 'late' : 'done',
                         word: late ? '迟到' : (s.status === '待核' ? '待核' : '已打卡'),
@@ -10205,12 +10464,13 @@ const StuSign = {
     const g = Stu.gate();
     if (!g.ok) { el.innerHTML = ''; return; }
     if (g.signed && g.rec && !this._again){ el.innerHTML = ''; return; }
-    if (!this._geo) { el.innerHTML = ''; return; }   /* 还没定位：圈自己就是按钮 */
+    /* 还没定位时圈自己就是按钮 —— 但已经要用户填密钥的时候就别收走，得把框摆出来 */
+    if (!this._geo && !this._needKey && !this._keyOpen) { el.innerHTML = ''; return; }
 
-    const ok = this._geo.lat != null;
+    const ok = !!(this._geo && this._geo.lat != null);
     const head = ok
       ? `已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''}`
-      : '没取到位置 —— 也可以先打卡，教务那边会标「需核对」';
+      : '没取到位置 —— 在教室里的话，用教务老师给的位置密钥打卡';
     const fix = ok
       ? '<button class="btn ghost" onclick="StuSign.reset()">重定位</button>'
       : '<button class="btn ghost" onclick="StuSign.start()">再试定位</button>';
@@ -10225,7 +10485,8 @@ const StuSign = {
           <button class="btn" onclick="StuSign.scan()">扫面前的二维码</button>
           <button class="btn ghost" onclick="StuSign.manual(true)">手输动态码</button>
           ${fix}
-        </div>`;
+        </div>
+        ${this.keyBox()}`;
       return;
     }
     el.innerHTML = `
@@ -10235,7 +10496,35 @@ const StuSign = {
                placeholder="6 位数字" style="max-width:150px" value="${Util.esc(scan)}">
         <button class="btn ghost" onclick="StuSign.scan()">改用扫码</button>
         ${fix}
-      </div>`;
+      </div>
+      ${this.keyBox()}`;
+  },
+
+  /* 位置密钥那一小块。
+     什么时候长出来：① 打卡被服务端拒了（人不在校区范围，_needKey）
+                      ② 学生自己点开的（_keyOpen）
+                      ③ 定位压根没取到（_geo.fail）—— 直接摆出来，省一轮来回。
+     密钥只替代「定位」这一环：码（扫或手输）照旧要，两样齐了才提交。 */
+  keyBox(){
+    if (!this._needKey && !this._keyOpen && !(this._geo && this._geo.fail)) return '';
+    return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule,#e8e3d9)">
+      <p class="hint" style="margin:0 0 8px">定位不准、<b>打不上卡</b>？找教务老师要一枚 <b>4 位位置密钥</b>，填在这儿就能打：</p>
+      <div class="row" style="flex-wrap:wrap">
+        <input type="text" id="stuKey" inputmode="numeric" autocomplete="off" maxlength="4"
+               placeholder="4 位数字" style="max-width:130px" value="${Util.esc(this._key)}">
+        <button class="btn" onclick="StuSign.confirm()">用密钥打卡</button>
+        <button class="btn ghost" onclick="StuSign.askKey(false)">收起</button>
+      </div>
+    </div>`;
+  },
+
+  /** 学生自己点开 / 收起密钥框 */
+  askKey(on){
+    this._keyOpen = !!on;
+    this._needKey = this._needKey && !!on;
+    this.renderStep();
+    const inp = document.getElementById('stuKey');
+    if (inp && on){ try { inp.focus(); } catch(e){} }
   },
 
   /** 切到「手输动态码」这条路。这里**才**聚焦输入框 ——
@@ -10247,9 +10536,9 @@ const StuSign = {
     if (inp && !this._scanned){ try { inp.focus(); } catch(e){} }
   },
 
-  reset(){ this._geo = null; this._scanned = ''; this._manual = false; this.render(); },
+  reset(){ this._geo = null; this._scanned = ''; this._manual = false; this._key = ''; this._needKey = false; this._keyOpen = false; this.render(); },
   /** 已经打过了还想再打一次（比如刚才打错了）：重新走一遍 */
-  again(){ this._again = true; this._geo = null; this._scanned = ''; this._manual = false; this.render(); },
+  again(){ this._again = true; this._geo = null; this._scanned = ''; this._manual = false; this._key = ''; this._needKey = false; this._keyOpen = false; this.render(); },
 
   /* ── 扫一扫：对着看板上那块二维码扫一下，读到的数字直接进打卡 ──
      用砺蕴自带的那份解码器（QRDec），不走浏览器的 BarcodeDetector ——
@@ -10369,12 +10658,19 @@ const StuSign = {
 
   confirm(){
     const el = document.getElementById('stuCode');
+    const keyEl = document.getElementById('stuKey');
     /* ⚠️ 扫来的码优先于输入框：走扫一扫那条路的人，不该再被要求照着抄一遍。
        （这里以前只读输入框 —— 而扫到码时输入框可能还没渲染出来，
         于是「扫完还得再输一次」，怎么输都说不清。） */
     const code = (this._scanned || (el && el.value) || '').trim();
-    if (!code) return UI.toast(this._manual ? '输一下屏幕上那 6 位数字' : '扫一下面前的二维码就能打卡');
+    /* 位置密钥：学生填了就带上，服务端拿去放行「不在校区范围」那种情况 */
+    const key = (((keyEl && keyEl.value) || this._key || '')).replace(/\D/g, '');
+    if (key && key.length !== 4) return UI.toast('位置密钥是 4 位数字（教务老师给你的那一枚）');
+    if (!code) return UI.toast(key
+      ? '还差屏幕上那 6 位动态码：扫一下二维码，或点「手输动态码」抄进来'
+      : (this._manual ? '输一下屏幕上那 6 位数字' : '扫一下面前的二维码就能打卡'));
     const p = { code };
+    if (key) p.key = key;
     if (this._geo && this._geo.lat != null){ p.lat = this._geo.lat; p.lng = this._geo.lng; p.acc = this._geo.acc; }
     this.doSign(p);
   },
@@ -10395,7 +10691,7 @@ const StuSign = {
         <span class="grow">${Stu.statusText(r)}
           <br><span class="hint" style="display:inline;margin:0">
             ${new Date(r.at).toLocaleTimeString('zh-CN')} ·
-            ${{code:'动态码', geo:'定位', 'geo-far':'定位存疑', self:'直接', manual:'教务补签'}[r.way] || ''}</span></span>
+            ${{code:'动态码', geo:'定位', 'geo-far':'定位存疑', key:'位置密钥', self:'直接', manual:'教务补签'}[r.way] || ''}</span></span>
         ${Stu.statusChip(r)}
       </div>`).join('').replace(/<span class="chip chip-on"|<span class="chip "/g, m => m)
       : '<div class="empty">这个月还没有打卡记录</div>';
@@ -10423,7 +10719,11 @@ const StuSign = {
       this._again = false;          // 这一轮打完了，「重新打卡」要再按一次才重来
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
       this._manual = false;         // 路口回到默认那条：下次还是「扫一下」
+      this._key = '';               // 位置密钥也一起清掉
+      this._needKey = false;
+      this._keyOpen = false;
       const el = document.getElementById('stuCode'); if (el) el.value = '';
+      const kel = document.getElementById('stuKey'); if (kel) kel.value = '';
       this.render();
       StuHome.render();
     } catch(e){
@@ -10433,6 +10733,14 @@ const StuSign = {
         this._saveQ(q.slice(-7));
         this._geo = null;
         UI.toast('现在没网，已记下打卡时间 ' + this.hm(payload.at) + '，联网后自动提交（就按这个时间算迟到）');
+        this.render();
+      } else if (e.code === 'GEOFAR' || e.code === 'BADKEY' || e.code === 'KEYFULL'){
+        /* 人不在校区范围、或密钥不对/名额满了 —— 把密钥框摆出来，别让学生自己猜下一步 */
+        const kv = document.getElementById('stuKey');
+        if (kv && kv.value) this._key = kv.value.replace(/\D/g, '');
+        this._needKey = true;
+        this._keyOpen = true;
+        UI.toast(e.message);
         this.render();
       } else UI.toast(e.message);
     }
@@ -10548,7 +10856,7 @@ const StuExam = {
         const idx = order.indexOf(sid) + 1;
         return `<div class="item">
           <span class="grow">${Util.esc(d.name || '抽签')}
-            <br><span class="hint" style="display:inline;margin:0">共 ${d.ids.length} 人 · 第 ${d.round || 1} 次抽签 · ${Util.esc(d.by || '')}</span></span>
+            <br><span class="hint" style="display:inline;margin:0">共 ${d.ids.length} 人 · 第 ${d.round || 1} 次抽签 · ${Util.esc(Util.dispName('', d.by))}</span></span>
           <b class="num" style="font-size:26px;flex-shrink:0">${idx}</b>
         </div>`;
       }).join('') : '<div class="empty">教务还没有开抽。开抽后这里会出现你的出场序号。</div>';
@@ -10583,8 +10891,17 @@ const StuExam = {
    只给「班级总分 + 我自己那几条」，不出他人姓名、不做排名。
    这既是隐私，也是少惹矛盾。 */
 const StuQuant = {
+  /** 我是不是班干部（教务在名册里指定的，见 Roster.officers） */
+  myTitle(){
+    const sid = Stu.sid();
+    const o = Store.list('officers').find(x => x && x.studentId === sid && x.title);
+    return o ? o.title : '';
+  },
+  isOfficer(){ return !!this.myTitle(); },
+
   render(){
     const clsId = Stu.clsId();
+    const title = this.myTitle();
     const head = document.getElementById('stuQuantHead');
     if (head){
       if (!clsId){ head.innerHTML = '<div class="empty">还没有关联到班级</div>'; }
@@ -10601,24 +10918,49 @@ const StuQuant = {
       }
     }
 
-    /* 本人的加扣分：直接借用量化页那套算法，不另搞一套口径。
-       学生端拿到的学员名单里只有自己，算出来也就只有自己这一行。 */
+    /* ── 本人的加扣分 / 班干部看全班 ──
+       普通学生：服务端只下发他自己那一条，算出来也就是一行。
+       班干部：服务端多下发了本班同学的「id + 姓名」，于是能算出全班，
+       在这儿列出来 —— 看得到谁加了几分、扣在哪一项，方便他管班。 */
     const box = document.getElementById('stuQuantMine');
     if (box){
       if (!clsId){ box.innerHTML = '<div class="empty">还没有关联到班级</div>'; return; }
+      const rules = Store.list('quant_rules');
+      const partList = (parts) => Object.keys(parts || {}).map(k => {
+        const ru = rules.find(x => x.key === k);
+        return { label: (ru && ru.label) || k.replace(/^att:/, ''), n: parts[k], delta: (ru && ru.delta) || 0 };
+      });
+
+      if (this.isOfficer()){
+        let rows = [];
+        try { rows = Quant.compute(clsId, '1970-01-01', Util.today()); } catch(e){ rows = []; }
+        rows = rows.filter(r => r && r.name).sort((a, b) => b.score - a.score);
+        box.innerHTML = `
+          <p class="hint" style="margin:0 0 10px">你是<b>${Util.esc(title)}</b> —— 下面是全班每位同学的加扣分（从高到低）。</p>
+          ${rows.length ? rows.map(r => {
+            const ps = partList(r.parts);
+            return `<div class="item" style="flex-direction:column;align-items:stretch">
+              <div style="display:flex;align-items:baseline;gap:10px">
+                <span class="grow">${Util.esc(r.name)}</span>
+                <b class="num" style="font-size:16px;flex-shrink:0;color:${r.score > 0 ? '#2e7d4f' : (r.score < 0 ? '#c25650' : 'inherit')}">${r.score > 0 ? '+' : ''}${r.score}</b>
+              </div>
+              ${ps.length ? `<span class="hint" style="margin:4px 0 0">${
+                ps.map(p => `${Util.esc(p.label)}×${p.n}（${p.delta * p.n > 0 ? '+' : ''}${p.delta * p.n}）`).join(' · ')
+              }</span>` : '<span class="hint" style="margin:4px 0 0">这段时间没有加扣分</span>'}
+            </div>`;
+          }).join('') : '<div class="empty">这个班还没有加扣分记录</div>'}`;
+        return;
+      }
+
       let me = null;
       try {
         const rows = Quant.compute(clsId, '1970-01-01', Util.today());
-        const r = Stu.rec();
-        me = rows.find(x => x.name === (r && r.name)) || rows[0] || null;
+        const r0 = Stu.rec();
+        me = rows.find(x => x.name === (r0 && r0.name)) || rows[0] || null;
       } catch(e){ me = null; }
       const r = Stu.rec();
       if (!me){ box.innerHTML = '<div class="empty">这段时间没有你的加扣分</div>'; return; }
-      const rules = Store.list('quant_rules');
-      const parts = Object.keys(me.parts || {}).map(k => {
-        const ru = rules.find(x => x.key === k);
-        return { label: (ru && ru.label) || k.replace(/^att:/, ''), n: me.parts[k], delta: (ru && ru.delta) || 0 };
-      });
+      const parts = partList(me.parts);
       box.innerHTML = `
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px">
           <b class="num" style="font-size:24px">${me.score > 0 ? '+' : ''}${me.score}</b>
@@ -10723,7 +11065,7 @@ const StuProfile = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-chat"></use></svg>  老师评语</h2>
         ${recs.length ? recs.map(x => `
           <div class="item"><span class="grow pre">${Util.esc(x.text || x.note || '')}
-            <br><span class="hint" style="display:inline;margin:0">${x.date || ''} · ${Util.esc(x.byName || '')}</span></span></div>`).join('')
+            <br><span class="hint" style="display:inline;margin:0">${x.date || ''} · ${Util.esc(Util.dispName(x.byId, x.byName))}</span></span></div>`).join('')
           : '<div class="empty">老师还没有写评语</div>'}
       </div>`;
   }
@@ -10733,6 +11075,7 @@ const StuProfile = {
 /* ══════════ 学生端：我的作业 ══════════ */
 const StuHw = {
   render(){
+    this.renderEntry();
     const el = document.getElementById('stuHwList');
     if (!el) return;
     const rows = (typeof Homework !== 'undefined' && Homework.flow)
@@ -10743,6 +11086,53 @@ const StuHw = {
         <span class="grow">${Util.esc(x.text || '')}</span>
         <span class="chip ${x.done ? 'chip-on' : 'chip-no'}" style="pointer-events:none">${x.done ? '已交' : '未交'}</span>
       </div>`).join('') : '<div class="empty">这个班还没有作业</div>';
+  },
+
+  /* ── 班干部：替全班登记今晚的作业 ──
+     教务当晚在「作业」页布置了几项，这儿就出现几列（就是那个简称）。
+     点一下 = 交了，再点 = 没交，第三下 = 取消。谁录的由服务端盖章（by），
+     教务在「作业」页点开这条作业就能看见登记人。 */
+  renderEntry(){
+    const card = document.getElementById('stuHwEntryCard');
+    const box = document.getElementById('stuHwEntry');
+    if (!box) return;
+    const title = (typeof StuQuant !== 'undefined') ? StuQuant.myTitle() : '';
+    if (card) card.style.display = title ? '' : 'none';
+    if (!title){ box.innerHTML = ''; return; }
+    const clsId = Stu.clsId(), date = Util.today();
+    const hws = Store.list('homework').filter(h => h && h.clsId === clsId && h.date === date);
+    if (!hws.length){
+      box.innerHTML = '<p class="hint" style="margin:0">今晚老师还没有布置作业。</p>';
+      return;
+    }
+    const stu = Store.list('students', Util.byName).filter(s => s && s.classId === clsId);
+    box.innerHTML = `
+      <p class="hint" style="margin:0 0 10px">你是<b>${Util.esc(title)}</b> —— 登记今晚这 <b>${hws.length}</b> 项作业谁交了。
+        点一下 = 交了，再点 = 没交，第三下 = 取消。</p>
+      ${stu.map(s => `
+        <div class="item" style="flex-direction:column;align-items:stretch">
+          <span>${Util.esc(s.name)}</span>
+          <div class="row" style="flex-wrap:wrap;margin-top:6px">
+            ${hws.map(h => {
+              const rec = Store.list('hw:' + h.id).find(x => x && x.studentId === s.id);
+              const cls = rec && rec.done === 1 ? 'chip-on' : (rec && rec.done === 0 ? 'chip-no' : '');
+              const ab = h.abbr || Util.abbr(h.text);
+              return `<button class="chip ${cls}" onclick="StuHw.mark('${h.id}','${s.id}')" title="${Util.esc(h.text)}">${Util.esc(ab)}${rec ? (rec.done ? ' ✓' : ' ✗') : ''}</button>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}`;
+  },
+
+  mark(hid, sid){
+    const key = 'hw:' + hid;
+    const rec = Store.list(key).find(x => x && x.studentId === sid);
+    let next;
+    if (!rec) next = 1;
+    else if (rec.done === 1) next = 0;
+    else next = null;
+    if (next === null){ if (rec) Store.softDelete(key, rec.id); }
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, done: next });
+    this.renderEntry();
   }
 };
 
@@ -10879,6 +11269,88 @@ const Sign = {
   startCode(){ this.stopCode(); this.refreshCode(); this._timer = setInterval(() => this.tick(), 1000); },
   stopCode(){ clearInterval(this._timer); this._timer = null; },
 
+  /* ── 位置密钥 ──
+     学生定位不准时，服务端会**直接拒掉**他的打卡（错误码 GEOFAR），
+     教务在这儿把一枚 4 位数字发给他，他输进去就放行。
+     一个班一天只留一枚（再点「生成 / 更新」是改这一枚，不是又发一枚 ——
+     否则学生手里会攒着昨天、前天好几枚，分不清哪枚还算）。 */
+  keyCls(){ return Store.get('_signKeyCls') || ''; },
+  pickKeyCls(v){ Store.set('_signKeyCls', v); this.renderKey(); },
+  keyOf(clsId, date){
+    date = date || Util.today();
+    return Store.list('sign_keys', (a,b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .find(k => k && !k._d && k.clsId === clsId && k.date === date) || null;
+  },
+  /** 已经用这枚密钥打上卡的人（一人只算一次） */
+  keyUsed(k){
+    if (!k) return [];
+    const seen = {};
+    return Store.list('sign:' + k.date)
+      .filter(x => x && x.keyId === k.id)
+      .filter(x => { if (seen[x.studentId]) return false; seen[x.studentId] = 1; return true; })
+      .map(x => ({ id: x.studentId, name: Util.stuName(x.studentId), at: x.at }));
+  },
+  makeKey(){
+    const clsId = this.keyCls();
+    if (!clsId) return UI.toast('先建一个班级');
+    const el = document.getElementById('skCode');
+    const code = ((el && el.value) || '').replace(/\D/g, '');
+    if (code.length !== 4) return UI.toast('位置密钥是 4 位数字，比如 4821');
+    const limit = Number((document.getElementById('skLimit') || {}).value) || 5;
+    const date = Util.today();
+    const old = this.keyOf(clsId, date);
+    /* 同一天同一个班只留一枚 */
+    Store.list('sign_keys')
+      .filter(k => k && k.clsId === clsId && k.date === date && (!old || k.id !== old.id))
+      .forEach(k => Store.softDelete('sign_keys', k.id));
+    Store.upsert('sign_keys', Object.assign({}, old || {}, {
+      clsId, code, date, limit, by: Auth.name(),
+      createdAt: (old && old.createdAt) || Date.now(),
+    }));
+    if (el) el.value = code;
+    UI.toast('位置密钥「' + code + '」今天有效，最多放行 ' + limit + ' 人');
+    this.renderKey();
+    this.pushRules();          // 别等定时同步 —— 学生下一秒就要用
+  },
+  voidKey(){
+    const k = this.keyOf(this.keyCls(), Util.today());
+    if (!k) return UI.toast('这个班今天还没有位置密钥');
+    if (!confirm('作废这枚位置密钥？作废后学生再输它就不管用了。')) return;
+    Store.softDelete('sign_keys', k.id);
+    UI.toast('已作废');
+    this.renderKey();
+    this.pushRules();
+  },
+  renderKey(){
+    const box = document.getElementById('skBody');
+    if (!box) return;
+    /* fillCls 顺手把下拉填好，并把 _signKeyCls 修正成一个真实存在的班 */
+    const clsId = Util.fillCls('skCls', '_signKeyCls');
+    if (!clsId){ box.innerHTML = '<div class="empty">先在「名册」里建一个班</div>'; return; }
+    const k = this.keyOf(clsId, Util.today());
+    if (!k){
+      box.innerHTML = '<p class="hint" style="margin:0">这个班今天还没有位置密钥。在上面填一个 4 位数字，点「生成 / 更新」。</p>';
+      return;
+    }
+    const used = this.keyUsed(k);
+    const limit = Number(k.limit) || 5;
+    const pct = Math.min(100, used.length / limit * 100);
+    const left = Math.max(0, limit - used.length);
+    box.innerHTML = `
+      <div class="row" style="align-items:center;gap:18px;flex-wrap:wrap">
+        <div class="live-code num" style="font-size:36px;letter-spacing:8px">${Util.esc(k.code)}</div>
+        <div style="flex:1;min-width:180px">
+          <div class="cd-bar"><i style="width:${pct.toFixed(0)}%;background:var(--gold)"></i></div>
+          <p class="hint" style="margin:8px 0 0">已用 <b class="num">${used.length}</b> / ${limit} ·
+            还剩 <b class="num">${left}</b> 个名额 · 今天有效</p>
+        </div>
+        <button class="btn ghost" onclick="Sign.voidKey()">作废</button>
+      </div>
+      <p class="hint" style="margin:10px 0 0">${used.length
+        ? '已用：' + used.map(u => Util.esc(u.name)).join('、')
+        : '还没有人用这枚密钥'}</p>`;
+  },
+
   /* ── 今日打卡一览 ── */
   pickDate(v){ Store.set('_signDate', v); this.render(); },
   pickCls(v){ Store.set('_signCls', v); this.render(); },
@@ -10901,6 +11373,7 @@ const Sign = {
        秒表要是挂在最后，新装的系统（还没建班）打开打卡页会看到一块空白码区，
        而原因跟「有没有班级」半点关系都没有。 */
     this.startCode();
+    this.renderKey();
 
     const dateEl = document.getElementById('sgDate');
     if (dateEl && !dateEl.value) dateEl.value = Store.get('_signDate') || Util.today();
@@ -10933,7 +11406,7 @@ const Sign = {
         <span class="grow">${Util.esc(s.name)} ${flag}
           <br><span class="hint" style="display:inline;margin:0">${
             rec ? `${new Date(rec.at).toLocaleTimeString('zh-CN')} · ${
-              {code:'动态码', geo:'定位', 'geo-far':'定位存疑', self:'直接', manual:'教务补签'}[rec.way] || ''}${
+              {code:'动态码', geo:'定位', 'geo-far':'定位存疑', key:'位置密钥', self:'直接', manual:'教务补签'}[rec.way] || ''}${
               rec.dist != null ? ' · ' + rec.dist + ' 米' : ''}${
               rec.status === '迟到' ? ' · 迟到 ' + rec.lateMin + ' 分钟' : ''}${
               rec.offline ? (rec.recvAt ? ' · 断网，' + new Date(rec.recvAt).toLocaleTimeString('zh-CN') + ' 补传' : ' · 断网补传') : ''}`

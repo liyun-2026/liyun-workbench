@@ -96,7 +96,8 @@ const SUPER_ONLY_WRITE = ['aiKey'];
    不在下面两张表里的键一律不下发 —— 不是界面藏起来，是根本拿不到。
    值含义同 TEACHER_READ：
      'own'     只留「本人」那一条（students 里 id = 自己的 studentId）
-     'ownCls'  只留自己那个班的
+     'ownCls'  只留自己那个班的（记录上写 classId 或 clsId 的都认；
+               班级记录本身没有 classId 字段 —— 它就叫 id，所以 id 也认）
      'self'    按记录上的 studentId 过滤
      null      整份下发（课表、作息、通知、新闻这类没有归属的数据） */
 const STUDENT_READ = {
@@ -120,6 +121,9 @@ const STUDENT_READ = {
   records:      'self',        // 老师写给本人的评语与今日情况
   tickets:      'self',        // 只看到自己提交的请假（看得到处理结果，改不了）
   gathers:      null,          // 限时征集：教务发起的，全体学生都能看到
+  /* 班干部名单：只发自己那个班的。学生端靠它判断「我是不是班干部」——
+     是的话「本班量化」页放开看全班，作业页也能替全班登记（见 filterForStudent）。 */
+  officers:     'ownCls',
 };
 /* 按天 / 按次分片的键：全部只留本人那几条 */
 const STUDENT_PREFIX_SELF = ['att:', 'sign:', 'night:', 'hw:', 'hwchk:', 'gresp:'];
@@ -264,14 +268,24 @@ function myStudentIds(shared, me) {
    别人的考勤、作业、成绩、体重、评语也一律拿不到。 */
 function filterForStudent(src, me) {
   const sid = me.studentId || '';
-  const stu = ((src.students) || []).find(x => x && x.id === sid);
+  const allStu = Array.isArray(src.students) ? src.students : [];
+  const stu = allStu.find(x => x && x.id === sid);
   const clsId = stu ? stu.classId : '';
+  /* 班干部（教务在名册里指定的）多给两样：本班同学的「id + 姓名」、
+     以及本班那几条作业的提交登记（他要替全班录）。
+     别的照旧不给 —— 考勤、成绩、评语、体重、别人的请假还是只看自己。 */
+  const officers = Array.isArray(src.officers) ? src.officers : [];
+  const amOfficer = !!(clsId && officers.some(o => o && o.studentId === sid && o.title));
+  const clsStuIds = amOfficer ? new Set(allStu.filter(x => x && x.classId === clsId).map(x => x.id)) : null;
   const out = {};
   for (const [k, v] of Object.entries(src)) {
     if (k.charAt(0) === '_') continue;
-    // 按天/按次分片的键：只留本人
+    // 按天/按次分片的键：只留本人（作业登记是例外，见上）
     if (STUDENT_PREFIX_SELF.some(p => k.indexOf(p) === 0)) {
-      out[k] = Array.isArray(v) ? v.filter(x => x && x.studentId === sid) : v;
+      if (amOfficer && k.indexOf('hw:') === 0)
+        out[k] = Array.isArray(v) ? v.filter(x => x && clsStuIds.has(x.studentId)) : v;
+      else
+        out[k] = Array.isArray(v) ? v.filter(x => x && x.studentId === sid) : v;
       continue;
     }
     if (k === 'sign_rules') {                 // 打卡设置：给时间规则，不给校区坐标
@@ -284,8 +298,21 @@ function filterForStudent(src, me) {
     if (!(k in STUDENT_READ)) continue;
     const rule = STUDENT_READ[k];
     if (rule === null || !Array.isArray(v)) { out[k] = v; continue; }
+    /* 学员名单是最敏感的一条：班干部拿到的是「本班同学的 id + 姓名」，
+       每个对象只截三个字段下发 —— 别的任何字段都不出去。 */
+    if (k === 'students'){
+      out[k] = amOfficer
+        ? v.filter(x => x && x.classId === clsId).map(x => ({ id: x.id, name: x.name, classId: x.classId }))
+        : v.filter(x => (x && x.id) === sid);
+      continue;
+    }
     if (rule === 'own')         out[k] = v.filter(x => (x && x.id) === sid);
-    else if (rule === 'ownCls') out[k] = clsId ? v.filter(x => x && (x.classId === clsId || x.id === clsId)) : [];
+    /* ⚠️ 三个字段都要认：classes 记录本身就叫 id、作业/班干部/模考场次写的是 clsId、
+        少数记录写 classId。原先只认 classId 和 id —— 于是「本班作业」「本班班干部名单」
+        「本班模考场次」这三样一条都发不到学生端（记录里明明有 clsId 却对不上），
+        班干部权限因此整个失效。多认一个 clsId 只会**多留下真正属于本班的那些**，
+        不会碰别班的数据。 */
+    else if (rule === 'ownCls') out[k] = clsId ? v.filter(x => x && (x.classId === clsId || x.clsId === clsId || x.id === clsId)) : [];
     else if (rule === 'self')   out[k] = v.filter(x => x && x.studentId === sid);
     else                        out[k] = v;
   }
@@ -353,9 +380,26 @@ function sanitizeStudent(src, me, server) {
   const sid = me.studentId || '';
   const out = {};
 
+  /* 班干部：教务在名册里指定的那几位，可以替全班录作业完成情况（写 hw:{作业id}）。
+     只认本班学员的条目，别的照旧一概拦掉；顺手盖上「是谁录的」，教务后台能回查。 */
+  const allStu = Array.isArray(server.students) ? server.students : [];
+  const myStu = allStu.find(x => x && x.id === sid);
+  const myCls = myStu ? myStu.classId : '';
+  const offs = Array.isArray(server.officers) ? server.officers : [];
+  const amOfficer = !!(myCls && offs.some(o => o && o.studentId === sid && o.title));
+  const clsStuIds = new Set(allStu.filter(x => x && x.classId === myCls).map(x => x.id));
+
   /* 打卡：一人一天一条，id 由服务端定成 studentId，
      时间戳与判定也是服务端盖的 —— 前端改本地时间改不动它 */
   for (const [k, v] of Object.entries(src)) {
+    /* 班干部录作业 */
+    if (amOfficer && k.indexOf('hw:') === 0){
+      if (!Array.isArray(v)) continue;
+      const keep = v.filter(x => x && x.id && (x._d || clsStuIds.has(x.studentId)))
+                    .map(x => Object.assign({}, x, { by: me.name, byId: me.id }));
+      if (keep.length) out[k] = keep;
+      continue;
+    }
     if (!STUDENT_WRITE_PREFIX.some(p => k.indexOf(p) === 0)) continue;
     if (!Array.isArray(v)) continue;
     const prev = (Array.isArray(server[k]) ? server[k] : []).find(x => x && x.id === sid);
@@ -633,10 +677,28 @@ async function doSign(s, me, body) {
   const p = cnParts(at);
   const date = String(body.date || p.date);
 
-  /* 打卡方式：定位是硬要求（证明人在教室），码是第二道（证明是这节课）。
-     ① 码不对 → 直接打回，不记这一笔
-     ② 有定位但在范围外 → 记下来，交教务核对
-     ③ 教务配了校区坐标、学生这边却没给位置 → 也交教务核对（关掉定位想蒙混过关没用） */
+  /* ── 位置密钥（教务手里的 4 位码）──
+     定位不准的学生**打不上卡**，得找教务要一枚当天的位置密钥，用它放行。
+     密钥放在机构共享区的 sign_keys 里：教务端读得到（要显示进度条），
+     学生端的读白名单里没有这个键 —— 学生们根本拿不到，只能从教务手里要。
+     名额按「当天用这枚密钥打上的人数」算，不用另存计数，省掉并发写冲突。 */
+  const keys = Array.isArray(data.sign_keys) ? data.sign_keys : [];
+  let keyHit = null;
+  if (body.key != null && String(body.key).trim() !== '') {
+    const stu = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
+    const stuCls = stu ? stu.classId : '';
+    keyHit = keys.find(x => x && !x._d
+      && String(x.code) === String(body.key).trim()
+      && x.date === date
+      && (!x.clsId || x.clsId === stuCls)) || null;
+    if (!keyHit) return json({ error: '这个位置密钥不对，或者已经不是今天那一枚了 —— 找教务老师要今天的', code: 'BADKEY' }, 400);
+    const used = (Array.isArray(data['sign:' + date]) ? data['sign:' + date] : [])
+      .filter(x => x && x.keyId === keyHit.id);
+    const limit = Number(keyHit.limit) || 5;
+    if (!used.some(x => x && x.studentId === sid) && used.length >= limit)
+      return json({ error: '这枚位置密钥的 ' + limit + ' 个名额已经用完了，找教务老师再要一枚', code: 'KEYFULL' }, 400);
+  }
+
   let way = 'self', dist = null;
   if (body.code != null && String(body.code) !== '') {
     if (!(await codeOK(sec, body.code, now)))
@@ -644,12 +706,21 @@ async function doSign(s, me, body) {
     way = 'code';
   }
   const hasGeo = body.lat != null && body.lng != null;
-  if (hasGeo && rules && rules.lat != null) {
-    dist = Math.round(distM(rules.lat, rules.lng, Number(body.lat), Number(body.lng)));
-    if (dist > Number(rules.radius || 150)) way = 'geo-far';
-    else if (way === 'self') way = 'geo';
+  /* 教务配过校区坐标才判位置。判不过（在范围外，或干脆没给位置）就**直接打不上**，
+     必须拿位置密钥 —— 这就是「定位不正确不能打卡」。 */
+  let geoBad = false;
+  if (rules && rules.lat != null) {
+    if (!hasGeo) geoBad = true;
+    else {
+      dist = Math.round(distM(rules.lat, rules.lng, Number(body.lat), Number(body.lng)));
+      if (dist > Number(rules.radius || 150)) geoBad = true;
+    }
   }
-  if (rules && rules.lat != null && !hasGeo) way = 'self';
+  if (geoBad && !keyHit) {
+    return json({ error: '你不在校区范围内，没法打卡。如果确实在教室里，找教务老师要一个位置密钥。', code: 'GEOFAR' }, 400);
+  }
+  if (keyHit) way = 'key';                       /* 密钥放行：不再因为定位判待核 */
+  else if (!geoBad && hasGeo && rules && rules.lat != null && way === 'self') way = 'geo';
 
   /* 迟到：一律按打卡那一刻算，跟学生手机现在几点无关 */
   let status = '正常', lateMin = 0;
@@ -680,6 +751,7 @@ async function doSign(s, me, body) {
   const rec = {
     id: sid, studentId: sid, userId: me.id,
     at, date, way, status, lateMin,
+    keyId: keyHit ? keyHit.id : undefined,      /* 用了哪枚位置密钥放行（教务可回查） */
     dist: dist === null ? undefined : dist,
     acc: body.acc == null ? undefined : Number(body.acc),
     dev: String(body.dev || '').slice(0, 40),
@@ -850,6 +922,22 @@ async function doUsers(s, me, body) {
   return json({ error: '未知的账号操作' }, 400);
 }
 
+/* ── 学生要给教务发消息，得先知道「发给谁」──
+   学生拿不到账号列表（doUsers 要求 isStaff），所以单开这一条：
+   只回教务类账号（首位教务 / 教务老师 / 教务兼授课）的 id 与名字，
+   用户名、角色、带哪些班一概不给。授课老师不在名单里 —— 学生只发给教务。 */
+async function doStaff(s, me) {
+  const idx = await uidIndex(s);
+  const out = [];
+  for (const uid of idx.ids) {
+    const a = await s.get(`auth/${uid}`, { type: 'json' });
+    if (!a || a.active === false) continue;
+    if (!STAFF.includes(a.role || TEACHER)) continue;
+    out.push({ id: uid, name: a.name || a.user || '' });
+  }
+  return json({ ok: true, staff: out });
+}
+
 export async function onRequestPost(context) {
   const { request } = context;
   const s = store();
@@ -887,6 +975,9 @@ export async function onRequestPost(context) {
     }
 
     if (action === 'users') return await doUsers(s, me, body);
+
+    /* 学生端「给教务发消息」的收件人名单（只教务类账号的 id + 名字） */
+    if (action === 'staff') return await doStaff(s, me);
 
     /* 学生打卡：时间、距离、迟到全由服务端定（见 doSign） */
     if (action === 'sign') return await doSign(s, me, body);

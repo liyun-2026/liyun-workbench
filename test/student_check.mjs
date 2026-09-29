@@ -7,6 +7,12 @@
  *   ② 学生能写什么   —— 只有打卡和本人请假，其余一律被服务端拒绝
  *   ③ 打卡判定       —— 时间、迟到、动态码、距离全部由服务端定
  * 硬指标：学生账号登录同步一圈，教务端的数据一条都不能少。
+ *
+ * v47 增补（用户 2026-09-29 的四项要求）：
+ *   · 位置密钥：定位不准 → 服务端直接拒（GEOFAR），拿教务那枚 4 位码才放行
+ *   · 班干部：本班同学的姓名只给班干部，且只截 id/name/classId 三个字段
+ *   · 作业登记：班干部能替全班写 hw:，服务端盖上「谁登记的」
+ *   · 学生消息：学生能给教务发消息（落成工单），收件人名单只给教务号
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -78,6 +84,21 @@ async function setRules(r) {
   if (r === null) delete data.sign_rules; else data.sign_rules = r;
   await s.setJSON('org/data', data);
 }
+/** 直接塞几枚位置密钥 —— 等价于教务在打卡页点「生成 / 更新」 */
+async function setKeys(list) {
+  const data = (await s.get('org/data', { type: 'json' })) || {};
+  data.sign_keys = list;
+  await s.setJSON('org/data', data);
+}
+/** 合并几段共享数据（班干部名单、作业等），返回改完后的整份 */
+async function patchOrg(patch) {
+  const data = (await s.get('org/data', { type: 'json' })) || {};
+  Object.assign(data, patch);
+  await s.setJSON('org/data', data);
+  return data;
+}
+/** 服务端算「今天」的方式：北京时间，取日期那一段 */
+const todayCN = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 /* 零宽限：lateAfter = 0，到点就迟到（教务那边的默认也是 0） */
 const RULES_OK = (startOff) => ({
   startAt: cnHM(startOff), lateAfter: 0, windowBefore: 60, windowAfter: 30,
@@ -342,12 +363,13 @@ await ta('重复打卡是覆盖，不会堆成一片', async () => {
   ok((rows[0].attempts || []).length >= 2, '每次尝试都要留痕');
 });
 
-await ta('人在范围外 → 待核，且不写考勤', async () => {
+await ta('人在范围外 → 直接打不上，得找教务要位置密钥（用户定的：定位不准不能打卡）', async () => {
   await setRules(RULES_OK(0));
-  const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5 });
-  eq(r.status, '待核', '离校区太远，交教务核对');
-  eq(r.wrote, null, '不该替教务扣分');
-  ok(r.dist > 150, '距离应该算出来');
+  await setKeys([]);                                  // 手上没有密钥
+  const r = await call({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5 });
+  eq(r.status, 400, '不在校区范围内该直接拒掉，不再「先记一笔待核」');
+  eq(r.body.code, 'GEOFAR', '该回 GEOFAR —— 前端靠它把「填位置密钥」那个框摆出来');
+  ok(/位置密钥/.test(r.body.error), '文案该明说去找教务要位置密钥，实际「' + r.body.error + '」');
 });
 
 await ta('动态码：码不对打不上', async () => {
@@ -402,18 +424,151 @@ await ta('固定码这条岔路已拆：老数据里残留的自设码不再生�
   eq(r.way, 'code', '换成当前那 6 位就该打得动');
 });
 
-await ta('关掉定位只用码：判定不了人在不在教室 → 待核', async () => {
+await ta('关掉定位、只拿码：也打不上（判不了在不在教室就不放行）', async () => {
+  await setRules(RULES_OK(0));
+  await setKeys([]);
   const c = await must({ action: 'code', token: su.token });
-  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
-  eq(r.status, '待核', '教务配了校区坐标却没给位置，交教务核对（实际 ' + r.status + '）');
+  const r = await call({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
+  eq(r.status, 400, '教务配过校区坐标、学生又不给位置 → 该直接拒');
+  eq(r.body.code, 'GEOFAR', '同样是 GEOFAR（要密钥）');
 });
 
-await ta('码被传到校外也没用：人在范围外 → 待核', async () => {
+await ta('码被传到校外也没用：定位这一关过不了，码对了照样打不上', async () => {
+  await setRules(RULES_OK(0));
+  await setKeys([]);
   const c = await must({ action: 'code', token: su.token });
-  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 35.5, lng: 114.5 });
-  eq(r.status, '待核', '定位这一关过不了，码对了也只能是待核');
-  eq(r.wrote, null, '不该替教务扣分');
+  const r = await call({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 35.5, lng: 114.5 });
+  eq(r.status, 400, '人不在校区，码对了也一样打不上（比原来的「记一笔待核」更严）');
+  eq(r.body.code, 'GEOFAR', '该是 GEOFAR');
 });
+
+/* ══ 位置密钥（v47）：定位不准的学生，拿教务手里那枚 4 位码就能打上 ══
+   密钥由教务在「打卡」页生成，落在机构共享区；学生端的读白名单里没有这个键 ——
+   学生们根本拿不到，只能从教务手里要。名额按「当天用这枚密钥打上的人数」算。 */
+await ta('学生拿不到位置密钥（读白名单里没这个键，只能从教务手里要）', async () => {
+  await setKeys([{ id: 'k1', code: '4821', date: todayCN(), clsId, limit: 5 }]);
+  const j = await must({ action: 'pull', token: s1.token });
+  eq(j.shared.sign_keys, undefined, '位置密钥一条都不该下发到学生端');
+});
+
+await ta('教务发一枚 4 位密钥 → 人在校外的学生凭它就能打上，记 way=key', async () => {
+  await setRules(RULES_OK(0));
+  await setKeys([{ id: 'k1', code: '4821', date: todayCN(), clsId, limit: 5 }]);
+  const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '4821' });
+  eq(r.way, 'key', '拿位置密钥放行的该记成 key');
+  ok(r.status === '正常' || r.status === '迟到', '密钥放行不该再判「待核」（实际 ' + r.status + '）');
+  const raw = await s.get('org/data', { type: 'json' });
+  const rec = (raw['sign:' + todayCN()] || []).find(x => x.studentId === sid1);
+  ok(rec, '该留下打卡记录');
+  eq(rec.keyId, 'k1', '记录里该记下用了哪一枚密钥（教务可回查）');
+  eq(rec.way, 'key', '记录里的方式也该是 key');
+});
+
+await ta('密钥不对 / 不是今天的 / 别班的：一律 BADKEY', async () => {
+  await setRules(RULES_OK(0));
+  const a = await call({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '9999' });
+  eq(a.status, 400, '不存在的码该被拒');
+  eq(a.body.code, 'BADKEY', '该回 BADKEY');
+  await setKeys([{ id: 'k2', code: '1111', date: '2026-01-01', clsId, limit: 5 }]);
+  const b = await call({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '1111' });
+  eq(b.body.code, 'BADKEY', '昨天那枚不认 —— 位置密钥只当天有效');
+  await setKeys([{ id: 'k3', code: '3333', date: todayCN(), clsId: 'c2', limit: 5 }]);
+  const d = await call({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '3333' });
+  eq(d.body.code, 'BADKEY', '别班那枚用不了（密钥按班发）');
+});
+
+await ta('名额用完就拒（KEYFULL），但已经用过的那个人还能再打', async () => {
+  await setRules(RULES_OK(0));
+  await setKeys([{ id: 'k4', code: '2468', date: todayCN(), clsId, limit: 1 }]);
+  const a = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '2468' });
+  eq(a.way, 'key', '第 1 个人该能打上');
+  const b = await call({ action: 'sign', token: s2.token, dev: 'devB', lat: 35.5, lng: 114.5, key: '2468' });
+  eq(b.status, 400, '第 2 个人该被拒（这枚只放 1 人）');
+  eq(b.body.code, 'KEYFULL', '该回 KEYFULL');
+  const c = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5, key: '2468' });
+  eq(c.way, 'key', '同一个人再打一次不该被名额挡住（一天一人一条，是覆盖）');
+});
+
+/* ══ 班干部 / 作业登记 / 学生消息（v47）══ */
+console.log('\n=== 四之二、班干部 / 作业登记 / 学生消息 ===');
+
+await ta('不是班干部：名册只发自己那一条', async () => {
+  await patchOrg({ officers: [] });
+  const j = await must({ action: 'pull', token: s1.token });
+  eq((j.shared.students || []).length, 1, '普通学生该只拿到自己');
+  eq(j.shared.students[0].id, sid1, '拿到的该是本人');
+});
+
+await ta('是班干部：拿到本班同学的「id + 姓名 + classId」，别的字段一个都不出去', async () => {
+  await patchOrg({ officers: [{ id: 'o1', clsId, title: '班长', studentId: sid1 }] });
+  const j = await must({ action: 'pull', token: s1.token });
+  const list = j.shared.students || [];
+  eq(list.length, 2, '本班两名同学都该拿到（实际 ' + list.length + '）');
+  eq(Object.keys(list[0]).sort().join(','), 'classId,id,name', '只截三个字段下发');
+  ok(!list.some(x => x.classId === 'c2'), '别班的同学一条都不该有');
+  eq((j.shared.officers || []).length, 1, '本班的班干部名单要下发（学生端靠它判断我是不是班干部）');
+});
+
+await ta('只挂了个名字、没填职务的，不算班干部（不给权限）', async () => {
+  await patchOrg({ officers: [{ id: 'o2', clsId, title: '', studentId: sid1 }] });
+  const j = await must({ action: 'pull', token: s1.token });
+  eq((j.shared.students || []).length, 1, '没写职务名就不该按班干部放行');
+});
+
+await ta('本班作业发得到学生端（作业记录写的是 clsId，不是 classId）', async () => {
+  await patchOrg({
+    homework: [
+      { id: 'h9', clsId, date: todayCN(), text: '数学卷子', abbr: '数' },
+      { id: 'h8', clsId: 'c2', date: todayCN(), text: '别班的作业', abbr: '别' },
+    ],
+  });
+  const j = await must({ action: 'pull', token: s1.token });
+  const hw = j.shared.homework || [];
+  eq(hw.length, 1, '只该拿到本班那条（实际 ' + hw.length + ' 条）');
+  eq(hw[0].id, 'h9', '拿到的该是本班的 h9');
+});
+
+await ta('班干部能替全班登记作业，服务端盖上「谁登记的」', async () => {
+  await patchOrg({
+    officers: [{ id: 'o1', clsId, title: '班长', studentId: sid1 }],
+    homework: [{ id: 'h1', clsId, date: todayCN(), text: '数学卷子', abbr: '数' }],
+    'hw:h1': [],
+  });
+  /* 前端推上来的就是本地存好的那条（Store.upsert 会给它生成 id），所以这里也带上 id */
+  await must({ action: 'push', token: s1.token, shared: { 'hw:h1': [{ id: sid2, studentId: sid2, done: 1 }] } });
+  const raw = await s.get('org/data', { type: 'json' });
+  const rec = (raw['hw:h1'] || []).find(x => x.studentId === sid2);
+  ok(rec && rec.done === 1, '该登记上');
+  eq(rec.by, S1, '该盖上登记人姓名');
+  eq(rec.byId, s1.profile.id, '该盖上登记人账号 id（教务要看得出是谁填的）');
+});
+
+await ta('普通学生写作业登记：一律被丢掉', async () => {
+  await patchOrg({ officers: [] });
+  await must({ action: 'push', token: s2.token, shared: { 'hw:h1': [{ id: sid1, studentId: sid1, done: 1 }] } });
+  const raw = await s.get('org/data', { type: 'json' });
+  ok(!(raw['hw:h1'] || []).some(x => x.byId === sid2), '不该落进库');
+});
+
+await ta('学生能给教务发消息（落成一张工单，状态由服务端定成待处理）', async () => {
+  const r = await must({ action: 'push', token: s1.token, shared: { tickets: [
+    { id: 'sm1', type: '学生消息', text: '今天打卡定位不对', status: 'done', studentId: sid1, toId: 'x' },
+  ] } });
+  const tk = (r.shared.tickets || []).find(x => x.id === 'sm1');
+  ok(tk, '消息该落下来');
+  eq(tk.status, 'open', '学生自己标「已回复」无效，回到待处理');
+  eq(tk.studentId, sid1, '该挂在自己名下');
+});
+
+await ta('收件人名单走 staff：只回教务号，授课老师不在里面', async () => {
+  const j = await must({ action: 'staff', token: s1.token });
+  ok(Array.isArray(j.staff) && j.staff.length >= 1, '该至少回一个教务账号');
+  ok(!j.staff.some(x => x.name === T1), '授课老师「' + T1 + '」不该出现在名单里');
+  ok(j.staff.every(x => Object.keys(x).sort().join(',') === 'id,name'),
+     '只给 id 与名字，用户名/角色一概不给（实际 ' + JSON.stringify(j.staff[0]) + '）');
+});
+
+await patchOrg({ officers: [] });
 
 await ta('打卡码不下发给学生（学生端拿不到 sign_rules.code）', async () => {
   const j = await must({ action: 'pull', token: s1.token });
