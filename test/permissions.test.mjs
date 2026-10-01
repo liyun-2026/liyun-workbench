@@ -217,6 +217,82 @@ console.log('\n=== 四、教务分级（super 高于 admin）===');
   t('首位教务的账号不能被降级（找不到目标时也不该误伤）', () => ok(true));
 }
 
+console.log('\n=== 四之二、总教务（office）：教务全管 + 账号管理，唯独动不了首位教务 ===');
+/* 用户 2026-10-02：「帮我再建一个账号，叫学管办公室（大白），登在办公室的工作手机上。
+   权限和我首位教务差不多，但不能改/删整个系统的东西，也看不到只有我能看到的东西。
+   你可以把它理解为一个总的教务的账号。」→ 新增 office 角色，全系统只准一个。 */
+let officeToken, officeId;
+{
+  const cOf = await call({ action: 'users', op: 'create', token: owner,
+    user: 'dabai', pass: 'dabaipass123', name: '学管办公室（大白）', role: 'office' });
+  t('首位教务能建「总教务」', () => eq(cOf.body.ok, true));
+  officeId = cOf.body.id;
+
+  const cOf2 = await call({ action: 'users', op: 'create', token: owner,
+    user: 'dabai2', pass: 'dabaipass123', name: '第二个总教务', role: 'office' });
+  t('总教务全系统只能有一个（建第二个被拒）', () => eq(cOf2.body.error, '总教务只能有一个'));
+
+  const lOf = await call({ action: 'login', user: 'dabai', pass: 'dabaipass123' });
+  officeToken = lOf.body.token;
+  t('总教务能登录，角色就是 office', () => eq(lOf.body.profile.role, 'office'));
+  t('总教务在服务端算教务（isStaff=true，能拿全部数据）', () => eq(lOf.body.profile.isStaff, true));
+  t('profile 里带 isOffice 标记', () => eq(lOf.body.profile.isOffice, true));
+  t('总教务不是首位教务（isSuper=false）', () => eq(lOf.body.profile.isSuper, false));
+
+  /* ── 能做的：跟首位教务一样的账号管理 ── */
+  const mk = await call({ action: 'users', op: 'create', token: officeToken,
+    user: 'offmade', pass: 'offmade123', name: '大白建的老师', role: 'teacher' });
+  t('总教务能建账号', () => eq(mk.body.ok, true));
+
+  const ps = await call({ action: 'users', op: 'pass', token: officeToken, id: mk.body.id, pass: 'newpass9999' });
+  t('总教务能改别人的密码', () => eq(ps.body.ok, true));
+  const psLogin = await call({ action: 'login', user: 'offmade', pass: 'newpass9999' });
+  t('  → 改完立刻生效', () => eq(psLogin.body.ok, true));
+
+  const rl = await call({ action: 'users', op: 'update', token: officeToken, id: mk.body.id, role: 'admin' });
+  t('总教务能改别人的身份', () => eq(rl.body.ok, true));
+  const offd = await call({ action: 'users', op: 'update', token: officeToken, id: mk.body.id, active: false });
+  t('总教务能停用账号', () => eq(offd.body.ok, true));
+  const del = await call({ action: 'users', op: 'delete', token: officeToken, id: mk.body.id });
+  t('总教务能删账号', () => eq(del.body.ok, true));
+
+  const ul = await call({ action: 'users', op: 'list', token: officeToken });
+  t('总教务能看账号列表', () => ok(Array.isArray(ul.body.users) && ul.body.users.length >= 3, '实际 ' + (ul.body.users || []).length));
+
+  /* ── 动不了的：首位教务那个号 ── */
+  const supId = (await call({ action: 'pull', token: owner })).body.profile.id;
+  const h1 = await call({ action: 'users', op: 'update', token: officeToken, id: supId, name: '想改首位教务' });
+  t('总教务改不了首位教务的账号（403）', () => eq(h1.status, 403));
+  const h2 = await call({ action: 'users', op: 'pass', token: officeToken, id: supId, pass: 'hackedpass1' });
+  t('总教务改不了首位教务的密码（403）', () => eq(h2.status, 403));
+  const h3 = await call({ action: 'users', op: 'delete', token: officeToken, id: supId });
+  t('总教务删不了首位教务的账号（403）', () => eq(h3.status, 403));
+
+  /* ── 「总教务」不能靠改身份得到 ── */
+  const promo = await call({ action: 'users', op: 'update', token: officeToken, id: t1Id, role: 'office' });
+  t('不能把别人「提成」总教务（那道口子一开就绕过「只准一个」了）', () => eq(promo.status, 400));
+
+  /* ── 看不到的：AI 密钥 ── */
+  const keyPush = await call({ action: 'push', token: officeToken, shared: { aiKey: { deepseek: 'sk-office-hack' } } });
+  t('总教务改不了 AI 密钥（只有首位教务能改）', () => eq(keyPush.body.shared.aiKey.deepseek, 'sk-secret-owner'));
+
+  /* ── 看不到的：演示 / 看板那一套（v53 的口径对 office 同样生效）── */
+  await call({ action: 'push', token: owner, shared: {
+    classes: [{ id: 'cls_demo', name: '演示班', _u: 500 }],
+    students: [{ id: 'stu_demo', classId: 'cls_demo', name: '演示学员', _u: 500 }],
+  } });
+  const ofPull = await call({ action: 'pull', token: officeToken });
+  t('总教务的设备上拿不到演示班', () => ok(!ofPull.body.shared.classes.some(c => c.id === 'cls_demo'),
+    '实际：' + JSON.stringify(ofPull.body.shared.classes.map(c => c.id))));
+  t('总教务的设备上拿不到演示学员', () => ok(!(ofPull.body.shared.students || []).some(x => x.id === 'stu_demo')));
+  const owPull = await call({ action: 'pull', token: owner });
+  t('首位教务自己照旧看得到演示班（对照）', () => ok(owPull.body.shared.classes.some(c => c.id === 'cls_demo')));
+
+  /* ── 普通教务（admin）还是不能管账号 ── */
+  const adminTry = await call({ action: 'users', op: 'create', token: adminToken, user: 'adminmade', pass: 'adminmade123', role: 'teacher' });
+  t('普通教务仍然建不了账号（403，没被 office 捎带放开）', () => eq(adminTry.status, 403));
+}
+
 console.log('\n=== 五、账号操作（首位教务）===');
 {
   const p = await call({ action: 'users', op: 'pass', token: owner, id: t1Id, pass: 'newpass123' });

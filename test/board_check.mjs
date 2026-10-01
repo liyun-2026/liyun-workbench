@@ -812,8 +812,8 @@ try {
     const r = App.routes.find(x => x.id === 'board');
     return { roles: r ? r.roles : null, inNav: Object.values(App.NAV_ORDER).some(list => list.includes('board')) };
   })()`);
-  t('board 这条路由只发给教务三种身份，且不在任何 NAV_ORDER 里', () => {
-    assert(roles.roles && roles.roles.join(',') === 'super,admin,both', 'roles 不对：' + JSON.stringify(roles.roles));
+  t('board 这条路由只发给教务四种身份（v54 多了总教务），且不在任何 NAV_ORDER 里', () => {
+    assert(roles.roles && roles.roles.join(',') === 'super,office,admin,both', 'roles 不对：' + JSON.stringify(roles.roles));
     assert(!roles.roles.includes('teacher') && !roles.roles.includes('student'), '老师和学生不该有看板');
     assert(!roles.inNav, '不该出现在 NAV_ORDER 里');
     return 'roles=' + roles.roles.join('/');

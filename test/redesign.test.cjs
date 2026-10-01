@@ -653,10 +653,10 @@ function bootNoBackend(seed = {}, url = 'http://localhost:5173/'){
         '设置页该有个「打开量化细则」按钮（照老师管理那张卡的样子）');
     });
 
-    t('细则页有 route，但**不进** NAV_ORDER / TAB_ORDER（不占侧栏、底栏、抽屉）', () => {
+    t('细则页有 route（super/office/admin/both），但**不进** NAV_ORDER / TAB_ORDER（不占侧栏、底栏、抽屉）', () => {
       const rt = html.match(/\{ id:'rules',[\s\S]{0,160}?roles:(\[[^\]]*\])/);
       assert(rt, 'routes 里找不到 rules');
-      eq(rt[1].replace(/\s/g, ''), "['super','admin','both']", 'roles');
+      eq(rt[1].replace(/\s/g, ''), "['super','office','admin','both']", 'roles');
       const nav = html.match(/NAV_ORDER:\s*\{([\s\S]*?)\n  \},/);
       assert(nav, '找不到 NAV_ORDER');
       assert(!nav[1].includes("'rules'"), 'rules 不该出现在任何角色的 NAV_ORDER 里');

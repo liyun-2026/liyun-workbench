@@ -4,12 +4,14 @@
  *
  * ── 相比 v1（单一口令）多了什么 ──
  *   1. 真正的账号：用户名 + 密码（加盐哈希）→ 登录后发一个签名令牌
- *   2. 三种角色：super（首位教务，权限最高）/ admin（教务）/ teacher（授课老师）
+ *   2. 五种角色：super（首位教务，权限最高）/ office（总教务：教务全管 + 账号管理，
+ *      唯独动不了首位教务）/ admin（教务）/ teacher（授课老师）/ student（学生）
  *   3. 数据分两区：
  *        机构共享区 org/data  —— 名册、课表、考勤、作业、过关、量化、模考、体重、今日情况、通知、工单
  *        个人私有区 data/{uid} —— 每个人自己的设置（不共享、不参与机构统计）
  *   4. 服务端按角色过滤：授课老师只拿得到自己带的班、那些班的学员与记录、课表、通知、自己提的工单
- *   5. 账号由教务创建；只有第一位（super）能管理账号，且 super 自己谁也动不了
+ *   5. 账号由教务创建；只有首位教务与总教务能管理账号，
+ *      且首位教务那个账号谁也动不了（总教务也不行），总教务全系统只准有一个
  *
  * ── 沿用 v1 的老规矩 ──
  *   · 强一致读：电脑改完手机立刻能拉到
@@ -27,14 +29,19 @@ const SESSION_MS = 60 * 24 * 3600 * 1000;   // 登录状态保留 60 天
 const MIN_PASS = 8;
 
 const SUPER = 'super';       // 首位教务：什么都能管，包括账号
+const OFFICE = 'office';     // 总教务：教务那摊全管 + 账号管理，唯独动不了首位教务（用户 2026-10-02 定）
 const ADMIN = 'admin';       // 教务老师：业务全能，不管账号
 const TEACHER = 'teacher';   // 授课老师：只看自己带的班
 const BOTH = 'both';         // 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在
 const STUDENT = 'student';   // 学生：只看自己的，只能打卡和请假
 /* 数据口径上「算教务」的角色：能拿到全部数据、能写全部数据。
-   both 也算教务（否则 TA 打开考勤/量化会是一片空），只是不能管账号（看 doUsers）。 */
-const STAFF = [SUPER, ADMIN, BOTH];
-/* 建号 / 改身份时允许的身份。super 只能有一个，不在这里 —— 谁也建不出第二个 */
+   both 也算教务（否则 TA 打开考勤/量化会是一片空），只是不能管账号（看 doUsers）。
+   office（总教务）算教务，而且能管账号。 */
+const STAFF = [SUPER, OFFICE, ADMIN, BOTH];
+/* 建号 / 改身份时允许的身份。super 与 office 都**不在**这里：
+     · super 只能有一个 —— 初始化机构时定的，谁也建不出第二个；
+     · office 全系统也只准有一个，且只能走 op:'create' 那一条路专门建
+       （见 mkUser 的唯一性检查），**改身份改不出来**（见 op:'update' 那道拦）。 */
 const ASSIGNABLE = [ADMIN, BOTH, TEACHER, STUDENT];
 const normRole = r => (ASSIGNABLE.indexOf(String(r)) >= 0 ? String(r) : TEACHER);
 
@@ -282,6 +289,7 @@ async function profileOf(auth, uid, user) {
     /* 学生账号挂在哪个学员档案上。学生端所有「只看自己的」都靠这个字段。 */
     studentId: auth.studentId || '',
     isSuper: auth.role === SUPER,
+    isOffice: auth.role === OFFICE,
     isStaff: STAFF.includes(auth.role),
     isStudent: auth.role === STUDENT,
   };
@@ -385,8 +393,9 @@ function filterForStudent(src, me) {
 /* ── 授课老师：只下发自己班的班级/学员/考勤/作业/过关/成绩/体重/评语，加自己提的工单 ── */
 function filterShared(shared, me) {
   const src = shared || {};
-  /* 教务（含教务兼授课）：全量。但演示班 / 演示学员是系统自用的东西 ——
-     除了首位教务和演示号自己，别人的设备上根本不该出现（见 stripDemo）。 */
+  /* 教务（含教务兼授课、总教务）：全量。但演示班 / 演示学员是系统自用的东西 ——
+     除了首位教务和演示号自己，别人的设备上根本不该出现（见 stripDemo）。
+     总教务也是「别人」：他看不到演示与看板那一套（用户 2026-10-02 定）。 */
   if (me.isStaff) return (me.role === SUPER || isPreviewAcct(me)) ? src : stripDemo(src);
   if (me.role === STUDENT) return filterForStudent(src, me);
   const ids = new Set(me.classIds || []);
@@ -901,12 +910,16 @@ async function doDraw(s, me, body) {
 }
 
 /* ── 账号管理 ──
-   看列表：两位教务都行（排课时要选「上课老师」，得知道有哪些老师）。
-   建号 / 改带班 / 重置密码 / 停用：只有首位教务。 */
+   看列表：任何教务都行（排课时要选「上课老师」，得知道有哪些老师）。
+   建号 / 改带班 / 重置密码 / 停用 / 删除：首位教务 + 总教务。
+   ⚠️ 总教务（office）=「办公室那台工作手机」上用的号（用户 2026-10-02 定），
+      权限与首位教务基本齐平，但唯独动不了首位教务那个账号（见下面的 target.role 拦）。
+   演示 / 看板账号仍然只有首位教务看得见（下面的 isDemoAcct 判断没动）。 */
 async function doUsers(s, me, body) {
   if (!me.isStaff) return json({ error: '只有教务可以管理账号' }, 403);
   const op = String(body.op || 'list');
-  if (op !== 'list' && me.role !== SUPER) return json({ error: '账号只有首位教务能改' }, 403);
+  const canManage = me.role === SUPER || me.role === OFFICE;
+  if (op !== 'list' && !canManage) return json({ error: '账号只有首位教务和总教务能改' }, 403);
   const idx = await uidIndex(s);
 
   if (op === 'list') {
@@ -936,12 +949,22 @@ async function doUsers(s, me, body) {
     const bad = userErr(nu);
     if (bad) return { err: bad };
     if (String(pass || '').length < MIN_PASS) return { err: `密码至少 ${MIN_PASS} 位` };
+    /* 「总教务」不走 normRole —— 它不在 ASSIGNABLE 里（改身份改不出来），
+       只能从这一条 create 路进来，而且**全系统只准有一个**：
+       已经有一个在册了就拒掉（停用/已删的不算，那种是腾位置给新的）。 */
+    const wantOffice = String(role) === OFFICE;
+    if (wantOffice) {
+      for (const u2 of idx.ids) {
+        const a2 = await s.get(`auth/${u2}`, { type: 'json' });
+        if (a2 && a2.role === OFFICE && a2.active !== false) return { err: '总教务只能有一个' };
+      }
+    }
     const uid = await hex('u|' + nu);
     if (await s.get(`auth/${uid}`, { type: 'json' })) return { err: '这个用户名已经存在' };
     const salt = randHex(16);
     const ex = extra || {};
     const rec = {
-      salt, hash: await hex(pass + '|' + salt), role: normRole(role),
+      salt, hash: await hex(pass + '|' + salt), role: wantOffice ? OFFICE : normRole(role),
       name: String(name || nu).trim().slice(0, 24) || nu,
       classIds: cls, active: true, user: nu, createdAt: Date.now(), createdBy: me.id,
     };
@@ -987,7 +1010,12 @@ async function doUsers(s, me, body) {
     if (body.name !== undefined) target.name = String(body.name || '').trim().slice(0, 24) || target.name;
     if (body.classIds !== undefined) target.classIds = cls;
     if (body.active !== undefined) target.active = !!body.active;
-    if (body.role !== undefined) target.role = normRole(body.role);
+    if (body.role !== undefined) {
+      /* 「总教务」不能靠改身份得到：全系统只准一个，只能由 create 那条路专门建。
+         （normRole 本来就会把 office 归成 teacher，这里显式拒掉，报错更直白） */
+      if (String(body.role) === OFFICE) return json({ error: '「总教务」不能靠改身份得到，只能新建一个' }, 400);
+      target.role = normRole(body.role);
+    }
     target.changedAt = Date.now();
     await s.setJSON(`auth/${id}`, target);
     return json({ ok: true });
@@ -1017,8 +1045,10 @@ async function doUsers(s, me, body) {
 
 /* ── 学生要给教务发消息，得先知道「发给谁」──
    学生拿不到账号列表（doUsers 要求 isStaff），所以单开这一条：
-   只回教务类账号（首位教务 / 教务老师 / 教务兼授课）的 id 与名字，
-   用户名、角色、带哪些班一概不给。授课老师不在名单里 —— 学生只发给教务。 */
+   只回教务类账号（首位教务 / 总教务 / 教务老师 / 教务兼授课）的 id 与名字，
+   用户名、角色、带哪些班一概不给。授课老师不在名单里 —— 学生只发给教务。
+   ⚠️ 总教务（office）在名单里：他的显示名就叫「学管办公室（大白）」，
+      学生看得到 —— 用户 2026-10-02 明确选的口径。 */
 async function doStaff(s, me) {
   const idx = await uidIndex(s);
   const out = [];

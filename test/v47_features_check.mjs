@@ -35,6 +35,9 @@
  *   6. 显示名：**只有首位教务那一个账号、且只在学生眼里**才叫「学管办公室」；
  *      其他老师/教务、学生、自己看自己，一律真名（v52 改回来，v47 那次遮过头了）；
  *      课表上的授课老师始终是真名（教务排课查课的核心信息）
+ *   6.5 总教务（office，v54，用户 2026-10-02）：新身份，给办公室那台工作手机用 ——
+ *      教务那一摊全管 + 账号管理（建号/改密/停用/删号），唯独动不了首位教务；
+ *      **AI 密钥不给、演示与看板那套看不见、全系统只准有一个**
  *
  * ⚠️ 必须带 ?nosw=1，否则 SW 接管后自动重载会打断 evaluate。
  * 一次性账号，结束 dev-reset 清场。
@@ -816,6 +819,189 @@ try {
     assert(/x\.teacherId \? Staff\.name\(x\.teacherId\)/.test(HTML), '大课表该仍用真名');
     assert(!/dispName\(x\.teacherId/.test(HTML), '课表不该走 dispName');
     return '课表 3 处仍是 Staff.name()';
+  });
+
+  /* ══════════════════ 6.5 总教务（office）══════════════════
+     v54（用户 2026-10-02）：「帮我再建一个账号，叫学管办公室（大白），登在博艺教育教务
+     办公室的工作手机上。权限和我首位教务这个账号差不多，但不能改/删整个系统的东西，
+     也看不到只有我能看到的东西。你可以把它理解为一个总的教务的账号。」
+     逐条问下来的口径：⑦ 个 —— 建「总教务」新身份 / 账号能建能删但动不了首位教务 /
+     系统规则都给 / 学生端就叫「学管办公室（大白）」/ 巡检给他看 /
+     **AI 密钥不给** / **全系统只准有一个**。 */
+  console.log('\n=== 6.5 总教务（office）===');
+  const OF_ME = `{ id:'u_office', name:'学管办公室（大白）', role:'office', isOffice:true, isStaff:true, classIds:[] }`;
+
+  const ofc = await cdp.eval(`(() => {
+    const save = Auth._me;
+    Auth._me = ${OF_ME};
+    const out = {
+      label:    Auth.roleLabel(),
+      isOffice: Auth.isOffice(),
+      greet:    Greet.text(),
+      canEdit:  StuAcct.canEdit(),
+      nav:      App.NAV_ORDER.office || null,
+      navSuper: App.NAV_ORDER.super || null,
+      tab:      App.TAB_ORDER.office || null,
+      kind:     App.ROLE_KIND.office || null,
+      kinds:    Object.keys(App.ROLE_KIND),
+      visible:  App.visible().map(r => r.id),
+      portRole: Port.role(),
+      portName: Port.info(Port.role()).name,
+      missRole: App.routes.filter(r => r.roles.indexOf('super') >= 0 && r.roles.indexOf('office') < 0).map(r => r.id),
+    };
+    App.renderChrome();
+    out.skin = { admin: document.body.classList.contains('role-admin'),
+                 super: document.body.classList.contains('role-super'),
+                 dataRole: document.body.getAttribute('data-role') };
+    Auth._me = save;
+    App.renderChrome();
+    return out;
+  })()`);
+
+  t('身份表里有「总教务」，排在教务前面（按权限从高到低）', () => {
+    assert(ofc.kind && ofc.kind.name === '总教务', '缺 office 的定义，实际：' + JSON.stringify(ofc.kind));
+    assert(ofc.kind.icon === 'school', '图标该是 school，实际 ' + ofc.kind.icon);
+    assert(ofc.kinds.indexOf('office') >= 0 && ofc.kinds.indexOf('office') < ofc.kinds.indexOf('admin'),
+           '该排在「教务老师」前面，实际顺序：' + ofc.kinds.join(' > '));
+    return ofc.kinds.join(' > ');
+  });
+  t('首位教务能去的每一条路由都带上了 office（漏一条，总教务就少一块功能）', () => {
+    assert(ofc.missRole.length === 0, '这些路由没带 office：' + ofc.missRole.join('、'));
+    return '一条不漏';
+  });
+  t('NAV_ORDER 与首位教务完全一致（老师管理、巡检都进得去）', () => {
+    assert(Array.isArray(ofc.nav), 'office 该有自己的 NAV_ORDER —— 没有的话侧栏会是空的');
+    assert(ofc.nav.join(',') === ofc.navSuper.join(','),
+           '该与 super 一致：\\n      office = ' + ofc.nav.join(',') + '\\n      super  = ' + ofc.navSuper.join(','));
+    assert(ofc.visible.indexOf('teachers') >= 0, '老师管理该在侧栏里');
+    assert(ofc.visible.indexOf('health') >= 0, '巡检该在侧栏里');
+    return ofc.visible.length + ' 个入口，含老师管理 + 巡检';
+  });
+  t('底部 5 个标签也定了（不然手机底栏一片空）', () => {
+    assert(Array.isArray(ofc.tab) && ofc.tab.length === 5, '该有 5 个，实际 ' + JSON.stringify(ofc.tab));
+    return ofc.tab.join(' / ');
+  });
+  t('身份标签 = 总教务；问候语不给它拼「老师」后缀', () => {
+    assert(ofc.label === '总教务', '实际「' + ofc.label + '」');
+    assert(ofc.isOffice === true, 'isOffice() 该为真');
+    assert(ofc.greet.indexOf('学管办公室（大白），') === 0,
+           '问候语该以「学管办公室（大白），」开头，实际「' + ofc.greet + '」');
+    return ofc.label + ' · ' + ofc.greet;
+  });
+  t('端口名单独叫「总教务」，皮肤沿用教务端那一套（不另开一档配色）', () => {
+    assert(ofc.portRole === 'office', 'Port.role() 该返回 office，实际 ' + ofc.portRole);
+    assert(ofc.portName === '总教务', '端口名该是「总教务」，实际 ' + ofc.portName);
+    assert(ofc.skin.admin && !ofc.skin.super,
+           '该挂 role-admin（教务端皮肤）而不是 role-super，实际 ' + JSON.stringify(ofc.skin));
+    assert(ofc.skin.dataRole === 'office', 'data-role 该是 office');
+    return ofc.portName + ' → 教务端皮肤';
+  });
+  t('学生账号表：总教务能改密码 / 停用 / 删除', () => {
+    assert(ofc.canEdit === true, 'canEdit 该放行总教务');
+    return 'canEdit = true';
+  });
+
+  const ofSet = await cdp.eval(`(async () => {
+    const save = Auth._me;
+    Auth._me = ${OF_ME};
+    App.go('settings');
+    await new Promise(r => setTimeout(r, 800));
+    Settings.render();
+    await new Promise(r => setTimeout(r, 200));
+    const vis = id => { const el = document.getElementById(id); return !!(el && el.style.display !== 'none'); };
+    const out = { api: vis('apiCard'), danger: vis('dangerCard'), tEntry: vis('tEntryCard'),
+                  demo: vis('demoCard'), bdNew: vis('bdNewAcct'), health: vis('healthCard'),
+                  backup: vis('backupCard'), rules: vis('rulesCard'), slot: vis('slotCard'), devKey: vis('devKeyCard') };
+    Auth._me = save;
+    App.go('home');
+    return out;
+  })()`);
+  t('设置里的 AI 密钥卡对总教务藏起来（用户明确：AI 密钥不给）', () => {
+    assert(ofSet.api === false, 'AI 密钥卡不该给总教务，实际 visible=' + ofSet.api);
+    return 'apiCard 隐藏';
+  });
+  t('「清空所有数据」也藏起来 —— v54 顺带修的老毛病（原先谁都能看到它）', () => {
+    assert(ofSet.danger === false, '危险操作卡不该给总教务，实际 visible=' + ofSet.danger);
+    return 'dangerCard 隐藏';
+  });
+  t('老师管理入口给总教务（他要建号 / 改密码）', () => {
+    assert(ofSet.tEntry === true, '老师管理入口该给总教务');
+    return 'tEntryCard 可见';
+  });
+  t('演示账号卡 / 建看板号：仍然只给首位教务', () => {
+    assert(ofSet.demo === false, '演示账号卡不该给总教务');
+    assert(ofSet.bdNew === false, '建看板专用号不该给总教务');
+    return '两张卡都隐藏';
+  });
+  t('该给的一样不少：备份 / 量化细则 / 考勤时段 / 换设备密钥 / 巡检', () => {
+    assert(ofSet.backup && ofSet.rules && ofSet.slot && ofSet.devKey && ofSet.health,
+           '实际：' + JSON.stringify(ofSet));
+    return '五张卡都在';
+  });
+
+  const ofRoles = await cdp.eval(`(() => {
+    const saveU = Teachers._users, saveF = Teachers._roleFor, saveR = Teachers._role;
+    const names = () => [...document.querySelectorAll('#roleOpts .r-name')].map(x => x.textContent.trim());
+    Teachers._users = [{ id:'u_office', name:'学管办公室（大白）', role:'office' }];
+    Teachers._roleFor = null; Teachers._role = 'teacher';
+    Teachers.paintRoles();
+    const hasOne = names();
+    Teachers._users = [{ id:'u_t1', name:'李老师', role:'teacher' }];
+    Teachers.paintRoles();
+    const none = names();
+    Teachers._users = saveU; Teachers._roleFor = saveF; Teachers._role = saveR;
+    return { hasOne, none };
+  })()`);
+  t('系统里已经有总教务时，身份选项里不再列「总教务」（全系统只准一个）', () => {
+    assert(ofRoles.hasOne.indexOf('总教务') < 0, '已有总教务就不该再列，实际：' + ofRoles.hasOne.join(' / '));
+    assert(ofRoles.hasOne.indexOf('教务老师') >= 0, '别的身份照旧，实际：' + ofRoles.hasOne.join(' / '));
+    return ofRoles.hasOne.join(' / ');
+  });
+  t('系统里还没总教务时，身份选项里有它（这是建第一个的唯一入口）', () => {
+    assert(ofRoles.none.indexOf('总教务') >= 0, '没有总教务时该列出来，实际：' + ofRoles.none.join(' / '));
+    return ofRoles.none.join(' / ');
+  });
+
+  const ofStu = await cdp.eval(`(() => {
+    const save = Auth._me;
+    Auth._me = { id:'acct_stu', name:'学生甲', role:'student', isStudent:true, isStaff:false, studentId:'stu_t1' };
+    const out = { byId: Util.dispName('u_office', '学管办公室（大白）'),
+                  byName: Util.dispName('', '学管办公室（大白）') };
+    Auth._me = save;
+    return out;
+  })()`);
+  t('学生眼里总教务就是真名（遮罩只对首位教务那一个账号生效）', () => {
+    assert(ofStu.byId === '学管办公室（大白）', '实际「' + ofStu.byId + '」');
+    assert(ofStu.byName === '学管办公室（大白）', '只有名字时也一样，实际「' + ofStu.byName + '」');
+    return '学管办公室（大白）· 没被遮成「学管办公室」';
+  });
+
+  t('代码里那道墙：AI 密钥与「清空所有数据」都收成首位教务专属', () => {
+    assert(/show\('apiCard', Auth\.isSuper\(\)\)/.test(HTML), 'apiCard 该判 isSuper');
+    assert(/show\('dangerCard', Auth\.isSuper\(\)\)/.test(HTML), 'dangerCard 该判 isSuper');
+    assert(/id="dangerCard"/.test(HTML), '危险操作卡该有 id —— 原先没有，谁都拦不住');
+    return 'apiCard + dangerCard 都收到 super';
+  });
+  t('服务端：office 进 STAFF、账号管理放行；首位教务那道拦一个字没松', () => {
+    assert(/const OFFICE = 'office'/.test(SRC), '缺 OFFICE 常量');
+    assert(/const STAFF = \[SUPER, OFFICE, ADMIN, BOTH\]/.test(SRC), 'office 该进 STAFF');
+    assert(/me\.role === SUPER \|\| me\.role === OFFICE/.test(SRC), '账号管理该放行 office');
+    assert(/=== SUPER\) return json\(\{ error: '首位教务的账号不能被修改' \}, 403\)/.test(SRC),
+           '「首位教务不可改」那道拦该还在');
+    assert(!/const ASSIGNABLE = \[[^\]]*OFFICE/.test(SRC), 'office 不该进 ASSIGNABLE（改身份改不出来）');
+    return 'OFFICE 在 STAFF、不在 ASSIGNABLE';
+  });
+  t('服务端：总教务只能有一个（建之前先扫，「改身份」那条路也堵死）', () => {
+    assert(/总教务只能有一个/.test(SRC), '缺唯一性报错文案');
+    assert(/if \(wantOffice\) \{[\s\S]{0,400}?return \{ err: '总教务只能有一个' \}/.test(SRC),
+           'mkUser 该在建之前扫一遍在册的总教务');
+    assert(/「总教务」不能靠改身份得到/.test(SRC), 'op:update 那条路该显式拒绝');
+    return '两条路都堵死';
+  });
+  t('服务端：演示/看板那套对总教务也看不见（判的就是 role === SUPER，office 自动落在外面）', () => {
+    assert(/me\.role === SUPER \|\| isPreviewAcct\(me\)/.test(SRC), 'filterShared 那道判该还在');
+    assert(/isDemoAcct\(a\) && me\.role !== SUPER/.test(SRC), 'doUsers / doStaff 那道判该还在');
+    return 'office 不在例外名单里';
   });
 
   /* ══════════════════ 7. 截图 ══════════════════ */

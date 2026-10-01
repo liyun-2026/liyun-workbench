@@ -2260,8 +2260,9 @@ try {
         </p>
       </div>
 
-      <!-- 有联网功能时保留这张卡，没有就删掉 -->
-      <div class="card" id="apiCard">
+      <!-- 有联网功能时保留这张卡，没有就删掉。
+           只有首位教务看得到（AI 密钥不给总教务，见 Settings.render 里 show('apiCard', …)）。 -->
+      <div class="card" id="apiCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-key"></use></svg> 接口配置</h2>
         <p class="hint" style="margin-top:0;margin-bottom:12px">
           填在这里的 key 只保存在你自己的设备上，不会上传，也<b>不会被导出到备份文件里</b>。
@@ -2303,7 +2304,12 @@ try {
         <p class="hint" style="margin-bottom:0" id="boardTip"></p>
       </div>
 
-      <div class="card">
+      <!-- 危险操作：清空这台设备上的全部数据。
+           🔴 只有首位教务看得到（Settings.render 里 show('dangerCard', Auth.isSuper())）。
+           这张卡以前**没有 id、也没有任何显隐控制** —— 只要能打开设置页的账号
+           （连授课老师、连学生）都露着这个按钮。用户 2026-10-02 的口径是
+           「总教务不能删系统的东西」，顺手把它收成首位教务专属。 -->
+      <div class="card" id="dangerCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-warn"></use></svg> 危险操作</h2>
         <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
         <p class="hint">清空前请确认已经导出过备份，这个操作无法撤销。</p>
@@ -2498,6 +2504,11 @@ try {
           <input type="text" id="tPass" placeholder="初始密码（至少 8 位）" style="min-width:180px">
           <button class="btn" onclick="Teachers.create()">建账号</button>
         </div>
+        <!-- 指路条：只在首位教务、且系统里还没有「总教务」时露出来（Teachers.paintOfficeHint） -->
+        <p class="hint" id="tOfficeHint" style="display:none;margin:12px 0 0">
+          要建「<b>总教务</b>」（办公室那台工作手机用的号）？把上面的「身份」点开，选 <b>总教务</b> ——
+          这个身份全系统只能有一个：能建号、能改密码，但动不了您自己的账号，也看不到演示与看板那一套。
+        </p>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-teacher"></use></svg> 账号列表</h2>
@@ -3794,9 +3805,12 @@ const Health = {
 
   /** 进工作台时挂上。延迟几秒，别抢开屏那一时的带宽 */
   boot(){
-    /* 巡检是站长（首位教务）自己的事：别的角色连这一页都没有，
+    /* 巡检页只有首位教务和总教务进得去：别的角色连这一页都没有，
        后台就别跑探针、别挂红点和横条了 —— 白白耗跨境流量还吓人。 */
-    try { if (!(typeof Auth !== 'undefined' && Auth.isSuper && Auth.isSuper())) return; } catch(e){}
+    try {
+      if (!(typeof Auth !== 'undefined' && Auth.isSuper
+            && (Auth.isSuper() || (Auth.isOffice && Auth.isOffice())))) return;
+    } catch(e){}
     clearInterval(this._timer);
     this._timer = setInterval(() => this.tick(false), 15 * 60 * 1000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) this.tick(false); });
@@ -3986,7 +4000,11 @@ const Greet = {
     /* 学生端就是学生本人，不能再叫「XX老师」—— 直接叫名字 */
     let stu = false;
     try { stu = !!(typeof Auth.isStudent === 'function' && Auth.isStudent()); } catch(e){}
-    const who = (!stu && n && !/老师$/.test(n)) ? n + '老师' : n;
+    /* 总教务也不加「老师」后缀：他的显示名是「学管办公室（大白）」这种办公室名，
+       拼成「学管办公室（大白）老师」读着别扭 */
+    let office = false;
+    try { office = !!(typeof Auth.isOffice === 'function' && Auth.isOffice()); } catch(e){}
+    const who = (!stu && !office && n && !/老师$/.test(n)) ? n + '老师' : n;
     return who ? who + '，' + this.word() : this.word();
   },
 
@@ -4025,33 +4043,33 @@ const App = {
      both 教务兼授课（两套都看得见，见 ROLE_KIND） */
   routes: [
     /* ── 教务端 ── */
-    { id:'home',      icon:'target', name:'今日',     roles:['super','admin','both'], tab:1, onShow: () => Home.render() },
-    { id:'att',       icon:'clipboard', name:'考勤',     roles:['super','admin','both'], tab:2, onShow: () => Att.render() },
-    { id:'homework',  icon:'memo', name:'作业',     roles:['super','admin','both'], tab:3, onShow: () => Homework.render() },
-    { id:'roster',    icon:'users', name:'名册',     roles:['super','admin','both'], tab:4, onShow: () => Roster.render() },
-    { id:'profile',   icon:'card', name:'学员档案', roles:['super','admin','teacher','both'], onShow: () => Student.render() },
-    { id:'timetable', icon:'calendar', name:'课表',     roles:['super','admin','both'], onShow: () => Schedule.render() },
-    { id:'night',     icon:'moon', name:'晚自习',   roles:['super','admin','both'], onShow: () => Night.render() },
-    { id:'quant',     icon:'chart', name:'量化',     roles:['super','admin','both'], onShow: () => Quant.render() },
-    { id:'exam',      icon:'mic', name:'模考',     roles:['super','admin','both'], onShow: () => Exam.render() },
-    { id:'coop',      icon:'inbox', name:'协作',     roles:['super','admin','both'], onShow: () => Coop.render() },
-    { id:'gather',    icon:'megaphone', name:'限时征集', roles:['super','admin','both'], onShow: () => Gather.render() },
-    { id:'teachers',  icon:'teacher', name:'老师管理', roles:['super'],         onShow: () => Teachers.render() },
+    { id:'home',      icon:'target', name:'今日',     roles:['super','office','admin','both'], tab:1, onShow: () => Home.render() },
+    { id:'att',       icon:'clipboard', name:'考勤',     roles:['super','office','admin','both'], tab:2, onShow: () => Att.render() },
+    { id:'homework',  icon:'memo', name:'作业',     roles:['super','office','admin','both'], tab:3, onShow: () => Homework.render() },
+    { id:'roster',    icon:'users', name:'名册',     roles:['super','office','admin','both'], tab:4, onShow: () => Roster.render() },
+    { id:'profile',   icon:'card', name:'学员档案', roles:['super','office','admin','teacher','both'], onShow: () => Student.render() },
+    { id:'timetable', icon:'calendar', name:'课表',     roles:['super','office','admin','both'], onShow: () => Schedule.render() },
+    { id:'night',     icon:'moon', name:'晚自习',   roles:['super','office','admin','both'], onShow: () => Night.render() },
+    { id:'quant',     icon:'chart', name:'量化',     roles:['super','office','admin','both'], onShow: () => Quant.render() },
+    { id:'exam',      icon:'mic', name:'模考',     roles:['super','office','admin','both'], onShow: () => Exam.render() },
+    { id:'coop',      icon:'inbox', name:'协作',     roles:['super','office','admin','both'], onShow: () => Coop.render() },
+    { id:'gather',    icon:'megaphone', name:'限时征集', roles:['super','office','admin','both'], onShow: () => Gather.render() },
+    { id:'teachers',  icon:'teacher', name:'老师管理', roles:['super','office'],         onShow: () => Teachers.render() },
     /* 量化细则：有 route、**不进 NAV_ORDER** —— 侧栏 / 底栏 / 全部功能抽屉都不出现，
        入口只在设置页那张「打开量化细则」的卡上。表太长（近 30 条可编辑的加减分），
        摆进导航反而多一个菜单；放这里既好找又不会被误点。 */
-    { id:'rules',     icon:'calc', name:'量化细则', roles:['super','admin','both'], onShow: () => Settings.renderRules() },
+    { id:'rules',     icon:'calc', name:'量化细则', roles:['super','office','admin','both'], onShow: () => Settings.renderRules() },
     /* 看板端：同上，有 route 但**不进 NAV_ORDER / TAB_ORDER** —— 它是给办公室那台
        电脑挂的一块只读屏，不是给人当功能用的。入口只有设置页那张卡，
        或网址带 ?board=1（Windows 桌面快捷方式写死这个参数，开机就落在看板上）。 */
-    { id:'board',     icon:'desktop', name:'看板端', roles:['super','admin','both'], onShow: () => Board.render() },
+    { id:'board',     icon:'desktop', name:'看板端', roles:['super','office','admin','both'], onShow: () => Board.render() },
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
        名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
        区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
-    { id:'students',  icon:'grad', name:'学生账号', roles:['super','admin','both'], onShow: () => StuAcct.render() },
+    { id:'students',  icon:'grad', name:'学生账号', roles:['super','office','admin','both'], onShow: () => StuAcct.render() },
     /* 巡检只给首位教务：系统通不通是站长的事，教务老师、授课老师、学生都不该看到这一页 */
-    { id:'health',    icon:'pulse', name:'巡检',     roles:['super'],         onShow: () => Health.render() },
-    { id:'settings',  icon:'gear', name:'设置',     roles:['super','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
+    { id:'health',    icon:'pulse', name:'巡检',     roles:['super','office'],         onShow: () => Health.render() },
+    { id:'settings',  icon:'gear', name:'设置',     roles:['super','office','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
     { id:'today',     icon:'target', name:'今天',     roles:['teacher','both'], tab:1, onShow: () => Today.render() },
@@ -4076,17 +4094,22 @@ const App = {
     { id:'stuGather', icon:'megaphone', name:'限时征集', roles:['student'], onShow: () => StuGather.render() },
 
     /* ── 教务端：学生打卡的收口 ── */
-    { id:'sign',      icon:'pin', name:'打卡管理', roles:['super','admin','both'], tab:3, onShow: () => Sign.render() }
+    { id:'sign',      icon:'pin', name:'打卡管理', roles:['super','office','admin','both'], tab:3, onShow: () => Sign.render() }
   ],
 
-  /* 可建的身份 + 学生。both = 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在 */
+  /* 可建的身份 + 学生。both = 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在。
+     ⚠️ office（总教务）是**特殊身份**：全系统只准有一个，而且**不能靠「改身份」得到** ——
+        Teachers.paintRoles() 只在还没有总教务时才列这个选项，服务端 doUsers 也拦着
+        （见 sync.js 的 ASSIGNABLE 注释：建号与改身份是两条不同的路）。 */
   ROLE_KIND: {
     teacher: { icon:'mic', name:'授课老师',
       desc:'只管自己带的班：今天上什么课、录入今日情况、我带的班、学员档案（只读）、上报与申请。' },
+    office:  { icon:'school', name:'总教务',
+      desc:'教务那摊全管，另加账号管理（建号 / 改密码 / 停用 / 删号）—— 唯独首位教务那个号动不了。看不到演示与看板那一套，也改不了 AI 密钥。全系统只能有一个。' },
     admin:   { icon:'clipboard', name:'教务老师',
       desc:'管全班那一摊：今日、考勤、作业、名册、量化、模考、课表、晚自习、协作。不能建/删账号，也不能改 AI 设置。' },
     both:    { icon:'mic+clipboard', name:'教务兼授课',
-      desc:'两套都有：既能管教务那一摊，也能录自己班的情况、发上报。适合又上课又管教务的人（老师管理仍只有您能进）。' },
+      desc:'两套都有：既能管教务那一摊，也能录自己班的情况、发上报。适合又上课又管教务的人（老师管理进不去）。' },
     student: { icon:'grad', name:'学生',
       desc:'只看自己的：今日、打卡、请假、每日新闻、我的课表、考试抽签、本班量化、我的档案、我的作业。' },
   },
@@ -4094,6 +4117,7 @@ const App = {
   /* 底部标签栏放哪 5 个（手机上最多 5 个）—— 每个角色单独定，因为 both 会撞号 */
   TAB_ORDER: {
     super:   ['home','att','homework','roster','settings'],
+    office:  ['home','att','homework','roster','settings'],
     admin:   ['home','att','homework','roster','settings'],
     teacher: ['today','record','myclass','tickets','settings'],
     both:    ['home','att','record','myclass','settings'],
@@ -4105,6 +4129,9 @@ const App = {
     /* 「学生账号」紧跟「名册」：在哪儿建的号，就在哪儿看得到（老师找不到的那一版是它排在倒数第二）。
        「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
     super:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
+    /* 总教务：跟首位教务一模一样的功能顺序（老师管理、巡检都进得去）——
+       差别只在账号本身的能力与服务端拦的那几处，不在「能看到哪些页」 */
+    office:  ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
     admin:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','health','settings'],
     /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
        教务那摊排完，再接自己班的授课那摊。 */
@@ -4173,7 +4200,9 @@ const App = {
       const rk = (typeof Auth !== 'undefined' && Auth.role) ? Auth.role() : 'teacher';
       document.body.classList.toggle('stu', rk === 'student');
       document.body.classList.toggle('role-teacher', rk === 'teacher');
-      document.body.classList.toggle('role-admin', rk === 'admin');
+      /* 总教务（office）沿用教务端那套皮（霁蓝）—— 端口名单独叫「总教务」，
+         皮肤色不另开一档：五端皮肤是 gen_port_theme.py 生成的，多一档要重跑配色脚本 */
+      document.body.classList.toggle('role-admin', rk === 'admin' || rk === 'office');
       document.body.classList.toggle('role-super', rk === 'super');
       document.body.classList.toggle('role-both', rk === 'both');
       document.body.setAttribute('data-role', rk);
@@ -8327,12 +8356,21 @@ const Teachers = {
     this._roleFor = null;
   },
 
+  /* 这个系统里已经有一个「总教务」在册了吗？（服务端也拦，见 sync.js 的 mkUser）
+     全系统只准有一个 —— 有的话就不再把这个身份列出来给人选。 */
+  hasOffice(){ return (this._users || []).some(u => u && u.role === 'office'); },
+
   paintRoles(){
     const box = document.getElementById('roleOpts');
     if (!box) return;
     const cur = this._role;
-    /* 学生不在这里建（学生账号由「名册」一键建出），所以身份选项里不出现「学生」 */
-    box.innerHTML = Object.keys(App.ROLE_KIND).filter(k => k !== 'student').map(k => {
+    /* 学生不在这里建（学生账号由「名册」一键建出），所以身份选项里不出现「学生」。
+       「总教务」全系统只准有一个，已经有一个在册就不列它了 ——
+       例外：正在给「那个总教务账号」改身份时仍旧列出来（否则当前身份没得选、看不到自己在哪一项）。 */
+    const noOffice = this.hasOffice() && !(this._roleFor && cur === 'office');
+    box.innerHTML = Object.keys(App.ROLE_KIND)
+      .filter(k => k !== 'student' && !(k === 'office' && noOffice))
+      .map(k => {
       const r = App.ROLE_KIND[k];
       const on = k === cur ? ' on' : '';
       return `<button class="role-opt${on}" onclick="Teachers.pickRole('${k}')">
@@ -8383,9 +8421,18 @@ const Teachers = {
       this._users = all.filter(u => u.role !== 'student' && !Util.isDemoObj(u));
       this.paint();
       this.renderHistory();
+      this.paintOfficeHint();
     } catch(e){
       el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
     }
+  },
+
+  /* 「新建总教务」的指路条：只在首位教务、且系统里还没有总教务时露出来。
+     建完就不再出现 —— 全系统只准有一个（服务端 doUsers 也拦）。 */
+  paintOfficeHint(){
+    const el = document.getElementById('tOfficeHint');
+    if (!el) return;
+    el.style.display = (Auth.isSuper() && !this.hasOffice()) ? '' : 'none';
   },
 
   paint(){
@@ -8394,8 +8441,8 @@ const Teachers = {
     const list = this._users || [];
     el.innerHTML = list.length ? list.map(u => {
       const isSuper = u.role === 'super';
-      /* 名字一律真名。这一页只有首位教务进得来（routes 里 roles:['super']），
-         而「学管办公室」只在学生端对首位教务那一个账号生效 ——
+      /* 名字一律真名。这一页只有首位教务和总教务进得来（routes 里 roles:['super','office']），
+         而「学管办公室」只对**学生眼里的首位教务**那一个账号生效 ——
          这页要是也统一成办公室，教务就看不出谁是谁了（v47 犯过，已改回）。
          登录用户名（@xxx）保留：改密码、停用、点哪一行都靠它分辨。 */
       const shown  = u.name || u.user;
@@ -8651,9 +8698,10 @@ const StuAcct = {
 
   stuOf(u){ return Store.list('students').find(s => s.id === u.studentId); },
 
-  /* 改密码 / 停用 / 删除只有首位教务能操作 —— 后端 doUsers 也是这么判的，
-     这里先把按钮藏掉，免得点了才知道会被拒。其余教务看这张表是为了查和发给学员。 */
-  canEdit(){ try { return !!Auth.isSuper(); } catch(e){ return false; } },
+  /* 改密码 / 停用 / 删除：首位教务 + 总教务能操作（后端 doUsers 也是这么判的），
+     其余教务（含教务兼授课）看这张表是为了查和发给学员，按钮藏掉，
+     免得点了才知道会被拒。 */
+  canEdit(){ try { return !!(Auth.isSuper() || Auth.isOffice()); } catch(e){ return false; } },
 
   clsKey(u){ const s = this.stuOf(u); return s ? (Util.clsName(s.classId) || '') : ''; },
 
@@ -9134,14 +9182,22 @@ const Settings = {
        这不是把界面藏起来就算数 —— 那些数据服务端本来就没发给老师。 */
     const cloud = Auth.mode !== 'local';      // 本机模式没有账号服务，也没有云端可同步
     show('backupCard', staff);
-    show('apiCard', staff);
+    /* AI 接口密钥：只有首位教务。**总教务也不给** —— 用户 2026-10-02 明确选的口径
+       （「AI 密钥不给」）。服务端 SUPER_ONLY_WRITE 也把它从别人的数据里删掉，
+       这里藏卡片只是别让人白填一遍。 */
+    show('apiCard', Auth.isSuper());
     show('rulesCard', staff);
     show('boardCard', staff && cloud);   // 看板端：给办公室那台电脑挂的只读屏
-    show('bdNewAcct', Auth.isSuper() && cloud);   // 建号只有首位教务能做（服务端也拦着）
-    show('tEntryCard', Auth.isSuper() && cloud);
+    show('bdNewAcct', Auth.isSuper() && cloud);   // 建看板专用账号只有首位教务能做（服务端也拦着）
+    /* 「老师管理」入口：首位教务 + 总教务（总教务要建号/改密码，得进得去这一页） */
+    show('tEntryCard', (Auth.isSuper() || Auth.isOffice()) && cloud);
+    /* 「清空所有数据」是这台设备上最狠的一个按钮（清掉本机全部数据）。
+       🔴 原来这张卡**没有任何显隐控制** —— 连授课老师、连学生的设置页里都露着它。
+       用户 2026-10-02 要总教务「不能删系统的东西」，顺手把它也收成首位教务专属。 */
+    show('dangerCard', Auth.isSuper());
     show('syncNowBtn', cloud);
     show('syncCard', true);
-    show('healthCard', staff);       // 巡检只给教务端
+    show('healthCard', staff);       // 巡检只给教务端（总教务也在内）
     show('slotCard', staff);         // 考勤时段也只有教务端配
     Health.paintBadge();             // 无论在哪一页，设置里的那句话都跟着最新一次结果走
 
@@ -9609,6 +9665,9 @@ const Auth = {
   role(){ return this._me ? this._me.role : ''; },
   isStaff(){ return !!(this._me && this._me.isStaff); },
   isSuper(){ return !!(this._me && this._me.isSuper); },
+  /* 总教务：教务全管 + 账号管理，唯独动不了首位教务。老部署的 profile 里没有
+     isOffice 这个字段，所以跟 isStudent 一样两头认（role 兜底）。 */
+  isOffice(){ return !!(this._me && (this._me.isOffice || this._me.role === 'office')); },
   /* 学生是「教务之外」的第五种身份。本机模式没有账号服务，也就不可能有学生 */
   isStudent(){ return !!(this._me && (this._me.isStudent || this._me.role === 'student')); },
   /** 这个账号挂在哪条学员档案上（学生端所有「只看自己的」都从这里出发） */
@@ -9618,6 +9677,7 @@ const Auth = {
     if (!this._me) return '';
     if (this.isStudent()) return '学生';
     if (this.isSuper()) return '首位教务';
+    if (this.isOffice()) return '总教务';
     if (this.role() === 'both') return '教务兼授课';
     return this.isStaff() ? '教务老师' : '授课老师';
   },
@@ -12948,6 +13008,8 @@ const Port = {
     return ({
       teacher:{name:'授课老师',  slogan:'守好每一堂课，记清每一份付出'},
       admin:  {name:'教务老师',  slogan:'统筹教务，让每个环节有迹可循'},
+      /* 总教务：端口名单独一档，皮肤色沿用教务端（见 renderChrome 里的 role-admin） */
+      office: {name:'总教务',    slogan:'统筹教务，也为每一环兜底'},
       both:   {name:'教务兼授课', slogan:'既上讲台，也理教务'},
       super:  {name:'首位教务',  slogan:'统筹全局，为每一环兜底'},
       student:{name:'学生',      slogan:'专注当下，让每一步都算数'},
@@ -12957,6 +13019,7 @@ const Port = {
     let r = '';
     try { if (typeof Auth !== 'undefined' && Auth.role) r = Auth.role() || ''; } catch(e){}
     if (r === 'super') return 'super';   /* 首位教务单独成端，与教务端（黛蓝）区分 */
+    if (r === 'office') return 'office'; /* 总教务：端口名单独列，配色仍走教务端那一套 */
     return (r === 'teacher' || r === 'admin' || r === 'both' || r === 'student') ? r : 'teacher';
   },
 
