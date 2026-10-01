@@ -1059,6 +1059,43 @@ try {
     return adminSide.join(' / ');
   });
 
+  /* ── v53：学生的收件人下拉里不能有演示 / 看板账号 ──
+     用户 2026-10-02 截的就是这一页（下拉里杵着「演示教务」「演示教务兼老师」
+     「看板（办公室那台）」）。这里走全链路：教务端把那三个号建出来，
+     学生端真登进去、打开这一页、读下拉里到底有谁。 */
+  const demoAcct = await cdp.eval(`(async () => {
+    await Auth.call('users', { op:'createMany', list: [
+      { user:'演示教务',       name:'演示教务',          role:'admin', pass:'liyun2026', demo:true },
+      { user:'演示教务兼老师', name:'演示教务兼老师',    role:'both',  pass:'liyun2026', demo:true },
+      { user:'看板测试号二',   name:'看板（办公室那台）', role:'admin', pass:'liyun2026', board:true },
+    ] });
+    return (await Auth.call('users', { op: 'list' })).users.map(u => u.name);
+  })()`);
+  const stuTo = await stu.eval(`(async () => {
+    StuMsg._staff = null;                       /* 别拿上一轮缓存的名单 */
+    App.go('stuMsg');
+    await new Promise(r => setTimeout(r, 1600));
+    const sel = document.getElementById('stuMsgToSel');
+    return { opts: sel ? [...sel.options].map(o => o.textContent.trim()) : [],
+             box: (document.getElementById('stuMsgTo') || {}).textContent.replace(/\\s+/g, ' ').trim() };
+  })()`);
+  t('首位教务自己照样看得见那三个号（建得出、管得了）', () => {
+    assert(demoAcct.includes('演示教务') && demoAcct.includes('看板（办公室那台）'),
+           '首位教务该看得到，实际：' + demoAcct.join('、'));
+    return demoAcct.join('、');
+  });
+  t('★ 学生端「给老师发消息」的收件人下拉：演示教务 / 演示教务兼老师 / 看板 一个都不出现', () => {
+    assert(stuTo.opts.length >= 1, '该至少留一个真教务可发，实际：' + JSON.stringify(stuTo.opts) + ' / ' + stuTo.box);
+    assert(!stuTo.opts.some(n => /^演示/.test(n)), '下拉里不该有「演示…」，实际：' + stuTo.opts.join('、'));
+    assert(!stuTo.opts.some(n => /^看板/.test(n)), '下拉里不该有看板号，实际：' + stuTo.opts.join('、'));
+    return stuTo.opts.join('、');
+  });
+  t('★ 而且不是一刀切成空的：真教务还在，学生照常发得出去', () => {
+    assert(stuTo.opts.some(n => n.indexOf('学管办公室') >= 0),
+           '首位教务该显示成「学管办公室」并留在名单里，实际：' + stuTo.opts.join('、'));
+    return stuTo.opts.join('、');
+  });
+
   /* 走进打卡页：**点圈才开始取码**（v51 把顺序倒过来了 —— 先码、后定位）。
      没点圈之前，圈下面该是干干净净的：圈本身就是那颗按钮。 */
   const gate = await stu.eval(`(() => {

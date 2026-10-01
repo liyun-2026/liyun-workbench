@@ -14,6 +14,10 @@
  *   · 作业登记：班干部能替全班写 hw:，服务端盖上「谁登记的」
  *   · 学生消息：学生能给教务发消息（落成工单），收件人名单只给教务号
  *
+ * v53 增补（用户 2026-10-02 截图打回）：演示 / 看板那一套只有首位教务看得见 ——
+ *   学生的收件人名单、别的教务的账号表、非首位教务的 pull（演示班 / 演示学员），
+ *   三处都拦；首位教务自己与演示号自己照旧看得到。见「四之二」。
+ *
  * v51 口径变化（用户 2026-09-30 要求「先码后定位」）：
  *   · 定位**不再是关卡**：取不到位置 / 坐标压不进半径，照样打得上，
  *     只记 way='geo-none'/'geo-far' + 状态「待核」，交教务核对（既不 400，也不写考勤）
@@ -604,6 +608,104 @@ await ta('收件人名单走 staff：只回教务号，授课老师不在里面'
   ok(!j.staff.some(x => x.name === T1), '授课老师「' + T1 + '」不该出现在名单里');
   ok(j.staff.every(x => Object.keys(x).sort().join(',') === 'id,name'),
      '只给 id 与名字，用户名/角色一概不给（实际 ' + JSON.stringify(j.staff[0]) + '）');
+});
+
+console.log('\n=== 四之二、演示 / 看板那一套只有首位教务看得见（v53）===');
+/* 用户 2026-10-02（截图里学生端收件人下拉杵着「演示教务」「演示教务兼老师」
+   「看板（办公室那台）」）：
+     「所有的演示用作，包括看板的这个账号，全部只要首位教务这个账号看到就可以了。
+       其他教务，其他授课老师，其他学生账号一律不允许出现。它仅作为演示和看板专用……
+       也不要出现在名单、签到考勤作业当中去。」
+   这里核四件事：学生的收件人名单、别的教务的账号表、非首位教务的 pull 里的
+   演示班/演示学员、以及「首位教务自己照旧全看得见」。 */
+const DEMO_NAME = '演示教务', DEMO_BOTH = '演示教务兼老师', BOARD_NAME = '看板（办公室那台）';
+
+await ta('建四个演示号 + 一个看板号（等价于 Settings.demoMake / Board.createAccount）', async () => {
+  const r = await must({ action: 'users', token: su.token, op: 'createMany', classIds: [clsId], list: [
+    { user: '演示老师',       name: '演示老师',   role: 'teacher', pass: 'liyun2026', demo: true },
+    { user: '演示教务',       name: DEMO_NAME,   role: 'admin',   pass: 'liyun2026', demo: true },
+    { user: '演示教务兼老师', name: DEMO_BOTH,   role: 'both',    pass: 'liyun2026', demo: true },
+    { user: '演示学生',       name: '演示学员',   role: 'student', pass: 'liyun2026', demo: true, studentId: sid1 },
+    { user: 'board',          name: BOARD_NAME,  role: 'admin',   pass: 'liyun2026', board: true },
+  ] });
+  eq(r.n, 5, '五个号都该建上（实际 ' + r.n + ' 个，失败：' + JSON.stringify(r.fail) + '）');
+  const rec = await s.get('auth/' + (await must({ action: 'users', token: su.token, op: 'list' })).users.find(u => u.name === BOARD_NAME).id, { type: 'json' });
+  eq(rec.board, true, '看板号该把 board 标记落下来（老账号只能认名字前缀）');
+});
+
+await ta('别的教务（admin）调账号表：演示号与看板号一个都不出现', async () => {
+  await must({ action: 'users', token: su.token, op: 'create', user: '教务丙', name: '教务丙', role: 'admin', pass: SU_PASS });
+  const a3 = await must({ action: 'login', user: '教务丙', pass: SU_PASS });
+  const j = await must({ action: 'users', token: a3.token, op: 'list' });
+  const names = (j.users || []).map(u => u.name);
+  ok(!names.includes(DEMO_NAME),   '次位教务不该看到「' + DEMO_NAME + '」，实际：' + names.join('、'));
+  ok(!names.includes(DEMO_BOTH),   '次位教务不该看到「' + DEMO_BOTH + '」');
+  ok(!names.includes(BOARD_NAME),  '次位教务不该看到看板号');
+  ok(!names.includes('演示学员'),  '学生账号表里也不该有演示学员');
+  ok(names.includes(SU),           '真教务自己当然还在');
+});
+
+await ta('学生的收件人名单（staff）：演示教务 / 兼授课 / 看板号一律不出现', async () => {
+  const j = await must({ action: 'staff', token: s1.token });
+  const names = (j.staff || []).map(x => x.name);
+  ok(!names.some(n => /^演示/.test(n)), '「演示…」开头的账号一个都不该出现，实际：' + names.join('、'));
+  ok(!names.some(n => /^看板/.test(n)), '看板号不该出现在学生的收件人名单里，实际：' + names.join('、'));
+  ok(names.includes(SU), '真教务（学管办公室那条）还得在，学生要发得出去');
+});
+
+await ta('授课老师的收件人名单（staff）同样干净', async () => {
+  const j = await must({ action: 'staff', token: t1.token });
+  const names = (j.staff || []).map(x => x.name);
+  ok(!names.some(n => /^演示/.test(n) || /^看板/.test(n)), '老师那边也不该看到，实际：' + names.join('、'));
+});
+
+await ta('首位教务调 staff / 账号表：演示号与看板号照旧全看得见（那是他自己的工具）', async () => {
+  const j = await must({ action: 'staff', token: su.token });
+  const names = (j.staff || []).map(x => x.name);
+  ok(names.includes(DEMO_NAME),  '首位教务调 staff 该看得到「' + DEMO_NAME + '」');
+  ok(names.includes(BOARD_NAME), '首位教务调 staff 该看得到看板号');
+  const u = await must({ action: 'users', token: su.token, op: 'list' });
+  const un = (u.users || []).map(x => x.name);
+  ok(un.includes(DEMO_NAME) && un.includes(BOARD_NAME), '账号表里也该看得见（他要能管这两个号）');
+});
+
+await ta('非首位教务 pull：连演示班 / 演示学员都不下发（名单、考勤、作业拿不到）', async () => {
+  const data = (await s.get('org/data', { type: 'json' })) || {};
+  data.classes  = [...(data.classes  || []).filter(c => c.id !== 'cls_demo'),
+                     { id: 'cls_demo', name: '演示班', demo: true }];
+  /* 一条带标记、一条光凭「在演示班里」—— 演示班底下不该有真人，两条都要摘掉 */
+  data.students = [...(data.students || []).filter(x => !['stu_demo', 'stu_demo2'].includes(x.id)),
+                     { id: 'stu_demo',  name: '演示学员', classId: 'cls_demo', demo: true },
+                     { id: 'stu_demo2', name: '混进演示班的', classId: 'cls_demo' }];
+  await s.setJSON('org/data', data);
+
+  const a3 = await must({ action: 'login', user: '教务丙', pass: SU_PASS });
+  const j = await must({ action: 'pull', token: a3.token });
+  ok(!(j.shared.classes || []).some(c => c.id === 'cls_demo'), '演示班不该下发给他');
+  ok(!(j.shared.students || []).some(x => x.id === 'stu_demo'), '演示学员不该下发给他');
+  ok(!(j.shared.students || []).some(x => x.id === 'stu_demo2'), '人在演示班里的也不算真人，一样摘掉');
+
+  const js = await must({ action: 'pull', token: su.token });
+  ok((js.shared.classes  || []).some(c => c.id === 'cls_demo'),  '首位教务照旧拿得到演示班');
+  ok((js.shared.students || []).some(x => x.id === 'stu_demo'),  '首位教务照旧拿得到演示学员');
+
+  /* 演示号自己也要看得到 —— 切过去就是为了演一遍 */
+  const d = await must({ action: 'login', user: '演示教务', pass: 'liyun2026' });
+  const jd = await must({ action: 'pull', token: d.token });
+  ok((jd.shared.classes || []).some(c => c.id === 'cls_demo'), '演示号自己该看得到演示班，否则切过去是空的');
+
+  const names = ((await must({ action: 'staff', token: su.token })).staff || []).map(x => x.name);
+  for (const n of [DEMO_NAME, DEMO_BOTH, '演示老师', BOARD_NAME]) {
+    if (!names.includes(n)) continue;
+    const u = (await must({ action: 'users', token: su.token, op: 'list' })).users.find(x => x.name === n);
+    await must({ action: 'users', token: su.token, op: 'delete', id: u.id });
+  }
+  const u3 = (await must({ action: 'users', token: su.token, op: 'list' })).users.find(x => x.name === '教务丙');
+  if (u3) await must({ action: 'users', token: su.token, op: 'delete', id: u3.id });
+  const d2 = (await s.get('org/data', { type: 'json' })) || {};
+  d2.classes  = (d2.classes  || []).filter(c => c.id !== 'cls_demo');
+  d2.students = (d2.students || []).filter(x => !['stu_demo', 'stu_demo2'].includes(x.id));
+  await s.setJSON('org/data', d2);
 });
 
 console.log('\n=== 四之一、首位教务的对外身份卡（owner）===');

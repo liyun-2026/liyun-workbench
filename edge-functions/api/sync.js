@@ -38,6 +38,55 @@ const STAFF = [SUPER, ADMIN, BOTH];
 const ASSIGNABLE = [ADMIN, BOTH, TEACHER, STUDENT];
 const normRole = r => (ASSIGNABLE.indexOf(String(r)) >= 0 ? String(r) : TEACHER);
 
+/* ══ 演示 / 看板那一套：只有首位教务看得见 ══
+   用户 2026-10-02：「演示教务、演示教务兼老师、看板（办公室那台）……全部只要
+   首位教务这个账号看到就可以了。其他教务、其他授课老师、其他学生账号一律不允许
+   出现。它仅作为演示和看板专用……也不要出现在名单、签到考勤、作业当中去。」
+
+   为什么除了标记还要认名字：
+     · 四个演示号是用 createMany 建的，**老记录里没有 demo 标记**；
+     · 看板号是 Board.createAccount() 起的（用户名教务自己填，名字固定「看板（办公室那台）」）。
+   所以「演示」开头的名字与那个写死的看板名必须一起认 —— 老账号才盖得住。
+   ⚠️ 看板那条要**认全名**，不能只认「看板」两个字：真教务里就有人叫「看板测试教务」，
+      只认前缀会把真人一起藏了（tests/board_check.mjs 的账号名当场撞上过）。
+   （客户端 Util.isDemoObj 是同一套口径，改这里也要顺带看一眼那边。） */
+const DEMO_USERS = ['演示老师', '演示教务', '演示教务兼老师', '演示学生'];
+const BOARD_NAME = '看板（办公室那台）';   // Board.createAccount() 里写死的名字
+function isDemoAcct(a) {
+  if (!a) return false;
+  if (a.demo === true || a.board === true) return true;
+  if (DEMO_USERS.indexOf(canonUser(a.user || '')) >= 0) return true;
+  const nm = String(a.name || '');
+  return nm.indexOf('演示') === 0 || nm === BOARD_NAME || nm.indexOf('看板（') === 0;
+}
+/* 四个演示号「自己」要看得到演示数据 —— 切过去就是为了演一遍，看不见就没意义。
+   看板号不在其列：那是摆在走廊的一台公用屏，不该把演示班摆上去。 */
+function isPreviewAcct(a) {
+  if (!a) return false;
+  if (a.board === true) return false;
+  if (DEMO_USERS.indexOf(canonUser(a.user || '')) >= 0) return true;
+  return String(a.name || '').indexOf('演示') === 0;
+}
+/* 演示数据（演示班 / 演示学员）的判据。与客户端 isDemoEntity 同一套。 */
+function isDemoEntity(o) {
+  if (!o) return false;
+  if (o.demo === true) return true;
+  return o.id === 'cls_demo' || o.id === 'stu_demo';
+}
+/* 非首位教务、也非演示号的人：把演示班 / 演示学员从共享数据里摘掉再下发。
+   客户端本来也会在数据层滤一遍，这里是「连数据都别发给你」—— 名册、考勤、
+   作业、统计再怎么绕也拿不到。演示号自己要看得到，所以单独放行。 */
+function stripDemo(src) {
+  const out = Object.assign({}, src);
+  const classes = Array.isArray(src.classes) ? src.classes : [];
+  const deadCls = new Set(classes.filter(isDemoEntity).map(c => c.id));
+  const dead = x => isDemoEntity(x) || !!(x && deadCls.has(x.classId));
+  if (Array.isArray(src.classes))  out.classes  = src.classes.filter(x => !isDemoEntity(x));
+  /* 演示班底下的学员一律算演示数据，哪怕他自己没带标记 —— 演示班不该有「真人」 */
+  if (Array.isArray(src.students)) out.students = src.students.filter(x => !dead(x));
+  return out;
+}
+
 /* ── 用户名规则 ──
    汉字和字母数字都行：教务、老师更习惯打自己名字，记拼音反而容易忘。
    输入法常带出全角字符（ｗａｎｇ、１２３），先按 NFKC 折成半角再存，
@@ -336,7 +385,9 @@ function filterForStudent(src, me) {
 /* ── 授课老师：只下发自己班的班级/学员/考勤/作业/过关/成绩/体重/评语，加自己提的工单 ── */
 function filterShared(shared, me) {
   const src = shared || {};
-  if (me.isStaff) return src;
+  /* 教务（含教务兼授课）：全量。但演示班 / 演示学员是系统自用的东西 ——
+     除了首位教务和演示号自己，别人的设备上根本不该出现（见 stripDemo）。 */
+  if (me.isStaff) return (me.role === SUPER || isPreviewAcct(me)) ? src : stripDemo(src);
   if (me.role === STUDENT) return filterForStudent(src, me);
   const ids = new Set(me.classIds || []);
   const stuIds = myStudentIds(src, me);
@@ -863,6 +914,8 @@ async function doUsers(s, me, body) {
     for (const uid of idx.ids) {
       const a = await s.get(`auth/${uid}`, { type: 'json' });
       if (!a) continue;
+      /* 演示 / 看板账号只有首位教务看得见 —— 别的教务排课选「授课老师」也不该选到它们 */
+      if (isDemoAcct(a) && me.role !== SUPER) continue;
       out.push({
         id: uid, user: a.user || '', name: a.name || a.user || '',
         role: a.role || TEACHER, classIds: a.classIds || [],
@@ -876,8 +929,9 @@ async function doUsers(s, me, body) {
   const normUser = canonUser(body.user);
   const cls = Array.isArray(body.classIds) ? body.classIds.filter(Boolean) : [];
 
-  /* 建一个号。学生号额外挂 studentId —— 学生端「只看自己的」全靠这个字段 */
-  const mkUser = async (u, pass, role, name, studentId) => {
+  /* 建一个号。学生号额外挂 studentId —— 学生端「只看自己的」全靠这个字段。
+     extra 里带 demo / board 标记：演示四个号和看板专用号都靠它认（老账号认名字前缀）。 */
+  const mkUser = async (u, pass, role, name, extra) => {
     const nu = canonUser(u);
     const bad = userErr(nu);
     if (bad) return { err: bad };
@@ -885,12 +939,15 @@ async function doUsers(s, me, body) {
     const uid = await hex('u|' + nu);
     if (await s.get(`auth/${uid}`, { type: 'json' })) return { err: '这个用户名已经存在' };
     const salt = randHex(16);
+    const ex = extra || {};
     const rec = {
       salt, hash: await hex(pass + '|' + salt), role: normRole(role),
       name: String(name || nu).trim().slice(0, 24) || nu,
       classIds: cls, active: true, user: nu, createdAt: Date.now(), createdBy: me.id,
     };
-    if (studentId) rec.studentId = String(studentId);
+    if (ex.studentId) rec.studentId = String(ex.studentId);
+    if (ex.demo === true)  rec.demo  = true;
+    if (ex.board === true) rec.board = true;
     await s.setJSON(`auth/${uid}`, rec);
     if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
     return { id: uid, user: nu };
@@ -898,7 +955,8 @@ async function doUsers(s, me, body) {
 
   if (op === 'create') {
     const r = await mkUser(body.user, body.pass, body.role, body.name,
-                           body.role === STUDENT ? body.studentId : '');
+                           { studentId: body.role === STUDENT ? body.studentId : '',
+                             demo: body.demo, board: body.board });
     if (r.err) return json({ error: r.err }, 400);
     return json({ ok: true, id: r.id });
   }
@@ -911,7 +969,8 @@ async function doUsers(s, me, body) {
     if (list.length > 300) return json({ error: '一次最多建 300 个' }, 400);
     const ok = [], fail = [];
     for (const it of list) {
-      const r = await mkUser(it.user, it.pass, it.role || STUDENT, it.name, it.studentId);
+      const r = await mkUser(it.user, it.pass, it.role || STUDENT, it.name,
+                             { studentId: it.studentId, demo: it.demo, board: it.board });
       if (r.err) fail.push({ user: String(it.user || ''), err: r.err });
       else ok.push(r);
     }
@@ -967,6 +1026,9 @@ async function doStaff(s, me) {
     const a = await s.get(`auth/${uid}`, { type: 'json' });
     if (!a || a.active === false) continue;
     if (!STAFF.includes(a.role || TEACHER)) continue;
+    /* 演示教务 / 演示教务兼老师 / 看板（办公室那台）不进学生的收件人名单 ——
+       学生看到的收件人只有真教务。首位教务自己调这个接口时才看得到那几个。 */
+    if (isDemoAcct(a) && me.role !== SUPER) continue;
     out.push({ id: uid, name: a.name || a.user || '' });
   }
   return json({ ok: true, staff: out });

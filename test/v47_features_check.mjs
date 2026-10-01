@@ -28,6 +28,10 @@
  *   4. 作业：简称取头字；班干部能写 hw:（盖 by/byId），普通学生不能
  *   5. 学生消息：学生端有收件人下拉 + 发消息；收件人只有教务类账号（授课老师不给）；
  *      落点在协作页「学生消息」那一栏，且不会同时出现在「老师上报」列表里
+ *   5.5 演示 / 看板那一套（v53，用户 2026-10-02 截图打回）：演示教务 / 演示教务兼老师 /
+ *      看板（办公室那台）只给首位教务 —— 学生的收件人名单、排课老师下拉、学生账号表
+ *      一律看不到；演示班的作业、演示学员的工单也不进 `Store.list`（只留 listRaw）；
+ *      但首位教务自己照旧看得见（那是他的工具），演示学员切过去也能查到自己那条档案
  *   6. 显示名：**只有首位教务那一个账号、且只在学生眼里**才叫「学管办公室」；
  *      其他老师/教务、学生、自己看自己，一律真名（v52 改回来，v47 那次遮过头了）；
  *      课表上的授课老师始终是真名（教务排课查课的核心信息）
@@ -593,10 +597,127 @@ try {
     return '单独一栏 · 老师上报列表已排除';
   });
 
+  /* ══════════════════ 5.5 演示 / 看板那一套只给首位教务（v53）══════════════════
+     用户 2026-10-02 截图打回：学生端「给老师发消息」的收件人下拉里躺着
+     「演示教务」「演示教务兼老师」「看板（办公室那台）」。原话：
+       「所有的演示用作，包括看板的这个账号，全部只要首位教务这个账号看到就可以了。
+         其他教务，其他授课老师，其他学生账号一律不允许出现。它仅作为演示和看板专用……
+         也不要出现在名单、签到考勤作业当中去。」
+     服务端那三处拦截由 student_check 的四之二整段核（跨账号真接口）；
+     这里核客户端这一层：数据层的演示数据、排课老师下拉、学生账号表、看板号标记。 */
+  console.log('\n=== 5.5 演示 / 看板账号与演示数据（别人看不见）===');
+  const demoDom = await cdp.eval(`(async () => {
+    /* 本地摆一套演示数据：演示班 + 演示学员 + 挂在它们名下的作业与工单 */
+    Store.upsert('classes',  { id:'cls_demo',  name:'演示班', demo:true });
+    Store.upsert('students', { id:'stu_demo',  name:'演示学员', classId:'cls_demo', demo:true });
+    Store.upsert('students', { id:'stu_demo2', name:'混进演示班的', classId:'cls_demo' });
+    Store.upsert('homework', { id:'hw_demo', clsId:'cls_demo', date:'2026-01-01', text:'演示作业' });
+    Store.upsert('tickets',  { id:'tk_demo', type:'学生请假', studentId:'stu_demo', createdAt: 1 });
+    /* 换一顶「演示学员」的帽子问一句：我自己那条档案查不查得到 */
+    const hat = Auth._me;
+    Auth._me = Object.assign({}, hat, { role:'student', isStudent:true, isStaff:false, isSuper:false, studentId:'stu_demo', name:'演示学员' });
+    const rec = Stu.rec();
+    Auth._me = hat;
+    return {
+      byUser: Util.isDemoObj({ user:'演示教务' }),
+      byName: Util.isDemoObj({ name:'演示教务兼老师' }),
+      normal: Util.isDemoObj({ name:'夏老师' }),
+      stu:    Util.isDemoObj({ id:'stu_demo' }),
+      hwShown:  Store.list('homework').filter(h => h.id === 'hw_demo').length,
+      hwRaw:    Store.listRaw('homework').filter(h => h.id === 'hw_demo').length,
+      tkShown:  Store.list('tickets').filter(t => t.id === 'tk_demo').length,
+      tkRaw:    Store.listRaw('tickets').filter(t => t.id === 'tk_demo').length,
+      stuShown: Store.list('students').filter(x => x.id === 'stu_demo' || x.id === 'stu_demo2').length,
+      selfRec:  rec ? rec.id : '',
+    };
+  })()`);
+  t('客户端认得出演示账号：名字以「演示」开头的也算（老账号记录里没有标记）', () => {
+    assert(demoDom.byUser, 'user=演示教务 该判成演示账号');
+    assert(demoDom.byName, 'name=演示教务兼老师 该判成演示账号');
+    assert(!demoDom.normal, '「夏老师」是真老师，不该被判成演示账号');
+    assert(demoDom.stu, '演示学员该判成演示数据');
+    return '演示教务 / 演示教务兼老师 / 演示学员 → 是；夏老师 → 不是';
+  });
+  t('演示班的作业、演示学员的工单：Store.list 拿不到（一个会算进作业条数，一个会掉进「协作」）', () => {
+    assert(demoDom.hwShown === 0, '演示班的作业不该出现在作业列表里，实际还看得见 ' + demoDom.hwShown + ' 条');
+    assert(demoDom.hwRaw === 1, '备份 / 彻底清理要能拿到全部（listRaw），实际 ' + demoDom.hwRaw);
+    assert(demoDom.tkShown === 0, '演示学员的工单不该出现在「协作」列表里');
+    assert(demoDom.tkRaw === 1, 'listRaw 里仍要留着（不然演示学员自己看不到自己的请假）');
+    assert(demoDom.stuShown === 0, '演示学员、以及混进演示班的那位，都不该在名册里');
+    return '作业 0 / 工单 0 / 名册 0（listRaw 都还在）';
+  });
+  t('演示学员切过去能看到自己那条档案（按 id 取自己走 listRaw，否则演示端是空的）', () => {
+    assert(demoDom.selfRec === 'stu_demo', 'Stu.rec() 该查得到 stu_demo，实际「' + demoDom.selfRec + '」');
+    return 'stu_demo 查得到自己';
+  });
+
+  const staffDom = await cdp.eval(`(async () => {
+    await Auth.call('users', { op:'createMany', classIds: ['cls_t1'], list: [
+      { user:'演示老师',    name:'演示老师',          role:'teacher', pass:'liyun2026', demo:true },
+      { user:'演示教务',    name:'演示教务',          role:'admin',   pass:'liyun2026', demo:true },
+      { user:'看板测试号',  name:'看板（办公室那台）', role:'admin',   pass:'liyun2026', board:true },
+      { user:'演示学生',    name:'演示学员',          role:'student', pass:'liyun2026', demo:true, studentId:'stu_demo' },
+    ] });
+    Staff.reset(); await Staff.load();
+    const j = await Auth.call('users', { op: 'list' });
+    return {
+      inList: Staff.list.some(u => u.name === '演示老师'),
+      inPick: Staff.teachers().some(u => u.name === '演示老师'),
+      apiNames: (j.users || []).map(u => u.name),
+    };
+  })()`);
+  t('「排课选授课老师」的候选人里没有演示老师（演示号不是拿来排真课的）', () => {
+    assert(staffDom.inList, '首位教务的账号缓存里该有它（课表上查老师名字还要用）');
+    assert(!staffDom.inPick, '但候选人名单里不该出现演示老师');
+    return '缓存里有、候选里没有';
+  });
+  t('首位教务自己照旧看得到这几个号（那是他的工具，看不到就没法管）', () => {
+    assert(staffDom.apiNames.includes('演示教务'), '首位教务该看得到「演示教务」，实际：' + staffDom.apiNames.join('、'));
+    assert(staffDom.apiNames.includes('看板（办公室那台）'), '首位教务该看得到看板号');
+    return staffDom.apiNames.join('、');
+  });
+
+  const saDom = await cdp.eval(`(async () => {
+    App.go('students');
+    await new Promise(r => setTimeout(r, 1500));
+    return { text: (document.getElementById('saList') || {}).textContent.replace(/\\s+/g, ' ').trim() };
+  })()`);
+  t('「学生账号」表里没有演示学员（这张表是拿来发给学生家长的）', () => {
+    assert(saDom.text.indexOf('演示') < 0, '该看不到演示学员，实际：' + saDom.text.slice(0, 120));
+    return saDom.text.slice(0, 60) || '（空表）';
+  });
+
+  t('服务端才是那道墙：doStaff / doUsers 各拦一道，教务那支连演示数据都不下发', () => {
+    assert(/function isDemoAcct\(a\)/.test(SRC), '服务端该有 isDemoAcct');
+    assert(/const DEMO_USERS = \['演示老师', '演示教务', '演示教务兼老师', '演示学生'\]/.test(SRC),
+           '四个演示号该写死在服务端 —— 老账号记录里没有 demo 标记，只能靠名字认');
+    assert(/if \(isDemoAcct\(a\) && me\.role !== SUPER\) continue;/.test(SRC), 'doStaff 该拦一道');
+    const n = (SRC.match(/if \(isDemoAcct\(a\) && me\.role !== SUPER\) continue;/g) || []).length;
+    assert(n === 2, 'doStaff 与 doUsers list 两处都要拦，实际 ' + n + ' 处');
+    assert(/if \(me\.isStaff\) return \(me\.role === SUPER \|\| isPreviewAcct\(me\)\) \? src : stripDemo\(src\);/.test(SRC),
+           '教务那一支要摘掉演示班 / 演示学员再下发');
+    assert(/function stripDemo\(src\)/.test(SRC), '该有 stripDemo');
+    return 'isDemoAcct ×2 + stripDemo';
+  });
+  t('客户端再兜一层：收件人、排课老师下拉、学生账号表三处都过 Util.isDemoObj', () => {
+    assert(/this\._staff = this\._staff\.filter\(u => !Util\.isDemoObj\(u\)\);/.test(HTML), 'StuMsg 收件人该过一道');
+    assert(/teachers\(\)\{ return this\.list\.filter\(u => u\.role === 'teacher' && u\.active && !Util\.isDemoObj\(u\)\); \}/.test(HTML),
+           '排课老师下拉该过一道');
+    assert(/u\.role === 'student' && !Util\.isDemoObj\(u\)/.test(HTML), '学生账号表该过一道');
+    assert(/DEMO_LINKED\(key\)/.test(HTML) && /gresp:/.test(HTML), '数据层该把挂在演示学员名下的记录也滤掉');
+    return '3 处列表 + 数据层';
+  });
+  t('看板专用号建号时落下 board 标记（名字前缀只是兜底）', () => {
+    assert(/role:'admin', pass, board: true \}/.test(HTML), 'Board.createAccount 该带 board:true');
+    assert(/if \(ex\.board === true\) rec\.board = true;/.test(SRC), '服务端该把标记存下来');
+    return 'board:true 已落库';
+  });
+
+
   /* ══════════════════ 6. 显示名 ══════════════════
      v52 口径（用户 2026-10-01 打回后定的）：遮罩只在**学生眼里**、
-     只对**首位教务那一个账号**生效；其余一律真名。
-     ⚠️ v47 那会儿写成「除自己外一律办公室」，教务端整页看不出谁是谁，别再改回去。 */
+      只对**首位教务那一个账号**生效；其余一律真名。
+      ⚠️ v47 那会儿写成「除自己外一律办公室」，教务端整页看不出谁是谁，别再改回去。 */
   console.log('\n=== 6. 显示名（只有首位教务 · 且只在学生眼里才叫「学管办公室」）===');
   const dn = await cdp.eval(`(() => {
     const me = Auth.me();

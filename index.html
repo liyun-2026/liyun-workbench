@@ -3028,16 +3028,48 @@ const Store = (() => {
 
      与其在几十个页面上各贴一道过滤（贴漏一处就露出来，而且以后新加的页面还会漏），
      不如在数据层一次滤掉：list('classes') / list('students') 默认就看不见演示数据。
-     少数「就是要全部」的地方显式传 { demo: true }（备份导出、彻底清理、演示账号维护）。 */
+     少数「就是要全部」的地方显式传 { demo: true }（备份导出、彻底清理、演示账号维护）。
+
+     2026-10-02 又补了两条：**挂在演示学员 / 演示班名下的记录**（作业、工单、征集回复）
+     也算演示数据。它们不属于上面两类，可一样会露出来 ——
+     演示班的作业会算进「今日作业」条数，演示学员的请假会掉进教务的「协作」列表。 */
   function demoFilter(key, arr){
     if (key === 'classes') return arr.filter(x => !isDemoEntity(x));
     if (key === 'students'){
       /* 演示班里的学员也算演示数据，哪怕他自己没带标记 —— 演示班底下不该有「真人」 */
-      const all = driver.get(NS + 'classes');
-      const dead = new Set((Array.isArray(all) ? all : []).filter(isDemoEntity).map(c => c.id));
-      return arr.filter(x => !isDemoEntity(x) && !dead.has(x.classId));
+      const { deadCls } = demoIds();
+      return arr.filter(x => !isDemoEntity(x) && !deadCls.has(x.classId));
     }
-    return arr;
+    if (!DEMO_LINKED(key)) return arr;
+    const { deadCls, deadStu } = demoIds();
+    if (!deadCls.size && !deadStu.size) return arr;
+    return arr.filter(x => {
+      if (!x) return false;
+      if (x.studentId && deadStu.has(x.studentId)) return false;   // 演示学员的工单、作业登记、征集回复……
+      if (x.clsId && deadCls.has(x.clsId)) return false;           // 演示班的作业、模考场次……
+      if (x.classId && deadCls.has(x.classId)) return false;
+      return true;
+    });
+  }
+
+  /** 挂在演示班 / 演示学员名下的记录键。两种写法都要认：
+      · 定长键（homework / tickets…）
+      · 按天按次分片的键（att:2026-10-02、gresp:{征集id}）—— 看前缀 */
+  function DEMO_LINKED(key){
+    if (key === 'homework' || key === 'tickets') return true;
+    return key.indexOf('gresp:') === 0;
+  }
+
+  /** 演示班 / 演示学员的 id 集合（含「人在演示班里」却自己没带标记的那些） */
+  function demoIds(){
+    const allCls = driver.get(NS + 'classes');
+    const deadCls = new Set((Array.isArray(allCls) ? allCls : []).filter(isDemoEntity).map(c => c.id));
+    const allStu = driver.get(NS + 'students');
+    const deadStu = new Set();
+    for (const s of (Array.isArray(allStu) ? allStu : [])){
+      if (s && s.id && (isDemoEntity(s) || deadCls.has(s.classId))) deadStu.add(s.id);
+    }
+    return { deadCls, deadStu };
   }
 
   /** 按 id 逐条合并两个列表：同 id 取修改时间更新的那条 */
@@ -3445,14 +3477,17 @@ const Util = {
       （统计要走 realClasses()，那条路才滤演示数据。） */
   clsName(id){ const c = Store.listRaw('classes').find(x => x.id === id); return c ? c.name : ''; },
 
-  /* 演示实体（演示班 / 演示学员 / 四个演示账号）一律认 id 与 demo 标记，
+  /* 演示实体（演示班 / 演示学员 / 演示账号）一律认 id、demo 标记与「演示」开头的名字，
      真实系统里把它们从班级、名册、账号列表里隔离出去，跟真数据分清楚。
      ⚠️ 班级与学员这两类，Store.list 已经默认滤掉了（见 isDemoEntity / demoFilter），
-        这里主要是给「账号」那条线用 —— 演示账号是云端的 users，不走 Store。 */
+        这里主要是给「账号」那条线用 —— 演示账号是云端的 users，不走 Store。
+     ⚠️ 名字前缀也要认：老账号（v53 之前建的）记录里没有 demo 标记，
+        光比 Settings.DEMO 那份用户名名单盖不住它们。服务端 isDemoAcct 是同一套口径。 */
   isDemoObj(o){
+    if (!o) return false;
     if (isDemoEntity(o)) return true;
     if (o.user && typeof Settings !== 'undefined' && Settings.DEMO && Settings.DEMO.some(d => d.user === o.user)) return true;
-    return false;
+    return /^演示/.test(String(o.name || ''));
   },
   /** 真班级：Store.list 已滤过一道，这里再兜一次（万一有人拿 listRaw 造了数据） */
   realClasses(){
@@ -8145,6 +8180,9 @@ const StuMsg = {
     if (this._staff) return this._staff;
     try { const j = await Auth.call('staff'); this._staff = (j && j.staff) || []; }
     catch(e){ this._staff = []; }
+    /* 服务端已经不把演示/看板账号发下来了（见 doStaff），这里再兜一道 ——
+       万一哪次拿到的是旧缓存，学生也不会看见「演示教务」这种收件人。 */
+    this._staff = this._staff.filter(u => !Util.isDemoObj(u));
     return this._staff;
   },
   async render(){
@@ -8603,7 +8641,8 @@ const StuAcct = {
     el.innerHTML = '<div class="empty">正在读取…</div>';
     try {
       const j = await Auth.call('users', { op: 'list' });
-      this._users = (j.users || []).filter(u => u.role === 'student');
+      /* 演示学员的账号不进学生账号表 —— 这张表是拿来发给学生的 */
+      this._users = (j.users || []).filter(u => u.role === 'student' && !Util.isDemoObj(u));
       this.paint();
     } catch(e){
       el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
@@ -9941,7 +9980,10 @@ const Staff = {
     return this.list;
   },
 
-  teachers(){ return this.list.filter(u => u.role === 'teacher' && u.active); },
+  /* 授课老师下拉框里的候选人。⚠️ 演示账号不算 ——
+     「演示老师」「演示教务兼老师」是用来切身份查问题的，不该被排进真课表。
+     但 list 本身要留全（name(id) 靠它把老课表上的老师名字查出来）。 */
+  teachers(){ return this.list.filter(u => u.role === 'teacher' && u.active && !Util.isDemoObj(u)); },
   name(id){ const u = this.list.find(x => x.id === id); return u ? u.name : ''; },
   reset(){ this.list = []; this.loaded = false; }
 };
@@ -10105,10 +10147,12 @@ const Draw = {
 const Stu = {
   DAYS: ['周一','周二','周三','周四','周五','周六','周日'],
 
-  /** 本人那条学员记录 */
+  /** 本人那条学员记录。⚠️ 用 listRaw：按 id 取「自己的档案」是具名取用，不是统计 ——
+      演示学员（stu_demo）不在这条路上，切过去「我的课表 / 我的档案」就会是空的，
+      而那正是切过去要看的。统计口径该走 Util.realStudents()。 */
   rec(){
     const sid = Auth.studentId();
-    return sid ? (Store.list('students').find(s => s.id === sid) || null) : null;
+    return sid ? (Store.listRaw('students').find(s => s.id === sid) || null) : null;
   },
   sid(){ return Auth.studentId(); },
   clsId(){ const r = this.rec(); return r ? r.classId : ''; },
@@ -12544,7 +12588,9 @@ const Board = {
     const pass = Array.from(rnd, b => A[b % A.length]).join('');
 
     try {
-      await Auth.call('users', { op:'create', user, name:'看板（办公室那台）', role:'admin', pass });
+      /* board:true —— 这个号是「系统自用」，只有首位教务看得见：不进学生的收件人名单、
+         不进别的教务的账号表和排课老师下拉。名字前缀「看板」是兜底（老账号没这个标记）。 */
+      await Auth.call('users', { op:'create', user, name:'看板（办公室那台）', role:'admin', pass, board: true });
       Util.copy('砺蕴教务 · 看板账号\n'
         + '看板网址  ' + this.link() + '\n'
         + '用户名    ' + user + '\n'
