@@ -2867,11 +2867,13 @@ try {
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 位置密钥</h2>
-        <!-- 学生定位不准就打不上卡（服务端直接拒），得找教务要这样一枚 4 位码放行。
+        <!-- v51 起定位不再是关卡：定位飘了照样打得上，只是记「待核」。
+             密钥的意义因此变成「当场就把它改对」—— 学生手里有码，等于教务当面确认
+             他人就在教室，比手机定位靠谱。
              密钥当天有效、只对当前这个班生效；一枚放行几个人由教务定。
              密钥只有教务端读得到（学生端的读白名单里没有这个键），学生只能从教务手里拿。 -->
-        <p class="hint" style="margin:0 0 10px">学生定位不准、<b>打不上卡</b>的时候，给他一枚 4 位数字的密钥，他输进去就能打。
-          密钥<b>当天有效</b>，只对选中的这个班生效。</p>
+        <p class="hint" style="margin:0 0 10px">学生<b>人就在教室</b>、只是手机定位飘了的时候，给他一枚 4 位数字的密钥 ——
+          输进去当场按正常算，不用等他事后核对。密钥<b>当天有效</b>，只对选中的这个班生效。</p>
         <div class="row" style="flex-wrap:wrap">
           <select id="skCls" onchange="Sign.pickKeyCls(this.value)" style="max-width:190px"></select>
           <input id="skCode" type="text" inputmode="numeric" maxlength="4" placeholder="4 位数字" style="max-width:130px">
@@ -3331,6 +3333,15 @@ const Util = {
            String(d.getDate()).padStart(2,'0');
   },
   esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
+
+  /* 打卡方式的中文名 —— **唯一真相源**。
+     这张表以前在四个地方各抄了一份（今日卡 / 学生本月记录 / 教务今日打卡 / 导出），
+     加一种 way 就得追着改四处，追漏过（v51 加 geo-none 就是）。现在都读这里。
+     geo-none = 定位压根没取到；geo-far = 取到了但坐标压不进校区半径。
+     两种都是「照样打上了、记待核」，见 sync.js 的 doSign。 */
+  WAY: { code:'动态码', geo:'定位', 'geo-none':'定位失败（待核）', 'geo-far':'定位存疑（待核）',
+         key:'位置密钥', self:'直接打卡', manual:'教务补签' },
+  wayText(way){ return this.WAY[way] || way || '—'; },
 
   /** 作业简称：去掉标点空白后取头一个字（「数学卷子」→「数」）。
       班干部录作业时，学生名字后面挂的就是它；教务端那条作业也用它做小标签。 */
@@ -10285,7 +10296,7 @@ const StuHome = {
             ${Stu.statusChip(s)}
           </div>
           <p class="hint">打卡时间 ${new Date(s.at).toLocaleTimeString('zh-CN')}${s.offline ? '（当时没网，联网后补传）' : ''} ·
-            方式：${{code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', key:'位置密钥', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—'}</p>
+            方式：${Util.esc(Util.wayText(s.way))}</p>
           <div class="row" style="margin-top:10px">
             <button class="btn ghost" onclick="App.go('stuSign')">看这个月的记录</button>
           </div>`;
@@ -10337,17 +10348,31 @@ const StuHome = {
    判定全在服务端：迟到的那一分钟用啥时间算，服务端说了算。
    断网时学生按下打卡的那一刻记在本机队列里，联网补传时把「那一刻」一起带上去，
    **就按那一刻判迟到** —— 断网不该让人白打（他确实按时按了），
-   改手机时间也没用（本机时钟是拿服务端时间校过的，报未来会被服务端拉回现在）。 */
+   改手机时间也没用（本机时钟是拿服务端时间校过的，报未来会被服务端拉回现在）。
+
+   v51：**先码、后定位**（原来是先定位、再取码）。
+   由头：定位只要慢几秒或者飘一下，学生就卡在门外；差几分钟就把准时拖成迟到 ——
+   他确实站在教室里，这样对学生不公平。
+   现在：① 先拿码（当场扫 / 当场抄，二选一），**取到码那一瞬间就把打卡时刻定下来**（_codeAt）；
+        ② 定位在码之后跑，跑完自动提交，不用再按。
+   定位从「关卡」降级成「证据」：取不到位置、或坐标压不进半径，**照样打得上**，
+   只是服务端记 way='geo-none'/'geo-far'、状态标「待核」交教务；
+   人确实在教室、只是手机定位飘的，找教务要一枚位置密钥当场更正（见 fixBox）。 */
 const StuSign = {
   _geo: null,        // 本次定位结果：{lat,lng,acc} 或 {fail:true}
   _busy: false,
+  _stage: '',        // '' 还没开始 | 'code' 正在取码 | 'geo' 正在定位 | 'send' 正在提交
+  _code: '',         // 本次取到的码（扫码与手输共用一个入口）
+  _codeAt: 0,        // **取到码那一刻 —— 打卡时刻按它算**，定位再慢也不吃亏
   /* 打卡只打一次：打上了就是打上了，圈里只显示状态，不给「再打一次」的口子。
-     打错了、打歪了，由教务在后台改 —— 学生这边不留这个按钮。 */
+     打错了、打歪了，由教务在后台改 —— 学生这边不留这个按钮。
+     （唯一的口子是「待核」：给一个用位置密钥当场更正的入口 ——
+       那不是重打，是同一天同一条的覆盖。） */
   _cam: null,        // 扫一扫正在取景：{stop,stream,timer,cv}
   _scanned: '',      // 扫一扫读到的码（见 StuSign.scan / renderStep）
   _manual: false,    // 学生选了「手输动态码」这条路（扫码和手输是二选一，不并排摆）
   _key: '',          // 位置密钥：定位不准时教务给的那 4 位数
-  _needKey: false,   // 打卡被服务端拒了（人不在校区范围）→ 把密钥框摆出来
+  _needKey: false,   // 打卡落在「待核」（定位这关没过）→ 把密钥更正框摆出来
   _keyOpen: false,   // 学生自己点开的密钥框
 
   render(){
@@ -10363,7 +10388,7 @@ const StuSign = {
       } else if (g.signed && g.rec){
         const s = g.rec;
         const late = s.status === '迟到';
-        const way = {code:'动态码', geo:'定位', 'geo-far':'定位（存疑）', key:'位置密钥', self:'直接打卡', manual:'教务补签'}[s.way] || s.way || '—';
+        const way = Util.wayText(s.way);
         box.innerHTML = `<div class="punch">
           ${this.ring({ cls: late ? 'late' : 'done',
                         word: late ? '迟到' : (s.status === '待核' ? '待核' : '已打卡'),
@@ -10373,12 +10398,17 @@ const StuSign = {
             ${s.offline ? '<br>当时没网，' + this.hms(s.recvAt || s.at) + ' 补传上来（按按下那一刻算的）' : ''}</div>
         </div>`;
       } else {
-        /* 还没打卡：圈本身就是按钮。定位好了再按＝提交，没定位按＝先定位 */
-        const got = !!(this._geo && (this._geo.lat != null || this._geo.fail));
+        /* 还没打卡：圈本身就是按钮 —— v51 起按下去是**开始取码**（不再先定位）。
+           取到码之后圈就不再接了（阶段跑到 geo/send），免得中途又按一下打乱流程；
+           圈里的时间也跟着冻在「取到码那一刻」，学生一眼看得见自己按的是什么时间。 */
+        const st = this._stage;
         box.innerHTML = `<div class="punch">
-          ${this.ring({ word:'打卡', ico:'pin', time:this.hms(this.now()), live:true,
-                        act: got ? 'StuSign.confirm()' : 'StuSign.start()' })}
-          <div class="p-state" id="punchState">${this.gateText()}</div>
+          ${this.ring({ word: st === 'geo' ? '定位中' : (st === 'send' ? '提交中' : '打卡'),
+                        ico: st === 'send' ? 'check' : 'pin',
+                        time: this._codeAt ? this.hms(this._codeAt) : this.hms(this.now()),
+                        live: !this._codeAt,
+                        act: st === '' ? 'StuSign.start()' : '' })}
+          <div class="p-state" id="punchState">${this.stepText()}</div>
         </div>`;
       }
     }
@@ -10402,6 +10432,16 @@ const StuSign = {
     const r = Store.get('sign_rules') || {};
     if (r.startAt) return '打卡时间 ' + r.startAt;
     return '';
+  },
+
+  /** 圈下面那一句（v51）：写「现在这一步该干什么」。
+      顺序倒过来之后，学生最容易懵的就是「我按了圈，然后呢」—— 所以每一步都得说清楚。 */
+  stepText(){
+    const st = this._stage;
+    if (st === 'geo')  return '码收到了 —— 正在定位，定完自动提交，不用再按';
+    if (st === 'send') return '正在提交…';
+    if (st === 'code') return this._manual ? '第 1 步 · 输屏幕上那 6 位数字' : '第 1 步 · 对着面前的二维码扫一下';
+    return this.gateText();
   },
 
   hm(ts){ return new Date(ts).toLocaleTimeString('zh-CN'); },
@@ -10444,16 +10484,14 @@ const StuSign = {
     this._tk = setInterval(paint, 1000);
   },
 
-  /* ── 两步打卡：① 定位 ② 拿码 ──
-     位置是「人在不在教室」的证据，码是「这次打卡是不是这节课」的证据。
-     两样都要，所以先取位置、再要码 —— 少一步都会被教务那边标成「需核对」。
+  /* ── 打卡两步，**先码后定位**（v51 倒过来的）──
+     码是「这次打卡属于这节课」的证据，位置是「人在不在教室」的证据 —— 两样都要。
+     但顺序很要紧：码先拿，**取到码那一刻就是打卡时刻**；定位在后面跑，跑完自动提交。
+     这样定位慢几秒、或者手机飘一下，都不至于把准时拖成迟到。
 
      ⚠️ **扫码和手输是二选一，不是两道工序**。
-        以前这里同时摆着输入框和「扫一扫」按钮，学生扫完码还得再按一下圈 ——
-        看上去就像「扫完还得再输一遍」。现在路口只摆一条：
-        · 默认只给「扫面前的二维码」；
-        · 想自己敲的，点「手输动态码」才出输入框 —— 那时扫一扫就让位。
-     圈下面只在「定位好了、还差一个码」时才长东西，其余时候干干净净。 */
+        路口只摆一条：默认给「扫面前的二维码」；想自己敲的点「手输动态码」才出输入框。
+     圈下面只在「正在取码 / 正在定位」时才长东西，其余时候干干净净。 */
   renderStep(){
     const el = document.getElementById('stuSignStep');
     if (!el) return;
@@ -10461,80 +10499,80 @@ const StuSign = {
     if (this._cam && !document.getElementById('scanVideo')) this.stopScan();
     const g = Stu.gate();
     if (!g.ok) { el.innerHTML = ''; return; }
-    if (g.signed && g.rec){ el.innerHTML = ''; return; }
-    /* 还没定位时圈自己就是按钮 —— 但已经要用户填密钥的时候就别收走，得把框摆出来 */
-    if (!this._geo && !this._needKey && !this._keyOpen) { el.innerHTML = ''; return; }
+    /* 已经打上了：平时什么都不摆（打卡只打一次），
+       只有落成「待核」时才给一个用位置密钥当场更正的口子 */
+    if (g.signed && g.rec){ el.innerHTML = this.fixBox(g.rec); return; }
 
-    const ok = !!(this._geo && this._geo.lat != null);
-    const head = ok
-      ? `已定位${this._geo.acc ? '（误差约 ' + Math.round(this._geo.acc) + ' 米）' : ''}`
-      : '没取到位置 —— 在教室里的话，用教务老师给的位置密钥打卡';
-    const fix = ok
-      ? '<button class="btn ghost" onclick="StuSign.reset()">重定位</button>'
-      : '<button class="btn ghost" onclick="StuSign.start()">再试定位</button>';
-    /* 扫来的码优先摆出来：万一学生是「先扫、手机没定位、后来才定位上」，
-       回头还能看见码已经在这儿了，按圈就行。 */
+    const st = this._stage;
+    if (!st) { el.innerHTML = ''; return; }
+
+    /* 码已经拿到了：只报进度，不给能按的东西 —— 这会儿再让他按一下反而是添乱 */
+    if (st === 'geo' || st === 'send'){
+      el.innerHTML = `<p class="hint" style="margin:0 0 8px">码收到了（<b>${Util.esc(this._code)}</b>）——
+        正在定位，定完自动提交，不用再按。</p>`;
+      return;
+    }
+
+    /* st === 'code'：第 1 步 —— 取码。扫和手输二选一 */
     const scan = this._scanned || '';
-
     if (!this._manual){
       el.innerHTML = `
-        <p class="hint" style="margin:0 0 8px">${head} —— 对着面前屏幕上的二维码扫一下就能打卡。</p>
+        <p class="hint" style="margin:0 0 8px">第 1 步 · 对着面前屏幕上的二维码 <b>扫一下</b> —— 扫到就自己往下走。</p>
         <div class="row" style="flex-wrap:wrap">
           <button class="btn" onclick="StuSign.scan()">扫面前的二维码</button>
           <button class="btn ghost" onclick="StuSign.manual(true)">手输动态码</button>
-          ${fix}
-        </div>
-        ${this.keyBox()}`;
+        </div>`;
       return;
     }
     el.innerHTML = `
-      <p class="hint" style="margin:0 0 8px">${head} —— 看一眼屏幕上那 <b>6 位数字</b>输进来，再按上面的圈。${scan ? '（已经读到了）' : ''}</p>
+      <p class="hint" style="margin:0 0 8px">第 1 步 · 看一眼屏幕上那 <b>6 位数字</b>输进来，然后按「下一步」。${scan ? '（已经读到了）' : ''}</p>
       <div class="row" style="flex-wrap:wrap">
         <input type="text" id="stuCode" inputmode="numeric" autocomplete="off" maxlength="6"
                placeholder="6 位数字" style="max-width:150px" value="${Util.esc(scan)}">
+        <button class="btn" onclick="StuSign.confirm()">下一步：定位打卡</button>
         <button class="btn ghost" onclick="StuSign.scan()">改用扫码</button>
-        ${fix}
-      </div>
-      ${this.keyBox()}`;
+      </div>`;
   },
 
-  /* 位置密钥那一小块。
-     什么时候长出来：① 打卡被服务端拒了（人不在校区范围，_needKey）
-                      ② 学生自己点开的（_keyOpen）
-                      ③ 定位压根没取到（_geo.fail）—— 直接摆出来，省一轮来回。
-     密钥只替代「定位」这一环：码（扫或手输）照旧要，两样齐了才提交。 */
-  keyBox(){
-    if (!this._needKey && !this._keyOpen && !(this._geo && this._geo.fail)) return '';
+  /* 「待核」的更正入口：人就在教室里、只是手机定位飘了 —— 找教务要一枚 4 位密钥填进来，
+     再走一遍（同一天同一个人是**覆盖**，不会变成两条），当场就能算正常。
+     为什么还要重新扫一次码：密钥只替代「定位」这一环，码照旧要 ——
+     那是「这次打卡属于这节课」的证据，缺了它谁也说不清他打的是哪一节。 */
+  fixBox(rec){
+    if (!rec || rec.status !== '待核') return '';
     return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule,#e8e3d9)">
-      <p class="hint" style="margin:0 0 8px">定位不准、<b>打不上卡</b>？找教务老师要一枚 <b>4 位位置密钥</b>，填在这儿就能打：</p>
+      <p class="hint" style="margin:0 0 8px">这条已经记上了（<b>待核</b>，教务会核对 —— 不算缺卡）。<br>
+        人就在教室里、只是手机定位飘？找教务老师要一枚 <b>4 位位置密钥</b>填进来，当场就能算正常。</p>
       <div class="row" style="flex-wrap:wrap">
         <input type="text" id="stuKey" inputmode="numeric" autocomplete="off" maxlength="4"
                placeholder="4 位数字" style="max-width:130px" value="${Util.esc(this._key)}">
-        <button class="btn" onclick="StuSign.confirm()">用密钥打卡</button>
-        <button class="btn ghost" onclick="StuSign.askKey(false)">收起</button>
+        <button class="btn" onclick="StuSign.redoWithKey()">用密钥更正</button>
       </div>
     </div>`;
   },
 
-  /** 学生自己点开 / 收起密钥框 */
-  askKey(on){
-    this._keyOpen = !!on;
-    this._needKey = this._needKey && !!on;
-    this.renderStep();
-    const inp = document.getElementById('stuKey');
-    if (inp && on){ try { inp.focus(); } catch(e){} }
+  /** 用位置密钥更正「待核」：记下密钥，回第 1 步重新取码（码得是新鲜的） */
+  redoWithKey(){
+    const el = document.getElementById('stuKey');
+    const k = (((el && el.value) || this._key || '')).replace(/\D/g, '');
+    if (k.length !== 4) return UI.toast('位置密钥是 4 位数字（教务老师给你的那一枚）');
+    this._key = k;
+    this._scanned = ''; this._code = ''; this._codeAt = 0; this._geo = null;
+    this._manual = false; this._needKey = false; this._keyOpen = false;
+    this._stage = 'code';
+    UI.toast('密钥记下了 —— 再扫一次面前的二维码，就按正常算');
+    this.render();
   },
 
   /** 切到「手输动态码」这条路。这里**才**聚焦输入框 ——
       是学生自己点进来的，弹键盘正是他要的；扫来的码则绝不抢焦点。 */
   manual(on){
     this._manual = !!on;
+    this._stage = 'code';
     this.renderStep();
     const inp = document.getElementById('stuCode');
     if (inp && !this._scanned){ try { inp.focus(); } catch(e){} }
   },
-
-  reset(){ this._geo = null; this._scanned = ''; this._manual = false; this._key = ''; this._needKey = false; this._keyOpen = false; this.render(); },
 
   /* ── 扫一扫：对着看板上那块二维码扫一下，读到的数字直接进打卡 ──
      用砺蕴自带的那份解码器（QRDec），不走浏览器的 BarcodeDetector ——
@@ -10607,12 +10645,12 @@ const StuSign = {
     /* 码就是 6 位。扫出别的位数 → 对错了码（或是屏幕上别的什么），不猜、不截断 */
     if (c.length !== 6) return UI.toast('扫到的不是打卡码，对着面前屏幕上那块再试一次');
     this._scanned = c;
-    /* 位置已经拿到了就直接替他提交 —— **扫完还要再按一下圈，那这趟就白扫了**。
-       这就是「扫码代替输数字」该有的样子：扫到即打完。 */
-    if (this._geo && this._geo.lat != null){ this.confirm(); return; }
-    this._manual = true;         // 还没定位：把输入框摆出来，让他看见码已经进去了
-    UI.toast('扫到了 ' + c + '，按一下上面那个圈就算打上');
-    this.render();
+    this._code = c;
+    this._manual = true;          // 手输那个框也把码显示出来，学生看得见他扫到了什么
+    /* **扫到那一瞬间就是打卡时刻** —— 定位在后面跑，跑完自动提交（见 locate/post）。
+       这就是倒顺序的意义：定位再慢，也不影响他打的是几点。 */
+    this._codeAt = this.now();
+    this.locate();
   },
 
   /* 关取景窗。可以重复调（没在扫的时候什么也不做）——
@@ -10628,52 +10666,72 @@ const StuSign = {
     if (box) box.remove();
   },
 
+  /** ① 点圈 = 开始取码（v51 之前这一步是「开始定位」，倒过来了）
+      顺手把上一轮的残留清干净：万一上次半途退出，别把旧码带进这一轮。 */
   start(){
     if (this._busy) return;
-    if (!navigator.geolocation){
-      this._geo = { fail: true }; this.render();
-      /* v47 起定位是硬门槛：没位置服务 → 服务端一样 400 GEOFAR。
-         所以别再哄「直接输码也能打」，直接给可走的路。 */
-      return UI.toast('这个浏览器不支持定位 —— 在教室里的话，用教务老师给的位置密钥打卡');
-    }
-    this._busy = true;
-    UI.toast('正在定位…');
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        this._busy = false;
-        this._geo = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy };
-        this.render();
-      },
-      () => {
-        this._busy = false;
-        this._geo = { fail: true };
-        /* v47：取不到位置 ≠ 还能照打 —— 服务端会直接拒（GEOFAR）。
-           这儿就得把下一步说清楚（找教务要位置密钥），别让学生白按一圈再被拒。
-           密钥框也跟着摆出来（keyBox 见 _geo.fail）。 */
-        UI.toast('取不到位置 —— 在教室里的话，用教务老师给的位置密钥打卡');
-        this.render();
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-    );
+    this._stage = 'code';
+    this._scanned = ''; this._code = ''; this._codeAt = 0;
+    this._manual = false; this._geo = null;
+    this._needKey = false; this._keyOpen = false;
+    this.render();
   },
 
+  /** ② 定位。成功、失败都往下走 ——「拿到证据」和「没拿到证据」都要把打卡落下来。
+      v51 起定位不是关卡：拿不到就记待核，学生绝不该为手机的问题错过时间。 */
+  locate(){
+    if (this._stage === 'geo' || this._stage === 'send') return;
+    this._stage = 'geo';
+    this._busy = true;
+    this.render();
+    let settled = false;
+    const done = geo => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(this._geoTo);
+      this._geo = geo;
+      this._busy = false;
+      this.post();
+    };
+    /* 兜底：个别机型权限弹窗挂起，两个回调都不来。等 12 秒就当没取到 ——
+       不能让学生攥着手机站在那儿，眼看着时间往迟到那边走。 */
+    this._geoTo = setTimeout(() => done({ fail: true }), 12000);
+    if (!navigator.geolocation) return done({ fail: true });
+    try {
+      navigator.geolocation.getCurrentPosition(
+        pos => done({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy }),
+        () => done({ fail: true }),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    } catch(e){ done({ fail: true }); }
+  },
+
+  /** ③ 提交。带上去的是**取到码那一刻**，不是现在 —— 定位跑多久都不影响判迟到 */
+  post(){
+    const code = this._scanned || this._code || '';
+    if (!code){ this._stage = 'code'; this.render(); return UI.toast('先扫一下二维码，或抄屏幕上那 6 位数字'); }
+    const p = { code, at: this._codeAt || this.now() };
+    if (this._key) p.key = this._key;
+    if (this._geo && this._geo.lat != null){ p.lat = this._geo.lat; p.lng = this._geo.lng; p.acc = this._geo.acc; }
+    this._stage = 'send';
+    this.render();
+    this.doSign(p);
+  },
+
+  /** 「下一步」：手输那条路。把码收下、记下这一刻，然后去定位 */
   confirm(){
     const el = document.getElementById('stuCode');
+    /* ⚠️ 扫来的码优先于输入框：走扫一扫那条路的人，不该再被要求照着抄一遍 */
+    const code = (this._scanned || (el && el.value) || '').replace(/\D/g, '');
     const keyEl = document.getElementById('stuKey');
-    /* ⚠️ 扫来的码优先于输入框：走扫一扫那条路的人，不该再被要求照着抄一遍。
-       （这里以前只读输入框 —— 而扫到码时输入框可能还没渲染出来，
-        于是「扫完还得再输一次」，怎么输都说不清。） */
-    const code = (this._scanned || (el && el.value) || '').trim();
-    /* 位置密钥：学生填了就带上，服务端拿去放行「不在校区范围」那种情况 */
     const key = (((keyEl && keyEl.value) || this._key || '')).replace(/\D/g, '');
     if (key && key.length !== 4) return UI.toast('位置密钥是 4 位数字（教务老师给你的那一枚）');
-    if (!code) return UI.toast(key
-      ? '还差屏幕上那 6 位动态码：扫一下二维码，或点「手输动态码」抄进来'
-      : (this._manual ? '输一下屏幕上那 6 位数字' : '扫一下面前的二维码就能打卡'));
-    const p = { code };
-    if (key) p.key = key;
-    if (this._geo && this._geo.lat != null){ p.lat = this._geo.lat; p.lng = this._geo.lng; p.acc = this._geo.acc; }
-    this.doSign(p);
+    if (!code) return UI.toast(this._manual ? '先输屏幕上那 6 位数字' : '扫一下面前的二维码就能打卡');
+    if (code.length !== 6) return UI.toast('动态码是 6 位数字 —— 屏幕上那 6 位，或者直接扫二维码');
+    if (key) this._key = key;
+    this._code = code;
+    this._codeAt = this.now();       /* ← 打卡时刻就定在这一刻 */
+    this.locate();
   },
 
   renderList(){
@@ -10692,7 +10750,7 @@ const StuSign = {
         <span class="grow">${Stu.statusText(r)}
           <br><span class="hint" style="display:inline;margin:0">
             ${new Date(r.at).toLocaleTimeString('zh-CN')} ·
-            ${{code:'动态码', geo:'定位', 'geo-far':'定位存疑', key:'位置密钥', self:'直接', manual:'教务补签'}[r.way] || ''}</span></span>
+            ${Util.esc(Util.wayText(r.way))}</span></span>
         ${Stu.statusChip(r)}
       </div>`).join('').replace(/<span class="chip chip-on"|<span class="chip "/g, m => m)
       : '<div class="empty">这个月还没有打卡记录</div>';
@@ -10712,16 +10770,24 @@ const StuSign = {
     try {
       const j = await Auth.call('sign', payload);
       this.syncClock(j.serverNow);
+      /* 定位这关没过（取不到位置 / 人不在半径内）→ 打卡成立、但记「待核」。
+         服务端把 way 带回来了，据此决定要不要把「用密钥更正」的口子摆出来。 */
+      const geoBad = (j.way === 'geo-none' || j.way === 'geo-far');
       UI.toast(j.status === '迟到' ? `打上了，${this.hm(payload.at)} · 迟到 ${j.lateMin} 分钟`
-             : j.status === '待核' ? '已记录，等教务核对（这不算缺卡）'
+             : j.status === '待核' ? (geoBad
+                 ? '已记录（待核）—— 位置没对上，教务会核对。人在教室里可以找教务要位置密钥当场改'
+                 : '已记录，等教务核对（这不算缺卡）')
              : `打上了，${this.hm(payload.at)} · 正常`);
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来
+      this._stage = '';
       this._geo = null;
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
+      this._code = '';
+      this._codeAt = 0;
       this._manual = false;         // 路口回到默认那条：下次还是「扫一下」
-      this._key = '';               // 位置密钥也一起清掉
-      this._needKey = false;
-      this._keyOpen = false;
+      this._needKey = geoBad;       // 只有「待核」才给这个口子
+      this._keyOpen = geoBad;
+      if (!geoBad) this._key = '';  // 已经定性了，密钥不用再留着
       const el = document.getElementById('stuCode'); if (el) el.value = '';
       const kel = document.getElementById('stuKey'); if (kel) kel.value = '';
       this.render();
@@ -10731,13 +10797,23 @@ const StuSign = {
         const q = this.queue();
         q.push(Object.assign(payload, { offline: true }));
         this._saveQ(q.slice(-7));
-        this._geo = null;
+        /* 断网这条路上「那一刻」已经随 payload 记进去了，联网补传就按它判迟到 */
+        this._stage = ''; this._geo = null;
+        this._scanned = ''; this._code = ''; this._codeAt = 0;
+        this._key = ''; this._needKey = false; this._keyOpen = false;
         UI.toast('现在没网，已记下打卡时间 ' + this.hm(payload.at) + '，联网后自动提交（就按这个时间算迟到）');
         this.render();
+      } else if (e.code === 'EXPIRED'){
+        /* 码在定位那几秒里过期了：回第 1 步重取一枚 —— 打卡时刻也跟着重算 */
+        this._stage = 'code';
+        this._scanned = ''; this._code = ''; this._codeAt = 0;
+        UI.toast('那个码过期了 —— 对着面前屏幕上的二维码再扫一次');
+        this.render();
       } else if (e.code === 'GEOFAR' || e.code === 'BADKEY' || e.code === 'KEYFULL'){
-        /* 人不在校区范围、或密钥不对/名额满了 —— 把密钥框摆出来，别让学生自己猜下一步 */
+        /* 密钥不对 / 名额满了（更正那条路上才会碰到）—— 把更正框留着，别让学生自己猜 */
         const kv = document.getElementById('stuKey');
         if (kv && kv.value) this._key = kv.value.replace(/\D/g, '');
+        this._stage = ''; this._scanned = ''; this._code = ''; this._codeAt = 0;
         this._needKey = true;
         this._keyOpen = true;
         UI.toast(e.message);
@@ -11178,9 +11254,11 @@ const Sign = {
     if (!el) return;
     const r = this.rules();
     const lateTxt = Number(r.lateAfter) > 0 ? `宽限 ${r.lateAfter} 分钟` : '零宽限（到点就迟到）';
+    /* v51：半径不再拦打卡，只是在半径外打的记「待核」—— 这句得说清楚，
+       否则教务会以为「半径外打不上」，反过来以为「没采集也一样严」 */
     el.textContent = r.lat != null
-      ? `校区已采集：${r.lat.toFixed(5)}, ${r.lng.toFixed(5)} · 半径 ${r.radius} 米 · 上课 ${r.startAt} · ${lateTxt}`
-      : `还没有采集校区位置 —— 采集之前没有位置校验（学生在哪儿都打得上）。请用手机站在教室里点「📍采集当前位置为校区」。上课 ${r.startAt} · ${lateTxt}`;
+      ? `校区已采集：${r.lat.toFixed(5)}, ${r.lng.toFixed(5)} · 半径 ${r.radius} 米（半径外不拦打卡，只记「待核」）· 上课 ${r.startAt} · ${lateTxt}`
+      : `还没有采集校区位置 —— 采集之前没有位置校验：学生在哪儿都打得上、也不会落「待核」。请用手机站在教室里点「📍采集当前位置为校区」。上课 ${r.startAt} · ${lateTxt}`;
   },
 
   pickHere(){
@@ -11393,57 +11471,141 @@ const Sign = {
     const devN = {};
     signs.forEach(s => { if (s && s.dev) devN[s.dev] = (devN[s.dev] || 0) + 1; });
 
+    /* 这个时段的考勤 —— 请假（病假/事假 + 请假几分钟这个备注）记在考勤那边，
+       打卡这边也得读出来，不然两处对不上。 */
+    const pid = this.curPid();
+    const byAtt = {};
+    Store.list('att:' + date).forEach(x => {
+      if (x && x.studentId && ((x.pid || 'am') === pid)) byAtt[x.studentId] = x;
+    });
+
     const done = students.filter(s => bySid[s.id]).length;
     if (meta) meta.textContent = `${date} · ${done}/${students.length} 人已打卡`;
 
     box.innerHTML = students.length ? students.map(s => {
       const rec = bySid[s.id];
+      const att = byAtt[s.id];
       const shared = rec && rec.dev && devN[rec.dev] > 1;
-      const flag = !rec ? '' : (rec.status === '待核' || rec.way === 'geo-far' || shared || rec.offline)
+      const flag = !rec ? '' : (rec.status === '待核' || rec.way === 'geo-none' || rec.way === 'geo-far' || shared || rec.offline)
         ? '<span class="chip chip-no" style="pointer-events:none;margin-left:6px">需核对</span>' : '';
       const st = rec ? rec.status : '未打卡';
       return `<div class="item" style="flex-wrap:wrap">
         <span class="grow">${Util.esc(s.name)} ${flag}
           <br><span class="hint" style="display:inline;margin:0">${
-            rec ? `${new Date(rec.at).toLocaleTimeString('zh-CN')} · ${
-              {code:'动态码', geo:'定位', 'geo-far':'定位存疑', key:'位置密钥', self:'直接', manual:'教务补签'}[rec.way] || ''}${
+            rec ? `${new Date(rec.at).toLocaleTimeString('zh-CN')} · ${Util.esc(Util.wayText(rec.way))}${
               rec.dist != null ? ' · ' + rec.dist + ' 米' : ''}${
-              rec.status === '迟到' ? ' · 迟到 ' + rec.lateMin + ' 分钟' : ''}${
+              rec.status === '迟到' ? ' · 迟到 ' + rec.lateMin + ' 分钟'
+                                   : (rec.status === '待核' && rec.lateMin > 0 ? ' · 按码算迟了 ' + rec.lateMin + ' 分钟' : '')}${
+              rec.leaveMin ? ' · 请假 ' + rec.leaveMin + ' 分钟' : ''}${
+              rec.fix ? ' · 教务已改判为准时到' : ''}${
               rec.offline ? (rec.recvAt ? ' · 断网，' + new Date(rec.recvAt).toLocaleTimeString('zh-CN') + ' 补传' : ' · 断网补传') : ''}`
-              : '今天还没打卡'}</span></span>
+              : (att && att.leaveMin ? '今天还没打卡 · 已记请假 ' + att.leaveMin + ' 分钟' : '今天还没打卡')}</span></span>
         <span class="chip ${st === '正常' ? 'chip-on' : (st === '未打卡' ? '' : 'chip-no')}" style="pointer-events:none">${st}</span>
         <div class="row" style="margin-top:6px;width:100%;flex-wrap:wrap">
           ${['正常','迟到','病假','事假'].map(x =>
             `<button class="chip ${rec && rec.status === x ? 'chip-on' : ''}" onclick="Sign.setStatus('${s.id}','${x}')">${x}</button>`).join('')}
           <button class="chip" onclick="Sign.setStatus('${s.id}','')">清除</button>
+          <i style="width:1px;align-self:stretch;background:var(--rule,#e8e3d9);margin:0 5px"></i>
+          <button class="chip" onclick="Sign.fixOntime('${s.id}')" title="把这条改回准时到，迟到扣的分一起退">改为准时到</button>
+          <button class="chip" onclick="Sign.markLeave('${s.id}')" title="记成请假，并备注请假多少分钟">请假…</button>
         </div>
       </div>`;
     }).join('') : '<div class="empty">这个班还没有学员</div>';
   },
 
+  /* ── 教务端两个补正按键（v51）──
+     学生端把顺序倒过来之后，定位不再是关卡：取不到位置 / 坐标压不进半径 → 打卡照打、
+     状态记「待核」，等教务看一眼再定。这两个按键就是「看完之后怎么处理」：
+
+     ① 「改为准时到」——他按码的时间本来多半就该算正常（迟到常常是定位拖出来的），
+        一键改回来，**并把迟到扣掉的量化分一起退回去**。
+     ② 「请假 N 分钟」——有些同学是请假了一会儿才到：记成请假（病假/事假）+
+        「请假 X 分钟」的备注，不计迟到、不扣迟到那笔分。
+
+     两个都是「写考勤 + 打卡记录跟着改 + 量化重算」，跟教务在考勤页点名是同一条链路。 */
+
+  /** 打卡页当前选的日期 / 打卡时段（设置里配的那个，跟考勤页共用一套） */
+  curDate(){
+    const el = document.getElementById('sgDate');
+    return (el && el.value) || Store.get('_signDate') || Util.today();
+  },
+  curPid(){
+    const r = this.rules();
+    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id: 'am' }];
+    return r.pid || (slots[0] && slots[0].id) || 'am';
+  },
+  /** 写一条考勤（打卡页的补正都走这儿）+ 量化跟着重算。
+      ⚠️ 永远是**合并**不是替换：请假分钟这类备注得留在记录上，不能被下一次改判抹掉。 */
+  writeAtt(date, sid, status, extra){
+    const key = 'att:' + date;
+    const pid = this.curPid();
+    const old = Store.list(key).find(x => x && x.studentId === sid && (x.pid || 'am') === pid);
+    const rec = Object.assign({}, old || {}, { studentId: sid, status, pid }, extra || {});
+    if (status !== '病假' && status !== '事假') rec.leaveMin = undefined;
+    Store.upsert(key, rec);
+    if (typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(Store.get('_signCls'), date);
+  },
+
+  /** ① 改为准时到：状态回正常、迟到分钟归零，量化分一起退。
+      ⚠️ at / way / dist **一个都不动** —— 那条记录是「他几点按的、怎么按的」的事实，
+         改判只该改定性，不该改事实（回查的时候还得看得见）。 */
+  fixOntime(sid){
+    const date = this.curDate();
+    const sr = Store.list('sign:' + date).find(x => x && x.studentId === sid);
+    if (!sr) return UI.toast('这位同学今天还没打卡 —— 下面用「正常」补一条就行');
+    const from = sr.status;
+    if (from === '正常') return UI.toast('这条已经是准时到了');
+    Store.upsert('sign:' + date, Object.assign({}, sr, {
+      status: '正常', lateMin: 0,
+      fix: { by: 'manual', at: Date.now(), from },
+    }));
+    this.writeAtt(date, sid, '正常');
+    UI.toast('已改为准时到（原来：' + from + '）· 迟到扣的分一起退了');
+    this.render();
+  },
+
+  /** ② 请假 N 分钟：写进考勤 + 打卡记录跟着改，两边显示一致 */
+  markLeave(sid){
+    const date = this.curDate();
+    const key = 'att:' + date;
+    const pid = this.curPid();
+    const old = Store.list(key).find(x => x && x.studentId === sid && (x.pid || 'am') === pid);
+    const v = prompt('给 ' + (Util.stuName(sid) || '这位同学') + ' 记请假 —— 多少分钟？（只填数字，比如 20）',
+                     old && old.leaveMin ? String(old.leaveMin) : '');
+    if (v === null) return;                                  // 取消
+    const min = Math.round(Number(String(v).replace(/\D/g, '')));
+    if (!min || min <= 0) return UI.toast('填一个分钟数，比如 20');
+    /* 类型：原来已经记过病假就沿用，否则默认事假（要改的话后面那两个按钮一点就是） */
+    const kind = (old && (old.status === '病假' || old.status === '事假')) ? old.status : '事假';
+    this.writeAtt(date, sid, kind, { leaveMin: min });
+    const sr = Store.list('sign:' + date).find(x => x && x.studentId === sid);
+    if (sr) Store.upsert('sign:' + date, Object.assign({}, sr, { status: kind, lateMin: 0, leaveMin: min }));
+    UI.toast('已记请假 ' + min + ' 分钟（' + kind + '）· 不计迟到、不扣迟到那笔分');
+    this.render();
+  },
+
   /** 补签 / 改判：写进考勤，量化自动跟着走（跟教务在考勤页点名是同一条链路） */
   setStatus(sid, st){
-    const el = document.getElementById('sgDate');
-    const date = (el && el.value) || Util.today();
-    const r = this.rules();
-    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id:'am', name:'上午' }];
-    const pid = r.pid || (slots[0] && slots[0].id) || 'am';
+    const date = this.curDate();
+    const pid = this.curPid();
     const key = 'att:' + date;
     const skey = 'sign:' + date;
 
     if (!st){
-      Store.list(key).filter(x => x.studentId === sid && (x.pid || 'am') === pid)
+      const had = Store.list(key).some(x => x && x.studentId === sid && (x.pid || 'am') === pid);
+      Store.list(key).filter(x => x && x.studentId === sid && (x.pid || 'am') === pid)
         .forEach(x => Store.softDelete(key, x.id));
-      const sr = Store.list(skey).find(x => x.studentId === sid);
+      const sr = Store.list(skey).find(x => x && x.studentId === sid);
       if (sr) Store.softDelete(skey, sr.id);
+      /* 删掉的那条要是「迟到」，量化里跟着扣的分也得一起退 ——
+         这里以前漏了这一句，删完分还挂着（syncAtt 幂等，重算一次就对了） */
+      if (had && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(Store.get('_signCls'), date);
     } else {
-      const old = Store.list(key).find(x => x.studentId === sid && (x.pid || 'am') === pid);
-      Store.upsert(key, { id: old ? old.id : null, studentId: sid, status: st, pid });
-      const sr = Store.list(skey).find(x => x.studentId === sid);
-      Store.upsert(skey, Object.assign({}, sr || {}, {
-        id: sid, studentId: sid, status: st, at: Date.now(), way: 'manual', by: 'manual',
-      }));
-      if (typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(Store.get('_signCls'), date);
+      this.writeAtt(date, sid, st);
+      const sr = Store.list(skey).find(x => x && x.studentId === sid);
+      const patch = { id: sid, studentId: sid, status: st, at: Date.now(), way: 'manual', by: 'manual' };
+      if (st === '正常') patch.lateMin = 0;
+      Store.upsert(skey, Object.assign({}, sr || {}, patch));
     }
     UI.toast(st ? '已改判为「' + st + '」' : '已清除这一条');
     this.render();
@@ -11457,12 +11619,16 @@ const Sign = {
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
     const bySid = {};
     Store.list('sign:' + date).forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
-    const rows = [['姓名','日期','状态','迟到分钟','打卡时间','方式','距离(米)','设备']];
+    const rows = [['姓名','日期','状态','迟到分钟','请假分钟','打卡时间','方式','距离(米)','教务改判','设备']];
     students.forEach(s => {
       const r = bySid[s.id];
       rows.push([s.name, date, r ? r.status : '未打卡', r ? (r.lateMin || 0) : '',
+                 r && r.leaveMin ? r.leaveMin : '',
                  r ? new Date(r.at).toLocaleTimeString('zh-CN') : '',
-                 r ? (r.way || '') : '', r ? (r.dist == null ? '' : r.dist) : '', r ? (r.dev || '') : '']);
+                 (r && r.way) ? Util.wayText(r.way) : '',
+                 r ? (r.dist == null ? '' : r.dist) : '',
+                 (r && r.fix) ? ('已改为准时到（原：' + (r.fix.from || '') + '）') : '',
+                 r ? (r.dev || '') : '']);
     });
     Util.download(`打卡_${Util.clsName(clsId)}_${date}.csv`, Util.csv(rows));
     UI.toast('已导出这一天的打卡');

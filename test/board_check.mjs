@@ -1009,30 +1009,35 @@ try {
     return stuLogin.page;
   });
 
-  /* 走进打卡页、定位就绪：路口**只该摆扫码一条**，输入框这时候不该出现
-     （以前两条并排摆，看着就像「先扫、再输」，这正是用户说别扭的地方）。 */
+  /* 走进打卡页：**点圈才开始取码**（v51 把顺序倒过来了 —— 先码、后定位）。
+     没点圈之前，圈下面该是干干净净的：圈本身就是那颗按钮。 */
   const gate = await stu.eval(`(() => {
     App.go('stuSign');
-    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };   /* 定位直接塞结果，不去真要权限 */
-    StuSign._scanned = ''; StuSign._manual = false;
+    StuSign._stage = ''; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0;
+    StuSign._manual = false; StuSign._geo = null;
     StuSign.renderStep();
+    const before = document.getElementById('stuSignStep').querySelectorAll('button').length;
+    StuSign.start();                                   /* 点圈 = 开始取码 */
     const step = document.getElementById('stuSignStep');
     const txt = [...step.querySelectorAll('button')].map(b => b.textContent.trim());
-    return { hasInput: !!document.getElementById('stuCode'),
+    return { before: before, hasInput: !!document.getElementById('stuCode'),
              btns: txt,
              box: !!document.getElementById('scanBox'),
-             hint: step.textContent.replace(/\s+/g, ' ').trim().slice(0, 70) };
+             stage: StuSign._stage,
+             hint: step.textContent.replace(/\\s+/g, ' ').trim().slice(0, 80) };
   })()`);
-  t('打卡页默认只摆「扫面前的二维码」一条路，输入框先不出现（二选一，不并排）', () => {
-    assert(!gate.hasInput, '没点「手输」之前不该出现输入框（两条并排会让人以为要先扫再输）');
+  t('点圈才开始取码：只摆「扫面前的二维码」+「手输动态码」，输入框先不出现（二选一，不并排）', () => {
+    assert(gate.before === 0, '没点圈之前圈下面该是空的，实际有 ' + gate.before + ' 个按钮');
+    assert(gate.stage === 'code', '点圈该进到「取码」这一步，实际「' + gate.stage + '」');
     assert(gate.btns.includes('扫面前的二维码'), '该有「扫面前的二维码」这个按钮，实际：' + gate.btns.join(' / '));
     assert(gate.btns.includes('手输动态码'), '该有「手输动态码」的入口，实际：' + gate.btns.join(' / '));
+    assert(!gate.hasInput, '没点「手输」之前不该出现输入框（两条并排会让人以为要先扫再输）');
     assert(!gate.box, '没点之前不该出现取景框');
     return '按钮 ' + gate.btns.join(' / ');
   });
   /* 这一张单拍「默认态」：只有「扫面前的二维码」一条路，输入框还没出来。
-     终点那张（board-scan-stu.png）定格在「拒收 5 位码」的提示上，跟前因后果摆在一起
-     容易让人以为是 bug —— 默认态才是这次改动的门面。
+     终点那张（board-scan-stu.png）定格在「码已经读到了」的手输框上，跟前因后果摆在一起
+     容易让人以为要输两遍 —— 默认态才是这次改动的门面。
      ⚠️ 必须等一会儿再拍：`.page.on > *` 有入场动画（初态 opacity:0），
         刚 renderStep 完就截会得到一片空白；顺带等登录那句 toast 自己散掉。 */
   await stu.eval(`new Promise(r => setTimeout(r, 1400))`);
@@ -1061,60 +1066,125 @@ try {
     assert(manual.maxlen === 6, '输入框该限 6 位（码就是 6 位），实际 ' + manual.maxlen);
     assert(manual.focused === true, '自己点进来手输，该把焦点给上去');
     assert(manual.btns.includes('改用扫码'), '手输这条路该留一个「改用扫码」的回退，实际：' + manual.btns.join(' / '));
+    assert(manual.btns.includes('下一步：定位打卡'), '该有「下一步：定位打卡」把码交出去再定位，实际：' + manual.btns.join(' / '));
     return '限 ' + manual.maxlen + ' 位 · placeholder「' + manual.ph + '」· 按钮 ' + manual.btns.join(' / ');
   });
 
-  /* 仿真一次「扫到了」：定位还没拿到时先扫，码该被存下来。
-     onScan 的参数就是解码器吐出来的字符串 —— 这里带脏字符，顺带守住「只留数字」。 */
-  const scanned = await stu.eval(`(() => {
-    StuSign._geo = null; StuSign._scanned = ''; StuSign._manual = false;
-    StuSign.onScan(' 24-68 13 ');
-    const a = { scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox'),
-                manual: StuSign._manual };
-    /* 定位补上之后再渲染：扫来的码该已经替他填好。
-       没定位时圈下面本来就是空的（圈自己就是按钮），不用摆输入框。 */
-    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
-    StuSign.renderStep();
-    a.shown = (document.getElementById('stuCode') || {}).value;
-    StuSign._geo = null; StuSign._manual = false;
-    /* 位数不对的（扫到了屏幕上别的东西）该被挡回去，不截断、不猜 */
-    StuSign._scanned = '';
-    StuSign.onScan('12345');
-    const b = { scanned: StuSign._scanned };
-    StuSign.onScan('12345678');
-    const c = { scanned: StuSign._scanned };
-    return { a: a, b: b, c: c };
-  })()`);
-  t('扫到码只留数字存下来，取景窗当场关掉（摄像头指示灯不许一直亮）', () => {
-    assert(scanned.a.scanned === '246813', '该存下 246813（滤掉空格和横杠），实际「' + scanned.a.scanned + '」');
-    assert(!scanned.a.cam && !scanned.a.box, '扫完该把取景窗和摄像头一起收掉');
-    assert(scanned.a.manual === true, '还没定位就扫到了，该把手输那条路摆出来让他看见码已进去');
-    assert(scanned.a.shown === '246813', '定位补上之后，码该已经替他填好，实际「' + scanned.a.shown + '」');
-    assert(scanned.b.scanned === '', '5 位的码该被挡回去（不猜、不补零），实际「' + scanned.b.scanned + '」');
-    assert(scanned.c.scanned === '', '8 位的码也该被挡回去（不截断），实际「' + scanned.c.scanned + '」');
-    return '「 24-68 13 」→ ' + scanned.a.scanned + ' · 5 位 / 8 位都拒收';
-  });
-
-  /* ⚠️ 用户报的那条：扫完还得再输一遍。
-     病根是 confirm() 只读输入框，而扫到码时输入框可能压根没渲染。
-     这里把 doSign 换成探针，**故意不让输入框存在**，走 _scanned 这条路提交。 */
-  const noRetype = await stu.eval(`(async () => {
-    const orig = StuSign.doSign;
-    let got = null;
-    StuSign.doSign = function(p){ got = p; };
-    StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
-    StuSign._scanned = '246813';
-    StuSign._manual = false;
-    StuSign.renderStep();                       /* 走扫码那条路：此刻页面上没有 stuCode */
-    const hadInput = !!document.getElementById('stuCode');
+  /* 「下一步」：把码收下、**记下这一刻**，然后才去定位（不是先去定位）。 */
+  const nextStep = await stu.eval(`(() => {
+    const origLoc = StuSign.locate;
+    let loc = 0;
+    StuSign.locate = function(){ loc++; };
+    const inp = document.getElementById('stuCode');
+    inp.value = '246813';
     const toasts = [];
     const origToast = UI.toast; UI.toast = m => toasts.push(String(m));
     StuSign.confirm();
     UI.toast = origToast;
-    StuSign.doSign = orig;
-    return { hadInput: hadInput, code: got && got.code, geo: got && got.lat != null, toasts: toasts };
+    StuSign.locate = origLoc;
+    return { loc: loc, code: StuSign._code, at: StuSign._codeAt, toasts: toasts };
   })()`);
-  t('扫到码之后直接提交，不会再要人「输一下码」（用户报的那个坑）', () => {
+  t('「下一步」把码收下、记下这一刻，然后才去定位（顺序倒过来了）', () => {
+    assert(nextStep.loc === 1, '该进到定位那一步，实际 ' + nextStep.loc);
+    assert(nextStep.code === '246813', '码该收进 _code，实际「' + nextStep.code + '」');
+    assert(nextStep.at > 0, '该记下「取到码那一刻」（打卡时刻按它算）');
+    assert(!nextStep.toasts.some(m => /输/.test(m)), '码齐了不该再弹「输一下」，实际：' + nextStep.toasts.join(' / '));
+    return 'confirm → _code=246813 · _codeAt 已记 · locate() ×1';
+  });
+
+  /* 仿真一次「扫到了」：v51 起扫到码**当场就去定位**（定位跑完自动提交，不用再按圈）。
+     onScan 的参数就是解码器吐出来的字符串 —— 这里带脏字符，顺带守住「只留数字」。
+     locate() 换成探针，不然真去要定位权限、真提交打卡。 */
+  const scanned = await stu.eval(`(() => {
+    const origLoc = StuSign.locate, origConf = StuSign.confirm;
+    let loc = 0, conf = 0;
+    StuSign.locate = function(){ loc++; };
+    StuSign.confirm = function(){ conf++; };
+    StuSign._stage = 'code'; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0;
+    StuSign._manual = false;
+    StuSign.onScan(' 24-68 13 ');
+    const a = { scanned: StuSign._scanned, code: StuSign._code, at: StuSign._codeAt,
+                stage: StuSign._stage, loc: loc, conf: conf,
+                cam: !!StuSign._cam, box: !!document.getElementById('scanBox') };
+    /* 位数不对的（扫到了屏幕上别的东西）该被挡回去，不截断、不猜 —— 也不该往下走 */
+    StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0; StuSign._stage = 'code';
+    StuSign.onScan('12345');
+    const b = { scanned: StuSign._scanned, at: StuSign._codeAt, stage: StuSign._stage, loc: loc };
+    StuSign.onScan('12345678');
+    const c = { scanned: StuSign._scanned, loc: loc };
+    StuSign.locate = origLoc; StuSign.confirm = origConf;
+    return { a: a, b: b, c: c };
+  })()`);
+  t('扫到码：只留数字、记下「这一刻」、当场进定位；取景窗当场关掉（摄像头不许一直亮）', () => {
+    assert(scanned.a.scanned === '246813', '该存下 246813（滤掉空格和横杠），实际「' + scanned.a.scanned + '」');
+    assert(scanned.a.code === '246813', '码该同时落到 _code（提交时读的就是它）');
+    assert(scanned.a.at > 0, '该记下「取到码那一刻」—— 打卡时刻按它算，定位慢几秒不吃亏');
+    assert(scanned.a.loc === 1, '扫到之后该当场去定位（不用再按圈），实际 ' + scanned.a.loc + ' 次');
+    assert(scanned.a.conf === 0, '不该再绕一圈去调 confirm（那正是「扫完还要再按一下」的老毛病）');
+    assert(!scanned.a.cam && !scanned.a.box, '扫完该把取景窗和摄像头一起收掉');
+    assert(scanned.b.scanned === '', '5 位的码该被挡回去（不猜、不补零），实际「' + scanned.b.scanned + '」');
+    assert(scanned.b.loc === 1, '位数不对不该往下走（不该去定位），实际 ' + scanned.b.loc);
+    assert(scanned.b.stage === 'code', '位数不对该留在取码这一步');
+    assert(scanned.c.scanned === '', '8 位的码也该被挡回去（不截断）');
+    return '「 24-68 13 」→ 246813 · 记时刻 · locate() ×1 · 5 位/8 位都拒收';
+  });
+
+  /* locate()：定位拿不到也**照样往下提交** —— 定位不是关卡，它只是「人在不在教室」的证据。
+     无头浏览器没有定位权限，把 getCurrentPosition 换成立刻走 error 回调的那个探针。 */
+  const locateFlow = await stu.eval(`(async () => {
+    const orig = StuSign.doSign;
+    let got = null, n = 0;
+    StuSign.doSign = function(p){ n++; got = p; };
+    const desc = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
+    Object.defineProperty(navigator, 'geolocation', { configurable: true,
+      value: { getCurrentPosition: (ok, err) => setTimeout(() => err(new Error('denied')), 10) } });
+    StuSign._stage = 'code'; StuSign._scanned = '246813'; StuSign._code = '246813';
+    StuSign._codeAt = 333333; StuSign._geo = null;
+    StuSign.locate();
+    const mid = StuSign._stage;
+    await new Promise(r => setTimeout(r, 300));
+    const out = { mid: mid, n: n, code: got && got.code, hasLat: got && got.lat != null,
+                  at: got && got.at, stage: StuSign._stage, geo: StuSign._geo };
+    if (desc) Object.defineProperty(navigator, 'geolocation', desc);
+    else { try { delete navigator.geolocation; } catch (e) {} }
+    StuSign.doSign = orig;
+    StuSign._stage = ''; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0; StuSign._geo = null;
+    return out;
+  })()`);
+  t('locate()：定位失败也照样把打卡提交上去（定位降级成证据，不是关卡）', () => {
+    assert(locateFlow.mid === 'geo', '一调 locate 该立刻进「正在定位」，实际「' + locateFlow.mid + '」');
+    assert(locateFlow.n === 1, '定位失败也该提交一次，实际 ' + locateFlow.n + ' 次');
+    assert(locateFlow.code === '246813' && locateFlow.at === 333333, '码和「那一刻」都该原样带上');
+    assert(!locateFlow.hasLat, '没取到位置就不带 lat/lng（服务端据此记 geo-none + 待核）');
+    assert(locateFlow.geo && locateFlow.geo.fail === true, '_geo 该记成 {fail:true}');
+    assert(locateFlow.stage === 'send', '提交时该进到「提交中」，实际「' + locateFlow.stage + '」');
+    return 'locate → 定位失败 → 照样 post()：带 code + _codeAt，不带 lat';
+  });
+
+  /* ⚠️ 用户报过的那条：扫完还得再输一遍。
+     现在扫到的码存在 _scanned / _code 里，提交时读的是它 —— 页面上有没有输入框都不相干。
+     这里把 doSign 换成探针，**故意让页面上没有输入框**，看提交上去的是什么。 */
+  const noRetype = await stu.eval(`(() => {
+    const orig = StuSign.doSign;
+    let got = null;
+    StuSign.doSign = function(p){ got = p; };
+    StuSign._stage = 'geo';                     /* 定位那一步，页面上只有一行进度提示 */
+    StuSign._scanned = '246813'; StuSign._code = '246813'; StuSign._codeAt = 111111;
+    StuSign._manual = false; StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
+    StuSign.renderStep();
+    const hadInput = !!document.getElementById('stuCode');
+    const toasts = [];
+    const origToast = UI.toast; UI.toast = m => toasts.push(String(m));
+    StuSign.post();
+    UI.toast = origToast;
+    StuSign.doSign = orig;
+    const out = { hadInput: hadInput, code: got && got.code, at: got && got.at,
+                  geo: got && got.lat != null, toasts: toasts };
+    StuSign._stage = ''; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0;
+    StuSign._geo = null;
+    return out;
+  })()`);
+  t('扫来的码直接提交，不会再要人「输一下码」（用户报的那个坑）', () => {
     assert(!noRetype.hadInput, '这一趟故意走扫码那条路：页面上本来就没有输入框');
     assert(noRetype.code === '246813', '提交上去的该是扫来的 246813，实际 ' + JSON.stringify(noRetype.code));
     assert(noRetype.geo, '定位也该一起带上去');
@@ -1122,23 +1192,68 @@ try {
     return '无输入框 + _scanned=246813 → 直接提交 code=246813，一次提示都没弹';
   });
 
-  /* 定位已经就绪时扫到码，该**直接提交** —— 扫完还要再按一下圈，那这趟就白扫了。
-     confirm() 换成探针，不然会真去提交打卡。 */
-  const auto = await stu.eval(`(() => {
-    const orig = StuSign.confirm;
-    let hit = 0;
-    StuSign.confirm = function(){ hit++; };
+  /* 打卡时刻带的是「取到码那一刻」（_codeAt），**不是提交那一刻** ——
+     这正是倒顺序的意义：定位跑十秒，也不该把准时拖成迟到。 */
+  const timing = await stu.eval(`(() => {
+    const orig = StuSign.doSign;
+    let got = null;
+    StuSign.doSign = function(p){ got = p; };
+    StuSign._stage = 'geo';
+    StuSign._scanned = '246813'; StuSign._code = '246813'; StuSign._codeAt = 111111;
     StuSign._geo = { lat: 34.75, lng: 113.62, acc: 12 };
-    StuSign._scanned = '';
-    StuSign.onScan('135790');
-    StuSign.confirm = orig;
-    return { hit: hit, scanned: StuSign._scanned, cam: !!StuSign._cam, box: !!document.getElementById('scanBox') };
+    StuSign.post();
+    StuSign.doSign = orig;
+    const out = { code: got && got.code, at: got && got.at, lat: got && got.lat };
+    StuSign._stage = ''; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0;
+    StuSign._geo = null;
+    return out;
   })()`);
-  t('定位已就绪时扫到码直接提交，不用再按一下圈', () => {
-    assert(auto.hit === 1, '该当场调 confirm() 一次，实际 ' + auto.hit + ' 次');
-    assert(auto.scanned === '135790', '提交前该把码存好，实际「' + auto.scanned + '」');
-    assert(!auto.cam && !auto.box, '提交的同时该把取景窗收掉');
-    return 'onScan → confirm() ×1';
+  t('提交带的是「取到码那一刻」（_codeAt），不是提交那一刻', () => {
+    assert(timing.at === 111111, '该原样带 _codeAt，实际 ' + timing.at);
+    assert(timing.code === '246813', '码也该一起带上去');
+    assert(timing.lat === 34.75, '定位结果一起带上（服务端才判得了在不在校区）');
+    return 'payload.at = _codeAt（不是 now）';
+  });
+
+  /* 定位取不到也**照样提交** —— 打卡不该被手机定位卡住（记「待核」交教务）。 */
+  const geofail = await stu.eval(`(() => {
+    const orig = StuSign.doSign;
+    let got = null, n = 0;
+    StuSign.doSign = function(p){ n++; got = p; };
+    StuSign._stage = 'geo';
+    StuSign._scanned = '246813'; StuSign._code = '246813'; StuSign._codeAt = 222222;
+    StuSign._geo = { fail: true };
+    StuSign.post();
+    StuSign.doSign = orig;
+    const out = { n: n, code: got && got.code, hasLat: got && got.lat != null, at: got && got.at };
+    StuSign._stage = ''; StuSign._scanned = ''; StuSign._code = ''; StuSign._codeAt = 0;
+    StuSign._geo = null;
+    return out;
+  })()`);
+  t('定位取不到也照样提交（打卡不该被定位卡住），只是不编一个位置出来', () => {
+    assert(geofail.n === 1, '该照样提交一次，实际 ' + geofail.n + ' 次');
+    assert(geofail.code === '246813', '码该带上去');
+    assert(!geofail.hasLat, '没取到位置就别编一个出来（服务端据此记 geo-none + 待核）');
+    assert(geofail.at === 222222, '时间照样按取到码那一刻算');
+    return '定位失败 → 照样提交，只是不带 lat/lng';
+  });
+
+  /* 落成「待核」时，学生端给一个用位置密钥**当场更正**的口子 ——
+     这是学生侧唯一的重打入口（「每次重新打卡」那条路 v48 已经拆掉了）。 */
+  const fixUi = await stu.eval(`(() => {
+    const need = StuSign.fixBox({ status: '待核' });
+    const done = StuSign.fixBox({ status: '正常' });
+    const late = StuSign.fixBox({ status: '迟到' });
+    return { need: need, done: done, late: late };
+  })()`);
+  t('落成「待核」时给出用位置密钥当场更正的入口（学生端唯一的重打口子）', () => {
+    assert(/stuKey/.test(fixUi.need), '待核该把 4 位密钥输入框摆出来');
+    assert(/用密钥更正/.test(fixUi.need), '该有「用密钥更正」这个按钮');
+    assert(/待核/.test(fixUi.need), '该写清楚这条已经记上了、只是待核（不然学生会以为没打上）');
+    assert(fixUi.done === '' && fixUi.late === '', '已经定性的记录不该再给这个口子');
+    assert(/g\.signed && g\.rec\)\{ el\.innerHTML = this\.fixBox\(g\.rec\)/.test(BOARD_SRC),
+      'renderStep 该把待核记录接进 fixBox');
+    return '待核 → 密钥更正框；正常 / 迟到 → 不显示';
   });
 
   /* 取景窗的关法：stream 的每个 track 都要 stop、取景框要从 DOM 里摘掉、重复调不报错。

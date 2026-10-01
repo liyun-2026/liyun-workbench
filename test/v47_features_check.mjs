@@ -18,8 +18,9 @@
  *   1. 位置密钥：4 位、按班、当天、默认 5 个名额；同班同天只留一枚（不攒码）；
  *      进度条 + 已用名单 + 剩余名额；4 位以外的输入被拒
  *   2. 服务端规矩（源码级）：sign_keys 不在 STUDENT_READ（学生拿不到，只能找教务要）；
- *      GEOFAR / BADKEY / KEYFULL 三个码在；放行后 way='key' 且记 keyId；
+ *      BADKEY / KEYFULL / EXPIRED 三个码在；放行后 way='key' 且记 keyId；
  *      名额按「当天 sign 记录里 keyId 命中条数」算，不落单独的计数器
+ *      ⚠️ v51 起 GEOFAR 已拆：定位不再是关卡，越界/取不到位置都记待核照样打得上
  *   3. 班干部：名册里能加职务、指定人；学员名字后自动挂职务标签；
  *      服务端只给班干部「本班同学的 id + 姓名 + classId」三个字段，别的字段一个都不出去
  *   4. 作业：简称取头字；班干部能写 hw:（盖 by/byId），普通学生不能
@@ -250,6 +251,125 @@ try {
     return '已用 2/5 · 剩 3 · 名单：张三、李四';
   });
 
+  /* ══════════════════ 1.5 教务端两个补正按键（v51）══════════════════
+     由头：学生端把顺序倒过来了（先码后定位），定位不再是关卡 ——
+     越界、取不到位置都记「待核」照样打得动。那教务端就必须能「看一眼就一键处理」：
+       · 改为准时到 —— 状态回正常、迟到分钟归零，**迟到扣的量化分一起退回去**
+       · 请假…     —— 记病假/事假 + 备注「请假 X 分钟」，不计迟到、不扣迟到那笔分
+     两个走的是同一条链路：写考勤 + 打卡记录跟着改 + 量化重算（跟考勤页点名一样）。 */
+  console.log('\n=== 1.5 教务端两个补正按键（改为准时到 / 请假 N 分钟）===');
+  const seeded = await cdp.eval(`(async () => {
+    const date = Util.today();
+    Store.upsert('att_slots', { id:'am', name:'上午' });
+    /* 量化细则：考勤是量化的源头，没有这行 syncAtt 就什么都不记 */
+    Store.upsert('quant_rules', { key:'att:迟到', label:'迟到', delta:-2 });
+    Store.upsert('quant_rules', { key:'att:事假', label:'事假', delta:-2 });
+    Store.upsert('quant_rules', { key:'att:病假', label:'病假', delta:-1 });
+    Store.set('sign_rules', { startAt:'08:00', lateAfter:0, windowBefore:60, windowAfter:30,
+                              radius:150, lat:34.75, lng:113.62, pid:'am' });
+    Store.set('_signCls', 'cls_t1');
+    Store.set('_signDate', date);
+    /* ⚠️ 先把这一天的打卡记录清干净：上面第 1 节为了验「密钥进度条」往 sign: 里
+       塞过几条（没有 status 的那种），不清掉就会和下面这条张三撞在一起 ——
+       一人一天只该有一条，两条并存的话 find() 抓到哪条全看运气。 */
+    Store.list('sign:' + date).forEach(x => { if (x) Store.softDelete('sign:' + date, x.id); });
+    /* 张三是「按码算迟到了 12 分钟」那一条：打卡记录 + 考勤都按迟到落好，让它先扣分 */
+    Store.upsert('sign:' + date, { id:'stu_t1', studentId:'stu_t1', date:date,
+      at: Date.now() - 12 * 60e3, way:'code', status:'迟到', lateMin:12, dist:30, dev:'v47seed' });
+    Store.upsert('att:' + date, { id:'a-stu_t1', studentId:'stu_t1', status:'迟到', pid:'am' });
+    Quant.syncAtt('cls_t1', date);
+    await new Promise(r => setTimeout(r, 500));
+    Sign.render();
+    await new Promise(r => setTimeout(r, 200));
+    const wrap = document.getElementById('signToday');
+    return { date: date, score: Quant.score('cls_t1'),
+             row: wrap.textContent.replace(/\\s+/g, ' ').trim(),
+             btns: [...wrap.querySelectorAll('button')].map(b => b.textContent.trim()) };
+  })()`);
+  t('今日打卡那一行：多了「改为准时到」「请假…」，并写明「迟到 12 分钟」', () => {
+    assert(seeded.btns.includes('改为准时到'), '该有「改为准时到」，实际：' + seeded.btns.join(' / '));
+    assert(seeded.btns.includes('请假…'), '该有「请假…」，实际：' + seeded.btns.join(' / '));
+    assert(seeded.btns.includes('正常') && seeded.btns.includes('清除'), '原来那排状态按钮不该丢');
+    assert(/迟到 12 分钟/.test(seeded.row), '该写明迟到多少分钟，实际：' + seeded.row.slice(0, 140));
+    return '按钮齐 · ' + seeded.row.slice(0, 80);
+  });
+  t('前置条件：这条迟到已经扣了分（不然下面「退分」验不出来）', () => {
+    assert(seeded.score < 100, '迟到该已经扣过分，实际总分 ' + seeded.score);
+    return '总分 ' + seeded.score;
+  });
+
+  const fixed = await cdp.eval(`(() => {
+    const before = Quant.score('cls_t1');
+    const date = Util.today();
+    Sign.fixOntime('stu_t1');
+    const rec = Store.list('sign:' + date).find(x => x.studentId === 'stu_t1');
+    const att = Store.list('att:' + date).find(x => x.studentId === 'stu_t1' && (x.pid || 'am') === 'am');
+    return { before: before, after: Quant.score('cls_t1'),
+             status: rec.status, lateMin: rec.lateMin, at: rec.at, way: rec.way, dist: rec.dist,
+             fixFrom: rec.fix && rec.fix.from, att: att && att.status,
+             row: document.getElementById('signToday').textContent.replace(/\\s+/g, ' ').trim() };
+  })()`);
+  t('点「改为准时到」：状态回正常、迟到分钟归零，at / way / dist 这些事实一个都不动', () => {
+    assert(fixed.status === '正常', '状态该改成正常，实际「' + fixed.status + '」');
+    assert(fixed.lateMin === 0, '迟到分钟该归零，实际 ' + fixed.lateMin);
+    assert(fixed.fixFrom === '迟到', '该记下「原来是什么」，回查时看得见，实际「' + fixed.fixFrom + '」');
+    assert(fixed.at < Date.now() - 11 * 60e3, 'at 该还是原来那个打卡时刻 —— 那是「他几点按的」的事实');
+    assert(fixed.way === 'code' && fixed.dist === 30,
+      'way / dist 也该原样留着，实际 ' + fixed.way + ' / ' + fixed.dist);
+    return '正常 · lateMin 0 · fix.from=迟到 · at/way/dist 未动';
+  });
+  t('考勤也跟着改（考勤才是量化的源头），且迟到扣的分一起退了', () => {
+    assert(fixed.att === '正常', '考勤该跟着改成正常，实际「' + fixed.att + '」');
+    assert(fixed.after > fixed.before, '总分该升回去（' + fixed.before + ' → ' + fixed.after + '）');
+    assert(fixed.after === 100, '退干净该回到起始 100，实际 ' + fixed.after);
+    return '考勤 正常 · 总分 ' + fixed.before + ' → ' + fixed.after;
+  });
+
+  const leave = await cdp.eval(`(() => {
+    const orig = window.prompt;
+    window.prompt = () => '20';
+    const before = Quant.score('cls_t1');
+    const date = Util.today();
+    Sign.markLeave('stu_t1');
+    window.prompt = orig;
+    const rec = Store.list('sign:' + date).find(x => x.studentId === 'stu_t1');
+    const att = Store.list('att:' + date).find(x => x.studentId === 'stu_t1' && (x.pid || 'am') === 'am');
+    return { before: before, after: Quant.score('cls_t1'), st: rec.status, leaveMin: rec.leaveMin,
+             att: att && att.status, attMin: att && att.leaveMin,
+             row: document.getElementById('signToday').textContent.replace(/\\s+/g, ' ').trim() };
+  })()`);
+  t('点「请假…」填 20 分钟：考勤记「事假」+ 备注 20 分钟，打卡记录跟着改（两处一致）', () => {
+    assert(leave.att === '事假', '考勤该记成事假，实际「' + leave.att + '」');
+    assert(leave.attMin === 20, '考勤上该备注请假 20 分钟，实际 ' + leave.attMin);
+    assert(leave.st === '事假', '打卡记录也要跟着改（不然两处对不上），实际「' + leave.st + '」');
+    assert(leave.leaveMin === 20, '打卡记录上也该有 20 分钟，实际 ' + leave.leaveMin);
+    assert(/请假 20 分钟/.test(leave.row), '今日打卡那一行该显示「请假 20 分钟」，实际：' + leave.row.slice(0, 140));
+    return '事假 · 请假 20 分钟 · 签到与考勤两处一致';
+  });
+  t('请假按「事假」那笔扣分走（不是按迟到），也就是不按迟到算', () => {
+    assert(leave.after === 98, '事假默认 −2 → 该是 98，实际 ' + leave.after);
+    return '总分 100 → ' + leave.after + '（事假 −2）';
+  });
+
+  const cleared = await cdp.eval(`(() => {
+    const date = Util.today();
+    /* 再落一条迟到，验「清除」这条老路有没有把分退掉 */
+    Store.upsert('att:' + date, { id:'a-stu_t1', studentId:'stu_t1', status:'迟到', pid:'am' });
+    Quant.syncAtt('cls_t1', date);
+    const before = Quant.score('cls_t1');
+    Sign.setStatus('stu_t1', '');
+    return { before: before, after: Quant.score('cls_t1'),
+             sign: Store.list('sign:' + date).filter(x => x.studentId === 'stu_t1').length,
+             att: Store.list('att:' + date).filter(x => x.studentId === 'stu_t1').length };
+  })()`);
+  t('「清除」把考勤和打卡记录一起删掉，扣的分也退回去（老 bug：删完没重算，分一直挂着）', () => {
+    assert(cleared.sign === 0 && cleared.att === 0,
+      '两条记录都该删掉，实际 sign=' + cleared.sign + ' / att=' + cleared.att);
+    assert(cleared.after === 100, '删完该退回 100，实际 ' + cleared.after);
+    return '记录清空 · 总分 ' + cleared.before + ' → ' + cleared.after;
+  });
+
+
   /* ══════════════════ 2. 位置密钥 · 服务端的规矩（源码级）══════════════════ */
   console.log('\n=== 2. 位置密钥的服务端规矩（改界面绕不过去）===');
   t('sign_keys 不在学生可读表里 —— 学生拿不到，只能从教务手里要', () => {
@@ -260,19 +380,46 @@ try {
     assert(pre && !/sign_keys/.test(pre[1]), 'STUDENT_PREFIX_SELF 里也不该有 sign_keys');
     return 'STUDENT_READ / STUDENT_PREFIX_SELF 都不含 sign_keys';
   });
-  t('密钥不对 / 过期 / 名额满，三种情况分别有自己的错误码', () => {
+  t('密钥不对 / 名额满 / 码过期，三种情况分别有自己的错误码', () => {
     assert(/code: 'BADKEY'/.test(SRC), '少了 BADKEY（码不对或不是今天的）');
     assert(/code: 'KEYFULL'/.test(SRC), '少了 KEYFULL（名额用完）');
-    assert(/code: 'GEOFAR'/.test(SRC), '少了 GEOFAR（不在校区范围内）');
-    return 'BADKEY / KEYFULL / GEOFAR 齐';
+    assert(/code: 'EXPIRED'/.test(SRC), '少了 EXPIRED —— v51 先码后定位，码会在定位那几秒里过期');
+    return 'BADKEY / KEYFULL / EXPIRED 齐（GEOFAR 随 v51 拆掉）';
   });
-  t('「定位不准就根本打不上卡」——服务端在代码校验之前先卡地理位置', () => {
-    assert(/if \(geoBad && !keyHit\)/.test(SRC), '该在拿不到位置或超出半径时直接拒掉');
+  t('v51：定位不再是关卡 —— 越界 / 取不到位置都照样打得动，只记「待核」', () => {
+    assert(!/code: 'GEOFAR'/.test(SRC), 'v51 起不该再返回 GEOFAR 把学生挡在门外');
+    assert(/else if \(geoNone\) way = 'geo-none'/.test(SRC), "取不到位置该记 way='geo-none'");
+    assert(/else if \(geoFar\) way = 'geo-far'/.test(SRC), "坐标压不进半径该记 way='geo-far'");
+    assert(/if \(way === 'geo-none' \|\| way === 'geo-far'\) status = '待核'/.test(SRC),
+      '这两种该判「待核」，交教务核对');
     assert(/dist > Number\(rules\.radius \|\| 150\)/.test(SRC), '该用 rules.radius（默认 150 米）判定');
-    const iKey = SRC.indexOf('const keys = Array.isArray(data.sign_keys)');
-    const iGeo = SRC.indexOf('const hasGeo = body.lat != null');
-    assert(iKey > -1 && iGeo > -1, '找不到密钥校验或定位校验');
-    return '越界 → GEOFAR；没密钥放行不了';
+    return 'geo-none / geo-far → 待核；不再 GEOFAR';
+  });
+  t('打卡时刻按「取到码那一刻」算，但只许往回 150 秒（码的有效期就两个 60 秒窗口）', () => {
+    assert(/if \(!offline && at < now - 150000\) at = now/.test(SRC),
+      '旧时刻该被拉回现在 —— 别让改过的客户端拿个很旧的时间来冒充满勤');
+    assert(/if \(at > now \+ 120000\) at = now/.test(SRC), '报未来也要拉回现在');
+    assert(/p\.at = this\._codeAt \|\| this\.now\(\)|at: this\._codeAt \|\| this\.now\(\)/.test(HTML),
+      '学生端该把「取到码那一刻」带上去');
+    return 'client 带 _codeAt，服务端最多认回 150 秒';
+  });
+  t('教务端两个补正按键在源码里各就各位（改为准时到 / 请假 N 分钟）', () => {
+    assert(/fixOntime\(sid\)\{/.test(HTML), '少了「改为准时到」');
+    assert(/markLeave\(sid\)\{/.test(HTML), '少了「请假…」');
+    assert(/onclick="Sign\.fixOntime\('\$\{s\.id\}'\)"/.test(HTML), '「改为准时到」该挂在今日打卡那一行');
+    assert(/status: '正常', lateMin: 0,/.test(HTML), '「改为准时到」该把迟到分钟归零');
+    assert(/leaveMin: min/.test(HTML), '请假该带上分钟数');
+    assert(/rec\.leaveMin = undefined/.test(HTML), '改成非请假状态时该把请假分钟清掉');
+    assert(/\(\{ leaveMin: min \}\)/.test(HTML) || /kind, \{ leaveMin: min \}/.test(HTML),
+      '请假该写进考勤（走 writeAtt）');
+    return 'fixOntime / markLeave 都在，且都写考勤';
+  });
+  t('打卡方式的中文名收在一处（Util.wayText），不在四个地方各抄一份', () => {
+    assert(/wayText\(way\)\{ return this\.WAY\[way\]/.test(HTML), '少了 Util.wayText');
+    const n = (HTML.match(/code:'动态码'/g) || []).length;
+    assert(n === 1, 'way 映射该只剩 Util.WAY 一份，找到 ' + n + ' 处');
+    assert(/'geo-none'/.test(HTML) && /'geo-far'/.test(HTML), 'WAY 里该有 v51 的两种新方式');
+    return 'way 映射只剩 Util.WAY 一份';
   });
   t('拿密钥放行的打卡记为 way=key，并回查得到用了哪一枚（keyId）', () => {
     assert(/if \(keyHit\) way = 'key'/.test(SRC), '放行后该把打卡方式记成 key');

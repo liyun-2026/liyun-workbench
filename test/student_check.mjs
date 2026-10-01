@@ -9,10 +9,15 @@
  * 硬指标：学生账号登录同步一圈，教务端的数据一条都不能少。
  *
  * v47 增补（用户 2026-09-29 的四项要求）：
- *   · 位置密钥：定位不准 → 服务端直接拒（GEOFAR），拿教务那枚 4 位码才放行
+ *   · 位置密钥：定位飘了照样打得动（记待核），拿教务那枚 4 位码可当场改成正常
  *   · 班干部：本班同学的姓名只给班干部，且只截 id/name/classId 三个字段
  *   · 作业登记：班干部能替全班写 hw:，服务端盖上「谁登记的」
  *   · 学生消息：学生能给教务发消息（落成工单），收件人名单只给教务号
+ *
+ * v51 口径变化（用户 2026-09-30 要求「先码后定位」）：
+ *   · 定位**不再是关卡**：取不到位置 / 坐标压不进半径，照样打得上，
+ *     只记 way='geo-none'/'geo-far' + 状态「待核」，交教务核对（既不 400，也不写考勤）
+ *   · 打卡时刻由客户端带上（取到码那一刻），服务端最多允许往回 150 秒
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -363,13 +368,22 @@ await ta('重复打卡是覆盖，不会堆成一片', async () => {
   ok((rows[0].attempts || []).length >= 2, '每次尝试都要留痕');
 });
 
-await ta('人在范围外 → 直接打不上，得找教务要位置密钥（用户定的：定位不准不能打卡）', async () => {
+/* v51：定位从「关卡」降级成「证据」——
+   学生取到码才定位，定位慢/飘不该让人打不上卡（用户：差几分钟就把准时拖成迟到，
+   对他不公平）。所以这三种情况一律**打得上**，只是方式写清楚、状态记待核。 */
+await ta('人在范围外 → 照样打得动，记 way=geo-far + 待核（定位只当证据，不拦打卡）', async () => {
   await setRules(RULES_OK(0));
   await setKeys([]);                                  // 手上没有密钥
-  const r = await call({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5 });
-  eq(r.status, 400, '不在校区范围内该直接拒掉，不再「先记一笔待核」');
-  eq(r.body.code, 'GEOFAR', '该回 GEOFAR —— 前端靠它把「填位置密钥」那个框摆出来');
-  ok(/位置密钥/.test(r.body.error), '文案该明说去找教务要位置密钥，实际「' + r.body.error + '」');
+  const r = await must({ action: 'sign', token: s1.token, dev: 'devA', lat: 35.5, lng: 114.5 });
+  eq(r.status, '待核', '人不在校区范围 → 打卡成立，记「待核」交教务');
+  eq(r.way, 'geo-far', '方式该是 geo-far（坐标取到了，但压不进半径）');
+  ok(r.dist > 1000, '该把算出来的距离带回来给教务看（实际 ' + r.dist + ' 米）');
+  const raw = await s.get('org/data', { type: 'json' });
+  const row = (raw['sign:' + r.date] || []).find(x => x.studentId === sid1);
+  eq(row.status, '待核', '落在记录上的状态也是待核');
+  const att = (raw['att:' + r.date] || []).find(x => x.studentId === sid1);
+  ok(!att || att.status !== '待核',
+     '待核不该写进考勤 —— 考勤是量化的源头，还没定性不能先替教务扣了分');
 });
 
 await ta('动态码：码不对打不上', async () => {
@@ -424,22 +438,46 @@ await ta('固定码这条岔路已拆：老数据里残留的自设码不再生�
   eq(r.way, 'code', '换成当前那 6 位就该打得动');
 });
 
-await ta('关掉定位、只拿码：也打不上（判不了在不在教室就不放行）', async () => {
+await ta('取不到位置、只拿码 → 照样打得动，记 way=geo-none + 待核', async () => {
   await setRules(RULES_OK(0));
   await setKeys([]);
   const c = await must({ action: 'code', token: su.token });
-  const r = await call({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
-  eq(r.status, 400, '教务配过校区坐标、学生又不给位置 → 该直接拒');
-  eq(r.body.code, 'GEOFAR', '同样是 GEOFAR（要密钥）');
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA' });
+  eq(r.status, '待核', '教务配过校区坐标、学生又不给位置 → 打卡成立，记「待核」');
+  eq(r.way, 'geo-none', '方式该是 geo-none（压根没取到位置），跟 geo-far 分开写');
+  eq(r.dist, null, '没位置就没有距离可算');
 });
 
-await ta('码被传到校外也没用：定位这一关过不了，码对了照样打不上', async () => {
+await ta('码被传到校外：打得上，但方式写明 geo-far、状态待核 —— 教务端一眼看得出来', async () => {
   await setRules(RULES_OK(0));
   await setKeys([]);
   const c = await must({ action: 'code', token: su.token });
-  const r = await call({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 35.5, lng: 114.5 });
-  eq(r.status, 400, '人不在校区，码对了也一样打不上（比原来的「记一笔待核」更严）');
-  eq(r.body.code, 'GEOFAR', '该是 GEOFAR');
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 35.5, lng: 114.5 });
+  eq(r.status, '待核', '人不在校区 —— 不再直接拒，改成交给教务核对');
+  eq(r.way, 'geo-far', '方式要写清楚，别跟「人在教室里」的混在一起');
+});
+
+/* v51：打卡时刻由客户端带上（取到码那一刻），但只允许往回一小段 ——
+   码的有效期就是两个 60 秒窗口，再早就不是「刚扫到的码」了。 */
+await ta('带一个很旧的 at 上来 → 服务端拉回现在（不许拿旧时刻冒充准时）', async () => {
+  await setRules(RULES_OK(0));
+  const c = await must({ action: 'code', token: su.token });
+  const old = Date.now() - 10 * 60e3;                 // 十分钟前
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA',
+                         lat: 34.75, lng: 113.62, at: old });
+  ok(Math.abs(r.at - Date.now()) < 5000, '太旧的时刻该被拉回现在（实际差 ' +
+     Math.round((Date.now() - r.at) / 1000) + ' 秒）');
+});
+
+await ta('带「刚刚」那一刻上来 → 照收（先码后定位，定位跑完才提交就是这条路）', async () => {
+  await setRules(RULES_OK(0));
+  const c = await must({ action: 'code', token: su.token });
+  const just = Date.now() - 8000;                     // 8 秒前扫到的码
+  const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA',
+                         lat: 34.75, lng: 113.62, at: just });
+  ok(Math.abs(r.at - just) < 1500, '这一小段该原样认下来（实际差 ' +
+     Math.round(Math.abs(r.at - just) / 1000) + ' 秒）');
+  eq(r.offline, false, '这不是断网补传，别标成补传');
 });
 
 /* ══ 位置密钥（v47）：定位不准的学生，拿教务手里那枚 4 位码就能打上 ══

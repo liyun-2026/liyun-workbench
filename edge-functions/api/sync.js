@@ -674,14 +674,23 @@ async function doSign(s, me, body) {
   if (!Number.isFinite(at) || at <= 0) at = now;
   if (at > now + 120000) at = now;
   const offline = !!body.offline && at < now - 20000;
+  /* v51：客户端现在会带「**取到码那一刻**」上来（先码后定位：定位跑完才提交，
+     不这样的话定位慢几秒就把准时拖成迟到了）。码的有效期就是两个 60 秒窗口，
+     所以联网这条路最多允许往回 150 秒；再早的就不认了 ——
+     别让改过的客户端拿一个很旧的时刻来报到。（断网那条路照旧不限，见上。） */
+  if (!offline && at < now - 150000) at = now;
   const p = cnParts(at);
   const date = String(body.date || p.date);
 
   /* ── 位置密钥（教务手里的 4 位码）──
-     定位不准的学生**打不上卡**，得找教务要一枚当天的位置密钥，用它放行。
+     学生人就在教室、只是手机定位飘（取不到位置，或坐标压不到半径内）的时候，
+     找教务要一枚当天的位置密钥，输进来当场算「正常 / 迟到」，不留待核。
      密钥放在机构共享区的 sign_keys 里：教务端读得到（要显示进度条），
      学生端的读白名单里没有这个键 —— 学生们根本拿不到，只能从教务手里要。
-     名额按「当天用这枚密钥打上的人数」算，不用另存计数，省掉并发写冲突。 */
+     名额按「当天用这枚密钥打上的人数」算，不用另存计数，省掉并发写冲突。
+
+     ⚠️ v51 起定位**不再是拦路虎**（见下面 way 那段）：定位不过照样打得上，
+        只是记待核。密钥的意义从「唯一的补救」变成「当场就把它改对」。 */
   const keys = Array.isArray(data.sign_keys) ? data.sign_keys : [];
   let keyHit = null;
   if (body.key != null && String(body.key).trim() !== '') {
@@ -699,28 +708,33 @@ async function doSign(s, me, body) {
       return json({ error: '这枚位置密钥的 ' + limit + ' 个名额已经用完了，找教务老师再要一枚', code: 'KEYFULL' }, 400);
   }
 
-  let way = 'self', dist = null;
+  /* ── v51：先码、后定位 ──
+     学生那边先把码（当场扫 / 当场抄，二选一）拿到手，**取到码那一瞬间就是打卡时刻**，
+     定位在码之后跑。所以定位这一关从「拦路虎」降级成「证据」：
+       · 取不到位置        → way='geo-none'，照样打上，记待核
+       · 坐标压不进半径内  → way='geo-far' ，照样打上，记待核
+       · 在半径内          → 不额外标（way 仍是 'code'，距离记在 dist 里给教务看）
+     这样学生不会因为「定位慢了几秒」把准时拖成迟到 —— 那正是这次改顺序的由头。
+     人确实在教室、只是手机定位飘的，找教务要一枚位置密钥，输进来当场算正常。 */
+  let way = 'self', dist = null, geoNone = false, geoFar = false;
   if (body.code != null && String(body.code) !== '') {
     if (!(await codeOK(sec, body.code, now)))
-      return json({ error: '这个码已经过期了，扫一下屏幕上的二维码，或看一眼现在那 6 位数字' }, 400);
+      return json({ error: '这个码已经过期了，扫一下屏幕上的二维码，或看一眼现在那 6 位数字', code: 'EXPIRED' }, 400);
     way = 'code';
   }
   const hasGeo = body.lat != null && body.lng != null;
-  /* 教务配过校区坐标才判位置。判不过（在范围外，或干脆没给位置）就**直接打不上**，
-     必须拿位置密钥 —— 这就是「定位不正确不能打卡」。 */
-  let geoBad = false;
+  /* 教务配过校区坐标才判位置 —— 没配就没有这道关，谁在哪儿都说得过去 */
   if (rules && rules.lat != null) {
-    if (!hasGeo) geoBad = true;
+    if (!hasGeo) geoNone = true;
     else {
       dist = Math.round(distM(rules.lat, rules.lng, Number(body.lat), Number(body.lng)));
-      if (dist > Number(rules.radius || 150)) geoBad = true;
+      if (dist > Number(rules.radius || 150)) geoFar = true;
     }
   }
-  if (geoBad && !keyHit) {
-    return json({ error: '你不在校区范围内，没法打卡。如果确实在教室里，找教务老师要一个位置密钥。', code: 'GEOFAR' }, 400);
-  }
   if (keyHit) way = 'key';                       /* 密钥放行：不再因为定位判待核 */
-  else if (!geoBad && hasGeo && rules && rules.lat != null && way === 'self') way = 'geo';
+  else if (geoNone) way = 'geo-none';
+  else if (geoFar) way = 'geo-far';
+  else if (hasGeo && rules && rules.lat != null && way === 'self') way = 'geo';
 
   /* 迟到：一律按打卡那一刻算，跟学生手机现在几点无关 */
   let status = '正常', lateMin = 0;
@@ -740,8 +754,11 @@ async function doSign(s, me, body) {
   } else {
     status = '待核';   // 教务还没配打卡设置，先记下来，别让学生白打
   }
-  /* 定位方式且人在范围外：本人确实不在校区，交教务核对 */
-  if (way === 'geo-far') status = '待核';
+  /* 定位这关没过（取不到位置 / 人不在半径内）：**打卡成立**，只是没定性，
+     交教务核对 —— 教务端「改为准时到」一下就好。
+     ⚠️ lateMin 已经被上面算出来了，这里**故意留着**：
+        哪怕判待核，也让教务看见「按码算其实迟了 3 分钟」，好判断要不要放行。 */
+  if (way === 'geo-none' || way === 'geo-far') status = '待核';
   if (way === 'self') status = '待核';
 
   /* 一天一人一条：重复打卡是覆盖，不会堆成一片，但每次尝试都留痕 */
