@@ -238,6 +238,20 @@ async function profileOf(auth, uid, user) {
   };
 }
 
+/* ── 首位教务的对外身份卡 ──
+   学生端用它认人：通知、抽签、评语落款上，**只有这一位**显示成「学管办公室」，
+   别的老师/教务一律真名（用户 2026-10-01 明确要求，之前是「除自己外全遮」，打回）。
+   为什么要整张卡（id + 姓名）一起发：
+     · 抽签记录里只有名字、没有 id —— 光比 id 认不出它，老记录全漏；
+     · 光比名字又是瞎猜，教务里重名就错了。两样都给，学生端才判得准。
+   org/owner 是初始化这个机构那一刻写下的（见 doLogin），
+   而且服务端本来就不许改首位教务的账号（见 doUsers），所以它盖完就不会再变。
+   只发 id 与姓名，用户名、角色一概不出去。 */
+async function ownerCard(s) {
+  const o = (await s.get('org/owner', { type: 'json' })) || null;
+  return (o && o.id) ? { id: o.id, name: o.name || o.user || '' } : null;
+}
+
 async function makeToken(s, p) {
   const payload = b64url(JSON.stringify({ u: p.id, r: p.role, e: Date.now() + SESSION_MS }));
   return payload + '.' + (await hmacHex(await secret(s), payload));
@@ -456,6 +470,9 @@ function sanitizePush(shared, me, serverShared) {
   if (me.role === STUDENT) return sanitizeStudent(src, me, serverShared || {});
   if (me.isStaff) {
     const out = Object.assign({}, src);
+    /* 身份卡只由服务端下发（ownerCard），客户端谁都不用写、也写不进来：
+       一旦让本机的旧副本同步上去，org/data 里就会存下一张永远不更新的死卡。 */
+    delete out.owner;
     if (me.role !== SUPER) for (const k of SUPER_ONLY_WRITE) delete out[k];   // aiKey 只有首位教务能改（教务老师、教务兼授课都不行）
     return out;
   }
@@ -1091,7 +1108,9 @@ export async function onRequestPost(context) {
       const shared = (await s.get('org/data', { type: 'json' })) || {};
       const personal = (await s.get(`data/${me.id}`, { type: 'json' })) || {};
       /* serverNow：客户端拿它校正本地时钟偏差，学生看到的倒计时和办公室的钟是同一个 */
-      return json({ ok: true, profile: me, shared: filterShared(shared, me), personal, serverNow: Date.now() });
+      const out = Object.assign({}, filterShared(shared, me));   // 拷一层：filterShared 对教务是原样返回，别把 owner 写进真数据
+      out.owner = await ownerCard(s);
+      return json({ ok: true, profile: me, shared: out, personal, serverNow: Date.now() });
     }
 
     if (action === 'push') {
@@ -1107,7 +1126,11 @@ export async function onRequestPost(context) {
       const mergedPersonal = mergeAll((await s.get(`data/${me.id}`, { type: 'json' })) || {}, body.personal || {});
       await s.setJSON(`data/${me.id}`, mergedPersonal);
 
-      return json({ ok: true, profile: me, shared: filterShared(mergedShared, me), personal: mergedPersonal });
+      /* 推完的回应也要带上身份卡：客户端是拿这一份合并进本地的，
+         少一次就得多等一轮拉取，学生端那三处落款会短暂露真名。 */
+      const out = Object.assign({}, filterShared(mergedShared, me));
+      out.owner = await ownerCard(s);
+      return json({ ok: true, profile: me, shared: out, personal: mergedPersonal });
     }
 
     return json({ error: '未知操作' }, 400);

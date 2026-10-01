@@ -1009,6 +1009,56 @@ try {
     return stuLogin.page;
   });
 
+  /* ── v52：学生眼里的落款 ──
+     只有「首位教务」那一个账号在学生端叫「学管办公室」，别的老师一律真名。
+     这条走全链路：教务端写两条通知（一条自己署名的、一条别的老师署名的）
+     → 学生端拉下来 → 读学生端首页那两行落款。
+     端到端要看的就是这个 —— 单元级那条在 v47_features_check 第 6 节。 */
+  console.log('\n=== 8.5 学生眼里的落款（只有首位教务是「学管办公室」）===');
+  const noteSeed = await cdp.eval(`(async () => {
+    const me = Auth.me();
+    Store.upsert('notices', { date: Util.today(), text: '通知甲·办公室发的', by: me.name, byId: me.id, at: Date.now() });
+    Store.upsert('notices', { date: Util.today(), text: '通知乙·老师发的', by: '李老师', byId: 'u_teacher_li', at: Date.now() + 1 });
+    await Sync.push();
+    return { name: me.name, id: me.id, owner: Util.owner() };
+  })()`);
+  t('教务端自己看：两条都是真名（自己那页一个字都不遮）', () => {
+    assert(noteSeed.owner && noteSeed.owner.id === noteSeed.id, '教务端本地该有身份卡，实际 ' + JSON.stringify(noteSeed.owner));
+    return 'owner=' + noteSeed.owner.name;
+  });
+
+  const stuSide = await stu.eval(`(async () => {
+    let text = '';
+    for (let i = 0; i < 30; i++){
+      try { await Sync.pull(); } catch(e){}
+      App.go('stuHome');
+      text = ((document.getElementById('stuNotices') || {}).textContent || '').replace(/\\s+/g, ' ').trim();
+      if (text.indexOf('李老师') >= 0) break;
+      await new Promise(r => setTimeout(r, 400));
+    }
+    return { text: text, owner: Util.owner(), isStudent: Auth.isStudent() };
+  })()`);
+  const adminSide = await cdp.eval(`(() => Store.list('notices')
+    .filter(x => x.text && x.text.indexOf('通知') === 0 && x.by)
+    .slice(0, 4).map(x => Util.dispName(x.byId, x.by)))()`);
+  t('学生端也拿到了身份卡（学生视角才算数）', () => {
+    assert(stuSide.isStudent, '这一页该是学生账号');
+    assert(stuSide.owner && stuSide.owner.id === noteSeed.id, '学生端本地 Store 要有 owner，实际 ' + JSON.stringify(stuSide.owner));
+    return '学生端 owner=' + stuSide.owner.name;
+  });
+  t('学生端首页：首位教务那行落款是「学管办公室」，老师那行是真名', () => {
+    assert(stuSide.text.includes('学管办公室'), '首位教务的落款该是「学管办公室」，实际：' + stuSide.text);
+    assert(stuSide.text.includes('李老师'), '别的老师的落款该是真名（v47 那会儿被统一掉了），实际：' + stuSide.text);
+    assert(!stuSide.text.includes(noteSeed.name), '首位教务的真名不该出现在学生端，实际：' + stuSide.text);
+    return stuSide.text.slice(0, 70);
+  });
+  t('同一条通知，教务端那边仍是真名（遮罩只在学生端生效）', () => {
+    assert(adminSide.includes(noteSeed.name), '教务端该看得到首位教务的真名，实际：' + JSON.stringify(adminSide));
+    assert(adminSide.includes('李老师'), '教务端该看得到老师的真名，实际：' + JSON.stringify(adminSide));
+    assert(!adminSide.includes('学管办公室'), '教务端不该出现「学管办公室」，实际：' + JSON.stringify(adminSide));
+    return adminSide.join(' / ');
+  });
+
   /* 走进打卡页：**点圈才开始取码**（v51 把顺序倒过来了 —— 先码、后定位）。
      没点圈之前，圈下面该是干干净净的：圈本身就是那颗按钮。 */
   const gate = await stu.eval(`(() => {

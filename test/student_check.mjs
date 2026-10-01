@@ -606,6 +606,53 @@ await ta('收件人名单走 staff：只回教务号，授课老师不在里面'
      '只给 id 与名字，用户名/角色一概不给（实际 ' + JSON.stringify(j.staff[0]) + '）');
 });
 
+console.log('\n=== 四之一、首位教务的对外身份卡（owner）===');
+/* v52：学生端靠这张卡认出「哪条通知/抽签/评语是首位教务发的」，
+   那一个账号在学生眼里才显示成「学管办公室」，别的老师一律真名。 */
+
+await ta('学生 pull 带回 owner（{id,name}，就是首位教务那一个账号）', async () => {
+  const j = await must({ action: 'pull', token: s1.token });
+  ok(j.shared.owner && j.shared.owner.id, '必须带 owner，否则学生端认不出谁该显示成办公室');
+  eq(j.shared.owner.id, su.profile.id, 'owner.id 该是首位教务的账号 id');
+  eq(j.shared.owner.name, su.profile.name, 'owner.name 该是首位教务的姓名');
+  eq(Object.keys(j.shared.owner).sort().join(','), 'id,name', '只给 id 与姓名，用户名/角色一概不给');
+});
+
+await ta('授课老师 pull 也能拿到 owner', async () => {
+  const j = await must({ action: 'pull', token: t1.token });
+  ok(j.shared.owner && j.shared.owner.id === su.profile.id, '老师端也要有（看板、老师端都会读它）');
+});
+
+await ta('owner 不会被写进机构数据里（只在回应里下发）', async () => {
+  const raw = await s.get('org/data', { type: 'json' });
+  eq(raw.owner, undefined, 'org/data 里不该存 owner —— 存下来就成了永远不更新的死卡');
+});
+
+await ta('学生把 owner 夹在共享数据里推上来：写不进去', async () => {
+  await must({ action: 'push', token: s1.token, shared: {
+    owner: { id: 'u_fake', name: '假教务' },
+    ['sign:2026-02-02']: [{ studentId: sid1, way: 'self', status: '正常' }],
+  } });
+  const raw = await s.get('org/data', { type: 'json' });
+  eq(raw.owner, undefined, '伪造的 owner 不该落库');
+  const j = await must({ action: 'pull', token: s1.token });
+  eq(j.shared.owner.id, su.profile.id, '学生看到的 owner 仍然只能是服务端认定的那一个');
+});
+
+await ta('教务老师推上来的 owner 也写不进去', async () => {
+  /* 教务老师（admin/both）能写业务数据，但身份卡不归他们写。
+     这里直接用首位教务之外的教务号试一次。 */
+  const r = await must({ action: 'users', token: su.token, op: 'create',
+    user: '教务乙', pass: SU_PASS, role: 'admin', name: '教务乙' });
+  const a2 = await must({ action: 'login', user: '教务乙', pass: SU_PASS });
+  await must({ action: 'push', token: a2.token, shared: { owner: { id: a2.profile.id, name: '教务乙' } } });
+  const raw = await s.get('org/data', { type: 'json' });
+  eq(raw.owner, undefined, '次位教务塞的 owner 也不该落库');
+  const j = await must({ action: 'pull', token: a2.token });
+  eq(j.shared.owner.id, su.profile.id, '拿回来的仍是真正的首位教务');
+  await must({ action: 'users', token: su.token, op: 'delete', id: r.id });
+});
+
 await patchOrg({ officers: [] });
 
 await ta('打卡码不下发给学生（学生端拿不到 sign_rules.code）', async () => {

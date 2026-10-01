@@ -13,6 +13,8 @@
  *      那个班干部填写的作业完成情况。」
  *   ④「在学生端加入一个可以给老师发信息的窗口，学生在此页面可以选择老师，进行信息发送」
  *   ⑤「仅教务老师，首位教务账号，在除自己外所有账号系统显示的名字都改为学管办公室」
+ *      ⚠️ 2026-10-01 用户澄清：「我不是让你把我对外的改成办公室就好了」——
+ *      只有**他本人（首位教务）对外**叫学管办公室，别的老师一律真名。见第 6 节。
  *
  * 核这几件事：
  *   1. 位置密钥：4 位、按班、当天、默认 5 个名额；同班同天只留一枚（不攒码）；
@@ -26,8 +28,9 @@
  *   4. 作业：简称取头字；班干部能写 hw:（盖 by/byId），普通学生不能
  *   5. 学生消息：学生端有收件人下拉 + 发消息；收件人只有教务类账号（授课老师不给）；
  *      落点在协作页「学生消息」那一栏，且不会同时出现在「老师上报」列表里
- *   6. 显示名：除自己外一律「学管办公室」；学生照旧实名；自己看自己还是真名；
- *      课表上的授课老师**刻意保留真名**（教务排课查课的核心信息）
+ *   6. 显示名：**只有首位教务那一个账号、且只在学生眼里**才叫「学管办公室」；
+ *      其他老师/教务、学生、自己看自己，一律真名（v52 改回来，v47 那次遮过头了）；
+ *      课表上的授课老师始终是真名（教务排课查课的核心信息）
  *
  * ⚠️ 必须带 ?nosw=1，否则 SW 接管后自动重载会打断 evaluate。
  * 一次性账号，结束 dev-reset 清场。
@@ -590,34 +593,69 @@ try {
     return '单独一栏 · 老师上报列表已排除';
   });
 
-  /* ══════════════════ 6. 显示名统一 ══════════════════ */
-  console.log('\n=== 6. 显示名统一（除自己外一律「学管办公室」）===');
+  /* ══════════════════ 6. 显示名 ══════════════════
+     v52 口径（用户 2026-10-01 打回后定的）：遮罩只在**学生眼里**、
+     只对**首位教务那一个账号**生效；其余一律真名。
+     ⚠️ v47 那会儿写成「除自己外一律办公室」，教务端整页看不出谁是谁，别再改回去。 */
+  console.log('\n=== 6. 显示名（只有首位教务 · 且只在学生眼里才叫「学管办公室」）===');
   const dn = await cdp.eval(`(() => {
     const me = Auth.me();
-    return {
-      meName: me.name, meId: me.id,
-      self: Util.dispName(me.id, '我自己的名字'),
-      selfNoId: Util.dispName('', me.name),
-      teacher: Util.dispName('u_someoneelse', '李老师'),
-      teacherNoId: Util.dispName('', '哪位老师'),
-      student: Util.dispName('stu_t1', '张三'),
-      studentNoId: Util.dispName('', '张三'),
+    const saveMe = Auth._me, saveOwner = Util.owner;
+    const out = { meName: me.name, meId: me.id, owner: Util.owner() };
+    /* 教务视角（现在这顶帽子就是首位教务）：一个字都不该遮 */
+    out.staff = {
+      self:      Util.dispName(me.id, me.name),
+      other:     Util.dispName('u_someoneelse', '李老师'),
+      otherNoId: Util.dispName('', '哪位老师'),
+      student:   Util.dispName('stu_t1', '张三'),
     };
+    /* 学生视角：换一顶帽子，同几个问题再问一遍（dispName 读的就是 Auth.me()） */
+    Auth._me = { id: 'acct_stu', name: '学生甲', role: 'student', isStudent: true, isStaff: false, studentId: 'stu_t1' };
+    out.stu = {
+      ownerById:   Util.dispName(me.id, me.name),
+      ownerByName: Util.dispName('', me.name),
+      other:       Util.dispName('u_someoneelse', '李老师'),
+      otherNoId:   Util.dispName('', '李老师'),
+      student:     Util.dispName('', '张三'),
+      blank:       Util.dispName('', ''),
+    };
+    /* 老部署还没拿到身份卡时：宁可露真名，也不瞎猜（猜错就是把别人遮了） */
+    Util.owner = () => null;
+    out.noCard = Util.dispName(me.id, me.name);
+    Util.owner = saveOwner;
+    Auth._me = saveMe;
+    return out;
   })()`);
-  t('自己看自己还是真名（设置页、自己发的东西都还认得出来）', () => {
-    assert(dn.self === '我自己的名字', '带 id 时该还原真名，实际「' + dn.self + '」');
-    assert(dn.selfNoId === dn.meName, '只有名字没 id 的老数据也该认出自己，实际「' + dn.selfNoId + '」');
-    return '自己 → ' + dn.meName;
+  t('身份卡在客户端拿到了（学生端认人就靠它）', () => {
+    assert(dn.owner && dn.owner.id, '本地 Store 里该有服务端下发的 owner 卡片');
+    assert(dn.owner.id === dn.meId, 'owner.id 该就是首位教务的 id');
+    return 'owner = ' + dn.owner.name;
   });
-  t('别的老师/教务账号一律「学管办公室」', () => {
-    assert(dn.teacher === '学管办公室', '该统一成「学管办公室」，实际「' + dn.teacher + '」');
-    assert(dn.teacherNoId === '学管办公室', '没有 id 的落款也该统一，实际「' + dn.teacherNoId + '」');
-    return dn.teacher;
+  t('教务看：一律真名 —— 老师管理、通知落款、评语都分得清是谁', () => {
+    assert(dn.staff.self === dn.meName, '自己当然真名，实际「' + dn.staff.self + '」');
+    assert(dn.staff.other === '李老师', '别的老师必须真名（v47 在这里统一成办公室，被打回），实际「' + dn.staff.other + '」');
+    assert(dn.staff.otherNoId === '哪位老师', '没有 id 的落款也是真名，实际「' + dn.staff.otherNoId + '」');
+    assert(dn.staff.student === '张三', '学生实名，实际「' + dn.staff.student + '」');
+    return '我/李老师/张三 全是真名';
   });
-  t('学生照旧实名 —— 教务得知道是哪位同学交的假条、发的消息', () => {
-    assert(dn.student === '张三', '学生该保留实名，实际「' + dn.student + '」');
-    assert(dn.studentNoId === '学管办公室', '学生没带 id 时无法判定，退回统一名（落款处本来也不会这么传）');
-    return '张三（实名保留）';
+  t('学生看首位教务：「学管办公室」（带 id 与只有名字两条路都认得出）', () => {
+    assert(dn.stu.ownerById === '学管办公室', '带 id 该遮，实际「' + dn.stu.ownerById + '」');
+    assert(dn.stu.ownerByName === '学管办公室', '抽签记录只有名字、没有 id，也得对得上，实际「' + dn.stu.ownerByName + '」');
+    return 'id 与姓名两头都对得上';
+  });
+  t('学生看别的老师：真名 —— 只有首位教务才遮', () => {
+    assert(dn.stu.other === '李老师', '别的老师该真名，实际「' + dn.stu.other + '」');
+    assert(dn.stu.otherNoId === '李老师', '只有名字时也是真名，实际「' + dn.stu.otherNoId + '」');
+    return dn.stu.other;
+  });
+  t('学生看学生：照旧实名', () => {
+    assert(dn.stu.student === '张三', '学生该实名（只有名字、没有 id 也一样），实际「' + dn.stu.student + '」');
+    assert(dn.stu.blank === '', '空名字原样返回，不许凭空变成「学管办公室」');
+    return '张三';
+  });
+  t('还没拿到身份卡时宁可真名，也不瞎猜', () => {
+    assert(dn.noCard === dn.meName, '认不出谁是首位教务时该照常显示，实际「' + dn.noCard + '」');
+    return dn.noCard;
   });
   const teachersPage = await cdp.eval(`(async () => {
     App.go('teachers');
@@ -625,14 +663,21 @@ try {
     return { text: (document.getElementById('tList') || {}).textContent.replace(/\\s+/g, ' ').trim(),
              mine: Auth.me().name };
   })()`);
-  t('「老师管理」页：别人的名字统一了，自己那条还是真名，@用户名 留着（不然没法改密码/停用）', () => {
-    assert(/学管办公室/.test(teachersPage.text), '别人的名字该显示成「学管办公室」，实际：' + teachersPage.text);
-    assert(teachersPage.text.includes(teachersPage.mine), '自己那条该保留真名，实际：' + teachersPage.text);
-    assert(!new RegExp(TEACH.name).test(teachersPage.text), '授课老师的真名不该出现在这一页，实际：' + teachersPage.text);
+  t('「老师管理」页：名字全是真名，@用户名 留着（不然改密码/停用没法点）', () => {
+    assert(!/学管办公室/.test(teachersPage.text), '这一页不该出现「学管办公室」，实际：' + teachersPage.text);
+    assert(teachersPage.text.includes(teachersPage.mine), '自己那条要真名，实际：' + teachersPage.text);
+    assert(new RegExp(TEACH.name).test(teachersPage.text), '授课老师的真名要看得见（否则教务认不出人），实际：' + teachersPage.text);
     assert(/@/.test(teachersPage.text), '@用户名 该留着（管理要靠它分辨）');
     return teachersPage.text.slice(0, 80);
   });
-  t('通知落款 / 协作上报人 / 老师端今天 / 学生端首页 四处都走过 dispName', () => {
+  t('遮罩的门槛是「看的人是学生」，不是「不是自己」', () => {
+    assert(/me\.isStudent \|\| me\.role === 'student'/.test(HTML), 'dispName 该先判看的人是不是学生');
+    assert(!/return '学管办公室';/.test(HTML), '不许再有「兜底一律办公室」那种写法');
+    assert(/const ow = Util\.owner\(\)/.test(HTML), '该从身份卡读首位教务');
+    assert(/owner\(\)\{[\s\S]{0,220}Store\.get\('owner', null\)/.test(HTML), '身份卡该从本地 Store 的 owner 键读');
+    return '学生 → 判身份卡；其余 → 真名';
+  });
+  t('通知落款 / 协作上报人 / 老师端今天 / 学生端首页 各处都走过 dispName', () => {
     const n = (HTML.match(/Util\.dispName\(/g) || []).length;
     assert(n >= 8, '展示位接入点该有 8 处以上，实际 ' + n);
     assert(/byId: Auth\.me\(\) \? Auth\.me\(\)\.id : ''/.test(HTML), '发通知该把 byId 一起存下来');
@@ -640,10 +685,15 @@ try {
     assert(/\$\{Util\.esc\(Util\.dispName\(t\.userId, t\.userName\)\)\}/.test(HTML), '协作上报人该走 dispName');
     return n + ' 处接入';
   });
-  t('课表上的授课老师**刻意保留真名** —— 那不是「账号显示名」，是排课查课的核心信息', () => {
+  t('学生消息收件人下拉逐条过 dispName（不再是写死的「学管办公室 1/2」）', () => {
+    assert(/Util\.esc\(Util\.dispName\(u\.id, u\.name\)\)/.test(HTML), '收件人该逐条过 dispName');
+    assert(!/学管办公室\$\{list\.length/.test(HTML), '写死加编号的老写法该没了');
+    return '收件人 = dispName(每个教务号)';
+  });
+  t('课表上的授课老师是真名 —— 现在本来就不遮，这一条防的是有人又给它套上 dispName', () => {
     assert(/Staff\.name\(x\.teacherId\)/.test(HTML), '今日课表该仍用真名');
     assert(/x\.teacherId \? Staff\.name\(x\.teacherId\)/.test(HTML), '大课表该仍用真名');
-    assert(!/dispName\(x\.teacherId/.test(HTML), '课表不该被统一成「学管办公室」');
+    assert(!/dispName\(x\.teacherId/.test(HTML), '课表不该走 dispName');
     return '课表 3 处仍是 Staff.name()';
   });
 

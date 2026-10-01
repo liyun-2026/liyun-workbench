@@ -3350,21 +3350,30 @@ const Util = {
     return s.slice(0, 1) || '?';
   },
 
-  /** 账号显示名：**除自己外，老师/教务这类账号在系统里一律显示成「学管办公室」**。
-      学生照旧实名 —— 教务得知道是哪位同学交的假条、发的消息。
-      自己看自己（设置页、头像、自己发的东西）仍用真名。
-      ⚠️ 两处**故意不走**这里，走了就没法用：
-        · 选人控件（排课挑授课老师、指派工单、学生消息收件人）—— 全叫「学管办公室」就选不出来
-        · 课表上的授课老师（教务排课查课的核心信息，不是「账号显示名」） */
+  /** 首位教务的对外身份卡（服务端下发的 `owner`，见 sync.js 的 ownerCard）。
+      学生端靠它才认得出「哪条通知、哪次抽签、哪句评语是首位教务发的」：
+      抽签记录里只有名字没有 id，光比 id 认不出老记录；光比名字又根本不知道是谁。 */
+  owner(){
+    try {
+      const o = (typeof Store !== 'undefined') ? Store.get('owner', null) : null;
+      return (o && o.id) ? o : null;
+    } catch(e){ return null; }
+  },
+
+  /** 账号显示名。🔴 **只有「首位教务」那一个账号、且在学生眼里**，才显示成「学管办公室」。
+      其他老师/教务一律真名，「自己看自己」也是真名。
+      v47 曾写成「除自己外一律办公室」—— 教务端连谁写的通知、谁录的评语都分不出来，
+      用户 2026-10-01 打回。**别再加回来。** */
   dispName(id, name){
+    const nm = String(name || '');
     const me = (typeof Auth !== 'undefined' && Auth.me) ? Auth.me() : null;
-    const nm = name || '';
-    /* 自己：真名。老数据只有名字没 id，就拿名字对一下 */
-    if (me && ((id && String(me.id) === String(id)) || (!id && nm && nm === me.name))) return nm || me.name || '';
-    /* 学生：实名 —— 教务得知道是哪位同学交的假条、发的消息 */
-    if (id && typeof Store !== 'undefined'
-        && Store.list('students').some(s => s && String(s.id) === String(id))) return nm;
-    return '学管办公室';
+    /* 不是学生看的，一个字都不遮：教务/老师本来就知道同事叫什么，
+       遮了只会让系统变得不能读（「学管办公室」发的通知、办公室录的评语）。 */
+    if (!me || !(me.isStudent || me.role === 'student')) return nm;
+    const ow = Util.owner();               // 用 Util 而不是 this：这个函数万一被当回调传出去，this 就没了
+    if (!ow) return nm;                    // 还没拿到身份卡（老部署），先照常显示，不瞎猜
+    const hit = (id && String(ow.id) === String(id)) || (!id && nm && nm === ow.name);
+    return hit ? '学管办公室' : nm;
   },
 
   /** 按姓名排序学生时的通用比较器 */
@@ -8125,8 +8134,9 @@ const Gather = {
 };
 
 /* ══════════ 学生端：给老师发消息 ══════════
-   学生能选的收件人只有「教务办公室」（服务端只回教务类账号，授课老师不在名单里）。
-   名字统一显示成「学管办公室」—— 学生看不到教务老师的真名。
+   学生能选的收件人只有教务类账号（服务端只回 super/admin/both，授课老师不在名单里）。
+   名字一条条过 Util.dispName：**只有首位教务显示成「学管办公室」**，
+   其他教务老师是真名 —— 2026-10-01 用户明确要求，别再统一遮掉。
    消息本身就是一张 tickets 工单（type:'学生消息'），
    落到教务端「协作 → 学生消息」那一栏，教务在那儿回一句，学生这页就能看到。 */
 const StuMsg = {
@@ -8144,7 +8154,7 @@ const StuMsg = {
     const list = await this.staffList();
     box.innerHTML = list.length
       ? `<select id="stuMsgToSel" style="max-width:240px">${
-          list.map((u, i) => `<option value="${u.id}">学管办公室${list.length > 1 ? ' ' + (i + 1) : ''}</option>`).join('')
+          list.map(u => `<option value="${u.id}">${Util.esc(Util.dispName(u.id, u.name))}</option>`).join('')
         }</select>`
       : '<p class="hint" style="margin:0">还没有教务账号。等教务开通以后再来。</p>';
   },
@@ -8344,15 +8354,14 @@ const Teachers = {
     const el = document.getElementById('tList');
     if (!el) return;
     const list = this._users || [];
-    const meIsSuper = Auth.isSuper();
     el.innerHTML = list.length ? list.map(u => {
       const isSuper = u.role === 'super';
-      const mine = !!(Auth.me() && u.id === Auth.me().id);
-      /* 除自己以外，账号名一律不露真名 —— 统一成「学管办公室」。
-         登录用户名（@xxx）留着：那是登录凭据、不算「系统显示的名字」，
-         没有它这一页就分辨不出谁是谁，改密码/停用也没法点。 */
-      const shown  = mine ? (u.name || u.user) : (isSuper && !meIsSuper ? '办公室' : '学管办公室');
-      const handle = isSuper && !meIsSuper ? '' : ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
+      /* 名字一律真名。这一页只有首位教务进得来（routes 里 roles:['super']），
+         而「学管办公室」只在学生端对首位教务那一个账号生效 ——
+         这页要是也统一成办公室，教务就看不出谁是谁了（v47 犯过，已改回）。
+         登录用户名（@xxx）保留：改密码、停用、点哪一行都靠它分辨。 */
+      const shown  = u.name || u.user;
+      const handle = ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
       const sub    = isSuper ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
       const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
                ${Store.getSecret('greet:' + u.id)
