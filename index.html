@@ -1698,7 +1698,7 @@ try {
         <div id="officerBox" style="margin-top:10px"></div>
       </div>
       <!-- ==== 功能：单独建号 START ==== -->
-      <div class="card">
+      <div class="card" id="singleAcctCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 单独建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="singleName" placeholder="学员姓名" style="max-width:150px">
@@ -1713,7 +1713,7 @@ try {
       <!-- ==== 功能：单独建号 END ==== -->
 
       <!-- ==== 功能：批量建号 START ==== -->
-      <div class="card wide">
+      <div class="card wide" id="batchAcctCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 批量建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <select id="batchCls" style="max-width:170px"></select>
@@ -4572,6 +4572,16 @@ const Roster = {
 
     this.renderStuList();
     this.renderOfficers();
+
+    /* 🔴 2026-10-02：这两张建号卡原来教务老师也看得见，点下去服务端一律 403
+       （「账号只有首位教务和总教务能改」，见 sync.js doUsers 的 canManage）。
+       和设置页那张「系统健康」卡是同一类毛病 —— 点了没用就别露出来。
+       用户当场选的也是同一句：「改代码：也收起来」。 */
+    const canAcct = Auth.isSuper() || Auth.isOffice();
+    ['singleAcctCard', 'batchAcctCard'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = canAcct ? '' : 'none';
+    });
 
     this._fillClsSelect('singleCls');
     this._fillClsSelect('batchCls');
@@ -8745,7 +8755,9 @@ const StuAcct = {
             (u.active ? '' : ' · 已停用')}</span></span>
         ${acts}
       </div>`;
-    }).join('') : '<div class="empty">还没有学生账号，去「名册」选个班一键建</div>';
+    }).join('') : `<div class="empty">还没有学生账号，${editable
+        ? '去「名册」选个班一键建'
+        : '建号要找首位教务 / 总教务 —— 你这一档只能看'}</div>`;
   },
 
   async resetPass(id){
@@ -9197,7 +9209,10 @@ const Settings = {
     show('dangerCard', Auth.isSuper());
     show('syncNowBtn', cloud);
     show('syncCard', true);
-    show('healthCard', staff);       // 巡检只给教务端（总教务也在内）
+    /* 🔴 2026-10-02 修：原来给的是 staff —— 教务老师看得见这张卡，
+       点「打开巡检」却弹「这个功能你的账号看不到」（巡检 route 只给 super/office）。
+       卡片既然点了没用就别露出来。用户当场选了「改代码，把卡也收起来」。 */
+    show('healthCard', Auth.isSuper() || Auth.isOffice());
     show('slotCard', staff);         // 考勤时段也只有教务端配
     Health.paintBadge();             // 无论在哪一页，设置里的那句话都跟着最新一次结果走
 

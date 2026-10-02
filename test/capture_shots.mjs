@@ -20,6 +20,9 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots', 'ppt');
 const SUPER = { user: '李老师', pass: 'liyun2026' };
+/** 局部裁切图的实际像素尺寸（@2x）—— 版式里给图片框定尺寸时要照着它来，
+ *  不能凭猜：猜小了会被拉变形，猜大了留白。跑完落在 .shots/ppt/_sizes.json。 */
+const REGION_SIZES = {};
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
@@ -54,6 +57,46 @@ async function shot(cdp, name){
 async function shotAt(cdp, sel, name){
   await cdp.eval(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (el) el.scrollIntoView({ block: 'start' }); })()`);
   await shot(cdp, name);
+}
+/** 只截某一个元素（按它自己的实际尺寸 + 一圈留白）。
+ *
+ *  为什么不能直接用整页图裁：整页图是 1440×900 的视口快照，卡片在页面里的
+ *  纵坐标随上面内容的高度漂移 —— 手写裁切框迟早会对不齐。这里让浏览器自己
+ *  报出元素的位置和尺寸，落盘就是「刚好那一块」。
+ *
+ *  ⚠️ 曾经这里还能指定目标宽高比、把框撑成那个比例。**别再加回来**：
+ *  页面里的卡片大多是又宽又扁的一条（比例 4:1 上下），为了凑 1.55 的比例
+ *  就得往上下各撑一大截，结果把上面和下面那两张卡一起框了进来（踩过）。
+ *  现在一律按元素原样裁，版式那边照着 _sizes.json 里的真实比例摆。
+ *
+ *  jsFind 是一段返回 Element 的 JS 表达式，例如：
+ *      "document.getElementById('skBody').closest('.card')"
+ */
+async function shotRegion(cdp, jsFind, name, pad = 14){
+  const okScroll = await cdp.eval(`(() => { const el = (${jsFind}); if (!el) return 0;
+    el.scrollIntoView({ block: 'center', behavior: 'instant' }); return 1; })()`);
+  if (!okScroll){ console.log('  ⚠ 找不到元素，跳过 ' + name); return false; }
+  await sleep(280);
+  const b = await cdp.eval(`(() => { const el = (${jsFind}); if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight }; })()`);
+  if (!b || b.w < 4 || b.h < 4){ console.log('  ⚠ 元素没尺寸，跳过 ' + name); return false; }
+  let w = b.w + pad * 2, h = b.h + pad * 2;
+  if (w > b.vw || h > b.vh){
+    const k = Math.min(b.vw / w, b.vh / h);
+    w *= k; h *= k;
+    console.log(`  ⚠ ${name} 比视口大，缩到 ${Math.round(w)}×${Math.round(h)}`);
+  }
+  const x = Math.max(0, Math.min(b.x + b.w / 2 - w / 2, b.vw - w));
+  const y = Math.max(0, Math.min(b.y + b.h / 2 - h / 2, b.vh - h));
+  const r = await cdp.send('Page.captureScreenshot', {
+    format: 'png', captureBeyondViewport: false,
+    clip: { x: Math.round(x), y: Math.round(y), width: Math.round(w), height: Math.round(h), scale: 2 },
+  });
+  await writeFile(path.join(OUT, name), Buffer.from(r.data, 'base64'));
+  REGION_SIZES[name] = [Math.round(w) * 2, Math.round(h) * 2];
+  console.log(`  ✂ ${name}  ${Math.round(w)}×${Math.round(h)} (比例 ${(w/h).toFixed(2)}) @2x`);
+  return true;
 }
 const view = (cdp, o) => cdp.send('Emulation.setDeviceMetricsOverride',
   { width: o.width, height: o.height, deviceScaleFactor: o.dsf, mobile: !!o.mobile });
@@ -210,6 +253,67 @@ try {
     try { await Auth.call('users', { op: 'create', user: '王梓涵', name: '王梓涵', role: 'student', pass: 'liyun2026', studentId: s1[0].id }); } catch (e) {}
     // 让学生端「打卡」页有动态码可显示
     try { Store.upsert('sign_rules', { code: '8821', radius: 150, lat: 34.75, lng: 113.62 }); } catch (e) {}
+
+    /* ── v54 手册新增：打卡记录 / 位置密钥 / 班干部 / 学生请假 / 学生消息 ──
+       这几样原来一套都没有，手册讲到「打卡管理」只能拿空页面凑数。
+       数字都挑过的：7 个人里要凑出「正常 / 迟到 / 待核 / 未打卡」四种行，
+       还要让「需核对」黄标有出处（待核、geo-none、geo-far、同设备多学生、断网补传）。 */
+    const at = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
+    // 打卡规则完整一些，手册截图才看得到「校区已采集 · 半径 · 上课 · 零宽限」那句
+    Store.set('sign_rules', { startAt: '08:30', lateAfter: 0, windowBefore: 60, windowAfter: 30,
+                              radius: 150, pid: '', lat: 34.75218, lng: 113.62473 });
+
+    const keyId = Store.upsert('sign_keys', { clsId: c1.id, code: '4826', date: today, limit: 5, by: '李老师' }).id;
+    const sg = (i, o) => Store.upsert('sign:' + today, Object.assign(
+      { id: s1[i].id, studentId: s1[i].id, date: today }, o));
+    // 王梓涵：本来待核，教务已改判为准时到 + 同一台设备上还登过张予诺 → 仍挂「需核对」
+    sg(0, { status: '正常', at: at(8, 24), way: 'code', dist: 12, dev: 'DEV-A', keyId,
+            fix: { by: 'manual', at: Date.now() - 600e3, from: '待核' } });
+    // 李思远：正常走码，迟到 11 分钟（用了位置密钥）
+    sg(1, { status: '迟到', at: at(8, 41), way: 'code', dist: 9, dev: 'DEV-B', lateMin: 11, keyId });
+    // 张予诺：跟王梓涵同一台设备 → 两人都挂「需核对」
+    sg(2, { status: '正常', at: at(8, 26), way: 'code', dist: 14, dev: 'DEV-A' });
+    // 陈可儿：定位压不进半径 → 待核
+    sg(3, { status: '待核', at: at(8, 33), way: 'geo-far', dist: 430, dev: 'DEV-C', lateMin: 3 });
+    // 刘浩然：一切正常
+    sg(4, { status: '正常', at: at(8, 21), way: 'code', dist: 18, dev: 'DEV-D' });
+    // 赵一诺（s1[5]）：故意不打卡 —— 手册要演示「未打卡」那一行
+    // 孙嘉禾：断网补传 → 挂「需核对」
+    sg(6, { status: '正常', at: at(8, 55), way: 'code', dist: 7, dev: 'DEV-E', offline: true, recvAt: at(9, 2) });
+
+    // 班干部：先有职务名、再有是谁（手册里的设定顺序就是这样）
+    Store.upsert('officers', { clsId: c1.id, title: '班长', studentId: s1[0].id });
+    Store.upsert('officers', { clsId: c1.id, title: '学习委员', studentId: s1[3].id });
+
+    // 学生请假（在「考勤」页批）：一条待批、一条已批准
+    Store.upsert('tickets', { type: '学生请假', studentId: s1[5].id, kind: '病假', date: today,
+      text: '昨晚发烧到 39 度，今天在家休息，明天正常到。', status: 'open', createdAt: Date.now() - 5400e3 });
+    Store.upsert('tickets', { type: '学生请假', studentId: s2[5].id, kind: '事假', date: yest,
+      text: '上午回学校办毕业手续，下午到岗。', status: 'done', createdAt: Date.now() - 90000e3 });
+
+    // 学生消息（协作页第一栏，用学生实名）
+    Store.upsert('tickets', { type: '学生消息', studentId: s1[2].id,
+      text: '老师，我下周三要参加学校的模拟考，想请一天假，可以吗？', status: 'open', createdAt: Date.now() - 2400e3 });
+    Store.upsert('tickets', { type: '学生消息', studentId: s2[0].id,
+      text: '我的课表上周末那节课能不能往后调半小时？', status: 'done',
+      reply: '可以，已经帮你调到周日上午第二节。', repliedAt: Date.now() - 1200e3, createdAt: Date.now() - 7200e3 });
+
+    // 作业：其中一条由班干部登记过，卡片上要能看到「登记人」
+    Store.upsert('hw:' + h1.id, { studentId: s1[0].id, done: true, by: '陈可儿', byId: s1[3].id });
+    Store.upsert('hw:' + h1.id, { studentId: s1[2].id, done: true, by: '陈可儿', byId: s1[3].id });
+
+    // 学生换设备密钥：一枚没用过、一枚已经用过（手册要讲「一次性」）
+    Store.set('dev_keys', [
+      { code: '8866-A', used: false, createdAt: Date.now() - 3600e3 },
+      { code: '2043-B', used: true, usedBy: '吴俊熙', usedAt: Date.now() - 86400e3, createdAt: Date.now() - 172800e3 },
+    ]);
+
+    // 座位卡：量化页快捷按钮由 quant_rules 里 cls: 开头的条目驱动，先补两条常用的
+    ['cls:课堂互动:+5', 'cls:评述集体通关:+15', 'cls:课堂纪律（当场扣）:-1'].forEach(s => {
+      const [k, d] = s.split(':'); const [label, delta] = d.split(':');
+      Store.upsert('quant_rules', { id: 'r_cls:' + label, key: 'cls:' + label, label, delta: Number(delta) });
+    });
+
     return { c1: c1.id, c2: c2.id, s1: s1.map(x => x.id), s2: s2.map(x => x.id), today, yest };
   })()`);
   console.log('   数据就绪：砺蕴一班 7 人 / 集训班 8 人 + 3 个老师账号\n');
@@ -240,6 +344,90 @@ try {
   await go('settings');   await shot(cdp, '14-settings.png');
   // 学生账号页（单独端口，教务手册用）
   await go('students');   await shot(cdp, 'pg_students.png');
+  // 巡检页：只有首位教务 / 总教务进得去（v54 起设置页那张卡也收起来了）。
+  // 这一张必须在**首位教务**身份下拍 —— 后面切成授课老师就再也拍不到了。
+  await go('health', 900); await shot(cdp, 'pg_health.png');
+
+  // ══════════════════════════════════════════════════════════════
+  //  ③b 教务老师端 —— 新版《教务老师使用手册》的全套截图
+  //
+  //  ⚠️ 必须用「教务老师(admin)」的号登，不能用首位教务。两边界面不一样：
+  //     · 学生账号页少了「改密码 / 停用 / 删除」三个按钮
+  //     · 设置页少了「接口配置 / 演示账号 / 危险操作」三张卡
+  //     · 侧栏没有「老师管理」，设置页没有「系统健康」和「老师管理」入口
+  //     手册是给教务老师看的，截图就得是他自己那台设备上看到的样子。
+  // ══════════════════════════════════════════════════════════════
+  console.log('\n③b 教务老师端（登录「王敏」＝教务老师视角）');
+  const loginAs = async (user, pass = 'liyun2026') => {
+    await cdp.eval(`(async () => { Store.setSecret('token',''); Store.setSecret('acct',''); return 1; })()`);
+    const l = cdp.once('Page.loadEventFired');
+    await cdp.send('Page.navigate', { url: `${BASE}/` }); await l;
+    await sleep(2400);
+    const r = await cdp.eval(`(async () => {
+      if (!Auth.mode) await Auth.probe();
+      document.getElementById('gUser').value = ${JSON.stringify(user)};
+      document.getElementById('gPass').value = ${JSON.stringify(pass)};
+      await Auth.submit();
+      await new Promise(r => setTimeout(r, 1900));
+      return { ok: !document.getElementById('gate').classList.contains('on'),
+               role: Auth.role && Auth.role(), name: Auth.name && Auth.name() };
+    })()`);
+    if (!r.ok) throw new Error('登录失败：' + user);
+    console.log('   已切换为 ' + user + '（' + r.role + '）');
+    return r;
+  };
+
+  await view(cdp, DESK);
+  await loginAs('王敏');
+  // 把各页的选择状态钉在「砺蕴一班 · 今天」，免得截图里一会儿这个班、一会儿那个日期
+  await cdp.eval(`(() => { const T = ${JSON.stringify(seed.today)}, C = ${JSON.stringify(seed.c1)};
+    [['_attCls',C],['_attDate',T],['_signCls',C],['_signDate',T],['_signKeyCls',C],
+     ['_hkCls',C],['_hkDate',T],['_qCls',C],['_exCls',C],['_rosterCls',C],
+     ['_nightCls',C],['_nightDate',T],['_pfCls',C],['_pfStu',${JSON.stringify(seed.s1[0])}],
+     ['_wkDate',T],['_signCls',C]].forEach(([k,v]) => Store.set(k, v)); return 1; })()`);
+
+  const ago = async (id, wait = 780) => {
+    await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,90)); return 1; })()`);
+    await sleep(wait);
+  };
+  const rowOf = (box, n) => `(document.querySelectorAll('${box} .item')[${n}] || document.querySelectorAll('${box} .item')[0])`;
+
+  await ago('home');      await shot(cdp, 'jw_home.png');
+  await ago('att');       await shot(cdp, 'jw_att.png');
+  await shotRegion(cdp, "document.getElementById('attLeaveList').closest('.card')", 'jw_att_leave.png');
+  await shotRegion(cdp, "(document.getElementById('attSlot').closest('.row') || document.getElementById('attSlot').parentElement)", 'jw_att_slot.png', 8);
+  await ago('sign', 1500); await shot(cdp, 'jw_sign.png');
+  await shotRegion(cdp, "document.getElementById('signCodeBox').closest('.card')", 'jw_sign_code.png');
+  await shotRegion(cdp, "document.getElementById('sgStat').closest('.card')", 'jw_sign_rules.png');
+  await shotRegion(cdp, "document.getElementById('skBody').closest('.card')", 'jw_sign_key.png');
+  // 「今日打卡一览」不拍整张表 —— 拍某一行。一行里有姓名、需核对黄标、方式与距离、
+  // 状态、以及那一排补正按键，教学上比一张长表清楚得多。
+  await shotRegion(cdp, rowOf('#signToday', 3), 'jw_sign_row_far.png');
+  await shotRegion(cdp, rowOf('#signToday', 6), 'jw_sign_row_off.png');
+  await ago('homework');  await shot(cdp, 'jw_homework.png');
+  await shotRegion(cdp, "document.getElementById('hkBody').closest('.card')", 'jw_hk.png');
+  await ago('roster');    await shot(cdp, 'jw_roster.png');
+  await shotRegion(cdp, "document.getElementById('officerBox').closest('.card')", 'jw_roster_off.png');
+  await ago('students');  await shot(cdp, 'jw_students.png');
+  await ago('profile');   await shot(cdp, 'jw_profile.png');
+  await ago('timetable'); await shot(cdp, 'jw_timetable.png');
+  await ago('night');     await shot(cdp, 'jw_night.png');
+  await ago('quant');     await shot(cdp, 'jw_quant.png');
+  await shotRegion(cdp, "document.getElementById('qBtns').closest('.card')", 'jw_quant_btns.png');
+  await shotRegion(cdp, rowOf('#qLogBody', 0), 'jw_quant_row.png');
+  await ago('exam');      await shot(cdp, 'jw_exam.png');
+  await shotRegion(cdp, "document.getElementById('drBody').closest('.card')", 'jw_exam_draw.png');
+  await shotRegion(cdp, "document.getElementById('aiBody').closest('.card')", 'jw_exam_ai.png');
+  await ago('coop');      await shot(cdp, 'jw_coop.png');
+  await shotRegion(cdp, "document.getElementById('coopStuMsg').closest('.card')", 'jw_coop_stumsg.png');
+  await ago('gather');    await shot(cdp, 'jw_gather.png');
+  await ago('settings');  await shot(cdp, 'jw_settings.png');
+  await shotRegion(cdp, "document.getElementById('acctRole').closest('.card')", 'jw_set_acct.png');
+  await shotRegion(cdp, "document.getElementById('backupInfo').closest('.card')", 'jw_set_backup.png');
+  await shotRegion(cdp, "document.getElementById('slotList').closest('.card')", 'jw_set_slot.png');
+  await shotRegion(cdp, "document.getElementById('devKeyList').closest('.card')", 'jw_set_devkey.png');
+  await ago('rules');     await shot(cdp, 'jw_rules.png');
+  await ago('board', 1700); await shot(cdp, 'jw_board.png');
 
   // ── ⑤ 手机端 ───────────────────────────────────────
   console.log('④ 手机端');
@@ -289,9 +477,6 @@ try {
   // 今日页「新闻」区特写（授课老师手册用）
   await cdp.eval(`(async () => { App.go('today'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
   await shot(cdp, 'tc_today_news.png');
-  // 健康巡检页（教务老师手册用）
-  await cdp.eval(`(async () => { App.go('health'); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,500)); return 1; })()`);
-  await shot(cdp, 'pg_health.png');
   // 老师端手机版（老师实际是在手机上用）
   await view(cdp, MOB);
   await sleep(500);
@@ -332,6 +517,19 @@ try {
   await view(cdp, DESK);
   const sgo = async (id, name) => { await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); window.scrollTo(0,0); await new Promise(r=>setTimeout(r,450)); return 1; })()`); await shot(cdp, name); };
   await sgo('stuHome',   'stu_home.png');
+  /* 「待核 → 用位置密钥更正」这一段是 v51 改动的重点，手册必须讲清楚，
+     所以先把他今天的打卡记录临时改成「待核 / geo-none」，截完再原样还原。
+     不还原的话后面几张学生端截图会莫名其妙带着「已记录（待核）」。 */
+  await cdp.eval(`(() => {
+    const sid = Stu.sid(), d = Util.today();
+    const old = Store.list('sign:' + d).find(x => x && x.studentId === sid);
+    window.__oldSign = old ? JSON.parse(JSON.stringify(old)) : null;
+    if (old) Store.upsert('sign:' + d, Object.assign({}, old, { status: '待核', way: 'geo-none', lateMin: 0, fix: null }));
+    return 1; })()`);
+  await sgo('stuSign',   'stu_sign_pending.png');
+  await shotRegion(cdp, "document.getElementById('stuKey').closest('.card')", 'stu_sign_key.png');
+  await cdp.eval(`(() => { const d = Util.today();
+    if (window.__oldSign) Store.upsert('sign:' + d, window.__oldSign); return 1; })()`);
   await sgo('stuSign',   'stu_sign.png');
   await sgo('stuSign',   'stu_leave.png');
   await sgo('stuNews',   'stu_news.png');
@@ -372,7 +570,11 @@ try {
   await sleep(600);
   await shot(cdp, 'g2-gate.png');
 
+  // 把局部裁切图的实际尺寸记下来，供版式定图片框用
+  await writeFile(path.join(OUT, '_sizes.json'), JSON.stringify(REGION_SIZES, null, 2));
   console.log('\n✅ 全部截图完成 → test/.shots/ppt/');
+  const names = Object.keys(REGION_SIZES);
+  if (names.length) console.log('   局部图 ' + names.length + ' 张，尺寸已记入 _sizes.json');
 } catch (e) {
   console.error('\n✗ 采集失败：', e.message);
   process.exitCode = 1;
