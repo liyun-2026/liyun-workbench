@@ -2296,10 +2296,12 @@ try {
           <button class="btn" onclick="Board.enter()">打开看板端</button>
           <button class="btn ghost" onclick="Board.copyLink()">复制看板网址</button>
           <button class="btn ghost" id="bdNewAcct" onclick="Board.createAccount()">新建看板专用账号</button>
+          <button class="btn ghost" id="bdRelease" onclick="Board.releaseDev()">释放看板设备</button>
         </div>
         <p class="hint" style="margin-top:10px;margin-bottom:0">
-          那台电脑要单独登一个号 —— 别用您自己的：每个账号只有 2 台设备额度，拿自己的号登看板电脑，
-          会把您手机或常用的那台挤下线。点「新建看板专用账号」一行搞定。
+          看板端有<b>自己一个号</b>（用户名 <b>办公室看板</b>，口令见使用手册），别拿自己常用的号去登 ——
+          每个账号只有 2 台设备额度，会把您手机或常用的那台挤下线。看板号自己最多登记 <b>5 台</b>设备；
+          换了机器、屏挪了位置，点一次「释放看板设备」重新登记就行。
         </p>
         <p class="hint" style="margin-bottom:0" id="boardTip"></p>
       </div>
@@ -9201,6 +9203,7 @@ const Settings = {
     show('rulesCard', staff);
     show('boardCard', staff && cloud);   // 看板端：给办公室那台电脑挂的只读屏
     show('bdNewAcct', Auth.isSuper() && cloud);   // 建看板专用账号只有首位教务能做（服务端也拦着）
+    show('bdRelease', (Auth.isSuper() || Auth.isOffice()) && cloud);  // 释放看板设备登记：首位教务 + 总教务
     /* 「老师管理」入口：首位教务 + 总教务（总教务要建号/改密码，得进得去这一页） */
     show('tEntryCard', (Auth.isSuper() || Auth.isOffice()) && cloud);
     /* 「清空所有数据」是这台设备上最狠的一个按钮（清掉本机全部数据）。
@@ -9683,6 +9686,8 @@ const Auth = {
   /* 总教务：教务全管 + 账号管理，唯独动不了首位教务。老部署的 profile 里没有
      isOffice 这个字段，所以跟 isStudent 一样两头认（role 兜底）。 */
   isOffice(){ return !!(this._me && (this._me.isOffice || this._me.role === 'office')); },
+  /* 看板专用号（board 标记）：设备额度走另一套 —— 见 Board.claimDev */
+  isBoard(){ return !!(this._me && this._me.board === true); },
   /* 学生是「教务之外」的第五种身份。本机模式没有账号服务，也就不可能有学生 */
   isStudent(){ return !!(this._me && (this._me.isStudent || this._me.role === 'student')); },
   /** 这个账号挂在哪条学员档案上（学生端所有「只看自己的」都从这里出发） */
@@ -12608,8 +12613,10 @@ const QRDec = (function () {
       摆放位置得教务自己拿主意；朝内一侧则没有任何影响。
 
    那台电脑要单独登一个账号 —— Board.createAccount() 一键建一个「看板」教务号：
-   每个账号只留 2 台设备，拿自己的号登看板电脑，会把自己手机或常用的那台挤下线。
+   看板号是**自己一个号**：最多登记 5 台设备（服务端 sys/bddev，见 sync.js 的 boardDev）。
    ══════════════════════════════════════════════════════════════════ */
+/** 看板专用号的固定口令 —— 使用手册上印的就是这一串，所以不再随机生成。 */
+const BOARD_PASS = 'bgskb2026';
 const Board = {
   _sec: null,    /* 每秒走一格：时钟 + 换码倒计时 + 新鲜度 */
   _pull: null,   /* 半分钟拉一趟：打卡码 / 签到 / 考勤 / 课表 */
@@ -12647,7 +12654,7 @@ const Board = {
      看板要取打卡码，所以角色必须是教务(admin) —— 老师号看不到打卡这一摊。 */
   async createAccount(){
     if (!Auth.isSuper()) return UI.toast('建账号要超级管理员权限');
-    const user = (prompt('给看板那台电脑建一个专用教务号。\n\n用户名（登录时输入，建议就用 board）：', 'board') || '').trim();
+    const user = (prompt('给看板那台电脑建一个专用教务号。\n\n用户名（登录时输入）：', '办公室看板') || '').trim();
     if (!user) return;
     const bad = userErr(user);
     if (bad) return UI.toast(bad);
@@ -12656,11 +12663,9 @@ const Board = {
     try { const j = await Auth.call('users', { op:'list' }); list = (j && j.users) || []; } catch(e){}
     if (list.some(u => u.user === user)) return UI.toast('已经有一个叫「' + user + '」的账号了');
 
-    /* 随机密码：人不用记，反正要复制过去；去掉了 0/O/1/l/I 这些容易看错的字符 */
-    const A = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const rnd = new Uint8Array(10);
-    try { crypto.getRandomValues(rnd); } catch(e){ for (let i = 0; i < 10; i++) rnd[i] = Math.floor(Math.random() * 256); }
-    const pass = Array.from(rnd, b => A[b % A.length]).join('');
+    /* 固定口令（BOARD_PASS）：这个号的口令要照着《教务老师使用手册》上印的那一串登，
+       随机生成的话手册就永远写不准。它挡的不是外面的人，是「别把这块屏的号拿去登自己手机」。 */
+    const pass = BOARD_PASS;
 
     try {
       /* board:true —— 这个号是「系统自用」，只有首位教务看得见：不进学生的收件人名单、
@@ -12671,18 +12676,42 @@ const Board = {
         + '用户名    ' + user + '\n'
         + '密码      ' + pass + '\n\n'
         + '说明：这个号只给办公室那台挂看板的电脑用，别拿去登手机 —— '
-        + '每个账号只有 2 台设备额度，两边抢会把彼此挤下线。');
+        + '看板号自己最多登记 5 台设备；要换机器，到设置页点一次「释放看板设备」。');
       const tip = document.getElementById('boardTip');
       if (tip) tip.innerHTML = `已建好，账号密码已复制。用户名 <b>${Util.esc(user)}</b> · 密码 <b>${Util.esc(pass)}</b>`;
       UI.toast('看板账号已建好，账号密码已复制到剪贴板');
     } catch(e){ UI.toast(e.message); }
   },
 
-  enter(){
+  /* 进看板前先过一道设备登记。看板号最多 5 台 —— 登记不上就**不进**，
+     光提示一句等于没拦（学生那道门也是这个口径）。
+     断网 / 查不到则不拦：学校断网那天，整块屏不能因此进不去。 */
+  async enter(){
     if (!this.ok()) return UI.toast('这个功能你的账号看不到');
+    const j = await this.claimDev();
+    if (j && j.full){
+      UI.toast('看板号最多 ' + j.limit + ' 台设备，这一台没登记上 —— 请到设置页「看板端」点一次「释放看板设备」');
+      return;
+    }
     document.body.classList.add('board-mode');
     App.go('board');
     this.goFull();   /* 点这个按钮就是「我要用大屏看」，那就直接铺满 —— 留在窗口里没意义 */
+  },
+
+  /* 给服务端登记这台设备。返回 null = 不用管（不是看板号 / 本机模式 / 查不到）。 */
+  async claimDev(){
+    try {
+      if (Auth.mode !== 'cloud' || !Auth.isBoard()) return null;
+      return await Auth.call('dev', { dev: Stu.dev() });
+    } catch(e){ return null; }
+  },
+
+  /* 释放看板号的设备登记（首位教务 / 总教务）：换机器、屏挪了位置时点一次。 */
+  async releaseDev(){
+    try {
+      const j = await Auth.call('dev', { op: 'reset' });
+      UI.toast(j && j.released ? '已释放，下一次打开看板会重新登记' : '释放失败');
+    } catch(e){ UI.toast(e.message || '释放失败'); }
   },
 
   /* 真·全屏。有些浏览器不给（比如没接用户手势、或 iOS Safari），

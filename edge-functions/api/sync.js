@@ -292,6 +292,8 @@ async function profileOf(auth, uid, user) {
     isOffice: auth.role === OFFICE,
     isStaff: STAFF.includes(auth.role),
     isStudent: auth.role === STUDENT,
+    /* 看板专用号（Board.createAccount 建的那个）—— 只有它走「多设备」那一套，见 dev 动作 */
+    board: auth.board === true,
   };
 }
 
@@ -584,6 +586,32 @@ function sanitizePush(shared, me, serverShared) {
 }
 
 /* ── 登录 / 首次初始化 ── */
+/* ── 看板号的设备登记 ──────────────────────────────────────────────
+   看板号（board:true）是摆在办公室 / 走廊那块公用屏上的号，跟学生号不一样：
+     · 允许多台设备同时登（上限 BOARD_DEV_LIMIT），一台屏一个浏览器窗口；
+     · 不要密钥 —— 它本来就是给「多台屏」用的；
+     · 但也不许无限扩散：登记满了，下一台就进不来。
+   判定全在服务端；客户端只负责把「满了」那句话摆出来（见 Board.enter）。
+   释放：首位教务 / 总教务在设置页「看板端」卡里点一次「释放看板设备」，登记清零、重新来过。 */
+const BOARD_DEV_LIMIT = 5;
+
+async function boardDev(s, me, dev, body) {
+  const cur = (await s.get('sys/bddev', { type: 'json' })) || { devs: [] };
+  const devs = Array.isArray(cur.devs) ? cur.devs.filter(x => typeof x === 'string').slice(0, 64) : [];
+  if (devs.indexOf(dev) >= 0) {
+    return json({ ok: true, bound: true, devs: devs.length, limit: BOARD_DEV_LIMIT });
+  }
+  if (devs.length >= BOARD_DEV_LIMIT) {
+    /* 满了：不进也不挤 —— 挤掉的话这块屏下一天还能自己回来，等于没有上限。
+       要腾位置，教务在设置页点一次「释放看板设备」。 */
+    return json({ ok: false, full: true, devs: devs.length, limit: BOARD_DEV_LIMIT });
+  }
+  devs.push(dev);
+  await s.setJSON('sys/bddev', { devs });
+  return json({ ok: true, bound: true, devs: devs.length, limit: BOARD_DEV_LIMIT,
+                first: devs.length === 1 });
+}
+
 async function doLogin(s, body) {
   const user = canonUser(body.user);
   const pass = String(body.pass || '');
@@ -1116,9 +1144,21 @@ export async function onRequestPost(context) {
        换着打卡就没法防了（「我帮你打」是打卡最大的漏洞）。
        判定全在服务端：前端藏按钮不算数，密钥也只在服务端核销。 */
     if (action === 'dev') {
-      if (!me.isStudent) return json({ ok: true, skip: true });
+      /* 释放看板号的设备登记（首位教务 / 总教务在设置页点一次）。跟「自己是哪个号」无关，
+         所以单独放在最前面判 —— 不能被下面的 skip 分支吞掉。 */
+      if (String(body.op || '') === 'reset') {
+        if (!(me.role === SUPER || me.role === OFFICE)) {
+          return json({ error: '只有首位教务与总教务能释放看板设备' }, 403);
+        }
+        await s.setJSON('sys/bddev', { devs: [] });
+        return json({ ok: true, released: true, limit: BOARD_DEV_LIMIT });
+      }
+      /* 看板号：登记成一台就放行、满了就挡住（见 boardDev）。
+         别的教务 / 老师号没有这一摊，照旧跳过 —— 现在只看角色，不看 dev 带没带。 */
+      if (me.board !== true && !me.isStudent) return json({ ok: true, skip: true });
       const dev = String(body.dev || '').slice(0, 64);
       if (!dev) return json({ error: '拿不到这台设备的标识' }, 400);
+      if (me.board === true) return await boardDev(s, me, dev, body);
 
       /* 两道门，任何一道没过都要教务的密钥：
          ① 换设备 —— 一个学生账号最多两台，第一台登的那台是认证设备；
