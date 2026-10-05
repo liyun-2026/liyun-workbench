@@ -1873,6 +1873,17 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 @media (max-width:374px){
   #page-att .sumbox:first-child .legend{flex-shrink:1;min-width:0}
 }
+
+/* ── ⑰c 设置页的锚点条：手机上整条不渲染（用户 2026-10-05 点名）──────────
+   锚点是给桌面「左栏 180px + 右内容」骨架用的（≥1100 才有左栏）。
+   手机上是单列流，9 个锚点折成 3 行、占掉首屏近 1/4，却帮不上忙 ——
+   手机找板块就是往下滑，这是电脑端骨架的残留。
+   ≤699 直接 display:none；桌面 ≥1100 的左栏锚点一行没动。
+   JS 的 Settings.bindChrome() 只是给 nav 绑点击监听，隐藏后不再触发，无副作用。
+   实测：settings@390 3753 → 3612（−141px），overX 仍 0，home/att 不变。 */
+@media (max-width:699px){
+  #page-settings .anchor-nav{display:none}
+}
 </style>
 </head>
 <body>
@@ -2605,7 +2616,7 @@ try {
     <!-- ==== 功能：设置 START ==== -->
     <section class="page" id="page-settings">
       <h1 class="page-title">设置</h1>
-      <p class="page-sub"><span class="only-desk">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</span><span class="only-mob">常用 / 高级两段 · 顶上一排锚点快速跳 · 高级段可折叠</span></p>
+      <p class="page-sub"><span class="only-desk">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</span><span class="only-mob">常用在最前 · 高级在下面 · 往下滑就能看完</span></p>
 
       <div class="anchor-layout">
         <nav class="anchor-nav" id="anchorNav" aria-label="设置锚点">
