@@ -77,7 +77,9 @@
    · `Teachers.paintRoles()`：已经有一个总教务就不再列这个身份（正在改那个号时例外）；
      老师管理页加一条指路条，只在「首位教务 + 还没总教务」时露出。
    · `StuAcct.canEdit()` 放行 office（学生账号表的改密码/停用/删除）。 */
-const VERSION = 'v61'; /* v61：**手机端全站排版收一档** —— 新增 ⑰ 块（@media max-width:699px），
+const VERSION = 'v62'; /* v62：设置页手机端整条去掉锚点导航（用户点名「占空间，而且不会方便找板块」）——
+                       ⑰c 块 #page-settings .anchor-nav 在 ≤699 display:none，桌面 ≥1100 左栏锚点不动；
+                       副标题手机端文案同步改。settings@390 3753 → 3612。无新增静态文件，SHELL 清单不变。 /* v61：**手机端全站排版收一档** —— 新增 ⑰ 块（@media max-width:699px），
                        把 ⑦b 给考勤页做的字号收档推广到全站文字类元素（page-title 22→20、
                        sec-h/chapter h2/card h2 18→16、cmeta 14→13、hint/legend 12.5）；
                        并修两处版面：今日页轴首 .tl-head 由横排改竖排左对齐；
