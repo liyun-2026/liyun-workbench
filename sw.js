@@ -77,7 +77,11 @@
    · `Teachers.paintRoles()`：已经有一个总教务就不再列这个身份（正在改那个号时例外）；
      老师管理页加一条指路条，只在「首位教务 + 还没总教务」时露出。
    · `StuAcct.canEdit()` 放行 office（学生账号表的改密码/停用/删除）。 */
-const VERSION = 'v56'; /* v56：看板号另有设备额度 —— 最多登记 5 台（服务端 sys/bddev，见 sync.js 的 boardDev），
+const VERSION = 'v57'; /* v57：**视觉升级 v57 搬进生产** —— 今日/考勤/名册/作业/设置 5 页换了新结构
+                        （旧骨架、侧栏门头、顶栏/底栏一律没动），新增思源宋体标题子集
+                        assets/NotoSerifSC-Titles-400.woff2 / -500.woff2 —— 走相对路径、不 base64，
+                        单文件已经 703KB，不能再胖。下面 SHELL 里补上了这两个字体。
+                        v56：看板号另有设备额度 —— 最多登记 5 台（服务端 sys/bddev，见 sync.js 的 boardDev），
                         满了就不进（不挤掉，挤掉等于没上限）；设置页「看板端」多了「释放看板设备」。
                         看板号改为固定口令、用户名默认「办公室看板」（手册要照印）。
                         v55：名册页的「单独建号 / 批量建号」两张卡对教务老师收起来（点了服务端一律 403，
@@ -194,6 +198,11 @@ const SHELL = [
   './assets/brand-plate@2x.png',
   './assets/brand-plate@3x.png',
   './assets/liyun-xingshu.woff2',
+  /* v57 新增：思源宋体标题子集 400/500。今日页 .tl-* 的刻度与节点、各页 .chapter h2 /
+     .sec-h / .cls-card 标题等宋体标题都用它。`font-display:block` —— 标题是「先空一下再出现」，
+     不能用 swap 让宋体闪成黑体。 */
+  './assets/NotoSerifSC-Titles-400.woff2',
+  './assets/NotoSerifSC-Titles-500.woff2',
   './assets/sideart/zhushi_lite.png',
   './assets/sideart/lanhua_lite.png',
   './assets/sideart/songhe_lite.png',
