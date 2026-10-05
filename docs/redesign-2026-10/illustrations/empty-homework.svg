@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" class="il"><title>无作业：摊开的作业本与空白田字格</title><g fill="none" stroke="var(--il-line, var(--line, #D9D4C8))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><rect x="120" y="100" width="240" height="168" rx="4"/>
+<path d="M240,100 L240,268"/>
+<path d="M140,150 L224,150"/>
+<path d="M140,190 L224,190"/>
+<path d="M140,230 L224,230"/>
+<path d="M312,132 L360,132 L360,180 L312,180 Z"/>
+<path d="M336,132 L336,180"/>
+<path d="M312,156 L360,156"/>
+<path d="M258,186 L306,186 L306,234 L258,234 Z"/>
+<path d="M282,186 L282,234"/>
+<path d="M258,210 L306,210"/>
+<path d="M312,186 L360,186 L360,234 L312,234 Z"/>
+<path d="M336,186 L336,234"/>
+<path d="M312,210 L360,210"/></g><g class="gl" fill="none" stroke="var(--il-gold, var(--gold, #C9AB7C))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><path d="M258,132 L306,132 L306,180 L258,180 Z"/>
+<path d="M282,132 L282,180"/>
+<path d="M258,156 L306,156"/></g></svg>

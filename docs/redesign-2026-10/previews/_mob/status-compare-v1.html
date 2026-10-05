@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>手机端考勤 · 状态直选 三案对照</title>
+<style>
+@font-face{font-family:'NotoSerifSC';src:url('../../../assets/NotoSerifSC-Titles-500.woff2') format('woff2');font-weight:500;font-display:block}
+@font-face{font-family:'NotoSerifSC';src:url('../../../assets/NotoSerifSC-Titles-400.woff2') format('woff2');font-weight:400;font-display:block}
+:root{
+  --bg:#F7F5F0; --card:#FFFFFF; --text:#26241F; --text-dim:#6E6A61; --line:#E7E3DA;
+  --brand:#B08A4F; --brand-ink:#7E6438; --brand-deco:#C9AB7C;
+  --stamp-ok:#2A6E50; --stamp-late:#7C5B0D; --stamp-sick:#1B4B5A; --stamp-leave:#B23A2E;
+  --stamp-absent:#26241F;
+  --serif:'NotoSerifSC','Songti SC','STSong',serif;
+  --font:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,monospace;
+  --m-title:20px; --m-sec:16px; --m-body:14.5px; --m-meta:12.5px; --m-tiny:11.5px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+/* 两列排开：单列会让整张图变成 1:6 的长条，缩放到屏幕上字就糊得看不清了 */
+body{background:#EDEBE6;font-family:var(--font);color:var(--text);padding:26px;
+  display:grid;grid-template-columns:446px 446px;gap:24px 26px;align-items:start;width:970px}
+.blk{margin:0}
+.tag{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.tag .n{font-family:var(--mono);font-size:12.5px;padding:3px 9px;border-radius:20px;
+  background:#DCD8D0;color:#5b544a;white-space:nowrap}
+.tag b{font-size:19px;font-weight:600}
+.tag i{font-style:normal;font-size:12.5px;color:#7d766b;margin-left:auto;text-align:right;line-height:1.35}
+.reco .n{background:var(--brand);color:#fff}
+.reco b{color:var(--brand-ink)}
+.phone{background:var(--bg);border-radius:14px;border:1px solid #DCD8D0;padding:14px 12px 16px;
+  box-shadow:0 2px 10px rgba(40,34,24,.06)}
+.ptitle{font-family:var(--serif);font-size:var(--m-title);font-weight:400;line-height:1.25}
+.pmeta{font-size:var(--m-meta);color:var(--text-dim);margin-top:4px}
+.sec{margin-top:14px;padding-top:11px;border-top:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between}
+.sec span{font-family:var(--serif);font-size:var(--m-sec);font-weight:400}
+.sec em{font-style:normal;font-size:var(--m-tiny);color:var(--text-dim)}
+.rhead{display:grid;gap:8px;padding:8px 0 6px;border-bottom:1px solid var(--text);
+  font-size:var(--m-tiny);letter-spacing:.06em;color:var(--text-dim)}
+.idx{font-family:var(--mono);font-size:12px;color:var(--text-dim)}
+.who{font-size:var(--m-body);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 现状：点印章轮换 ── */
+.r0{grid-template-columns:30px minmax(0,1fr) 92px}
+.r0 .stamp{font-family:var(--serif);font-size:13.5px;letter-spacing:.06em;padding:5px 0;width:100%;
+  text-align:center;background:none;border:1px solid currentColor;border-radius:6px}
+
+/* ⚠️ 每个状态把语义色同时写进 --c。
+   不能写成 `.on{background:currentColor;color:#fff}` —— 同一条规则里 color 已经是 #fff，
+   于是 currentColor 也变成白色，选中的块会渲染成一个白块（这个坑踩过）。 */
+.s-ok{color:var(--stamp-ok);--c:var(--stamp-ok)} .s-late{color:var(--stamp-late);--c:var(--stamp-late)}
+.s-sick{color:var(--stamp-sick);--c:var(--stamp-sick)} .s-leave{color:var(--stamp-leave);--c:var(--stamp-leave)}
+.s-absent{color:var(--stamp-absent);--c:var(--stamp-absent)}
+.s-none{color:var(--text-dim);--c:var(--text-dim);border-style:dashed}
+
+/* ── A：两行小卡 ── */
+.ra{padding:10px 0;border-bottom:1px solid var(--line)}
+.ra .l1{display:flex;align-items:baseline;gap:9px}
+.ra .l1 .sp{flex:1}
+.ra .l1 .slots{font-size:var(--m-tiny);color:var(--text-dim);white-space:nowrap}
+.ra .l2{display:flex;gap:5px;margin-top:8px}
+/* 未选中一律中性 —— 五个状态各带一色会变成一行彩虹，反而看不出这个人是什么状态 */
+.chip{flex:1;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;
+  border:1px solid var(--line);border-radius:8px;background:none;color:var(--text-dim);letter-spacing:.04em}
+.chip.on{background:var(--c);border-color:var(--c);color:#fff;font-weight:500}
+
+/* ── B：一行 + 弹层 ── */
+.rb{grid-template-columns:30px minmax(0,1fr) 76px}
+.rb .sel{font-size:var(--m-meta);padding:5px 0;border:1px solid var(--c,var(--line));border-radius:8px;
+  background:var(--card);display:flex;align-items:center;justify-content:center;gap:4px;color:var(--c,var(--text))}
+.rb .sel i{font-style:normal;font-size:9px;color:var(--text-dim)}
+.row{display:grid;gap:8px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.sheet{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;
+  box-shadow:0 -3px 14px rgba(40,34,24,.07)}
+.sheet .hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.sheet .hd b{font-family:var(--serif);font-size:var(--m-sec);font-weight:400}
+.sheet .hd span{font-size:var(--m-tiny);color:var(--text-dim)}
+.sheet .opts{display:grid;gap:7px}
+.sheet .o{height:42px;display:flex;align-items:center;justify-content:space-between;
+  border:1px solid var(--c);border-radius:10px;padding:0 14px;font-size:var(--m-body);
+  background:none;color:var(--c,var(--text))}
+.sheet .o b{font-size:var(--m-tiny);font-weight:400;color:var(--text-dim)}
+.sheet .o.on{background:var(--c);border-color:var(--c);color:#fff}
+.sheet .o.on b{color:rgba(255,255,255,.82)}
+
+/* ── C：一行 + 右侧小方块 ── */
+.rc{grid-template-columns:26px minmax(56px,1fr) auto}
+.rc .mini{display:flex;gap:4px}
+.rc .m{width:44px;height:30px;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;border:1px solid var(--line);border-radius:7px;background:none;color:var(--text-dim)}
+.rc .m.on{background:var(--c);border-color:var(--c);color:#fff;font-weight:500}
+
+.note{font-size:12.5px;color:#7d766b;margin-top:9px;padding-left:2px;line-height:1.55}
+.note b{color:var(--stamp-leave)}
+</style>
+</head>
+<body>
+
+<!-- ══════════ 现状 ══════════ -->
+<div class="blk">
+  <div class="tag"><span class="n">现 状</span><b>v57：点印章轮换</b><i>一人最多点 4 下<br>一屏约 10 人</i></div>
+  <div class="phone">
+    <div class="ptitle">砺蕴一班 · 今日考勤</div>
+    <div class="pmeta">2026-10-05 · 上午 · 10 人</div>
+    <div class="sec"><span>名单</span><em>10 人 · 已登记 9</em></div>
+    <div class="rhead r0"><span>#</span><span>姓名</span><span style="text-align:center">状态（点印章改）</span></div>
+    <div class="row r0"><span class="idx">01</span><span class="who">刘浩然</span><span class="stamp s-leave">事假</span></div>
+    <div class="row r0"><span class="idx">02</span><span class="who">吴俊熙</span><span class="stamp s-ok">正常</span></div>
+    <div class="row r0"><span class="idx">03</span><span class="who">郑雨桐</span><span class="stamp s-absent">未到</span></div>
+    <div class="row r0"><span class="idx">04</span><span class="who">孙嘉禾</span><span class="stamp s-late">迟到</span></div>
+    <div class="row r0"><span class="idx">05</span><span class="who">张予诺</span><span class="stamp s-sick">病假</span></div>
+    <div class="row r0" style="border-bottom:none"><span class="idx">06</span><span class="who">李思远</span><span class="stamp s-none">未登记</span></div>
+  </div>
+  <p class="note">想标「<b>事假</b>」要点 4 下：正常 → 迟到 → 病假 → 事假。20 个学生、5 个要改，就是十几下。</p>
+</div>
+
+<!-- ══════════ 方案 A ══════════ -->
+<div class="blk reco">
+  <div class="tag"><span class="n">方案 A</span><b>两行小卡 · 状态全平铺</b><i>点一下就到位<br>一屏约 6~7 人</i></div>
+  <div class="phone">
+    <div class="ptitle">砺蕴一班 · 今日考勤</div>
+    <div class="pmeta">2026-10-05 · 上午 · 10 人</div>
+    <div class="sec"><span>名单</span><em>10 人 · 已登记 9</em></div>
+    <div class="rhead" style="grid-template-columns:30px 1fr"><span>#</span><span>姓名 · 状态（直接点）</span></div>
+
+    <div class="ra"><div class="l1"><span class="idx">01</span><span class="who">刘浩然</span><span class="sp"></span><span class="slots">上午 ●</span></div>
+      <div class="l2"><span class="chip s-ok">正常</span><span class="chip s-late">迟到</span><span class="chip s-sick">病假</span><span class="chip s-leave on">事假</span><span class="chip s-absent">未到</span></div></div>
+
+    <div class="ra"><div class="l1"><span class="idx">02</span><span class="who">吴俊熙</span><span class="sp"></span><span class="slots">上午 ●</span></div>
+      <div class="l2"><span class="chip s-ok on">正常</span><span class="chip s-late">迟到</span><span class="chip s-sick">病假</span><span class="chip s-leave">事假</span><span class="chip s-absent">未到</span></div></div>
+
+    <div class="ra"><div class="l1"><span class="idx">03</span><span class="who">郑雨桐</span><span class="sp"></span><span class="slots">上午 ●</span></div>
+      <div class="l2"><span class="chip s-ok">正常</span><span class="chip s-late">迟到</span><span class="chip s-sick">病假</span><span class="chip s-leave">事假</span><span class="chip s-absent on">未到</span></div></div>
+
+    <div class="ra"><div class="l1"><span class="idx">04</span><span class="who">孙嘉禾</span><span class="sp"></span><span class="slots">上午 ●</span></div>
+      <div class="l2"><span class="chip s-ok">正常</span><span class="chip s-late on">迟到</span><span class="chip s-sick">病假</span><span class="chip s-leave">事假</span><span class="chip s-absent">未到</span></div></div>
+
+    <div class="ra"><div class="l1"><span class="idx">05</span><span class="who">张予诺</span><span class="sp"></span><span class="slots">上午 ●</span></div>
+      <div class="l2"><span class="chip s-ok">正常</span><span class="chip s-late">迟到</span><span class="chip s-sick on">病假</span><span class="chip s-leave">事假</span><span class="chip s-absent">未到</span></div></div>
+
+    <div class="ra" style="border-bottom:none"><div class="l1"><span class="idx">06</span><span class="who">李思远</span><span class="sp"></span><span class="slots">上午 ○</span></div>
+      <div class="l2"><span class="chip s-ok">正常</span><span class="chip s-late">迟到</span><span class="chip s-sick">病假</span><span class="chip s-leave">事假</span><span class="chip s-absent">未到</span></div></div>
+  </div>
+  <p class="note">配合已有的「一键全部正常」就是：<b>先全标正常 → 只改那几个特例，一人一下</b>。20 人里 5 个要改 = 6 下。</p>
+</div>
+
+<!-- ══════════ 方案 B ══════════ -->
+<div class="blk">
+  <div class="tag"><span class="n">方案 B</span><b>一行一人 · 点开底部选择层</b><i>一人两下<br>一屏约 10 人</i></div>
+  <div class="phone">
+    <div class="ptitle">砺蕴一班 · 今日考勤</div>
+    <div class="pmeta">2026-10-05 · 上午 · 10 人</div>
+    <div class="sec"><span>名单</span><em>10 人 · 已登记 9</em></div>
+    <div class="rhead rb"><span>#</span><span>姓名</span><span style="text-align:center">状态</span></div>
+    <div class="row rb"><span class="idx">01</span><span class="who">刘浩然</span><span class="sel s-leave">事假 <i>▾</i></span></div>
+    <div class="row rb"><span class="idx">02</span><span class="who">吴俊熙</span><span class="sel s-ok">正常 <i>▾</i></span></div>
+    <div class="row rb"><span class="idx">03</span><span class="who">郑雨桐</span><span class="sel s-absent">未到 <i>▾</i></span></div>
+    <div class="row rb"><span class="idx">04</span><span class="who">孙嘉禾</span><span class="sel s-late">迟到 <i>▾</i></span></div>
+    <div class="row rb"><span class="idx">05</span><span class="who">张予诺</span><span class="sel s-sick">病假 <i>▾</i></span></div>
+    <div class="row rb" style="border-bottom:none"><span class="idx">06</span><span class="who">李思远</span><span class="sel s-none">未登记 <i>▾</i></span></div>
+    <div class="sheet">
+      <div class="hd"><b>刘浩然 · 上午</b><span>点一下就是它，再点一次取消</span></div>
+      <div class="opts">
+        <span class="o s-ok">正常 <b>到齐</b></span>
+        <span class="o s-late">迟到 <b>晚到</b></span>
+        <span class="o s-sick">病假 <b>有病假条</b></span>
+        <span class="o s-leave on">事假 <b>已批准 · 当前</b></span>
+        <span class="o s-absent">未到 <b>没来也没请假</b></span>
+      </div>
+    </div>
+  </div>
+  <p class="note">选择层从屏幕底部弹出来，正好在大拇指那儿；按钮大、不会点错。代价是每人多一次点击。</p>
+</div>
+
+<!-- ══════════ 方案 C ══════════ -->
+<div class="blk">
+  <div class="tag"><span class="n">方案 C</span><b>一行一人 · 右侧小方块</b><i>一人一下<br>一屏约 10 人</i></div>
+  <div class="phone">
+    <div class="ptitle">砺蕴一班 · 今日考勤</div>
+    <div class="pmeta">2026-10-05 · 上午 · 10 人</div>
+    <div class="sec"><span>名单</span><em>10 人 · 已登记 9</em></div>
+    <div class="rhead rc"><span>#</span><span>姓名</span><span style="text-align:center">状态</span></div>
+    <div class="row rc"><span class="idx">01</span><span class="who">刘浩然</span><span class="mini"><span class="m s-ok">正常</span><span class="m s-late">迟到</span><span class="m s-sick">病假</span><span class="m s-leave on">事假</span><span class="m s-absent">未到</span></span></div>
+    <div class="row rc"><span class="idx">02</span><span class="who">吴俊熙</span><span class="mini"><span class="m s-ok on">正常</span><span class="m s-late">迟到</span><span class="m s-sick">病假</span><span class="m s-leave">事假</span><span class="m s-absent">未到</span></span></div>
+    <div class="row rc"><span class="idx">03</span><span class="who">郑雨桐</span><span class="mini"><span class="m s-ok">正常</span><span class="m s-late">迟到</span><span class="m s-sick">病假</span><span class="m s-leave">事假</span><span class="m s-absent on">未到</span></span></div>
+    <div class="row rc"><span class="idx">04</span><span class="who">孙嘉禾</span><span class="mini"><span class="m s-ok">正常</span><span class="m s-late on">迟到</span><span class="m s-sick">病假</span><span class="m s-leave">事假</span><span class="m s-absent">未到</span></span></div>
+    <div class="row rc"><span class="idx">05</span><span class="who">张予诺</span><span class="mini"><span class="m s-ok">正常</span><span class="m s-late">迟到</span><span class="m s-sick on">病假</span><span class="m s-leave">事假</span><span class="m s-absent">未到</span></span></div>
+    <div class="row rc" style="border-bottom:none"><span class="idx">06</span><span class="who">李思远</span><span class="mini"><span class="m s-ok">正常</span><span class="m s-late">迟到</span><span class="m s-sick">病假</span><span class="m s-leave">事假</span><span class="m s-absent">未到</span></span></div>
+  </div>
+  <p class="note">一屏能看到的人和方案 B 一样多，也是一下就选中；但每块只有 <b>44px 宽</b>，
+    「病假」「事假」只差一个字，手指粗一点就容易点错旁边那个 —— 改错了还得再点回来。</p>
+</div>
+
+</body>
+</html>

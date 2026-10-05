@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 样张 · 作业</title>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="page-homework.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<div class="app">
+  <aside class="side" id="nav" aria-label="主导航"></aside>
+  <div class="col">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main" id="main">
+      <!-- ══ 作业（左检查 · 右布置）══ -->
+      <section class="page on" id="page-homework">
+        <h1 class="page-title">作业</h1>
+        <p class="page-sub">左「今日检查」逐人勾选 · 右「布置作业」发给多个班</p>
+
+        <div class="hw-grid">
+          <!-- 左：今日检查 -->
+          <section class="hw-card" aria-label="今日作业检查">
+            <div class="row">
+              <div><div class="sec-h">今日检查 · <span id="hwCls">播音一班</span></div>
+                <p class="sec-meta" id="hwMeta">—</p></div>
+              <span style="flex:1"></span>
+              <button class="btn ghost mini" type="button" id="hwClsBtn">切换班级</button>
+            </div>
+            <div class="hk-progress" role="progressbar" aria-label="完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hwBar"><i style="width:0%"></i></div>
+            <div class="row" style="margin-top:8px">
+              <span class="hk-pct num" id="hwPct">0%</span>
+              <span class="hint">已完成 <b class="num" id="hwDone">0</b> / <b class="num" id="hwAll">0</b> 人</span>
+              <span style="flex:1"></span>
+              <button class="btn ghost mini" type="button" id="hwAllDone">全部标记完成</button>
+            </div>
+            <div id="hwList" style="margin-top:12px" role="list"></div>
+          </section>
+
+          <!-- 右：布置作业 -->
+          <section class="hw-card hw-form" aria-label="布置作业">
+            <div class="sec-h">布置作业</div>
+            <p class="sec-meta">纯表单页 · 不加装饰插图</p>
+            <label for="hwText">作业内容</label>
+            <textarea id="hwText" placeholder="例：新闻播报 3 条（录音上传）"></textarea>
+            <label>发给哪些班</label>
+            <div class="chips" id="hwChips"></div>
+            <label for="hwDate">截止日期</label>
+            <input id="hwDate" type="date" style="width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px;background:var(--card)">
+            <p style="margin-top:16px"><button class="btn" type="button" id="hwSubmit">布置作业</button>
+              <button class="btn ghost" type="button" data-noop style="margin-left:8px">存为草稿</button></p>
+          </section>
+        </div>
+
+        <!-- 整宽：已布置列表 -->
+        <section class="chapter" aria-label="已布置作业">
+          <h2>已布置</h2>
+          <p class="cmeta">今日发给各班的作业</p>
+          <div id="hwAssigned" style="margin-top:12px"></div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="底部导航"></nav>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+<script>
+/* 作业页逻辑：检查清单（.box 勾选 + 进度条）/ 布置表单 */
+(function () {
+  var D = window.D, $ = Shell.$, $$ = Shell.$$;
+  var clsId = D.CLASSES[0].id;
+
+  function renderChips() {
+    var box = $('#hwChips');
+    box.innerHTML = D.CLASSES.map(function (c) {
+      return '<button type="button" data-c="' + c.id + '" aria-pressed="false">' + c.name + '</button>';
+    }).join('');
+  }
+  function renderAssigned() {
+    $('#hwAssigned').innerHTML = D.HOMEWORK.assigned.map(function (h) {
+      return '<div class="item"><svg class="ic" aria-hidden="true"><use href="#ic-memo"></use></svg>' +
+        '<span class="grow">' + h.text + '<span class="hint"> · ' + h.cls + '</span></span>' +
+        '<span class="chip">' + h.due + '</span></div>';
+    }).join('');
+  }
+  function renderCheck() {
+    var names = D.HOMEWORK.checklist;
+    $('#hwCls').textContent = D.CLASSES.filter(function (c) { return c.id === clsId; })[0].name;
+    $('#hwMeta').textContent = D.today() + ' · 截止今晚 22:00';
+    $('#hwList').innerHTML = names.map(function (n, i) {
+      var done = D.HW_DONE_SEED.indexOf(i) >= 0;
+      return '<button class="item' + (done ? ' done' : '') + '" type="button" role="listitem" data-i="' + i + '" aria-pressed="' + done + '">' +
+        '<span class="box" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#ic-check"></use></svg></span>' +
+        '<span class="grow">' + n + '</span><span class="chip">' + (done ? '已完成' : '待完成') + '</span></button>';
+    }).join('');
+    updateProgress();
+  }
+  function updateProgress() {
+    var all = $$('#hwList .item').length, done = $$('#hwList .item.done').length;
+    var pct = all ? Math.round(done / all * 100) : 0;
+    $('#hwAll').textContent = all; $('#hwDone').textContent = done; $('#hwPct').textContent = pct + '%';
+    $('#hwBar').setAttribute('aria-valuenow', pct);
+    $('#hwBar').firstElementChild.style.width = pct + '%';
+  }
+  window.PAGE_INIT = function () {
+    renderChips(); renderAssigned(); renderCheck();
+    $('#hwList').addEventListener('click', function (e) {
+      var b = e.target.closest('.item'); if (!b) return;
+      b.classList.toggle('done');
+      b.setAttribute('aria-pressed', String(b.classList.contains('done')));
+      b.querySelector('.chip').textContent = b.classList.contains('done') ? '已完成' : '待完成';
+      updateProgress();
+    });
+    $('#hwAllDone').addEventListener('click', function () {
+      $$('#hwList .item').forEach(function (b) {
+        b.classList.add('done'); b.setAttribute('aria-pressed', 'true');
+        b.querySelector('.chip').textContent = '已完成';
+      });
+      updateProgress();
+    });
+    $('#hwClsBtn').addEventListener('click', function () {
+      var i = D.CLASSES.map(function (c) { return c.id; }).indexOf(clsId);
+      clsId = D.CLASSES[(i + 1) % D.CLASSES.length].id; renderCheck();
+    });
+    $('#hwChips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-c]'); if (!b) return;
+      var on = b.getAttribute('aria-pressed') === 'true';
+      b.setAttribute('aria-pressed', String(!on));
+    });
+    $('#hwSubmit').addEventListener('click', function () {
+      var t = $('#hwText').value.trim() || '（未填写内容）';
+      var n = $$('#hwChips [aria-pressed="true"]').length;
+      Shell.toast('已布置给 ' + n + ' 个班：' + t.slice(0, 12) + (t.length > 12 ? '…' : ''));
+    });
+  };
+  window.PAGE_PORT_CHANGED = function () {};
+})();
+</script>
+</body>
+</html>

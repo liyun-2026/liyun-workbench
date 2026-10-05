@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" class="il"><title>无学生：空座位与空白姓名牌</title><g fill="none" stroke="var(--il-line, var(--line, #D9D4C8))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><path d="M178,200 L178,120 Q178,104 194,104 L286,104 Q302,104 302,120 L302,200"/>
+<path d="M214,104 L214,200"/>
+<path d="M266,104 L266,200"/>
+<path d="M166,202 L314,202 Q322,202 322,210 Q322,218 314,218 L166,218 Q158,218 158,210 Q158,202 166,202 Z"/>
+<path d="M168,218 L162,296"/>
+<path d="M312,218 L318,296"/>
+<path d="M204,218 L206,278"/>
+<path d="M276,218 L274,278"/></g><g class="gl" fill="none" stroke="var(--il-gold, var(--gold, #C9AB7C))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><path d="M290,104 L290,94"/>
+<path d="M276,78 L304,78 L304,94 L276,94 Z"/>
+<circle cx="290" cy="86" r="1.8"/></g></svg>

@@ -1,0 +1,17 @@
+/* 砺蕴教务系统 · 样张 · page-homework.css —— 作业页（左检查 · 右布置，§2.4） */
+@media (min-width:1100px){ .page#page-homework.on{grid-template-columns:minmax(0,1fr)} }
+
+.hw-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
+@media (min-width:700px){ .hw-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:var(--sp-8)} }
+
+.hw-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--pad)}
+.hk-progress{height:8px;border-radius:var(--r-pill);background:var(--line);overflow:hidden;margin-top:var(--sp-3)}
+.hk-progress i{display:block;height:100%;background:var(--accent);transition:width var(--dur-slow) var(--ease-slow)}
+.hk-pct{font-family:var(--font-serif);font-size:20px}
+.hw-form textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:10px 12px;font:inherit;font-size:15px;background:var(--card);resize:vertical}
+.hw-form label{display:block;font-size:var(--fs-small);color:var(--text-dim);margin:var(--sp-3) 0 6px}
+.hw-form .chips{display:flex;gap:8px;flex-wrap:wrap}
+.hw-form .chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);
+  color:var(--text-dim);border-radius:var(--r-sm);padding:5px 11px;cursor:pointer}
+.hw-form .chips button[aria-pressed="true"]{background:var(--accent);color:var(--btn-text);border-color:var(--accent)}

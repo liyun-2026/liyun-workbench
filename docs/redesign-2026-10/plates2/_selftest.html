@@ -1,0 +1,83 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>plates2 selftest</title></head>
+<body><pre id="out">RUNNING</pre>
+<iframe id="f" width="1440" height="1000" style="border:0;position:absolute;left:-99999px;top:0"></iframe>
+<script>
+var LOG=[];
+function ok(c,m){ LOG.push((c?"PASS":"FAIL")+" | "+m); }
+var files=["D.html","E.html","F.html"], frame=document.getElementById("f"), i=0;
+
+function test(w,d,fn){
+  var de=d.documentElement;
+  ok(de.scrollWidth<=de.clientWidth+1, fn+" 无横向溢出 scrollW="+de.scrollWidth+" clientW="+de.clientWidth);
+  var faces=Array.from(d.fonts||[]).filter(function(x){return x.family.replace(/["']/g,"")==="NotoSerifSC";});
+  ok(faces.length>0 && faces.every(function(x){return x.status==="loaded";}), fn+" 思源宋体子集已加载 n="+faces.length+" ["+faces.map(function(x){return x.status;}).join(",")+"] check="+d.fonts.check("16px NotoSerifSC"));
+  var serif=d.querySelector(".serif")||d.querySelector(".brand");
+  var ff=w.getComputedStyle(serif).fontFamily;
+  ok(/NotoSerifSC/.test(ff), fn+" .serif 计算字体含 NotoSerifSC ("+ff.slice(0,24)+")");
+
+  /* 切到考勤 */
+  d.querySelector('[data-go="att"]').click();
+  ok(d.getElementById("pane-att").classList.contains("on") && !d.getElementById("pane-home").classList.contains("on"), fn+" 切到考勤 pane");
+  ok(d.querySelector(".topbar .t-title").textContent.trim()==="考勤", fn+" 顶栏标题随切换更新");
+
+  if(fn==="D.html"){
+    var n=d.querySelector(".node");
+    n.querySelector("button").click();
+    ok(n.getAttribute("data-open")==="1", "D 轴节点就地展开");
+    var dot=d.querySelector(".dots .d"); var s0=dot.getAttribute("data-s");
+    dot.click();
+    ok(dot.getAttribute("data-s")!==s0, "D 点阵点格循环切状态 ("+s0+"→"+dot.getAttribute("data-s")+")");
+  }
+  if(fn==="E.html"){
+    var c=d.querySelector("#attMatrix .cell"); var s0=c.getAttribute("data-s");
+    c.click();
+    ok(c.getAttribute("data-s")!==s0, "E 点格循环切状态 ("+s0+"→"+c.getAttribute("data-s")+")");
+    /* 键盘设状态：焦点格按 "3" → 病假 */
+    c.dispatchEvent(new w.KeyboardEvent("keydown",{key:"3",bubbles:true}));
+    ok(c.getAttribute("data-s")==="病假", "E 键盘 1/2/3/4 设状态 (→"+c.getAttribute("data-s")+")");
+    /* 占比条点击筛选 → 有格子被压暗 */
+    d.querySelector('.ratio button[data-f="迟到"]').click();
+    var dimmed=[].slice.call(d.querySelectorAll("#attMatrix .cell")).some(function(x){return w.getComputedStyle(x).opacity<0.5;});
+    ok(dimmed, "E 占比条点击筛选（非匹配格压暗）");
+    d.getElementById("clearBtn").click();
+    var back=[].slice.call(d.querySelectorAll("#attMatrix .cell")).every(function(x){return w.getComputedStyle(x).opacity>0.9;});
+    ok(back, "E 清除筛选复原");
+    d.getElementById("allNormal").click();
+    ok([].slice.call(d.querySelectorAll("#attMatrix .cell")).every(function(x){return x.getAttribute("data-s")==="正常";}), "E 一键全部正常");
+  }
+  if(fn==="F.html"){
+    /* 就地编辑 */
+    var v=d.getElementById("cdView"), inp=d.getElementById("cdInput");
+    v.click();
+    ok(!inp.hidden && v.hidden, "F 点数字进入就地编辑（input 现身）");
+    inp.value="100";
+    inp.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Enter",bubbles:true}));
+    ok(/100/.test(v.textContent) && !v.hidden, "F 回车确认并回显 ("+v.textContent.trim()+")");
+    /* 印章点击 + 小结联动 */
+    var st=d.querySelector("#roster .stamp"); var t0=st.textContent;
+    st.click();
+    ok(st.textContent!==t0, "F 点印章改状态并盖新章 ("+t0+"→"+st.textContent+")");
+    var sum=d.querySelectorAll(".sumbox .sumrow b");
+    var total=parseInt(sum[0].textContent,10);
+    ok(total===26, "F 小结应到随名册=26 (实="+total+")");
+    d.getElementById("allNormal").click();
+    ok([].slice.call(d.querySelectorAll("#roster .stamp")).every(function(x){return x.getAttribute("data-s")==="正常";}), "F 一键全部正常");
+    var okSum=parseInt(d.querySelectorAll(".sumbox .sumrow b")[1].textContent,10);
+    ok(okSum===26, "F 小结正常数联动=26 (实="+okSum+")");
+  }
+  /* 深色切换 */
+  d.getElementById("themeBtn").click();
+  ok(de.getAttribute("data-theme")==="dark", fn+" 深色模式切换");
+  d.getElementById("themeBtn").click();
+  ok(de.getAttribute("data-theme")==="light", fn+" 切回浅色");
+}
+
+function runNext(){
+  if(i>=files.length){ document.getElementById("out").textContent="RESULT\n"+LOG.join("\n")+"\nEND"; return; }
+  var fn=files[i++];
+  frame.onload=function(){ setTimeout(function(){ try{ test(frame.contentWindow, frame.contentDocument, fn); }catch(e){ ok(false, fn+" 执行异常: "+e.message); } runNext(); }, 500); };
+  frame.src=fn;
+}
+runNext();
+</script>
+</body></html>

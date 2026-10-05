@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant U as 用户
+    participant S as Shell
+    participant D as DataSource(data.js)
+    participant H as HomePage
+    participant T as TimelineModel
+
+    U->>S: 打开 samples/home.html
+    S->>S: mountChrome() 渲染 .side/.topbar/.tabbar
+    S->>S: setPort(STAFF) 应用 ① 令牌
+    S->>H: render()
+    H->>D: slots()/attMapDay()/homework()/night()
+    D-->>H: 数据
+    H->>T: timelineFor(role)
+    T-->>H: ticks(4) + nodes[]
+    H->>H: 画轴首 .card.wide + .tl-axis + .tl-node(.item) + .chapter
+    H->>S: updateCursor()
+    S->>S: 算 at% → 写 .tl-now --at
+    S->>S: setInterval 30s / visibilitychange 重算
+    U->>H: 点 .tl-node
+    H->>H: 切 data-open / .tl-body hidden（就地展开）
+
+    Note over U,AttPage: 考勤页
+    U->>S: 切到 att.html，端口切 ③
+    S->>AttPage: render()
+    AttPage->>D: byStu(date,pid) / SLOTS()
+    AttPage->>AttPage: 画 .chead / .roster(.rrow+.stamp) / .sumsticky
+    U->>AttPage: 点 .stamp
+    AttPage->>AttPage: Stamp.cycle() → 盖新章 + updateSum()
+    AttPage->>AttPage: .sumrow 数字 + .ratio 占比条 实时同步

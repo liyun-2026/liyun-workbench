@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 样张 · 今日（D 时间轴）</title>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="page-home.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<div class="app">
+  <aside class="side" id="nav" aria-label="主导航"></aside>
+  <div class="col">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main" id="main">
+      <!-- ══ 今日（D · 时序·时间轴）══ -->
+      <section class="page on" id="page-home">
+        <h1 class="page-title">今日 <span class="clock" data-clock>--:--:--</span></h1>
+        <p class="page-sub">沿一条时间轴办完今天的事 · 游标压住「现在几点」· 刻度 = 作息节次（有几节画几节）</p>
+
+        <!-- 轴首（复用 .card.wide + .hero） -->
+        <div class="card wide tl-head">
+          <div class="hero tl-big">
+            <span class="num" id="cdDays" role="button" tabindex="0" title="点一下就地修改倒计时">--</span>
+            <span class="unit">天</span>
+          </div>
+          <div class="tl-meta">
+            <p class="hint">距<b id="cdLabel">统考</b> · 目标日 <span class="num" id="cdDate">----</span></p>
+            <button class="cd-edit" type="button" id="cdEdit">就地修改天数</button>
+          </div>
+          <div class="tl-next">
+            <b class="num" data-next>—</b>
+            <span class="hint">下一节还有多久</span>
+          </div>
+        </div>
+
+        <!-- 主轴 -->
+        <div class="tl-wrap" id="tlWrap">
+          <div class="tl-line" aria-hidden="true"></div>
+          <div class="tl-now" aria-hidden="true"><span class="tl-now-t num">现在 --:--</span></div>
+          <p class="sr-only" id="tlNowSr" aria-live="polite">现在 --:--</p>
+          <ol class="tl-axis" role="list" id="tlAxis" aria-label="今日时间轴"></ol>
+        </div>
+
+        <!-- 轴尾：去卡片化章节 -->
+        <section class="chapter" aria-label="今日要闻">
+          <h2>今日要闻</h2>
+          <p class="cmeta">央视新闻 · 降级为轴尾一栏，点进独立页读</p>
+          <div class="news-strip" id="newsStrip"></div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="底部导航"></nav>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+<script>
+/* 今日页逻辑：轴首 / 主轴（按节次分桶）/ 轴尾 / 游标像素定位 */
+(function () {
+  var D = window.D, $ = Shell.$, $$ = Shell.$$, el = Shell.el, ic = Shell.ic;
+  var KIND_ICON = { att: 'ic-pin', 'class': 'ic-calendar', hw: 'ic-memo', night: 'ic-moon', todo: 'ic-hand', patrol: 'ic-shield' };
+
+  function fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+  /* ── 轴首 ─────────────────────────────────────────────────────────── */
+  function renderHead() {
+    var d = D.daysTo(D.EXAM.date);
+    $('#cdDays').textContent = d < 0 ? '已过期' : String(d);
+    $('#cdLabel').textContent = D.EXAM.label;
+    $('#cdDate').textContent = D.EXAM.date;
+  }
+  function startEdit() {
+    var span = $('#cdDays');
+    if (span.dataset.editing === '1') return;
+    var inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '0'; inp.max = '9999'; inp.className = 'cd-input';
+    inp.value = String(parseInt(span.textContent, 10) || 0);
+    inp.setAttribute('aria-label', '倒计时天数');
+    span.dataset.editing = '1'; span.hidden = true;
+    span.parentNode.insertBefore(inp, span.nextSibling);
+    inp.focus(); inp.select();
+    var done = false;
+    function finish(ok) {
+      if (done) return; done = true;
+      if (ok) {
+        var v = parseInt(inp.value, 10); if (isNaN(v) || v < 0) v = 0; if (v > 9999) v = 9999;
+        span.textContent = String(v);
+        var nd = new Date(); nd.setDate(nd.getDate() + v);
+        $('#cdDate').textContent = fmtDate(nd);
+        var t = $('.tl-head .hint'); /* 同步一句说明 */
+        if (t) t.setAttribute('data-edited', '1');
+      }
+      inp.remove(); span.hidden = false; delete span.dataset.editing; span.focus();
+    }
+    inp.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    inp.addEventListener('blur', function () { finish(true); });
+  }
+
+  /* ── 主轴：节点按 [本刻度 start, 下一刻度 start) 分桶（§7.1.4）─────── */
+  function periodsOrFallback() {
+    var ps = D.periodsSorted();
+    if (ps.length) return { list: ps, fallback: false };
+    /* 兜底（§7.1.3）：periods 为空 → 先读考勤时段 Att.SLOTS() 造刻度，再补「晚自习 19:00」，不塌不空白。
+       样张无 Store，用 D.ATT_SLOTS 演示（形状同 Att.SLOTS() 默认的上午/下午）；
+       搬入生产时把 D.ATT_SLOTS 换成 Att.SLOTS() 即可，渲染侧不动。 */
+    var slots = (window.Att && window.Att.SLOTS) ? window.Att.SLOTS() : D.ATT_SLOTS;
+    var def = [{ start: '08:00', end: '12:00' }, { start: '13:30', end: '17:10' }];
+    var list = (slots || []).map(function (s, i) {
+      var t = def[i] || def[def.length - 1];
+      return { name: s.name || ('时段' + (i + 1)), start: t.start, end: t.end };
+    });
+    if (!list.length) {   /* att_slots 也为空 → 最后兜底，仍不塌 */
+      list = [{ name: '上午', start: '08:00', end: '12:00' }, { name: '下午', start: '13:30', end: '17:10' }];
+    }
+    list.push({ name: '晚自习', start: '19:00', end: '21:30' });
+    return { list: list, fallback: true };
+  }
+  function bucket(nodes, list) {
+    var b = list.map(function () { return []; });
+    nodes.forEach(function (n) {
+      var t = D.tmin(n.at), idx = -1;
+      for (var i = 0; i < list.length; i++) {
+        var s = D.tmin(list[i].start);
+        var e = (i + 1 < list.length) ? D.tmin(list[i + 1].start) : D.tmin(list[i].end) + 1;
+        if (t >= s && t < e) { idx = i; break; }
+      }
+      b[idx < 0 ? list.length - 1 : idx].push(n);
+    });
+    return b;
+  }
+  function nodeHtml(n) {
+    var icon = KIND_ICON[n.kind] || 'ic-target';
+    var chipCls = n.done ? 'chip' : 'chip';
+    return '<div class="tl-nodewrap">' +
+      '<button class="item tl-node" type="button" data-open="0" aria-expanded="false">' +
+        ic(icon) +
+        '<span class="grow tn-main"><span class="tn-title">' + n.title + '</span>' +
+        '<span class="tn-sub">' + n.sub + '</span></span>' +
+        '<span class="' + chipCls + '">' + n.state + '</span>' +
+        '<svg class="ic caret" aria-hidden="true"><use href="#ic-chevron"></use></svg>' +
+      '</button>' +
+      '<div class="tl-body" hidden>' + (n.body || '（暂无展开内容）') + '</div>' +
+    '</div>';
+  }
+  function renderAxis() {
+    var pf = periodsOrFallback();
+    var nodes = D.NODES_BY_ROLE[Shell.state.port] || D.NODES_BY_ROLE.staff;
+    var buckets = bucket(nodes, pf.list);
+    var ol = $('#tlAxis');
+    ol.innerHTML = pf.list.map(function (p, i) {
+      var items = buckets[i];
+      var inner = items.length
+        ? '<div class="tl-nodes">' + items.map(nodeHtml).join('') + '</div>'
+        : '<div class="tl-nodes"><p class="hint">本节无事项</p></div>';
+      return '<li class="tl-tick" data-start="' + D.tmin(p.start) + '" data-end="' + D.tmin(p.end) + '">' +
+        '<span class="tl-mark" aria-hidden="true"></span>' +
+        '<div class="tl-label"><span class="num">' + p.start + '</span>' + p.name +
+        '<span class="tl-state" data-period-state></span></div>' + inner + '</li>';
+    }).join('');
+    /* 刻度状态文字 */
+    $$('.tl-tick', ol).forEach(function (li) {
+      var s = +li.getAttribute('data-start'), e = +li.getAttribute('data-end'), n = D.nowMin();
+      var st = n >= e ? '已过' : (n >= s ? '进行中' : '未开始');
+      var t = $('[data-period-state]', li); if (t) t.textContent = st;
+    });
+    /* 兜底提示 */
+    var hint = $('#tlFallback');
+    if (pf.fallback && !hint) {
+      var p = el('p', 'hint', '去「课表」配好作息时间，时间轴会自动对齐（当前按考勤时段兜底）。');
+      p.id = 'tlFallback'; p.style.cssText = 'margin-top:12px';
+      $('#tlWrap').appendChild(p);
+    }
+    placeCursor();
+  }
+
+  /* ── 游标：按真实 DOM 像素在刻度间线性插值（比纯 % 准）──────────────── */
+  function placeCursor() {
+    var wrap = $('#tlWrap'); if (!wrap) return;
+    var ticks = $$('.tl-tick', wrap); if (!ticks.length) return;
+    var now = D.nowMin(), pts = [];
+    ticks.forEach(function (li) { pts.push({ t: +li.getAttribute('data-start'), y: li.offsetTop }); });
+    pts.push({ t: +ticks[ticks.length - 1].getAttribute('data-end'), y: wrap.scrollHeight });
+    var y;
+    if (now <= pts[0].t) y = pts[0].y;
+    else if (now >= pts[pts.length - 1].t) y = pts[pts.length - 1].y;
+    else {
+      for (var i = 0; i < pts.length - 1; i++) {
+        if (now >= pts[i].t && now < pts[i + 1].t) {
+          var f = (now - pts[i].t) / Math.max(1, pts[i + 1].t - pts[i].t);
+          y = pts[i].y + (pts[i + 1].y - pts[i].y) * f; break;
+        }
+      }
+    }
+    wrap.style.setProperty('--cursor-y', (y || 0) + 'px');
+    var lab = $('.tl-now-t', wrap); if (lab) lab.textContent = '现在 ' + Shell.hhmm(now);
+    var sr = $('#tlNowSr'); if (sr) sr.textContent = '现在 ' + Shell.hhmm(now);
+  }
+
+  /* ── 轴尾要闻 ─────────────────────────────────────────────────────── */
+  function renderNews() {
+    var box = $('#newsStrip'); if (!box) return;
+    box.innerHTML = D.NEWS.map(function (n) {
+      return '<a href="#" onclick="return false"><span class="num">' + n.time + '</span><span>' + n.title + '</span></a>';
+    }).join('');
+  }
+
+  window.PAGE_INIT = function () {
+    renderHead(); renderAxis(); renderNews();
+    $('#cdEdit').addEventListener('click', startEdit);
+    $('#cdDays').addEventListener('click', startEdit);
+    $('#cdDays').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEdit(); } });
+    window.addEventListener('shell:cursor', placeCursor);
+    window.addEventListener('resize', placeCursor);
+  };
+  window.PAGE_PORT_CHANGED = function () { renderAxis(); };
+})();
+</script>
+</body>
+</html>

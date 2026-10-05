@@ -1,0 +1,87 @@
+/* 砺蕴教务系统 · 样张 · page-att.css —— 考勤页（F 册页·内容区重排，§2.2 + §7.3）
+   印章四态是语义色（shell.css 已定义），本文件只写布局。 */
+
+@media (min-width:1100px){ .page#page-att.on{grid-template-columns:minmax(0,1fr)} }
+
+/* 章节头（宋体大标题 + 筛选折叠 + 操作） */
+.chead{padding-bottom:var(--sp-4);border-bottom:2px solid var(--text)}
+.chead h2{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h1);line-height:1.2}
+.chead h2 small{display:block;font-family:var(--font);font-size:var(--fs-small);color:var(--text-dim);
+  margin-top:8px;letter-spacing:.02em}
+.chead .row{margin-top:var(--sp-4)}
+.fold{border:none;border-bottom:1px solid var(--line);background:none;font:inherit;font-size:14px;
+  color:var(--text-dim);padding:2px 1px;cursor:pointer}
+.fold:hover{color:var(--text);border-color:var(--text)}
+.fold b{color:var(--text);font-weight:400}
+
+/* 双栏只在 ≥1100 生效；700–1099 与 <700 一律单列（F1，§7.3 已授权降级）
+   顺序 = 章节头 .chead → 横向汇总条(sticky) → 名单全宽 → 页尾 .chapter */
+.attgrid{display:flex;flex-direction:column;gap:var(--sp-6);margin-top:var(--sp-4)}
+@media (min-width:1100px){
+  .attgrid{display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,28%,300px);gap:var(--sp-8);align-items:start}
+}
+
+/* 印章名单 */
+.roster{min-width:0}
+.rrow{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 96px;gap:var(--sp-3);align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--line)}
+.rrow.head{border-bottom:1px solid var(--text);padding-bottom:6px}
+.rrow.head span{font-size:var(--fs-caption);letter-spacing:.06em;color:var(--text-dim);font-weight:500;white-space:nowrap}
+.rrow .idx{font-family:var(--mono);font-size:13px;color:var(--text-dim)}
+.rrow .who{font-size:15px;min-width:0}
+.rrow .who small{display:block;font-size:12px;color:var(--text-dim)}
+.rrow .slot{font-size:12px;color:var(--text-dim);display:flex;gap:8px;align-items:center;white-space:nowrap}
+.rrow .slot i{width:8px;height:8px;display:inline-block;background:var(--stamp-ok)}
+.rrow .slot i.bad{background:var(--stamp-late)}
+
+/* ── F1：<1100 单列 —— 姓名列 ≥44px、姓名不截断、学号可见、表头不竖排 ───────── */
+@media (max-width:1099px){
+  .rrow{grid-template-columns:34px minmax(44px,1fr) minmax(74px,96px)}
+  .rrow .slot, .rrow.head .h-slot{display:none}   /* 收掉「今日时段」列（含表头，避免表头竖排折行） */
+  .rrow .who{overflow:visible;white-space:normal}
+}
+
+/* 右侧 sticky 小结（≥1100） */
+.sumsticky{position:sticky;top:76px;display:flex;flex-direction:column;gap:var(--sp-4)}
+.sumbox{border:1px solid var(--line);border-radius:var(--r-md);background:var(--card);padding:var(--sp-4)}
+.sumbox h3{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2);margin-bottom:var(--sp-3)}
+.sumrow{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--text-dim);padding:4px 0}
+.sumrow b{font-family:var(--font-serif);font-size:20px;font-weight:400;color:var(--text)}
+.sumrow.bad b{color:var(--danger)}
+.ratio{display:flex;height:8px;margin-top:var(--sp-3);border-radius:var(--r-pill);overflow:hidden;background:var(--line)}
+.ratio i{display:block;height:100%;flex:1}
+.ratio .ok{background:var(--stamp-ok)} .ratio .late{background:var(--stamp-late)}
+.ratio .sick{background:var(--stamp-sick)} .ratio .leave{background:var(--stamp-leave)}
+.legend{display:flex;flex-direction:column;gap:8px;margin-top:var(--sp-3);font-size:13px;color:var(--text-dim)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:12px;height:12px;flex:0 0 auto;border-radius:2px}
+.pending{font-size:14px;display:grid;gap:12px}
+.pending .p{display:flex;gap:10px;align-items:flex-start}
+.pending .p .grow{flex:1;min-width:0}
+.pending .p small{display:block;color:var(--text-dim);font-size:12px}
+
+/* 小结里的操作行（原为行内 style，收敛为类，P2-12） */
+.sumacts{margin-top:12px}
+
+/* ── F1 降级：<1100 汇总条吸在章节头下方、横向排开（复用 .sumbox/.sumrow/.ratio/.legend）──
+   拆开 .sumsticky(display:contents)：本节小结 → 吸顶横向汇总条；待批请假 → 落到名单之后 */
+@media (max-width:1099px){
+  .sumsticky{display:contents}
+  .sumbox:first-child{order:-1;position:sticky;top:58px;z-index:4;
+    display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--sp-6);row-gap:8px;
+    background:var(--card);border:0;border-bottom:1px solid var(--line);border-radius:0;
+    padding:8px 0;margin:0}   /* G3：吸顶用实底 --card + 分隔线，读得出「浮在内容之上的一条」 */
+  .sumbox:first-child h3{margin:0;flex:0 0 auto}
+  .sumbox:first-child .sumrow{padding:0;justify-content:flex-start;gap:8px;flex:0 0 auto}
+  .sumbox:first-child .sumrow b{font-size:18px}
+  .sumbox:first-child .ratio{flex:1 1 120px;min-width:96px;margin-top:0}
+  .sumbox:first-child .legend{flex-direction:row;flex-wrap:wrap;gap:8px 16px;margin-top:0;flex:0 0 auto}
+  .sumbox:first-child .sumacts{margin-top:0;flex:0 0 auto}
+  .sumbox:last-child{order:1}   /* 待批请假：落到名单全宽之后 */
+}
+
+/* ── G1：空态下汇总条完全不参与布局（display:none，而不再只 visibility:hidden）──────────
+   判断依据：空态是「这一页没有名单」的完整状态，右/上汇总条没有可汇总的数据，留着只会制造空白；
+   ≥1100 空态同时把双栏收回单列，让空态插图占满，视觉重心落在「返回名单」这一唯一动作上。 */
+.attgrid.is-empty .sumsticky{display:none}
+@media (min-width:1100px){ .attgrid.is-empty{grid-template-columns:minmax(0,1fr)} }

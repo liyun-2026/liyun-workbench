@@ -1,0 +1,15 @@
+/* 砺蕴教务系统 · 样张 · page-settings.css —— 设置页（常用/高级 + 锚点，§2.5） */
+@media (min-width:1100px){ .page#page-settings.on{grid-template-columns:minmax(0,1fr)} }
+
+.anchor-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
+@media (min-width:1100px){ .anchor-layout{grid-template-columns:200px minmax(0,1fr);gap:var(--sp-8)} }
+
+.seg-h{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2)}
+.s-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-4);
+  margin-top:var(--sp-3);scroll-margin-top:84px}
+.s-card h3{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2)}
+.s-card .hint{margin-top:6px}
+.s-card .row{margin-top:12px}
+.seg{margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--line)}
+.anchor-nav a.on{color:var(--accent-ink);border-left-color:var(--accent)}   /* F4：文字用 accent-ink */
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth} }

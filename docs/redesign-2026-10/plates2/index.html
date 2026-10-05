@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>砺蕴教务系统 · 第二轮 · 结构创新方向 D / E / F</title>
+<style>
+:root{
+  --font:-apple-system,"PingFang SC",system-ui,sans-serif;
+  --bg:#F4F1E9;--card:#FFFFFF;--text:#1A1A18;--dim:#736D5A;--line:#D8D0BB;
+  --gold:#A8873F;--ok:#2F7D5D;--danger:#B23A2E;--emphasis:#1B4B5A;
+}
+[data-theme="dark"]{--bg:#17150F;--card:#211E18;--text:#EDE7DA;--dim:#9C927C;--line:#393327;
+  --gold:#C9AB7C;--ok:#5FA981;--danger:#D06A5C;--emphasis:#6E9AA8}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15.5px;line-height:1.7;
+  -webkit-font-smoothing:antialiased;padding:40px clamp(16px,4vw,56px) 64px}
+.serif{font-family:"Songti SC","Source Han Serif SC","Noto Serif SC",serif}
+h1{font-family:"Songti SC","Source Han Serif SC",serif;font-size:clamp(26px,3.4vw,38px);font-weight:400;line-height:1.15}
+.lead{margin-top:12px;max-width:70ch;color:var(--dim);text-wrap:pretty}
+.tip{margin-top:8px;font-size:13px;color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:34px}
+a.card{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);background:var(--card);
+  padding:26px;transition:border-color .2s ease,transform .2s ease}
+a.card:hover{border-color:var(--gold);transform:translateY(-3px)}
+.tag{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+a.card h2{font-family:"Songti SC","Source Han Serif SC",serif;font-size:24px;font-weight:400;margin-top:10px}
+a.card .pos{margin-top:10px;font-size:14px;text-wrap:pretty}
+a.card ul{margin-top:16px;display:grid;gap:7px}
+a.card li{position:relative;padding-left:16px;font-size:13px;color:var(--dim);text-wrap:pretty}
+a.card li::before{content:"";position:absolute;left:0;top:.66em;width:6px;height:2px;background:var(--gold)}
+.skel{margin-top:18px;display:inline-block;font-size:12px;padding:4px 11px;border:1px solid var(--line)}
+.skel.change{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--line))}
+.skel.same{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.open{margin-top:18px;font-size:13.5px;color:var(--emphasis)}
+.foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim);max-width:80ch;text-wrap:pretty}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important}}
+</style>
+</head>
+<body>
+  <h1>第二轮 · 结构创新方向 D / E / F</h1>
+  <p class="lead">第一轮 A / B / C 被判「没创新」，根因是三版共享同一套骨架（侧栏 / 卡片 / 两列网格 / 今日三卡竖堆），差异只在令牌值。本轮从<b>结构</b>切入：D、E 改骨架，F 只重排内容区——给出一条「重构 vs 重排」的对照线。</p>
+  <p class="tip">每份风格稿都是单文件、零外部依赖、可双击打开；含「今日 / 考勤」两页（顶部切换）；右上角可切深色；思源宋体子集已内嵌。支持深链：<code>D.html#att</code> 直达考勤、<code>#dark</code> 深色。</p>
+
+  <div class="grid">
+    <a class="card" href="D.html">
+      <span class="tag">方向 D · 改骨架</span>
+      <h2>时序 · 一条时间轴</h2>
+      <p class="pos">系统是一条「今天」的竖直时间轴：轴首大数字 + 游标压住「现在几点」+ 事项挂在轴上、就地展开。</p>
+      <ul>
+        <li>版式：时间轴取代卡片堆，刻度=时段，游标=now</li>
+        <li>交互：点轴节点就地展开，不跳页</li>
+        <li>可视化：轴本身即可视化；新增 --cursor 游标暖赭</li>
+        <li>基底：第一轮 A（素笺·暖金）</li>
+      </ul>
+      <span class="skel change">骨架 = 改（侧栏收成 72px 图标栏）</span>
+      <div class="open">打开 D.html →</div>
+    </a>
+
+    <a class="card" href="E.html">
+      <span class="tag">方向 E · 改骨架</span>
+      <h2>点阵 · 一屏全班</h2>
+      <p class="pos">系统是一块「全班控制台」：指挥带 + 全班点阵（一格一人）+ 右侧窄条；一屏看完，点哪改哪、刷选批量改。</p>
+      <ul>
+        <li>可视化最强：点阵盘 + 四段占比条 + 指挥带指标</li>
+        <li>交互：点格循环、拖拽刷选批量、键盘 1/2/3/4</li>
+        <li>可及性：颜色 + 形状双编码（圆/三角/斜杠/方）</li>
+        <li>基底：第一轮 B（青灰·单点缀）</li>
+      </ul>
+      <span class="skel change">骨架 = 改（卡片退为辅助）</span>
+      <div class="open">打开 E.html →</div>
+    </a>
+
+    <a class="card" href="F.html">
+      <span class="tag">方向 F · 骨架不动</span>
+      <h2>册页 · 内容区重排</h2>
+      <p class="pos">不动导航，只把内容区从卡片堆重构成一本可读的册页：版首极大数字 + 横向小节带 + 页尾章节，一条竖向阅读动线。</p>
+      <ul>
+        <li>版式：去卡片化，改「册页 + 章节 + 小节带」单栏叙事</li>
+        <li>交互：就地编辑（点数字改）+ 印章式状态 + 键盘流</li>
+        <li>可视化：轻量——印章 + 占比条（不做点阵）</li>
+        <li>基底：第一轮 C（册页·骨白）</li>
+      </ul>
+      <span class="skel same">骨架 = 不动（侧栏 236px / 导航位置不变）</span>
+      <div class="open">打开 F.html →</div>
+    </a>
+  </div>
+
+  <p class="foot">三版都可落地到现有数据模型，不需要动 <code>Store</code> 结构。D 叙事感最强但适配面最窄（4 页）；E 效率与可视化最强但可及性 / 上手风险最高；F 最稳、回归成本最低、可套用几乎所有页。请对照「今日」与「考勤」两页观感，选出 1 个方向。</p>
+
+<script>
+try{
+  document.documentElement.setAttribute("data-theme",
+    matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+}catch(e){}
+</script>
+</body>
+</html>

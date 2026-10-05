@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 样张 · 设置</title>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="page-settings.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<div class="app">
+  <aside class="side" id="nav" aria-label="主导航"></aside>
+  <div class="col">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main" id="main">
+      <!-- ══ 设置（常用 / 高级 + 锚点）══ -->
+      <section class="page on" id="page-settings">
+        <h1 class="page-title">设置</h1>
+        <p class="page-sub">分「常用 / 高级」两段 + 左侧锚点；高级段可折叠；设置页零装饰、无插图</p>
+
+        <div class="anchor-layout">
+          <nav class="anchor-nav" id="anchorNav" aria-label="设置锚点">
+            <a href="#segCommon">常用</a>
+            <a href="#backupCard">数据备份</a>
+            <a href="#syncCard">账号与同步</a>
+            <a href="#segAdvanced">高级</a>
+            <a href="#devKeyCard">换设备密钥</a>
+            <a href="#demoCard">演示账号</a>
+            <a href="#healthCard">系统健康</a>
+            <a href="#quantCard">量化细则</a>
+          </nav>
+
+          <div>
+            <!-- 常用段 -->
+            <section id="segCommon">
+              <div class="seg-h">常用</div>
+              <p class="hint">每天可能用到的两件事，放在最前</p>
+
+              <div class="s-card" id="backupCard">
+                <h3>数据备份</h3>
+                <p class="hint">导出全部数据为 JSON；也可从备份文件恢复。恢复会覆盖当前数据，请谨慎。</p>
+                <div class="row">
+                  <button class="btn" type="button" id="btnExport"><svg class="ic" aria-hidden="true"><use href="#ic-download"></use></svg> 导出备份</button>
+                  <button class="btn ghost" type="button" id="btnImport">从文件恢复</button>
+                  <span class="hint" id="backupMsg"></span>
+                </div>
+              </div>
+
+              <div class="s-card" id="syncCard">
+                <h3>账号与同步</h3>
+                <p class="hint">当前账号：李蕴 · 教务端（① 教师·教务端口）</p>
+                <div class="row">
+                  <button class="btn ghost" type="button" id="btnSync">立即同步</button>
+                  <button class="btn ghost" type="button" data-noop>修改密码</button>
+                  <button class="btn ghost" type="button" data-noop>退出登录</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 高级段（可折叠） -->
+            <section class="seg" id="segAdvanced">
+              <div class="row">
+                <div class="seg-h">高级</div>
+                <span style="flex:1"></span>
+                <button class="fold" type="button" id="advToggle" aria-expanded="true" aria-controls="advBody">收起 ▾</button>
+              </div>
+              <p class="hint">密钥 / 演示账号 / 系统健康 / 巡检 / 量化细则 / 看板入口</p>
+
+              <div id="advBody">
+                <div class="s-card" id="devKeyCard">
+                  <h3>换设备密钥</h3>
+                  <p class="hint">换设备时用它在新设备上登录，避免数据分叉。</p>
+                  <div class="row"><button class="btn ghost" type="button" data-noop>生成密钥</button></div>
+                </div>
+                <div class="s-card" id="demoCard">
+                  <h3>演示账号</h3>
+                  <p class="hint">用于培训/演示，数据与正式账号隔离。</p>
+                  <div class="row"><button class="btn ghost" type="button" data-noop>进入演示账号</button></div>
+                </div>
+                <div class="s-card" id="healthCard">
+                  <h3>系统健康</h3>
+                  <p class="hint">检查存储、同步与缓存状态。</p>
+                  <div class="row">
+                    <button class="btn ghost" type="button" id="btnHealth">运行体检</button>
+                    <span class="hint" id="healthMsg"></span>
+                  </div>
+                </div>
+                <div class="s-card" id="quantCard">
+                  <h3>量化细则</h3>
+                  <p class="hint">查看考勤/作业/晚自习的量化权重。</p>
+                  <div class="row"><button class="btn ghost" type="button" data-noop>查看细则</button></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="底部导航"></nav>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+<script>
+/* 设置页逻辑：锚点高亮 / 高级段折叠 / 备份导出（原生 Blob） */
+(function () {
+  var $ = Shell.$, $$ = Shell.$$;
+  window.PAGE_INIT = function () {
+    /* 锚点高亮 + 平滑滚动后的当前项 */
+    var nav = $('#anchorNav');
+    nav.addEventListener('click', function (e) {
+      var a = e.target.closest('a'); if (!a) return;
+      $$('a', nav).forEach(function (x) { x.classList.remove('on'); });
+      a.classList.add('on');
+    });
+    $$('a', nav).forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        var t = $(a.getAttribute('href'));
+        if (t) { e.preventDefault(); t.scrollIntoView({ block: 'start' });
+          try { history.replaceState(null, '', a.getAttribute('href')); } catch (err) {} }
+      });
+    });
+    /* 高级段折叠 */
+    var body = $('#advBody'), tg = $('#advToggle');
+    tg.addEventListener('click', function () {
+      var open = tg.getAttribute('aria-expanded') === 'true';
+      tg.setAttribute('aria-expanded', String(!open));
+      tg.textContent = open ? '展开 ▾' : '收起 ▴';
+      body.hidden = open;
+    });
+    /* 导出（原生 Blob + createObjectURL，无库依赖） */
+    $('#btnExport').addEventListener('click', function () {
+      try {
+        var blob = new Blob([JSON.stringify({ dl: window.D.CLASSES, students: window.D.STUDENTS }, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = 'liyun-backup-demo.json';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        $('#backupMsg').textContent = '已导出 liyun-backup-demo.json（演示）';
+      } catch (err) { $('#backupMsg').textContent = '导出失败：' + err.message; }
+    });
+    $('#btnImport').addEventListener('click', function () { $('#backupMsg').textContent = '演示样张不接真实恢复'; });
+    $('#btnSync').addEventListener('click', function () { Shell.toast('已同步（演示）'); });
+    $('#btnHealth').addEventListener('click', function () { $('#healthMsg').textContent = '存储正常 · 同步正常 · 缓存已就绪'; });
+  };
+  window.PAGE_PORT_CHANGED = function () {};
+})();
+</script>
+</body>
+</html>

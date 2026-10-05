@@ -1,0 +1,214 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>samples QA</title></head>
+<body><pre id="out">RUNNING</pre>
+<iframe id="f" width="1440" height="1600" style="border:0"></iframe>
+<script>
+/* 5 页样张自检（F10 整改版）
+   - 幂等：每次载入前清 localStorage.ly_sample_port，并强制端口 ①（port1）
+   - 断言：溢出/骨架/字体 + F1 姓名列与截断 + F3 印章 aria-label + F2 侧栏宽 + F4 对比度 */
+var LOG=[]; function ok(c,m){ LOG.push((c?'PASS':'FAIL')+' | '+m); }
+
+/* ── WCAG 对比度（自算，与整改报告同源公式）──────────────────────────── */
+function hx(s){ s=String(s).trim().replace('#',''); if(s.length===3) s=s[0]+s[0]+s[1]+s[1]+s[2]+s[2];
+  return [parseInt(s.slice(0,2),16),parseInt(s.slice(2,4),16),parseInt(s.slice(4,6),16)]; }
+function lum(c){ var f=function(x){ x/=255; return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4); };
+  return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]); }
+function ratio(a,b){ var la=lum(hx(a)),lb=lum(hx(b)); var hi=Math.max(la,lb),lo=Math.min(la,lb);
+  return (hi+0.05)/(lo+0.05); }
+function mix(fg,bg,pct){ var f=hx(fg),b=hx(bg),p=pct/100;
+  var o=[0,1,2].map(function(i){return Math.round(f[i]*p+b[i]*(1-p));});
+  return '#'+o.map(function(v){return ('0'+v.toString(16)).slice(-2);}).join(''); }
+
+var PAGES=['home','att','roster','homework','settings'];
+var WIDES=[390,700,750,900,1099,1100,1600];
+var f=document.getElementById('f'), q=[];
+PAGES.forEach(function(p){ WIDES.forEach(function(w){ q.push({p:p,w:w}); }); });
+function hardreset(){ try{ localStorage.removeItem('ly_sample_port'); }catch(e){} }
+function next(){
+  if(!q.length){ finish(); return; }
+  var j=q.shift();
+  f.style.width=j.w+'px';
+  f.style.height=(j.p==='att'?'900px':'2600px');   /* att 压矮以便滚动验证 sticky / 空态 */
+  f.onload=function(){ setTimeout(function(){ try{ check(j); }catch(e){ ok(false, j.p+'@'+j.w+' 异常 '+e.message); } next(); }, 360); };
+  hardreset();
+  f.src=j.p+'.html';
+}
+function check(j){
+  var w=f.contentWindow, d=f.contentDocument, de=d.documentElement, tag=j.p+'@'+j.w;
+  if(!w||!d||!de){ ok(false, tag+' 无法访问 iframe'); return; }
+  if(de.getAttribute('data-port')!=='port1'){ try{ w.Shell.setPort('port1'); }catch(e){} }   /* 幂等：强制 ① */
+  ok(de.scrollWidth<=de.clientWidth+1, tag+' 无横向溢出 (scrollW='+de.scrollWidth+' clientW='+de.clientWidth+')');
+  var side=d.querySelector('.side'), tab=d.querySelector('.tabbar');
+  var sideVis=side&&w.getComputedStyle(side).display!=='none';
+  var tabVis=tab&&w.getComputedStyle(tab).display!=='none';
+  if(j.w<700) ok(!sideVis&&tabVis, tag+' 手机档：侧栏隐藏 + 底部标签栏显示');
+  else ok(sideVis, tag+' 已出侧栏 (side='+sideVis+')');
+  var navN=d.querySelectorAll('.side .nav button').length;
+  ok(j.w<700||navN>=5, tag+' 侧栏导航项 '+navN+' 个');
+  if(d.fonts){ ok(d.fonts.check('16px NotoSerifSC'), tag+' 宋体子集已加载'); }
+
+  /* F2：侧栏宽度 700–1099 = 200px / ≥1100 = 236px */
+  if(j.w>=700&&side){
+    var sw=side.getBoundingClientRect().width;
+    if(j.w<1100) ok(Math.abs(sw-200)<=2, tag+' 侧栏 200px @700–1099 ('+sw.toFixed(1)+'px)');
+    else ok(Math.abs(sw-236)<=2, tag+' 侧栏 236px @≥1100 ('+sw.toFixed(1)+'px)');
+  }
+
+  /* F1：考勤名单 —— 姓名列宽 / 不截断 / 学号可见 / 表头不竖排 / 单双栏 */
+  if(j.p==='att'){
+    var grid=d.querySelector('.attgrid'), cs=w.getComputedStyle(grid);
+    var cols=cs.display==='grid'?cs.gridTemplateColumns.split(' ').length:1;
+    if(j.w>=1100) ok(cs.display==='grid'&&cols>=2, tag+' 考勤双栏 (display='+cs.display+', cols='+cols+')');
+    else ok(cs.display==='flex'&&cols===1, tag+' 考勤单列 (display='+cs.display+', cols='+cols+')');
+    var who=d.querySelector('#roster .rrow .who');
+    var wpx=who?who.getBoundingClientRect().width:0;
+    ok(wpx>=44, tag+' 姓名列 ≥44px ('+wpx.toFixed(1)+'px)');
+    var rows=d.querySelectorAll('#roster .rrow:not(.head)');
+    var clip=0, noSid=0;
+    rows.forEach(function(r){
+      var wh=r.querySelector('.who'); if(!wh) return;
+      if(wh.scrollWidth>wh.clientWidth+1) clip++;
+      var sm=wh.querySelector('small');
+      if(!sm||sm.getBoundingClientRect().width<1) noSid++;
+    });
+    ok(rows.length>0&&clip===0, tag+' 姓名未被截断 ('+clip+'/'+rows.length+' 截断)');
+    ok(rows.length>0&&noSid===0, tag+' 学号可见 ('+noSid+'/'+rows.length+' 缺)');
+    var hs=d.querySelectorAll('#roster .rrow.head span'), vert=0;
+    hs.forEach(function(s){ if(s.getBoundingClientRect().height>34) vert++; });
+    ok(hs.length>0&&vert===0, tag+' 表头未竖排 ('+vert+' 个折行)');
+    /* G2【强判据】<1100 汇总条 sticky：①position:sticky ②吸附位=设定的 top ③再滚仍不变 */
+    if(j.w<1100){
+      var bar=d.querySelector('.sumbox'), bcs=w.getComputedStyle(bar);
+      var stickTop=parseFloat(bcs.top)||0;
+      var maxS=de.scrollHeight-de.clientHeight;
+      if(maxS>=1000){
+        var s1=Math.min(1200,maxS-600), s2=s1+600;
+        ok(bcs.position==='sticky', tag+' 汇总条 computed position:sticky (实='+bcs.position+')');
+        w.scrollTo(0,s1); var y1=w.scrollY, r1=bar.getBoundingClientRect().top;
+        w.scrollTo(0,s2); var y2=w.scrollY, r2=bar.getBoundingClientRect().top;
+        ok(Math.abs(y1-s1)<=1&&Math.abs(y2-s2)<=1, tag+' 滚动确实到位 (scrollY '+y1+'/'+y2+' vs 目标 '+s1+'/'+s2+')');
+        ok(Math.abs(r1-stickTop)<=2, tag+' 滚 '+s1+' 后 rect.top 命中吸附位 (实 '+r1.toFixed(1)+' ≈ 设定 '+stickTop+')');
+        ok(Math.abs(r2-r1)<=0.5, tag+' 再滚 600 rect.top 不变 ('+r1.toFixed(1)+'→'+r2.toFixed(1)+')');
+        w.scrollTo(0,0);
+      } else ok(false, tag+' 可滚动高度不足，sticky 无法验证 (maxS='+maxS+')');
+      /* G3：吸顶条 = 实底 + 分隔线，读得出「浮在内容之上的一条」 */
+      ok(bcs.backgroundColor!=='rgba(0, 0, 0, 0)'&&bcs.backgroundColor!=='transparent',
+         tag+' 吸顶条实底 background ('+bcs.backgroundColor+')');
+      ok(parseFloat(bcs.borderBottomWidth)>=1, tag+' 吸顶条 border-bottom '+bcs.borderBottomWidth+' '+bcs.borderBottomColor);
+    }
+    /* G1：空态下汇总条完全不参与布局，不留百余像素空白 */
+    if(j.w<1100){
+      var ae0=d.getElementById('demoEmpty'); ae0.click();
+      var ssE=d.querySelector('.sumsticky'), barE=d.querySelector('.sumbox');
+      var dispE=w.getComputedStyle(ssE).display;
+      var hE=barE.getBoundingClientRect().height;
+      var cbE=d.querySelector('.chead').getBoundingClientRect().bottom;
+      var atE=d.getElementById('attEmpty').getBoundingClientRect().top;
+      ok(dispE==='none', tag+' 空态汇总条容器 display:none (实='+dispE+')');
+      ok(hE===0, tag+' 空态汇总条无布局盒 (rect.height='+hE+')');
+      ok(atE-cbE<=48, tag+' 空态 chead→插图 间隙 '+(atE-cbE).toFixed(1)+'px (≤48，原 ~146)');
+      d.getElementById('attEmptyBack').click();
+    }
+    /* F3：印章初始 aria-label 齐全 */
+    var stamps=d.querySelectorAll('#roster .stamp'), noAria=0;
+    stamps.forEach(function(b){ if(!b.getAttribute('aria-label')) noAria++; });
+    ok(stamps.length>0&&noAria===0, tag+' 印章初始 aria-label 齐全 ('+noAria+'/'+stamps.length+' 缺)');
+  }
+
+  /* 名册 .split 双列 */
+  if(j.p==='roster'&&j.w>=700){
+    var rc=w.getComputedStyle(d.querySelector('.roster-grid')).gridTemplateColumns.split(' ').length;
+    ok(rc>=2, tag+' 名册 .split 双列 (cols='+rc+')');
+  }
+
+  /* F7：作业页 #hwDate 不溢出卡片 */
+  if(j.p==='homework'){
+    var hc=d.querySelector('.hw-form'), hd=d.getElementById('hwDate');
+    if(hc&&hd){
+      var cr=hc.getBoundingClientRect().right, ir=hd.getBoundingClientRect().right;
+      ok(ir<=cr+1, tag+' #hwDate 不溢出卡片 (inp.right='+ir.toFixed(1)+' ≤ card.right='+cr.toFixed(1)+')');
+    }
+  }
+
+  /* 端口切换 + 盖章联动（在 att@1100 做一次） */
+  if(j.p==='att'&&j.w===1100){
+    var rail=d.querySelector('.side');
+    var c1=w.getComputedStyle(rail).backgroundColor;
+    w.Shell.setPort('port3');
+    var c2=w.getComputedStyle(d.querySelector('.side')).backgroundColor;
+    ok(de.getAttribute('data-port')==='port3', tag+' 切到端口③ data-port=port3');
+    ok(c1!==c2, tag+' 端口③ 侧栏底色随端口变 ('+c1+' → '+c2+')');
+    /* F5：顶栏用 --tint（端口色第 3 面） */
+    var tb=d.querySelector('.topbar');
+    var tbBg=w.getComputedStyle(tb).backgroundColor, tbTint=w.getComputedStyle(de).getPropertyValue('--tint').trim();
+    ok(tbBg==='rgb('+hx(tbTint).join(', ')+')', tag+' 顶栏底色 = --tint ('+tbBg+' / '+tbTint+')');
+    /* F4：三端口 btn-text/accent/accent-ink/brand-ink 对比度 */
+    ['port1','port2','port3'].forEach(function(p){
+      w.Shell.setPort(p);
+      var cs=w.getComputedStyle(de), g=function(n){ return cs.getPropertyValue(n).trim(); };
+      var acc=g('--accent'), bt=g('--btn-text'), ai=g('--accent-ink'), bi=g('--brand-ink'), tn=g('--tint'), cd=g('--card');
+      var r1=ratio(bt,acc), r2=ratio(ai,tn), r3=ratio(bi,tn), r4=ratio(bi,cd);
+      ok(r1>=4.5, tag+' '+p+' btn-text/accent '+r1.toFixed(2)+' (需≥4.5)');
+      ok(r2>=4.5, tag+' '+p+' accent-ink/tint '+r2.toFixed(2));
+      ok(r3>=4.5, tag+' '+p+' brand-ink/tint '+r3.toFixed(2));
+      ok(r4>=4.5, tag+' '+p+' brand-ink/card '+r4.toFixed(2));
+    });
+    w.Shell.setPort('port1');
+    /* F4：四态印章文字 vs 自身叠底（底色 = --tint） */
+    var cs1=w.getComputedStyle(de), tk=function(n){ return cs1.getPropertyValue(n).trim(); };
+    var tint=tk('--tint'), card=tk('--card'), dim=tk('--text-dim'), bg=tk('--bg');
+    [['--stamp-ok',12],['--stamp-late',14],['--stamp-sick',10],['--stamp-leave',10]].forEach(function(p){
+      var col=tk(p[0]), rr=ratio(col,mix(col,tint,p[1])), rr2=ratio(col,mix(col,card,p[1]));
+      ok(rr>=4.5, tag+' '+p[0]+' 文字/叠底(tint '+p[1]+'%) '+rr.toFixed(2));
+      ok(rr2>=4.5, tag+' '+p[0]+' 文字/叠底(card '+p[1]+'%) '+rr2.toFixed(2));
+    });
+    ok(ratio(dim,bg)>=4.5, tag+' --text-dim/--bg '+ratio(dim,bg).toFixed(2));
+    ok(ratio(dim,card)>=4.5, tag+' --text-dim/--card '+ratio(dim,card).toFixed(2));
+    /* 盖章 → 小结联动 */
+    var before=+d.querySelector('[data-sum=ok]').textContent;
+    var st=d.querySelector('#roster .stamp[data-s="正常"]');
+    if(st){ st.click(); var after=+d.querySelector('[data-sum=ok]').textContent;
+      ok(after===before-1, tag+' 盖章后小结联动 (正常 '+before+'→'+after+')'); }
+  }
+
+  /* 空态插图真实加载 */
+  if(j.p==='roster'&&j.w===1100){
+    d.getElementById('demoEmptyCls').click();
+    var box=d.getElementById('clsEmpty');
+    ok(!box.hidden, tag+' 空班级空态可显示');
+    var im=box.querySelector('img');
+    ok(im&&im.naturalWidth>0, tag+' 空态插图已加载 (naturalWidth='+(im?im.naturalWidth:0)+')');
+  }
+  if(j.p==='att'&&j.w===1100){
+    d.getElementById('demoEmpty').click();
+    var im2=d.querySelector('#attEmpty img');
+    ok(im2&&im2.naturalWidth>0, tag+' 考勤空态插图已加载 (w='+(im2?im2.naturalWidth:0)+')');
+    /* G1 宽屏空态：右栏收起 → 单列，空态占满 */
+    var ecs=w.getComputedStyle(d.querySelector('.attgrid')).gridTemplateColumns.split(' ').length;
+    ok(ecs===1, tag+' 宽屏空态：右栏收起、单列占满 (cols='+ecs+')');
+    d.getElementById('attEmptyBack').click();
+  }
+  /* 今日页时间轴：刻度 = 作息节次 */
+  if(j.p==='home'&&j.w===1100){
+    var ticks=d.querySelectorAll('.tl-tick').length;
+    ok(ticks===w.D.PERIODS.length, tag+' 刻度数=节次数 ('+ticks+' vs '+w.D.PERIODS.length+')');
+    ok(!!d.querySelector('.tl-now-t').textContent.match(/现在/), tag+' 游标有「现在」标签');
+    /* F6：periods 为空 → 兜底读 Att.SLOTS()（样张：D.ATT_SLOTS，2 条）+ 晚自习 = 3 刻度 + 提示 */
+    ok(w.D.ATT_SLOTS&&w.D.ATT_SLOTS.length>=2&&w.D.ATT_SLOTS.every(function(s){return !!s.name;}),
+       tag+' D.ATT_SLOTS 形状对齐 Att.SLOTS() ('+(w.D.ATT_SLOTS?w.D.ATT_SLOTS.length:0)+' 条)');
+    w.D.PERIODS.length=0;                       /* 清空作息，触发兜底 */
+    w.PAGE_INIT();                              /* 重绘轴 → 走 periodsOrFallback 兜底 */
+    var fb=d.querySelectorAll('.tl-tick').length;
+    ok(fb===w.D.ATT_SLOTS.length+1, tag+' 空作息兜底刻度 = Att.SLOTS+晚自习 ('+fb+' vs '+(w.D.ATT_SLOTS.length+1)+')');
+    ok(!!d.getElementById('tlFallback'), tag+' 空作息兜底提示出现');
+    var fnames=[].map.call(d.querySelectorAll('.tl-tick .tl-label'),function(l){return l.textContent;});
+    ok(fnames.join('|').indexOf('上午')>=0&&fnames.join('|').indexOf('晚自习')>=0,
+       tag+' 兜底刻度含时段名（'+fnames.join(' / ')+'）');
+  }
+}
+function finish(){
+  var pass=LOG.filter(function(l){return l.indexOf('PASS')===0;}).length;
+  var fail=LOG.filter(function(l){return l.indexOf('FAIL')===0;}).length;
+  document.getElementById('out').textContent='RESULT\n'+LOG.join('\n')+'\nEND\nPASS='+pass+' FAIL='+fail;
+}
+next();
+</script></body></html>

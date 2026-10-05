@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" class="il"><title>无考勤记录：日晷与空的记录圈</title><g fill="none" stroke="var(--il-line, var(--line, #D9D4C8))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><path d="M104,258 L376,258"/>
+<path d="M124,258 A116,116 0 0 1 356,258"/>
+<path d="M156,258 A84,84 0 0 1 324,258"/>
+<path d="M124,258 L156,258"/>
+<path d="M139.5,200 L167.3,216"/>
+<path d="M182,157.5 L198,185.3"/>
+<path d="M298,157.5 L282,185.3"/>
+<path d="M340.5,200 L312.7,216"/>
+<path d="M356,258 L324,258"/>
+<path d="M240,150 L240,258"/>
+<circle cx="104" cy="294" r="7"/>
+<circle cx="136" cy="294" r="7"/>
+<circle cx="168" cy="294" r="7"/>
+<circle cx="200" cy="294" r="7"/></g><g class="gl" fill="none" stroke="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><circle cx="240" cy="120" r="7" fill="var(--il-gold, var(--gold, #C9AB7C))" stroke="none"/></g></svg>

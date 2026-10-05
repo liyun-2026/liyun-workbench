@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>砺蕴教务系统 · 视觉升级 · 3 版风格稿对照</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:#F7F5F0;color:#26241F;
+  font-family:-apple-system,"PingFang SC",system-ui,sans-serif;line-height:1.7;
+  -webkit-font-smoothing:antialiased}
+@media (prefers-color-scheme: dark){
+  body{background:#14120E;color:#EFE9DF}
+  .card,.pcard{background:#1E1B16 !important;border-color:#322E26 !important}
+  .sub,.pcard-who,.pcard dt{color:#A39C8E !important}
+  .pcard-go{border-color:#322E26 !important}
+}
+.wrap{max-width:1180px;margin:0 auto;padding:56px 22px 80px}
+h1{font-size:clamp(26px,4vw,38px);font-weight:500;letter-spacing:-.01em;margin:0;line-height:1.2;text-wrap:balance}
+.lead{margin-top:14px;max-width:64ch;color:#6E6A61;text-wrap:pretty}
+.sub{margin-top:26px;color:#6E6A61;font-size:14px}
+.grid{margin-top:30px;display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.pcard{background:#fff;border:1px solid #E7E3DA;border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;
+  transition:box-shadow .22s cubic-bezier(.22,1,.36,1),border-color .22s cubic-bezier(.22,1,.36,1)}
+.pcard:hover{box-shadow:0 10px 30px rgba(60,50,35,.10);border-color:#D8D2C4}
+.pcard-sw{display:flex;height:64px}
+.pcard-sw span{flex:1}
+.pcard-body{padding:20px 22px 22px;display:flex;flex-direction:column;gap:9px;flex:1}
+.pcard-key{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8a8172}
+.pcard h2{font-size:22px;font-weight:500;margin:0;letter-spacing:-.01em}
+.pcard-pos{margin:0;font-size:14px}
+.pcard-who{margin:0;font-size:13px;color:#6E6A61}
+.pcard-spec{margin:6px 0 0;display:grid;gap:6px;font-size:12px}
+.pcard-spec > div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #E7E3DA;padding-bottom:6px}
+.pcard dt{color:#6E6A61}
+.pcard dd{margin:0;font-variant-numeric:tabular-nums}
+.pcard-go{margin-top:auto;display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  text-decoration:none;color:#26241F;font-size:14px;font-weight:500;
+  border:1px solid #E7E3DA;border-radius:999px;padding:11px 18px;
+  transition:background-color .18s cubic-bezier(.4,0,.2,1),color .18s cubic-bezier(.4,0,.2,1),border-color .18s cubic-bezier(.4,0,.2,1)}
+.pcard-go:hover{background:#B08A4F;border-color:#B08A4F;color:#fff}
+:where(a,button):focus-visible{outline:3px solid #B08A4F;outline-offset:2px}
+footer{margin-top:44px;padding-top:22px;border-top:1px solid #E7E3DA;font-size:13px;color:#6E6A61}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>砺蕴教务系统 · Web 端视觉升级 —— 3 版风格稿对照</h1>
+  <p class="lead">三版都渲染了同一个「今日」页，内容（导航项 / 倒计时 / 今日速览 / 每日新闻）完全一致，只有令牌与气质不同 —— 请用眼睛选，不要读表格选。每份稿都带：手机预览开关、浅色 / 深色开关、以及一条把色板 / 字号 / 间距 / 圆角直接画出来的「令牌条」。</p>
+  <p class="sub">三版共同的落地原则：单文件、零外部依赖、双击即开；桌面 = 侧栏 + 内容区，手机 = 顶栏 + 底部胶囊标签栏；只动 transform / opacity；已尊重 prefers-reduced-motion；键盘焦点环按 GOV.UK 规范。</p>
+
+  <div class="grid">
+    <article class="pcard">
+      <div class="pcard-sw" aria-hidden="true"><span style="background:#F7F5F0"></span><span style="background:#FFFFFF"></span><span style="background:#26241F"></span><span style="background:#26241F"></span><span style="background:#C9AB7C"></span><span style="background:#B08A4F"></span><span style="background:#E7E3DA"></span></div>
+      <div class="pcard-body">
+        <span class="pcard-key">方向 A</span>
+        <h2>素笺 · 精修暖金</h2>
+        <p class="pcard-pos">不换气质，只把「暖纸 + 墨 + 古铜金」这套已经立住的资产做到像素级精修。</p>
+        <p class="pcard-who">这版适合谁：安静、可信、有手工感 —— 最贴近艺考 / 播音机构既有的调性；对现有 34 页兼容成本最低。</p>
+        <dl class="pcard-spec">
+          <div><dt>圆角 sm/md/lg</dt><dd>8px / 12px / 16px</dd></div>
+          <div><dt>动效基准</dt><dd>180ms</dd></div>
+          <div><dt>手机断点</dt><dd>&lt; 640 px</dd></div>
+        </dl>
+        <a class="pcard-go" href="A.html">打开这一版 <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+    <article class="pcard">
+      <div class="pcard-sw" aria-hidden="true"><span style="background:#F5F6F7"></span><span style="background:#FFFFFF"></span><span style="background:#1C1F22"></span><span style="background:#232A31"></span><span style="background:#C9AB7C"></span><span style="background:#3B6EA5"></span><span style="background:#E3E6EA"></span></div>
+      <div class="pcard-body">
+        <span class="pcard-key">方向 B</span>
+        <h2>青灰 · 单点缀</h2>
+        <p class="pcard-pos">把暖调抽走，换成冷静灰白；全系统只留一个强调色，金色降级为 1px 徽记。</p>
+        <p class="pcard-who">这版适合谁：专业、克制、工程感 —— 最适合教务端大量数据、表格、统计页。</p>
+        <dl class="pcard-spec">
+          <div><dt>圆角 sm/md/lg</dt><dd>6px / 10px / 14px</dd></div>
+          <div><dt>动效基准</dt><dd>150ms</dd></div>
+          <div><dt>手机断点</dt><dd>&lt; 640 px</dd></div>
+        </dl>
+        <a class="pcard-go" href="B.html">打开这一版 <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+    <article class="pcard">
+      <div class="pcard-sw" aria-hidden="true"><span style="background:#F1ECDE"></span><span style="background:#FFFFFF"></span><span style="background:#1A1A18"></span><span style="background:#1A1A18"></span><span style="background:#A8873F"></span><span style="background:#1B4B5A"></span><span style="background:#C8BEA4"></span></div>
+      <div class="pcard-body">
+        <span class="pcard-key">方向 C</span>
+        <h2>册页 · 编辑感</h2>
+        <p class="pcard-pos">把系统做成一本「册页」—— 暖骨白纸底、衬线标题、细分隔线、大留白、慢动效。</p>
+        <p class="pcard-who">这版适合谁：权威、有文化厚度 —— 契合「播音主持 / 艺德卓绝」的机构叙事，但数据页需单独收紧一档。</p>
+        <dl class="pcard-spec">
+          <div><dt>圆角 sm/md/lg</dt><dd>0px / 2px / 0px</dd></div>
+          <div><dt>动效基准</dt><dd>320ms</dd></div>
+          <div><dt>手机断点</dt><dd>&lt; 680 px</dd></div>
+        </dl>
+        <a class="pcard-go" href="C.html">打开这一版 <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
+  </div>
+
+  <footer>建议对比路径：先都打开 → 各自点一次「手机预览」看两端是否都成立 → 再切一次「深色」判断深色该不该本轮做 → 最后回到令牌条核对配色与字号是否可接受。</footer>
+</div>
+</body>
+</html>

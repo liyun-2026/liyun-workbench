@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 样张 · 考勤（F 册页）</title>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="page-att.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<div class="app">
+  <aside class="side" id="nav" aria-label="主导航"></aside>
+  <div class="col">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main" id="main">
+      <!-- ══ 考勤（F · 册页·内容区重排）══ -->
+      <section class="page on" id="page-att">
+
+        <!-- 章节头：筛选收进标题行 -->
+        <div class="chead">
+          <h2 id="cheadTitle">播音一班 · 今日考勤<small id="cheadMeta">2026-10-04 · 下午 · 26 人</small></h2>
+          <div class="row">
+            <button class="fold" type="button" data-noop title="本轮只演示一个日期">📅 <b id="attDate">2026-10-04</b></button>
+            <button class="fold" type="button" id="clsBtn" title="点击切换班级">播音一班 ▾</button>
+            <button class="fold" type="button" id="slotBtn" title="点击切换时段">下午时段 ▾</button>
+            <button class="fold" type="button" id="allMode" aria-pressed="false" title="全部时段（只读）">全部时段</button>
+            <span style="flex:1"></span>
+            <button class="btn ghost mini" type="button" id="demoEmpty">演示空态</button>
+            <button class="btn ghost mini" type="button" id="allNormal"><svg class="ic" aria-hidden="true"><use href="#ic-check"></use></svg> 一键全部正常</button>
+            <button class="btn mini" type="button" data-noop><svg class="ic" aria-hidden="true"><use href="#ic-export"></use></svg> 导出</button>
+          </div>
+        </div>
+
+        <div class="attgrid">
+          <!-- 左：印章名单 -->
+          <div class="roster" id="roster" role="list" aria-label="学生名单"></div>
+
+          <!-- 空态（默认隐藏，点「演示空态」显示） -->
+          <div class="empty" id="attEmpty" hidden>
+            <img src="../illustrations/empty-attendance.svg" alt="" aria-hidden="true" width="480" height="360">
+            <h3>该日暂无考勤记录</h3>
+            <p>这一天的打卡窗口还没开始，或者还没人登记。登记后名单会出现在这里。</p>
+            <button class="btn ghost" type="button" id="attEmptyBack">返回名单</button>
+          </div>
+
+          <!-- 右：sticky 小结 -->
+          <aside class="sumsticky" aria-label="本节小结">
+            <div class="sumbox">
+              <h3>本节小结</h3>
+              <div class="sumrow"><span>应到</span><b class="num" data-sum="total">0</b></div>
+              <div class="sumrow"><span>正常</span><b class="num" data-sum="ok">0</b></div>
+              <div class="sumrow bad"><span>异常</span><b class="num" data-sum="bad">0</b></div>
+              <div class="sumrow"><span>未登记</span><b class="num" data-sum="none">0</b></div>
+              <div class="ratio" aria-hidden="true">
+                <i class="ok"></i><i class="late"></i><i class="sick"></i><i class="leave"></i>
+              </div>
+              <div class="legend">
+                <span><i style="background:var(--stamp-ok)"></i><span data-leg="ok">正常 0</span></span>
+                <span><i style="background:var(--stamp-late)"></i><span data-leg="late">迟到 0</span></span>
+                <span><i style="background:var(--stamp-sick)"></i><span data-leg="sick">病假 0</span></span>
+                <span><i style="background:var(--stamp-leave)"></i><span data-leg="leave">事假 0</span></span>
+              </div>
+              <div class="sumacts"><button class="btn ghost mini" type="button" data-noop>复制小结文案</button></div>
+            </div>
+            <div class="sumbox">
+              <h3>待批请假</h3>
+              <div class="pending">
+                <div class="p"><svg class="ic" aria-hidden="true"><use href="#ic-hand"></use></svg>
+                  <span class="grow">赵敏<small>事假 · 15:00 前 · 播音一班</small></span>
+                  <button class="btn mini" type="button" data-noop>批准</button></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- 页尾章节：原两张常驻卡收拢于此 -->
+        <section class="chapter" aria-label="请假与导出">
+          <h2>附 · 请假与导出</h2>
+          <p class="cmeta">去卡片化；原来两张常驻卡收拢到这里</p>
+          <div class="split" style="margin-top:16px">
+            <div>
+              <h3 class="hint" style="font-family:var(--font-serif);font-size:var(--fs-h2);color:var(--text)">批量请假</h3>
+              <p class="hint">整班请假（如外出实践）在此登记，批准后自动写入当天考勤并同步量化。</p>
+              <p style="margin-top:12px"><button class="btn ghost" type="button" data-noop>登记整班请假</button></p>
+            </div>
+            <div>
+              <h3 class="hint" style="font-family:var(--font-serif);font-size:var(--fs-h2);color:var(--text)">导出与小结</h3>
+              <p class="hint">导出今日考勤表（CSV），或一键复制小结文案。</p>
+              <p style="margin-top:12px"><button class="btn ghost" type="button" data-noop>导出 CSV</button></p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="底部导航"></nav>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+<script>
+/* 考勤页逻辑：章节头 / 印章名单 / sticky 小结 / 空态 */
+(function () {
+  var D = window.D, $ = Shell.$, $$ = Shell.$$, el = Shell.el;
+  var clsIdx = 0, slot = '下午', allMode = false;
+
+  function curClass() { return D.CLASSES[clsIdx]; }
+
+  function renderRoster() {
+    var box = $('#roster'); if (!box) return;
+    var c = curClass(), list = D.STUDENTS[c.id] || [];
+    var head = '<div class="rrow head" aria-hidden="true">' +
+      '<span class="h-idx">#</span><span class="h-who">姓名</span>' +
+      '<span class="h-slot">今日时段</span><span class="h-st">状态（点印章改）</span></div>';
+    box.innerHTML = head + list.map(function (s, i) {
+      var st = slot === '上午' ? s.am : s.status;
+      var stTxt = st === 'none' ? '未登记' : st;
+      var amBad = s.am !== '正常', pmBad = s.pm !== '正常';
+      return '<div class="rrow" role="listitem">' +
+        '<span class="idx">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="who">' + s.name + '<small>学号 ' + s.id + '</small></span>' +
+        '<span class="slot"><i class="' + (amBad ? 'bad' : '') + '"></i>上午 <i class="' + (pmBad ? 'bad' : '') + '"></i>下午</span>' +
+        '<button class="stamp" type="button" data-s="' + st + '" data-name="' + s.name + '"' +
+          ' aria-label="' + s.name + ' 当前状态 ' + stTxt + '，点击修改"' +
+          (allMode ? ' aria-disabled="true"' : '') + '>' + stTxt + '</button>' +
+        '</div>';
+    }).join('');
+    $('#cheadTitle').childNodes[0].nodeValue = c.name + ' · 今日考勤';
+    $('#cheadMeta').textContent = D.today() + ' · ' + slot + ' · ' + list.length + ' 人';
+    $('#clsBtn').textContent = c.name + ' ▾';
+    $('#slotBtn').textContent = slot + '时段 ▾';
+    Shell.refreshSummary();
+  }
+
+  function setAllMode(on) {
+    allMode = on;
+    $('#allMode').setAttribute('aria-pressed', String(on));
+    $('#allMode').classList.toggle('chip-on', on);
+    $$('#roster .stamp').forEach(function (b) {
+      if (on) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+    });
+    Shell.toast(on ? '「全部时段」为只读，印章不可改' : '回到单时段，可逐人盖章');
+  }
+
+  function toggleEmpty(show) {
+    $('#roster').hidden = show;
+    $('#attEmpty').hidden = !show;
+    /* G1：给容器挂状态类 → 空态下汇总条「完全不参与布局」（display:none），不留百余像素空白 */
+    var g = $('.attgrid'); if (g) g.classList.toggle('is-empty', show);
+  }
+
+  window.PAGE_INIT = function () {
+    $('#attDate').textContent = D.today();
+    renderRoster();
+    $('#clsBtn').addEventListener('click', function () { clsIdx = (clsIdx + 1) % D.CLASSES.length; renderRoster(); });
+    $('#slotBtn').addEventListener('click', function () { slot = slot === '下午' ? '上午' : '下午'; renderRoster(); });
+    $('#allMode').addEventListener('click', function () { setAllMode(!allMode); });
+    $('#allNormal').addEventListener('click', function () {
+      $$('#roster .stamp').forEach(function (b) { b.removeAttribute('aria-disabled'); Shell.Stamp.set(b, '正常'); });
+      Shell.refreshSummary();
+    });
+    $('#demoEmpty').addEventListener('click', function () { toggleEmpty($('#attEmpty').hidden); });
+    $('#attEmptyBack').addEventListener('click', function () { toggleEmpty(false); });
+  };
+  window.PAGE_PORT_CHANGED = function () { renderRoster(); };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+classDiagram
+    class Tokens {
+        +bg: string
+        +card: string
+        +text: string
+        +textDim: string
+        +accent: string
+        +brand: string
+        +brandDeco: string
+        +line: string
+        +cursor: string
+        +stampOk
+        +rSm/rMd/rLg/rPill
+        +fsDisplay/fsH1/fsH2/fsBody/fsSmall/fsCaption
+        +applyTo(port)
+    }
+    class Port {
+        <<enum>>
+        STAFF
+        STUDENT
+        ADMIN
+        +accent: string
+        +tint: string
+        +rail: string
+        +railOn: string
+    }
+    class Shell {
+        +mountChrome()
+        +go(page)
+        +setPort(port)
+        +clock()
+        +updateCursor()
+    }
+    class DataSource {
+        <<mock, 对齐生产读取函数>>
+        +classes()
+        +students(clsId)
+        +attMapDay(date)
+        +attWorst(date)
+        +slots()
+        +homework(date)
+    }
+    class TimelineModel {
+        +ticks: Tick[]
+        +role: string
+        +timelineFor(role)
+        +cursorAt(now)
+        +nextTick(now)
+    }
+    class Tick {
+        +time: string
+        +label: string
+        +nodes: Node[]
+    }
+    class TimelineNode {
+        +id: string
+        +title: string
+        +sub: string
+        +state: string
+        +open: bool
+    }
+    class RosterModel {
+        +students: Student[]
+        +stamp(stuId, status)
+        +sum(): Sum
+    }
+    class Stamp {
+        +status: string
+        +cycle()
+        +ariaLabel()
+    }
+    class HomePage {
+        +render()
+    }
+    class AttPage {
+        +render()
+        +renderLeaves()
+        +sumText()
+    }
+
+    Tokens --> Port : uses
+    Shell --> Tokens : applies
+    HomePage --> TimelineModel : renders
+    TimelineModel "1" --> "*" Tick
+    Tick "1" --> "*" TimelineNode
+    TimelineModel --> DataSource : reads
+    AttPage --> RosterModel : renders
+    RosterModel "1" --> "*" Stamp
+    AttPage --> DataSource : reads
+    Shell --> HomePage : routes
+    Shell --> AttPage : routes

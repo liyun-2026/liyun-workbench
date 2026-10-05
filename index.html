@@ -275,6 +275,11 @@ body{
 .page.on{display:flex}
 .page-title{font-size:var(--fs-title);font-weight:500;line-height:1.25;letter-spacing:-.01em;margin-bottom:2px}
 .page-sub{font-size:var(--fs-meta);color:var(--text-dim);margin-top:-6px;margin-bottom:2px}
+/* ── 手机 / 桌面各写一句时的显隐开关 ──
+   两个类**只在这两个断点里定义**，不写基准 display，
+   免得把 <span> 变成块级、影响行内排版。 */
+@media (max-width:699px){ .only-desk{display:none !important} }
+@media (min-width:700px){ .only-mob{display:none !important} }
 /* 「今日」旁边的实时时钟：24 时制，tabular-nums 让秒数跳动时不抖 */
 .clock{font-size:.6em;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
 
@@ -1029,6 +1034,15 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .weak .lab{font-variant-numeric:tabular-nums;color:var(--text-dim)}
 .weak .tag{font-size:12px;margin-left:6px}
 
+/* ── 手机端：大课表能横滑 + 提示 ──
+   桌面课表靠 .sgrid 的 min-width:660px 排整周栅格，这里**不动它**；
+   只在手机把外层 #gridWrap 变成可横滑容器，并给一行「左右滑动」提示。 */
+.grid-hint{display:none}
+@media (max-width:699px){
+  .grid-hint{display:block;font-size:12px;color:var(--text-dim);margin:var(--sp-3) 0 0}
+  #gridWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+}
+
 /* ── 大课表网格 ── */
 .sgrid{border-collapse:collapse;width:100%;font-size:13px;min-width:660px}
 .sgrid th,.sgrid td{border:1px solid var(--line,#e6e2d8);padding:4px;vertical-align:top;text-align:center}
@@ -1530,6 +1544,15 @@ body.board-mode .page.on > *{animation:none}
   --focus:#B0602A;            /* 焦点环：非文字 UI 门槛 3:1，实测 4.23–4.61 */
   --hover:color-mix(in srgb,var(--text) 6%,transparent);
   --stamp-ok:#2A6E50; --stamp-late:#7C5B0D; --stamp-sick:#1B4B5A; --stamp-leave:#B23A2E;
+  /* 未到（没来也没请假，比已批准的事假重）：墨色，浅色主题下最沉的一格 */
+  --stamp-absent:#26241F;
+  /* 「填色上的字」：五个语义色块被选中时的文字色。浅色下 5 个填充都是深色 → 白字 */
+  --stamp-ink:#FFFFFF;
+  /* 未选中方块（文字 + 描边）。⚠️ 这两个值**故意不跟随端口皮肤**：
+     端口主题把 --text-dim 调得很浅（super 浅色 #A6997C 白底只有 2.81:1、学生端 2.71:1、
+     教务端 3.31:1），未选中的格子在白卡上几乎看不见，而它是要点的控件 —— 不能只当装饰。
+     四个浅色端口的卡片都是纯白，所以一组固定值就够。实测（白卡）：文字 5.39:1、描边 3.07:1。 */
+  --stamp-off:#6E6A61; --stamp-line:#9C9280;
   --fs-h2:18px; --fs-small:14px; --fs-caption:12px;
   --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px;
   --sp-12:48px; --sp-18:72px; --sp-28:112px;
@@ -1565,20 +1588,27 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 /* 小号按钮（旧 .btn 只有默认一档，补一个 mini；不改 .btn 本身） */
 .btn.mini{padding:5px 11px;font-size:13px}
 
-/* ── ⑤ 印章（语义色，独立于端口色；四态 + 未登记）──────────────────────── */
-.stamp{font-family:var(--font-serif);font-size:14px;letter-spacing:.08em;padding:5px 0;width:100%;
-  min-width:74px;text-align:center;cursor:pointer;background:transparent;color:var(--text-dim);
-  border:1px solid currentColor;border-radius:var(--r-sm);
-  transition:background-color var(--dur-quick) var(--ease-quick),color var(--dur-quick) var(--ease-quick)}
-.stamp[data-s="正常"]{color:var(--stamp-ok);background:color-mix(in srgb,var(--stamp-ok) 12%,transparent)}
-.stamp[data-s="迟到"]{color:var(--stamp-late);background:color-mix(in srgb,var(--stamp-late) 14%,transparent)}
-.stamp[data-s="病假"]{color:var(--stamp-sick);background:color-mix(in srgb,var(--stamp-sick) 10%,transparent)}
-.stamp[data-s="事假"]{color:var(--stamp-leave);background:color-mix(in srgb,var(--stamp-leave) 10%,transparent)}
-.stamp[data-s="none"]{border-style:dashed}
-.stamp[aria-disabled="true"]{cursor:default;opacity:.75}
-.stamp:hover{outline:1px solid currentColor;outline-offset:1px}
-.stamp.flash{animation:stampIn var(--dur-base) var(--ease-page)}
-@keyframes stampIn{from{transform:scale(1.09);opacity:.45}to{transform:scale(1);opacity:1}}
+/* ── ⑤ 状态方块（语义色，独立于端口色；五态直选，再点一下取消）──────────────────────── */
+.mini{display:flex;gap:4px;justify-content:flex-end;min-width:0}
+/* 状态方块：未选中一律中性（--line 描边 + --text-dim 字），只有选中的那一块上色 ——
+   五个状态各带一色会变成一行彩虹，反而看不出这个人是什么状态。
+   ⚠️ 语义色必须同时写进 --c，选中块用 background:var(--c)。
+      不要写成 .on{background:currentColor;color:var(--stamp-ink)} —— 同一条规则里 color 已经被
+      改成 --stamp-ink，currentColor 也跟着变，选中的块会渲染成一个纯色（白块/墨块）而不是语义色。 */
+.stamp{font-family:var(--font);font-size:12px;letter-spacing:.02em;padding:0 8px;height:30px;
+  min-width:46px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;
+  cursor:pointer;background:transparent;color:var(--stamp-off);
+  border:1px solid var(--stamp-line);border-radius:7px;
+  transition:background-color var(--dur-quick) var(--ease-quick),color var(--dur-quick) var(--ease-quick),
+             border-color var(--dur-quick) var(--ease-quick)}
+.stamp[data-s="正常"]{--c:var(--stamp-ok)}
+.stamp[data-s="迟到"]{--c:var(--stamp-late)}
+.stamp[data-s="病假"]{--c:var(--stamp-sick)}
+.stamp[data-s="事假"]{--c:var(--stamp-leave)}
+.stamp[data-s="未到"]{--c:var(--stamp-absent)}
+.stamp[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--stamp-ink);font-weight:500}
+.stamp:hover{border-color:var(--stamp-off)}
+.stamp[aria-pressed="true"]:hover{border-color:var(--c)}
 
 /* ── ⑥ 今日页 · 时间轴（D 时序）───────────────────────────────────────── */
 .tl-head{display:flex;align-items:flex-end;gap:var(--sp-6);flex-wrap:wrap}
@@ -1629,6 +1659,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .tl-now-t{position:absolute;right:0;top:-14px;background:var(--cursor);color:#fff;font-family:var(--mono);
   font-size:12px;padding:3px 9px;border-radius:var(--r-pill);white-space:nowrap}
 .news-strip{margin-top:var(--sp-4);display:grid}
+.news-more-wrap{margin-top:var(--sp-3)}
+.news-more{width:100%}
 @media (min-width:1100px){ .page#page-home.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑦ 考勤页（F 册页）────────────────────────────────────────────────── */
@@ -1646,7 +1678,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .attgrid{display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,28%,300px);gap:var(--sp-8);align-items:start}
 }
 .roster{min-width:0}
-.rrow{display:grid;grid-template-columns:34px minmax(0,1fr) 84px 96px;gap:var(--sp-3);align-items:center;
+.rrow{display:grid;grid-template-columns:34px minmax(0,1fr) 84px auto;gap:var(--sp-3);align-items:center;
   padding:10px 0;border-bottom:1px solid var(--line)}
 .rrow.head{border-bottom:1px solid var(--text);padding-bottom:6px}
 .rrow.head span{font-size:var(--fs-caption);letter-spacing:.06em;color:var(--text-dim);font-weight:500;white-space:nowrap}
@@ -1660,7 +1692,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .rrow .ro-all{font-size:12px;color:var(--text-dim);text-align:right;white-space:nowrap}
 @media (max-width:1099px){
   /* F1：<1100 单列 —— 姓名列 ≥44px、姓名不截断、表头不竖排 */
-  .rrow{grid-template-columns:34px minmax(44px,1fr) minmax(74px,96px)}
+  .rrow{grid-template-columns:34px minmax(44px,1fr) auto}
   .rrow .slot, .rrow.head .h-slot{display:none}
   .rrow .who{overflow:visible;white-space:normal}
 }
@@ -1673,7 +1705,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .ratio{display:flex;height:8px;margin-top:var(--sp-3);border-radius:var(--r-pill);overflow:hidden;background:var(--line)}
 .ratio i{display:block;height:100%;flex:1}
 .ratio .ok{background:var(--stamp-ok)} .ratio .late{background:var(--stamp-late)}
-.ratio .sick{background:var(--stamp-sick)} .ratio .leave{background:var(--stamp-leave)}
+.ratio .sick{background:var(--stamp-sick)} .ratio .leave{background:var(--stamp-leave)} .ratio .absent{background:var(--stamp-absent)}
 .legend{display:flex;flex-direction:column;gap:8px;margin-top:var(--sp-3);font-size:13px;color:var(--text-dim)}
 .legend span{display:flex;align-items:center;gap:8px}
 .legend i{width:12px;height:12px;flex:0 0 auto;border-radius:2px}
@@ -1698,6 +1730,27 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .attgrid.is-empty .sumsticky{display:none}
 @media (min-width:1100px){ .attgrid.is-empty{grid-template-columns:minmax(0,1fr)} }
 @media (min-width:1100px){ .page#page-att.on{grid-template-columns:minmax(0,1fr)} }
+
+/* ── ⑦b 考勤页（#page-att）手机端：整体收一档 + 状态方块平分整行 ──
+   本轮只落这一页，全站收档下一轮做。⚠️ input / select / textarea 一律不准小于 16px
+   （小于 16px 时 iOS 聚焦会自动放大整页），所以这里只调文本元素，不碰表单控件。 */
+@media (max-width:699px){
+  #page-att .chead h2{font-size:20px}
+  #page-att .sumbox h3{font-size:16px}
+  #page-att .sumrow{font-size:13px}
+  #page-att .legend{font-size:12.5px}
+  #page-att .hint{font-size:12.5px}
+  #page-att .sumbox .pending{font-size:13.5px}
+  #page-att .rrow .who{font-size:14.5px}
+  /* 行 = 序号 + 姓名 + 5 个方块。姓名列封顶 84px 且超出省略号，
+     方块那一列吃掉剩下的全部宽度、5 块平分，这样一行 0 溢出、方块尽量宽。 */
+  #page-att .rrow{grid-template-columns:22px minmax(62px,auto) minmax(0,1fr);gap:6px}
+  #page-att .rrow .who{max-width:84px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #page-att .rrow .mini{flex:1 1 auto;gap:2px;min-width:0}
+  #page-att .rrow .stamp{flex:1 1 0;min-width:0;padding:0 2px;font-size:12px}
+  /* iOS 硬规矩：本页表单控件一律 ≥16px（.fold 原本是 14px，聚焦会自动放大整页） */
+  #page-att input, #page-att select, #page-att textarea{font-size:16px}
+}
 
 /* ── ⑧ 名册页（.split 册页化）──────────────────────────────────────────── */
 .roster-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
@@ -1755,7 +1808,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 /* ── ⑫ prefers-reduced-motion 兜底（沿用旧规则，新组件一并关动效）────────── */
 @media (prefers-reduced-motion: reduce){
   .tl-now{transition:none !important}      /* 游标直接跳到位置 */
-  .stamp.flash{animation:none !important}
 }
 
 /* ── ⑬ 深色模式：**每个新增令牌都给一个深色值**（生产深色是活的，不补就会「深底上看不见」）
@@ -1769,6 +1821,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
     --cursor:#D98A5A;           /* 游标作文字，最低 5.13:1 */
     --focus:#F2C99A;            /* 焦点环（非文字，3:1），最低 9.02:1 */
     --stamp-ok:#7CC7A2; --stamp-late:#D9AF52; --stamp-sick:#7FBED2; --stamp-leave:#E89286;
+    --stamp-absent:#D6D1C6;   /* 深色下「未到」取浅中性，明度与上面四色对齐 */
+    --stamp-ink:#1E1C18;      /* 深色下填充都是浅色 → 字用深墨 */
+    /* 未选中方块（深色）。实测四套端口卡片：文字 5.48–6.83:1、描边 3.37–4.20:1 */
+    --stamp-off:#A8A294; --stamp-line:#857C69;
   }
   /* ⚠️ 游标胶囊 .tl-now-t 是「白字压 --cursor 底」的写法：浅色下 --cursor=#9C4E1F，
      白字 5.96:1 没问题；**深色下 --cursor 变浅（#D98A5A），白字只剩 2.72:1** ——
@@ -1952,6 +2008,7 @@ try {
         </div>
         <p class="cmeta">来源：央视新闻 · 出话题评述先看这里</p>
         <div class="news-strip" id="newsBody"></div>
+        <div id="newsMore" class="news-more-wrap"></div>
       </section>
     </section>
     <!-- ==== 功能：今日 END ==== -->
@@ -1959,13 +2016,13 @@ try {
     <!-- ==== 功能：名册 START ==== -->
     <section class="page" id="page-roster">
       <h1 class="page-title">名册</h1>
-      <p class="page-sub">左选班 → 右看人；建号与周末班收进右栏「更多」，一眼是册页不是卡片堆</p>
+      <p class="page-sub"><span class="only-desk">左选班 → 右看人；建号与周末班收进右栏「更多」，一眼是册页不是卡片堆</span><span class="only-mob">先选班级，再管这个班的学员；建号与周末班收在下面「更多」里</span></p>
 
       <div class="roster-grid">
         <!-- 左：班级 -->
         <section class="cls-card" aria-label="班级列表">
           <div class="sec-h">班级</div>
-          <p class="sec-meta">选中一个班，右边看这个班的学员</p>
+          <p class="sec-meta"><span class="only-desk">选中一个班，右边看这个班的学员</span><span class="only-mob">选中一个班，下面看这个班的学员</span></p>
           <div class="row">
           <input type="text" id="clsIn" placeholder="班级名，如：播音一班">
           <button class="btn" onclick="Roster.addClass()">建班</button>
@@ -2081,7 +2138,7 @@ try {
       </div>
 
       <div class="attgrid" id="attGrid">
-        <!-- 左：印章名单（点印章循环改态，实时同步右侧小结） -->
+        <!-- 左：印章名单（五个状态直接排开，点哪格就是哪个状态；再点同一格撤销，实时同步右侧小结） -->
         <div class="roster" id="roster" role="list" aria-label="学生名单"></div>
 
         <!-- 右 / 窄窗吸顶：本节小结 + 待批请假 -->
@@ -2092,14 +2149,16 @@ try {
             <div class="sumrow"><span>正常</span><b class="num" data-sum="ok">0</b></div>
             <div class="sumrow bad"><span>异常</span><b class="num" data-sum="bad">0</b></div>
             <div class="sumrow"><span>未登记</span><b class="num" data-sum="none">0</b></div>
-            <div class="ratio" aria-hidden="true"><i class="ok"></i><i class="late"></i><i class="sick"></i><i class="leave"></i></div>
+            <div class="ratio" aria-hidden="true"><i class="ok"></i><i class="late"></i><i class="sick"></i><i class="leave"></i><i class="absent"></i></div>
             <div class="legend">
               <span><i style="background:var(--stamp-ok)"></i><span data-leg="ok">正常 0</span></span>
               <span><i style="background:var(--stamp-late)"></i><span data-leg="late">迟到 0</span></span>
               <span><i style="background:var(--stamp-sick)"></i><span data-leg="sick">病假 0</span></span>
               <span><i style="background:var(--stamp-leave)"></i><span data-leg="leave">事假 0</span></span>
+              <span><i style="background:var(--stamp-absent)"></i><span data-leg="absent">未到 0</span></span>
             </div>
             <p class="hint" id="attSum"></p>
+            <p class="sr-only" id="attLive" aria-live="polite"></p>
           </div>
           <div class="sumbox">
             <h3>待批请假 <span class="hint" id="attLeaveMeta" style="display:inline;margin:0"></span></h3>
@@ -2215,6 +2274,7 @@ try {
           <button class="btn ghost" onclick="Schedule.exportWord()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 导出 Word（发学生）</button>
         </div>
         <div id="conflictBox" style="margin-top:10px"></div>
+        <p class="grid-hint">← 左右滑动看完整一周 →</p>
         <div id="gridWrap" style="margin-top:12px;overflow-x:auto"></div>
       </div>
       <div class="card wide">
@@ -2265,7 +2325,7 @@ try {
     <!-- ==== 功能：作业 START ==== -->
     <section class="page" id="page-homework">
       <h1 class="page-title">作业</h1>
-      <p class="page-sub">左「今日检查」逐人勾选 · 右「布置作业」发给多个班</p>
+      <p class="page-sub"><span class="only-desk">左「今日检查」逐人勾选 · 右「布置作业」发给多个班</span><span class="only-mob">先「今日检查」逐人勾选，再往下「布置作业」发给多个班</span></p>
 
       <div class="hw-grid">
         <!-- 左：今日检查（.hk-progress 完成进度） -->
@@ -2344,7 +2404,7 @@ try {
           <button class="btn" onclick="Quant.addCustom()">记一笔</button>
         </div>
         <p class="hint" style="margin-top:6px">考勤里标了 <b>迟到 / 病假 / 事假</b>，会按「量化细则」里的考勤分值自动记进下面的记录，不用再来这里点一遍。</p>
-        <button class="btn ghost" style="margin-top:10px" onclick="Quant.syncAllFromAtt()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-refresh"></use></svg>  按考勤重算本班（补历史 / 改了细则后）</button>
+        <button class="btn ghost" style="margin-top:10px;white-space:normal" onclick="Quant.syncAllFromAtt()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-refresh"></use></svg>  按考勤重算本班（补历史 / 改了细则后）</button>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-scroll"></use></svg> 加扣分记录 <span class="hint" id="qLogMeta" style="display:inline;margin:0 0 0 auto"></span></h2>
@@ -2352,7 +2412,7 @@ try {
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 公示文案</h2>
-        <div class="row" style="margin-top:14px">
+        <div class="row" style="margin-top:14px;flex-wrap:wrap">
           <button class="btn" onclick="Quant.copy()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 复制本班公示</button>
           <button class="btn ghost" onclick="Quant.copyAll()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 全部班级各一份（一次复制）</button>
         </div>
@@ -2437,7 +2497,7 @@ try {
          教务能改（体重也是在这里记），授课老师只读。 -->
     <section class="page" id="page-profile">
       <div class="page-title">学员档案</div>
-      <div class="page-sub" id="pfSub">左边挑人，右边一屏看完他的全部记录</div>
+      <div class="page-sub" id="pfSub"><span class="only-desk">左边挑人，右边一屏看完他的全部记录</span><span class="only-mob">先挑人，再往下看这个人的全部记录</span></div>
       <div class="split">
         <div class="card pane-list">
           <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg> 选学员</h2>
@@ -2503,7 +2563,7 @@ try {
     <!-- ==== 功能：设置 START ==== -->
     <section class="page" id="page-settings">
       <h1 class="page-title">设置</h1>
-      <p class="page-sub">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</p>
+      <p class="page-sub"><span class="only-desk">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</span><span class="only-mob">常用 / 高级两段 · 顶上一排锚点快速跳 · 高级段可折叠</span></p>
 
       <div class="anchor-layout">
         <nav class="anchor-nav" id="anchorNav" aria-label="设置锚点">
@@ -2670,7 +2730,7 @@ try {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-desktop"></use></svg> 看板端</h2>
         <p class="hint" style="margin-top:0;margin-bottom:10px">
           给办公室那台电脑挂的一块只读屏：当前时间、今日打卡码、来了多少人、谁还没到、今天上什么课。
-          进去之后侧栏和按钮全部收起，屏幕上只剩数字 —— 点到也改不了任何数据，它跟您的工作台是同一个系统，只是多了一个「只看不碰」的视图。
+          进去之后导航和按钮全部收起，屏幕上只剩数字 —— 点到也改不了任何数据，它跟您的工作台是同一个系统，只是多了一个「只看不碰」的视图。
         </p>
         <div class="row" style="gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="Board.enter()">打开看板端</button>
@@ -4840,7 +4900,7 @@ const Home = {
         sub: t + ' · ' + Util.esc(sl.name) + ' · 已登记 ' + who.size + ' 人',
         state: bad ? ('异常 ' + bad) : '全部正常',
         done: bad ? 0 : 1,
-        body: '已登记 ' + who.size + ' 人' + (bad ? ('，其中异常 ' + bad + ' 人次（迟到 / 病假 / 事假）') : '，无人异常') + '。'
+        body: '已登记 ' + who.size + ' 人' + (bad ? ('，其中异常 ' + bad + ' 人次（迟到 / 病假 / 事假 / 未到）') : '，无人异常') + '。'
             + '<a href="#" onclick="App.go(\'att\');return false">去考勤页逐人改 →</a>'
       });
     });
@@ -4989,8 +5049,8 @@ const Home = {
     /* ── 主轴 ── */
     this.renderAxis();
 
-    /* ── 轴尾：要闻（缓存当天结果） ── */
-    News.render();
+    /* ── 轴尾：要闻（缓存当天结果；今日页首屏只放前 6 条，其余点「展开全部」） ── */
+    News.render('newsBody', 'newsMeta', false, 6);
 
     const hs = document.getElementById('homeSub');
     if (hs) hs.textContent = Store.list('classes').length ? '' : '还没有班级';
@@ -5633,9 +5693,11 @@ const Weekend = {
 
 /* ==== 功能：考勤 START ==== */
 const Att = {
-  STATUSES: ['正常', '迟到', '病假', '事假'],
-  /* 一个人一天可能被点好几次名，汇总时取最重的那次：事假 > 迟到/早退 > 病假 > 正常 */
-  RANK: { '正常':0, '病假':1, '迟到':2, '早退':2, '事假':3 },
+  STATUSES: ['正常', '迟到', '病假', '事假', '未到'],
+  /* 一个人一天可能被点好几次名，汇总时取最重的那次：
+     未到 > 事假 > 迟到/早退 > 病假 > 正常。
+     未到 = 没来也没请假，比「已经批准过的事假」更重 —— 所以排最后。 */
+  RANK: { '正常':0, '病假':1, '迟到':2, '早退':2, '事假':3, '未到':4 },
 
   /* ══ 考勤时段 ══
      一天点几次名，就配几个时段（设置页「考勤时段」里改）。
@@ -5706,7 +5768,7 @@ const Att = {
     const pid = this.curPid();
     const all = pid === '*';
     const first = (this.SLOTS()[0] || {}).id || 'am';
-    let ok = 0, late = 0, sick = 0, leave = 0, none = 0;
+    let ok = 0, late = 0, sick = 0, leave = 0, absent = 0, none = 0;
     list.forEach(s => {
       const mine = (map || {})[s.id] || {};
       const st = all ? mine[first] : mine[pid];
@@ -5714,28 +5776,32 @@ const Att = {
       if (st === '正常') ok++;
       else if (st === '病假') sick++;
       else if (st === '事假') leave++;
+      else if (st === '未到') absent++;
       else if (st === '迟到' || st === '早退') late++;
       else none++;
     });
-    const bad = late + sick + leave;
+    const bad = late + sick + leave + absent;
     const put = (k, v) => { const e = document.querySelector('[data-sum=' + k + ']'); if (e) e.textContent = String(v); };
     put('total', list.length); put('ok', ok); put('bad', bad); put('none', none);
-    [['ok', ok], ['late', late], ['sick', sick], ['leave', leave]].forEach(p => {
+    [['ok', ok], ['late', late], ['sick', sick], ['leave', leave], ['absent', absent]].forEach(p => {
       const e = document.querySelector('.ratio .' + p[0]); if (e) e.style.flex = String(p[1]);
     });
-    [['ok', '正常', ok], ['late', '迟到', late], ['sick', '病假', sick], ['leave', '事假', leave]].forEach(p => {
+    [['ok', '正常', ok], ['late', '迟到', late], ['sick', '病假', sick], ['leave', '事假', leave], ['absent', '未到', absent]].forEach(p => {
       const e = document.querySelector('[data-leg=' + p[0] + ']'); if (e) e.textContent = p[1] + ' ' + p[2];
     });
   },
 
-  /** 点印章：未登记 → 正常 → 迟到 → 病假 → 事假 → 未登记（对应样张 Shell.Stamp.cycle） */
-  cycleStamp(btn){
-    if (!btn || btn.getAttribute('aria-disabled') === 'true') return;
-    const cur = btn.getAttribute('data-s');
-    const k = this.STATUSES.indexOf(cur);
-    const next = k < 0 ? this.STATUSES[0] : this.STATUSES[(k + 1) % this.STATUSES.length];
-    const sid = btn.getAttribute('data-sid');
-    if (sid) this.write(sid, next);
+  /** 点状态方块：点的是它自己代表的状态（data-s = 该方块代表的状态，不再读外层当前状态）。
+      再点一下同一个 = 取消登记，回到「未登记」。 */
+  pickStamp(btn){
+    if (!btn) return;
+    const sid  = btn.getAttribute('data-sid');
+    const want = btn.getAttribute('data-s');
+    if (!sid || !want) return;
+    const row = btn.closest('.rrow');
+    const cur = row ? row.getAttribute('data-cur') : 'none';
+    if (want === cur) this.write(sid, null);     // 再点一下撤销
+    else this.write(sid, want);
   },
 
   /** 把一个人的状态写进当前时段（原 mark() 的按钮版改成印章版）；写完重画并重算量化 */
@@ -5747,8 +5813,17 @@ const Att = {
     const rec = Store.list(key).find(r => r.studentId === sid && this.pidOf(r) === pid);
     if (rec && st === null){ Store.softDelete(key, rec.id); }   // 再点一下取消
     else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, status: st, pid });
+    /* 读屏器播报：写在 #roster 之外的常驻 live region 里，render 重画名单抹不掉它 */
+    const nm = (Util.stuName ? Util.stuName(sid) : '') || '该学生';
+    this._say(nm + (st === null ? ' 已取消登记' : ' 已标为 ' + st));
     this.render();
-    this.syncQuant(date);      // 迟到/病假/事假 立刻反映到量化，不用再去量化页点一遍
+    this.syncQuant(date);      // 迟到/病假/事假 立刻反映到量化；未到没有对应细则，syncAtt 会安全跳过
+  },
+
+  /** 无障碍：把刚做完的这一下念给读屏器听（对应页面里的 #attLive，视觉隐藏） */
+  _say(t){
+    const el = document.getElementById('attLive');
+    if (el) el.textContent = t;
   },
 
   /* 印章点击用一次文档级委托绑上 —— render 会被反复调用，绑在 render 里会越绑越多 */
@@ -5758,7 +5833,7 @@ const Att = {
     this._bound = true;
     document.addEventListener('click', e => {
       const sb = e.target.closest('#roster .stamp');
-      if (sb) this.cycleStamp(sb);
+      if (sb) this.pickStamp(sb);
     });
   },
 
@@ -5806,7 +5881,9 @@ const Att = {
 
     const head = '<div class="rrow head" aria-hidden="true">'
       + '<span class="h-idx">#</span><span class="h-who">姓名</span>'
-      + '<span class="h-slot">今日时段</span><span class="h-st">状态（点印章改）</span></div>';
+      + '<span class="h-slot">今日时段</span><span class="h-st">'
+      + '<span class="only-desk">状态（点一下就改，再点一下取消）</span>'
+      + '<span class="only-mob">状态</span></span></div>';
 
     box.innerHTML = head + students.map((s, i) => {
       const mine = map[s.id] || {};
@@ -5820,17 +5897,24 @@ const Att = {
           + '<span class="ro-all">' + txt + '</span></div>';
       }
       const cur = mine[pid] || 'none';
-      const curTxt = cur === 'none' ? '未登记' : Util.esc(cur);
+      const nm  = Util.esc(s.name);
       const slotCell = slots.map(sl => {
         const bad = mine[sl.id] && mine[sl.id] !== '正常';
         return '<span class="sl"><i class="' + (bad ? 'bad' : '') + '"></i>' + Util.esc(sl.name) + '</span>';
       }).join('');
-      return '<div class="rrow" role="listitem">'
+      /* 一行 5 个方块，每个方块 data-s 就是「它自己代表的状态」；
+         行上带 data-cur（当前状态或 none），供判断与测试选择器用。
+         未选中的一律中性，选中的那一块 aria-pressed=true 才上色。 */
+      const mini = this.STATUSES.map(st =>
+        '<button class="stamp" type="button" data-s="' + st + '" data-sid="' + s.id + '"'
+        + ' aria-pressed="' + (st === cur ? 'true' : 'false') + '"'
+        + ' aria-label="把' + nm + '标成' + st + '">' + st + '</button>').join('');
+      return '<div class="rrow" role="listitem" data-cur="' + cur + '">'
         + '<span class="idx">' + idx + '</span>'
-        + '<span class="who">' + Util.esc(s.name) + '</span>'
+        + '<span class="who">' + nm + '</span>'
         + '<span class="slot" aria-hidden="true">' + slotCell + '</span>'
-        + '<button class="stamp" type="button" data-s="' + cur + '" data-sid="' + s.id + '" data-name="' + Util.esc(s.name) + '"'
-        + ' aria-label="' + Util.esc(s.name) + ' 当前状态 ' + curTxt + '，点击修改">' + curTxt + '</button></div>';
+        + '<span class="mini" role="group" aria-label="' + nm + ' · ' + Util.esc(this.slotName(pid)) + ' 状态">'
+        + mini + '</span></div>';
     }).join('');
 
     if (sum) sum.innerHTML = this.sumText(date, pid, students, map);
@@ -5916,11 +6000,16 @@ const Att = {
       if (st && c[st] !== undefined) c[st]++; else undone++;
     });
     const name = Util.esc(this.slotName(pid));
-    return `${cn} · <b>${name}考勤</b><br>应到 ${n} · ` +
+    /* 桌面逐项罗列 / 手机摘要 —— 用 CSS 类（.only-desk / .only-mob）分叉，不读 innerWidth：
+       读宽度在旋转、分屏、缩放下都会算错，还得等一次 layout 才对得上。 */
+    const desk = `${cn} · <b>${name}考勤</b><br>应到 ${n} · ` +
       this.STATUSES.map(st => `${st} ${c[st]}`).join(' · ') + ` · 未登记 ${undone}<br>` +
       (undone
         ? `「一键全部正常」只会把这 ${undone} 人标成${name}正常，${Util.esc(this.otherNames(pid))}的记录不会动。`
         : `这次${name}考勤已经全部登记完了。`);
+    const badN = c['迟到'] + c['病假'] + c['事假'] + c['未到'];
+    const mob = `${cn} · <b>${name}考勤</b><br>应到 ${n} · 正常 ${c['正常']} · 异常 ${badN} · 未登记 ${undone}`;
+    return `<span class="only-desk">${desk}</span><span class="only-mob">${mob}</span>`;
   },
   otherNames(pid){
     const rest = this.SLOTS().filter(s => s.id !== pid).map(s => s.name);
@@ -6156,18 +6245,18 @@ const Att = {
     const days = this.daysBetween(from, to);
     const slots = this.rangeSlots(pid);
     const total = days.length * slots.length;
-    const rows = [['班级', '姓名', '应到次数', '正常', '迟到', '病假', '事假', '未登记', '出勤率']];
+    const rows = [['班级', '姓名', '应到次数', '正常', '迟到', '病假', '事假', '未到', '未登记', '出勤率']];
     let people = 0;
     clsIds.forEach(cid => {
       const cname = Util.clsName(cid);
       Store.list('students', Util.byName).filter(s => s.classId === cid).forEach(s => {
-        const c = { '正常':0, '迟到':0, '病假':0, '事假':0 };
+        const c = { '正常':0, '迟到':0, '病假':0, '事假':0, '未到':0 };
         let undone = 0;
         days.forEach(d => slots.forEach(sl => {
           const st = this.byStu(d, sl.id)[s.id];
           if (st && c[st] !== undefined) c[st]++; else undone++;
         }));
-        rows.push([cname, s.name, total, c['正常'], c['迟到'], c['病假'], c['事假'], undone,
+        rows.push([cname, s.name, total, c['正常'], c['迟到'], c['病假'], c['事假'], c['未到'], undone,
           (total ? Math.round(c['正常'] / total * 100) : 0) + '%']);
         people++;
       });
@@ -8371,8 +8460,10 @@ const News = {
 
   /* noFetch：学生端只读教务拉好的那份缓存，不自己去请求央视。
      80 个学生各拉一次会把接口打爆，而且会拉出 80 份不一样的新闻。 */
-  render(bodyId='newsBody', metaId='newsMeta', noFetch){
+  render(bodyId='newsBody', metaId='newsMeta', noFetch, limit){
     this._body = bodyId; this._meta = metaId;
+    this._limit = limit > 0 ? limit : 0;   /* 0 = 不限；只有今日页传上限 */
+    this._expanded = false;                /* 每次重渲染先回到「收起」 */
     const cache = Store.get('news_cache');
     if (!this._loading && (!cache || cache.date !== Util.today())){
       if (noFetch){
@@ -8398,6 +8489,7 @@ const News = {
     if (this._loading) return;
     this._loading = true;
     const b = document.getElementById(this._body); if (b) b.innerHTML = '<div class="empty">正在拉取央视新闻…</div>';
+    if (this._limit > 0){ const mb = document.getElementById('newsMore'); if (mb) mb.innerHTML = ''; }
     const prev = window.news;
     let done = false;
     const cleanup = () => {
@@ -8409,7 +8501,11 @@ const News = {
     };
     const fail = (msg) => {
       cleanup();
-      document.getElementById('newsBody').innerHTML =
+      /* 报错要落回**发起这次 fetch 的那一页**：render() 已经把容器 id 存进 this._body。
+         原来写死 'newsBody' —— 老师在「每日新闻」页拉失败时，错误飘到今日页去了，
+         他自己那一页反而一直转圈。容器取不到（页面已切走）就安静返回，不抛错。 */
+      const b = document.getElementById(this._body);
+      if (b) b.innerHTML =
         '<div class="empty">' + (msg || '没拉到，多半是网络问题，点右上角「刷新」再试') + '</div>';
     };
     window.news = (res) => {
@@ -8436,11 +8532,15 @@ const News = {
   },
 
   paint(items, date){
+    this._items = items; this._date = date;
     const meta = document.getElementById(this._meta);
-    if (meta) meta.textContent = `${date} · ${items.length} 条`;
+    if (meta) meta.textContent = `${date} · ${items.length} 条`;   /* 永远是总条数，不随截断变少 */
     const body = document.getElementById(this._body);
     if (!body) return;
-    body.innerHTML = items.map(x => `
+    const limit = this._limit || 0;
+    const open = limit > 0 && this._expanded;   /* 展开态只在今日页（limit>0）成立 */
+    const shown = (limit > 0 && !open) ? items.slice(0, limit) : items;
+    body.innerHTML = shown.map(x => `
       <div class="item">
         <span class="mono" style="flex-shrink:0;width:44px">${Util.esc(x.time || '--:--')}</span>
         <span class="grow">${x.url
@@ -8448,6 +8548,19 @@ const News = {
           : Util.esc(x.title)}${x.brief
           ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.brief.length > 90 ? x.brief.slice(0, 90) + '…' : x.brief)}</span>` : ''}</span>
       </div>`).join('');
+    /* 「展开全部 / 收起」只出现在今日页：容器 #newsMore 只写在今日页的 HTML 里。
+       另外三个调用点 limit=0，这里把 #newsMore 清空，DOM/行为与从前完全一致。 */
+    const more = document.getElementById('newsMore');
+    if (more) more.innerHTML = (limit > 0 && items.length > limit)
+      ? `<button class="btn ghost mini news-more" type="button" aria-expanded="${open ? 'true' : 'false'}"
+           aria-controls="${Util.esc(this._body)}" onclick="News.toggleMore()">${open ? '收起' : `展开全部 ${items.length} 条`}</button>`
+      : '';
+  },
+
+  /* 展开 / 收起今日要闻：只改 UI 状态，不写 news_cache（缓存里存的始终是原始 items） */
+  toggleMore(){
+    this._expanded = !this._expanded;
+    if (this._items) this.paint(this._items, this._date);
   }
 };
 /* ==== 功能：每日新闻 END ==== */
@@ -8522,14 +8635,14 @@ const Student = {
     const sid = this._sid();
     const s = Store.list('students').find(x => x.id === sid);
     if (!s){
-      box.innerHTML = '<div class="card"><div class="empty">左边挑一个学员，这里会显示他的全部记录</div></div>';
+      box.innerHTML = '<div class="card"><div class="empty"><span class="only-desk">左边挑一个学员，这里会显示他的全部记录</span><span class="only-mob">先在上面挑一个学员，他的全部记录会显示在这里</span></div></div>';
       return;
     }
     const canEdit = Auth.isStaff();
     const keys = Object.keys(Store.dump());
 
     /* ── 考勤 ── */
-    const attCount = { '正常': 0, '迟到': 0, '病假': 0, '事假': 0 };
+    const attCount = { '正常': 0, '迟到': 0, '病假': 0, '事假': 0, '未到': 0 };
     const attRecent = [];
     keys.filter(k => k.indexOf('att:') === 0).sort().forEach(k => {
       const d = k.slice(4);
@@ -8630,7 +8743,7 @@ const Student = {
 
       <div class="card">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 考勤明细</h2>
-        <p class="hint" style="margin-top:0">${['正常','迟到','病假','事假'].map(k => k + ' ' + attCount[k]).join(' · ')}</p>
+        <p class="hint" style="margin-top:0">${['正常','迟到','病假','事假','未到'].map(k => k + ' ' + attCount[k]).join(' · ')}</p>
         ${attRecent.length ? attRecent.slice(-14).reverse().map(r =>
           `<div class="item"><span class="grow num">${r.date}${r.slot ? ' ' + Util.esc(r.slot) : ''}</span>
              <span class="chip ${r.status === '正常' ? '' : 'chip-no'}" style="pointer-events:none">${r.status}</span></div>`).join('')
@@ -9636,23 +9749,24 @@ const Today = {
     const date = Util.today();
     const w = (typeof Att !== 'undefined' && Att.worst) ? Att.worst(date) : {};
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
-    const n = { '正常':0, '迟到':0, '病假':0, '事假':0, '未打卡':0 };
-    const late = [], absent = [], leave = [];
+    const n = { '正常':0, '迟到':0, '病假':0, '事假':0, '未到':0, '未打卡':0 };
+    const late = [], absent = [], miss = [], leave = [];
     students.forEach(s => {
       const st = w[s.id] || '未打卡';
       if (n[st] === undefined) n['未打卡']++; else n[st]++;
       if (st === '迟到') late.push(s.name);
+      else if (st === '未到') miss.push(s.name);
       else if (st === '病假' || st === '事假') leave.push(s.name + '（' + st + '）');
       else if (st === '未打卡') absent.push(s.name);
     });
-    if (meta) meta.textContent = `已到 ${n['正常']}/${students.length} 人 · 迟到 ${n['迟到']} · 请假 ${n['病假'] + n['事假']} · 没打卡 ${n['未打卡']}`;
+    if (meta) meta.textContent = `已到 ${n['正常']}/${students.length} 人 · 迟到 ${n['迟到']} · 请假 ${n['病假'] + n['事假']} · 未到 ${n['未到']} · 没打卡 ${n['未打卡']}`;
 
     const line = (t, arr, cls) => arr.length
       ? `<p class="hint" style="margin:10px 0 2px">${t}（${arr.length}）</p>
          <div class="row" style="flex-wrap:wrap;gap:6px">${arr.map(x =>
            `<span class="chip ${cls}" style="pointer-events:none">${Util.esc(x)}</span>`).join('')}</div>`
       : '';
-    const body = line('没打卡', absent, '') + line('迟到', late, 'chip-no') + line('请假', leave, 'chip-on');
+    const body = line('没打卡', absent, '') + line('未到', miss, 'chip-no') + line('迟到', late, 'chip-no') + line('请假', leave, 'chip-on');
     box.innerHTML = body || '<div class="empty">全班都到了</div>';
   }
 };
@@ -10320,6 +10434,7 @@ const Settings = {
   ruleKey(label){
     const map = [
       [/迟到/, 'att:迟到'], [/早退/, 'att:早退'], [/病假/, 'att:病假'], [/事假/, 'att:事假'],
+      [/未到/, 'att:未到'],
       [/正常|全勤/, 'att:正常'], [/过关/, 'night:过'], [/未过/, 'night:未过'],
       [/已交|按时.{0,3}(交|提交)/, 'hw:已交'], [/未交|没交|缺交/, 'hw:未交']
     ];
@@ -11974,7 +12089,7 @@ const StuProfile = {
     const keys = Object.keys(Store.dump());
 
     /* 考勤 */
-    const cnt = { '正常':0, '迟到':0, '病假':0, '事假':0 };
+    const cnt = { '正常':0, '迟到':0, '病假':0, '事假':0, '未到':0 };
     const attRows = [];
     keys.filter(k => k.indexOf('att:') === 0).sort().reverse().forEach(k => {
       const d = k.slice(4);
@@ -12016,6 +12131,7 @@ const StuProfile = {
           ${this.metric('迟到', cnt['迟到'] + ' 次')}
           ${this.metric('病假', cnt['病假'] + ' 次')}
           ${this.metric('事假', cnt['事假'] + ' 次')}
+          ${this.metric('未到', cnt['未到'] + ' 次')}
           ${this.metric('作业已交', hwDone + ' 次')}
           ${this.metric('作业未交', hwMiss + ' 次')}
         </div>
@@ -12402,7 +12518,7 @@ const Sign = {
               : (att && att.leaveMin ? '今天还没打卡 · 已记请假 ' + att.leaveMin + ' 分钟' : '今天还没打卡')}</span></span>
         <span class="chip ${st === '正常' ? 'chip-on' : (st === '未打卡' ? '' : 'chip-no')}" style="pointer-events:none">${st}</span>
         <div class="row" style="margin-top:6px;width:100%;flex-wrap:wrap">
-          ${['正常','迟到','病假','事假'].map(x =>
+          ${['正常','迟到','病假','事假','未到'].map(x =>
             `<button class="chip ${rec && rec.status === x ? 'chip-on' : ''}" onclick="Sign.setStatus('${s.id}','${x}')">${x}</button>`).join('')}
           <button class="chip" onclick="Sign.setStatus('${s.id}','')">清除</button>
           <i style="width:1px;align-self:stretch;background:var(--rule,#e8e3d9);margin:0 5px"></i>
@@ -13567,16 +13683,34 @@ const Board = {
     const students = Util.realStudents(Util.byName);
     const bySid = {};
     Store.list('sign:' + date).forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
+    /* 考勤：一个学生一天可能有多条（上午 / 下午各一条），存**最后写的那条**整条记录。
+       留整条是为了拿到 _u（Store.upsert 每次写都自动盖），下面要和打卡记录比新旧。 */
     const att = {};
-    Store.list('att:' + date).forEach(r => { if (r && r.studentId) att[r.studentId] = r.status; });
+    Store.list('att:' + date).forEach(r => {
+      if (!r || !r.studentId) return;
+      const prev = att[r.studentId];
+      if (!prev || (r._u || 0) >= (prev._u || 0)) att[r.studentId] = r;
+    });
     const away = this.leavers(date);
     const miss = [];
     let ok = 0, late = 0, leave = 0;
     students.forEach(st => {
-      const r = bySid[st.id];
-      const st2 = r ? r.status : att[st.id];
+      const r  = bySid[st.id];   // 打卡记录（学生自己在门口打的）
+      const ar = att[st.id];     // 考勤记录（教务在考勤页点的）
+      /* 打卡和考勤都认 —— 学生自己打的、教务补点的，都算到过人。
+         ⚠️ 两条**互相矛盾**时（学生打了卡、教务又标「未到」）必须挑边，不能一律让打卡压过去：
+         原来 `r ? r.status : att[st.id]` 的写法会把教务明确标的「未到」直接吞掉，
+         大屏的「实到」就虚高了 —— 这正是值班老师最容易被骗的一处。
+         改用 Store.upsert 自动盖的 _u 比新旧：**谁最后改的听谁的**。
+         于是两种方向都对：教务事后改判能盖住打卡，学生后到再打卡也能盖回「未到」。 */
+      const st2 = (r && ar)
+        ? (((ar._u || 0) >= (r._u || 0)) ? ar.status : r.status)
+        : (r ? r.status : (ar ? ar.status : ''));
       if (away.has(st.id) || st2 === '病假' || st2 === '事假'){ leave++; return; }
-      if (!st2){ miss.push(st); return; }
+      /* 「未到」= 明确标了没来，必须进 miss。
+         大屏上「实到 = ok + late」，漏了这一支会被当成「已到」，
+         值班老师看一眼以为人都到齐了 —— 这是这一轮最危险的一处。 */
+      if (!st2 || st2 === '未到'){ miss.push(st); return; }
       if (st2 === '迟到') late++; else ok++;
     });
     return { total: students.length, should: students.length - leave, ok, late, leave, miss };

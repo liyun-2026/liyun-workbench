@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 样张 · 名册</title>
+<link rel="stylesheet" href="shell.css">
+<link rel="stylesheet" href="page-roster.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<div class="app">
+  <aside class="side" id="nav" aria-label="主导航"></aside>
+  <div class="col">
+    <header class="topbar" id="topbar"></header>
+
+    <main class="main" id="main">
+      <!-- ══ 名册（.split 册页化）══ -->
+      <section class="page on" id="page-roster">
+        <h1 class="page-title">名册</h1>
+        <p class="page-sub">左选班 → 右看人；「班级 / 学员」合并进一个 .split，建号收进右栏，次级卡折叠</p>
+
+        <div class="roster-grid">
+          <!-- 左：班级 -->
+          <section class="cls-card pane-list" aria-label="班级列表">
+            <div class="sec-h">班级</div>
+            <p class="sec-meta">选中一个班</p>
+            <div id="clsList" style="margin-top:12px"></div>
+            <div class="empty" id="clsEmpty" hidden>
+              <img src="../illustrations/empty-class.svg" alt="" aria-hidden="true" width="480" height="360">
+              <h3>还没有班级</h3>
+              <p>先建一个班级，再往里加学员。</p>
+              <button class="btn ghost mini" type="button" data-noop>新建班级</button>
+            </div>
+          </section>
+
+          <!-- 右：学员 -->
+          <section class="cls-card pane-main" aria-label="学员列表">
+            <div class="row">
+              <div>
+                <div class="sec-h" id="stuTitle">学员</div>
+                <p class="sec-meta" id="stuMeta">—</p>
+              </div>
+              <span style="flex:1"></span>
+              <button class="btn ghost mini" type="button" id="demoEmptyCls">演示空班级</button>
+              <button class="btn mini" type="button" data-noop><svg class="ic" aria-hidden="true"><use href="#ic-plus"></use></svg> 添加学员</button>
+            </div>
+
+            <div id="stuList" style="margin-top:12px"></div>
+
+            <div class="empty" id="stuEmpty" hidden>
+              <img src="../illustrations/empty-student.svg" alt="" aria-hidden="true" width="480" height="360">
+              <h3>这个班还没有学员</h3>
+              <p>导入名单或手动添加，学生就会出现在这里。</p>
+              <button class="btn" type="button" data-noop>添加学员</button>
+            </div>
+
+            <details class="more">
+              <summary>更多：批量建号 / 周末班 / 学员账号</summary>
+              <div class="mrow row">
+                <button class="btn ghost mini" type="button" data-noop>批量生成账号</button>
+                <button class="btn ghost mini" type="button" data-noop>为单人生成账号</button>
+                <button class="btn ghost mini" type="button" data-noop>周末班名单</button>
+                <button class="btn ghost mini" type="button" data-noop>导出 CSV</button>
+              </div>
+            </details>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="底部导航"></nav>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="icons.js"></script>
+<script src="shell.js"></script>
+<script>
+/* 名册页逻辑：班级选择 / 学员列表 / 空态 */
+(function () {
+  var D = window.D, $ = Shell.$, $$ = Shell.$$;
+  var clsId = D.CLASSES[0].id, emptyCls = false;
+
+  function renderCls() {
+    var box = $('#clsList');
+    $('#clsEmpty').hidden = !emptyCls;
+    box.hidden = emptyCls;
+    if (emptyCls) return;
+    box.innerHTML = D.CLASSES.map(function (c) {
+      return '<button class="pick' + (c.id === clsId ? ' on' : '') + '" type="button" data-cls="' + c.id + '">' +
+        '<span class="grow">' + c.name + '<span class="stu-meta"> · ' + c.teacher + '老师</span></span>' +
+        '<span class="cls-count num">' + D.STUDENTS[c.id].length + ' 人</span></button>';
+    }).join('');
+  }
+  function renderStu() {
+    var list = D.STUDENTS[clsId] || [], c = D.CLASSES.filter(function (x) { return x.id === clsId; })[0];
+    $('#stuTitle').textContent = c.name + ' · 学员';
+    $('#stuMeta').textContent = '班主任 ' + c.teacher + ' · 共 ' + list.length + ' 人 · 点「添加学员」继续';
+    var box = $('#stuList');
+    box.innerHTML = list.map(function (s, i) {
+      return '<div class="item" role="listitem"><span class="idx num stu-meta">' + String(i + 1).padStart(2, '0') + '</span>' +
+        '<span class="grow">' + s.name + '</span><span class="chip">' + s.id + '</span></div>';
+    }).join('') || '';
+    box.hidden = list.length === 0;
+    $('#stuEmpty').hidden = list.length !== 0;
+  }
+  window.PAGE_INIT = function () {
+    renderCls(); renderStu();
+    $('#clsList').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-cls]'); if (!b) return;
+      clsId = b.getAttribute('data-cls'); renderCls(); renderStu();
+    });
+    $('#demoEmptyCls').addEventListener('click', function () {
+      emptyCls = !emptyCls; renderCls(); renderStu();
+      Shell.toast(emptyCls ? '演示：无班级空态（含空态插图）' : '回到有班级状态');
+    });
+  };
+  window.PAGE_PORT_CHANGED = function () {};
+})();
+</script>
+</body>
+</html>

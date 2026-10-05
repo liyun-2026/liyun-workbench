@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-port="port1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 视觉升级 · 5 页设计样张</title>
+<link rel="stylesheet" href="shell.css">
+<style>
+.idx{max-width:1080px;margin:0 auto;padding:40px 24px 72px}
+.idx h1{font-family:var(--font-serif);font-weight:400;font-size:clamp(28px,3.4vw,40px);line-height:1.15;
+  border-bottom:1px solid var(--line);padding-bottom:18px}
+.idx .lead{margin-top:14px;color:var(--text-dim);max-width:76ch;text-wrap:pretty}
+.idx .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px}
+.idx .bar .lbl{font-size:13px;color:var(--text-dim)}
+.idx .bar button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--text-dim);
+  border-radius:var(--r-sm);padding:7px 14px;cursor:pointer}
+.idx .bar button[aria-pressed="true"]{background:var(--accent);color:var(--btn-text);border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:28px}
+a.pg{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:22px;transition:border-color var(--dur-base) var(--ease-base),transform var(--dur-base) var(--ease-base)}
+a.pg:hover{border-color:var(--accent);transform:translateY(-2px)}
+a.pg .tag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand-ink)}
+a.pg h2{font-family:var(--font-serif);font-weight:400;font-size:22px;margin-top:8px}
+a.pg p{margin-top:8px;font-size:14px;color:var(--text-dim);text-wrap:pretty}
+a.pg .go{margin-top:14px;font-size:14px;color:var(--accent-ink)}
+.foot{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--text-dim);max-width:84ch}
+.foot code{font-family:var(--mono);font-size:12px;background:var(--hover);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="idx">
+  <h1>砺蕴教务系统 · 视觉升级 · 5 页设计样张</h1>
+  <p class="lead">以第一轮方向 <b>A（素笺·暖金）</b> 的令牌为唯一基底，借 <b>C</b> 的四样手法（衬线大标题 / 大留白 / 细线代替卡片框 / 印章角色）；<b>今日页用 D 时间轴</b>、<b>考勤页用 F 册页</b>。导航（侧栏/顶栏/标签栏）一律不动，创新只发生在内容区。</p>
+
+  <div class="bar">
+    <span class="lbl">端口：</span>
+    <button type="button" data-port="port1" aria-pressed="true">① 教师·教务</button>
+    <button type="button" data-port="port2" aria-pressed="false">② 学生</button>
+    <button type="button" data-port="port3" aria-pressed="false">③ 管理</button>
+    <span class="lbl" id="portHint">切换后进入任一样张即生效（同一端口跨页保持）</span>
+  </div>
+  <p class="foot" id="portMap">
+    端口 id 与生产角色的映射（F11）：<code>port1</code> = 教师·教务（生产 <code>teacher</code> / <code>admin</code> / <code>both</code>）·
+    <code>port2</code> = 学生（生产 <code>student</code>）· <code>port3</code> = 管理（生产 <code>super</code> / <code>office</code>）。
+    <b>注：</b><code>office</code> 归 ③ 是搬入生产时对 <code>index.html:4207</code> 的改判（现为 <code>role-admin</code> 蓝），
+    <b>在样张内无法验证</b>——样张没有生产角色系统。
+  </p>
+
+  <div class="grid">
+    <a class="pg" href="home.html">
+      <span class="tag">D · 改骨架</span>
+      <h2>今日 · 时间轴</h2>
+      <p>轴首大数字 + 游标压住「现在几点」+ 事项挂在轴上就地展开 + 轴尾要闻。刻度随作息变、节点随角色变。</p>
+      <div class="go">打开 home.html →</div>
+    </a>
+    <a class="pg" href="att.html">
+      <span class="tag">F · 册页</span>
+      <h2>考勤 · 印章名单</h2>
+      <p>章节头宋体大标题 + 每人一行印章（点章改态、盖新章）+ 右侧 sticky 小结与占比条 + 页尾章节。</p>
+      <div class="go">打开 att.html →</div>
+    </a>
+    <a class="pg" href="roster.html">
+      <span class="tag">§2.3</span>
+      <h2>名册 · .split 册页化</h2>
+      <p>左选班 → 右看人；班级/学员合并进一个 .split，建号收进右栏，次级卡折叠。空态用线描插图。</p>
+      <div class="go">打开 roster.html →</div>
+    </a>
+    <a class="pg" href="homework.html">
+      <span class="tag">§2.4</span>
+      <h2>作业 · 左检查右布置</h2>
+      <p>左「今日检查」逐人勾选 + 进度条，右「布置作业」多班多选。纯表单页不加装饰插图。</p>
+      <div class="go">打开 homework.html →</div>
+    </a>
+    <a class="pg" href="settings.html">
+      <span class="tag">§2.5</span>
+      <h2>设置 · 常用 / 高级</h2>
+      <p>两段 + 左侧锚点，高级段可折叠。保持零装饰、无插图。</p>
+      <div class="go">打开 settings.html →</div>
+    </a>
+  </div>
+
+  <p class="foot">
+    本轮范围与边界：<b>只做浅色</b>（不做深色）· 只做教务端 5 页 · 不动生产 <code>index.html</code> · 不引构建工具与 npm 依赖 ·
+    字体是思源宋体<b>标题子集</b>（base64 内嵌进 <code>shell.css</code>，47KB×2），动态人名/班级名走系统衬线兜底。<br>
+    断点已归并为 <code>700 / 1100 / 1600</code> 三档：&lt;700 手机（隐藏侧栏、底部标签栏）、700–1099 窄窗（侧栏 200px）、≥1100 桌面（侧栏 236px、两列网格）。<br>
+    无障碍：<code>:focus-visible</code> 高对比焦点环 · <code>prefers-reduced-motion</code> 全兜底（游标不动画、印章不闪动）。键盘可用 Tab 走遍导航、节点、印章。
+  </p>
+</div>
+
+<script>
+/* 端口选择：写入 localStorage，5 页共享（shell.js 读取同一 key）
+   端口 id：port1=教师·教务 / port2=学生 / port3=管理（F11，避开与规格 ① 的 admin 撞名） */
+(function () {
+  var KEY = 'ly_sample_port', cur = 'port1';
+  try { cur = localStorage.getItem(KEY) || 'port1'; } catch (e) {}
+  var btns = [].slice.call(document.querySelectorAll('.bar button[data-port]'));
+  function paint() { btns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-port') === cur)); }); }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      cur = b.getAttribute('data-port');
+      try { localStorage.setItem(KEY, cur); } catch (e) {}
+      paint();
+      document.documentElement.setAttribute('data-port', cur);
+      var h = document.getElementById('portHint');
+      if (h) h.textContent = '已选 ' + b.textContent.trim() + '，进入任一样张即生效';
+    });
+  });
+  document.documentElement.setAttribute('data-port', cur);
+  paint();
+})();
+</script>
+</body>
+</html>

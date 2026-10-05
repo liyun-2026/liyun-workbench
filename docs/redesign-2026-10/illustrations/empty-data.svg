@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" class="il"><title>无数据：空坐标系与留白折线</title><g fill="none" stroke="var(--il-line, var(--line, #D9D4C8))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><path d="M112,84 L112,268"/>
+<path d="M112,268 L392,268"/>
+<path d="M112,140 L392,140" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M112,190 L392,190" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M112,240 L392,240" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M182,84 L182,268" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M252,84 L252,268" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M322,84 L322,268" stroke-dasharray="2 7" opacity=".55"/>
+<path d="M132,250 L184,242 L236,247 L288,238 L340,244 L372,237" stroke-dasharray="5 6"/></g><g class="gl" fill="none" stroke="var(--il-gold, var(--gold, #C9AB7C))" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(240,180) scale(1.28) translate(-240,-180)"><circle cx="380" cy="236" r="5"/></g></svg>

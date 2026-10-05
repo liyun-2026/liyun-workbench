@@ -13,3 +13,7 @@ test/.shots/
 
 # 五端配色方向预览（gen 出来的，本地看）
 test/preview_ports.html
+
+# 设计探索的位图与字体工作副本（35MB，不进仓库、不进 EdgeOne 部署；文字与矢量记录保留）
+docs/redesign-2026-10/**/*.png
+docs/redesign-2026-10/fonts/

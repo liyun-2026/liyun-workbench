@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true" focusable="false" class="il"><circle cx="60" cy="60" r="50" stroke="var(--il-line, var(--line, #D9D4C8))" stroke-width="6" fill="none"/>
+<circle cx="60" cy="60" r="50" stroke="var(--il-gold, var(--gold, #C9AB7C))" stroke-width="6" fill="none"
+        stroke-linecap="round" stroke-dasharray="169.6 314.2" transform="rotate(-90 60 60)"/>
+<text x="60" y="60" text-anchor="middle" font-size="27" fill="var(--il-text, var(--text, #1E1C18))"
+      font-family="-apple-system,'PingFang SC',system-ui,sans-serif">127</text>
+<text x="60" y="80" text-anchor="middle" font-size="11" fill="var(--il-muted, var(--text-dim, #8C857A))"
+      font-family="-apple-system,'PingFang SC',system-ui,sans-serif">天</text></svg>

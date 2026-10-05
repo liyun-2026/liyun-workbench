@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-mode="desk" data-dir="C">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>砺蕴教务系统 · 视觉方向 C「册页 · 编辑感」</title>
+<script>
+/* 第 0 帧就定色调，避免深色系统闪一下浅色 */
+try{document.documentElement.setAttribute('data-theme',
+  matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch(e){}
+</script>
+<style>
+@font-face{font-family:'LiYunXingShu';src:url(data:font/woff2;base64,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) format('woff2');font-display:block}
+:root{
+  --font-body:-apple-system,"PingFang SC",system-ui,sans-serif;
+  --font-display:"Songti SC","Source Han Serif SC","Source Han Serif","STSong",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --bg:#F1ECDE;
+  --card:#FFFFFF;
+  --text:#1A1A18;
+  --dim:#736D5A;
+  --line:#C8BEA4;
+  --accent:#1A1A18;
+  --accent-fg:#FFFFFF;
+  --brand:#A8873F;
+  --brand-strong:#A8873F;
+  --emphasis:#1B4B5A;
+  --emphasis-fg:#FFFFFF;
+  --ok:#2F7D5D;
+  --warn:#AA7A1E;
+  --danger:#B23A2E;
+  --focus:#1B4B5A;
+  --hover:color-mix(in srgb,var(--text) 6%,transparent);
+  --side-bg:#FFFFFF;
+  --r-sm:0px;--r-md:2px;--r-lg:0px;--r-pill:999px;--r-bar:999px;
+  --shadow-1:none;--shadow-2:0 20px 48px rgba(0,0,0,.18);
+  --fs-display:48px;--fs-h1:30px;--fs-h2:20px;--fs-body:16px;--fs-small:14px;--fs-caption:12px;
+  --fw-display:400;--fw-h1:400;--fw-h2:500;
+  --lh-body:1.75;--cap-ls:.1em;
+  --pad:clamp(20px,9cqi,64px);--pad-frame:clamp(20px,8cqi,64px);--block-sp:clamp(40px,10cqi,96px);
+  --dur-quick:200ms;--dur-base:320ms;--dur-slow:520ms;--dur-page:900ms;
+  --ease-quick:cubic-bezier(.25,.1,.25,1);--ease-base:cubic-bezier(.25,.1,.25,1);--ease-slow:cubic-bezier(.22,1,.36,1);--ease-page:cubic-bezier(.22,1,.36,1);
+  --doc-max:1200px;
+}
+[data-theme="dark"]{
+  --bg:#1A1815;
+  --card:#232019;
+  --text:#EDE7DA;
+  --dim:#9C927C;
+  --line:#3A352A;
+  --accent:#EDE7DA;
+  --accent-fg:#1A1815;
+  --brand:#C9AB7C;
+  --brand-strong:#C9AB7C;
+  --emphasis:#6E9AA8;
+  --emphasis-fg:#1A1815;
+  --ok:#5FA981;
+  --warn:#C79A3E;
+  --danger:#D06A5C;
+  --focus:#6E9AA8;
+  --hover:color-mix(in srgb,var(--text) 10%,transparent);
+  --side-bg:#232019;
+}
+
+/* ===== 重置 ===== */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;color-scheme:light}
+:root{color-scheme:light}
+[data-theme="dark"]{color-scheme:dark}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--font-body);font-size:var(--fs-body);line-height:var(--lh-body);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,p,ul,figure{margin:0}
+ul{padding:0;list-style:none}
+button{font-family:inherit;color:inherit}
+a{color:inherit}
+
+/* 数字：全局等宽，刷新 / 对齐不跳列（学 Geist / Tufte） */
+.num,.clock,.news-time,.ov-val,.hero-num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.ic{width:1.15em;height:1.15em;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;vertical-align:-.16em}
+
+/* 焦点环：GOV.UK 式高对比，键盘用户必须看得见 */
+:where(a,button,input,summary,[tabindex]):focus-visible{
+  outline:3px solid var(--focus);outline-offset:2px;border-radius:var(--r-sm);
+}
+
+/* ===== 页面外壳（说明带 / 控件 / 令牌条） ===== */
+.stage{max-width:var(--doc-max);margin:0 auto;padding:0 clamp(14px,3vw,20px) 56px}
+
+.doc{border-bottom:1px solid var(--line);padding:26px 0 20px;margin-bottom:20px}
+.doc-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.doc-badge{font-family:var(--mono);font-size:var(--fs-caption);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--emphasis);border:1px solid var(--line);
+  border-radius:var(--r-pill);padding:4px 11px}
+.doc-title{font-family:var(--font-display);font-size:clamp(24px,3.2cqi + 14px,34px);
+  font-weight:var(--fw-h1);letter-spacing:-.005em;line-height:1.15;text-wrap:balance}
+.doc-pos{margin-top:10px;font-size:var(--fs-body);color:var(--text);max-width:60ch;text-wrap:pretty}
+.doc-who{margin-top:6px;font-size:var(--fs-small);color:var(--dim);max-width:64ch;text-wrap:pretty}
+.doc-list{margin-top:14px;display:grid;gap:7px;max-width:78ch}
+.doc-list li{position:relative;padding-left:18px;font-size:var(--fs-small);color:var(--dim);text-wrap:pretty}
+.doc-list li::before{content:"";position:absolute;left:2px;top:.62em;width:6px;height:6px;
+  border-radius:2px;background:var(--brand)}
+.doc-note{margin-top:14px;font-size:var(--fs-caption);color:var(--dim);
+  border-left:2px solid var(--brand);padding:2px 0 2px 10px;text-wrap:pretty}
+
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.ctl{
+  border:1px solid var(--line);background:var(--card);color:var(--text);
+  font-size:var(--fs-small);padding:9px 15px;border-radius:var(--r-md);cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:border-color var(--dur-quick) var(--ease-quick),background-color var(--dur-quick) var(--ease-quick),color var(--dur-quick) var(--ease-quick);
+}
+.ctl[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.ctl:active{transform:scale(.98)}
+.bar .spacer{flex:1}
+.bar .bar-note{font-size:var(--fs-caption);color:var(--dim)}
+
+/* ===== 设备框 ===== */
+.device{margin:0 auto;width:100%;transition:width var(--dur-slow) var(--ease-slow)}
+.app{
+  container-type:inline-size;container-name:app;
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--r-lg);
+  overflow:hidden;display:flex;height:min(880px,90vh);box-shadow:var(--shadow-1);
+}
+[data-mode="phone"] .device{width:min(390px,100%);max-width:100%}
+[data-mode="phone"] .app{height:min(788px,86vh);border-radius:34px;border-color:var(--line)}
+[data-mode="phone"] .device.bare{width:100%}
+[data-mode="phone"] .device.bare .app{height:calc(100vh - 150px);min-height:600px;border-radius:var(--r-lg)}
+
+/* 侧栏（桌面） / 顶栏 + 标签栏（手机）—— 形态由 data-mode 决定 */
+.side{display:none;width:84px;flex:0 0 auto;background:var(--side-bg);
+  border-right:1px solid var(--line);flex-direction:column;
+  padding:16px 8px;gap:6px;overflow-y:auto;scrollbar-width:none}
+.side::-webkit-scrollbar{display:none}
+.brand{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0 12px;
+  border-bottom:1px solid var(--line);margin-bottom:6px}
+.brand-mark{font-size:24px;line-height:1;color:var(--text)}
+.brand-mark.shu{font-family:'LiYunXingShu','Kaiti SC',serif}
+.brand-sub{font-size:9px;letter-spacing:.16em;color:var(--dim);text-align:center}
+.greet{font-size:var(--fs-caption);color:var(--dim);text-align:center;line-height:1.4;padding:0 2px 8px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{
+  border:none;background:transparent;color:var(--dim);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:9px 2px;border-radius:var(--r-md);font-size:10.5px;line-height:1.2;
+  transition:background-color var(--dur-base) var(--ease-base),color var(--dur-base) var(--ease-base);
+}
+.nav button .ic{width:20px;height:20px}
+.nav button:hover{color:var(--text);background:var(--hover)}
+.nav button[aria-current="page"]{background:var(--accent);color:var(--accent-fg)}
+
+.col{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.topbar{display:none;align-items:center;gap:10px;flex:0 0 auto;
+  padding:12px 16px;border-bottom:1px solid var(--line);
+  background:var(--card);position:relative}
+.topbar .t-mark{font-size:19px;line-height:1}
+.topbar .t-mark.shu{font-family:'LiYunXingShu','Kaiti SC',serif}
+.topbar .t-name{flex:1;min-width:0;font-size:var(--fs-small);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .t-brandbar{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--brand);opacity:.5}
+.main{flex:1;min-width:0;overflow-y:auto;scrollbar-gutter:stable;
+  padding:var(--pad-frame);scroll-behavior:smooth}
+.tabbar{display:none;flex:0 0 auto;gap:4px;padding:8px;background:var(--card);
+  border-top:1px solid var(--line)}
+.tabbar button{border:none;background:transparent;cursor:pointer;color:var(--dim);
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:10.5px;line-height:1.2;padding:7px 2px;border-radius:var(--r-md);
+  transition:background-color var(--dur-base) var(--ease-base),color var(--dur-base) var(--ease-base)}
+.tabbar button .ic{width:22px;height:22px}
+.tabbar button[aria-current="page"]{background:var(--accent);color:var(--accent-fg)}
+
+[data-mode="desk"] .side{display:flex}
+[data-mode="phone"] .side{display:none}
+[data-mode="phone"] .topbar{display:flex}
+[data-mode="phone"] .tabbar{display:flex}
+[data-mode="phone"] .main{padding-bottom:28px}
+
+/* ===== 页面内容 ===== */
+.page-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--block-sp)}
+.page-head h1{font-family:var(--font-display);font-size:var(--fs-h1);font-weight:var(--fw-h1);
+  letter-spacing:-.01em;line-height:1.2;text-wrap:balance}
+.clock{font-family:var(--mono);font-size:var(--fs-small);font-weight:400;color:var(--emphasis)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:var(--pad);box-shadow:var(--shadow-1)}
+.card h2{font-size:var(--fs-h2);font-weight:var(--fw-h2);line-height:1.35;
+  display:flex;align-items:center;gap:8px;text-wrap:balance}
+.card h2 .ic{color:var(--brand-strong)}
+.card .meta{font-size:var(--fs-small);color:var(--dim);font-weight:400}
+
+/* hero：全页唯一的「一眼元素」 */
+.hero{display:grid;gap:var(--pad);align-items:center;
+  grid-template-columns:1fr auto}
+.hero-row{display:flex;align-items:flex-end;gap:10px;margin-top:6px}
+.hero-num{font-family:var(--font-display);font-size:var(--fs-display);font-weight:var(--fw-display);
+  line-height:1;letter-spacing:-.02em;color:var(--text)}
+.hero-unit{font-size:var(--fs-h2);color:var(--dim);font-weight:400;margin-bottom:.35em}
+.hero-hint{margin-top:12px;font-size:var(--fs-small);color:var(--dim)}
+.ring{width:min(140px,26cqi);aspect-ratio:1;display:block}
+.ring caption,.ring-label{font-size:var(--fs-caption);color:var(--dim);
+  letter-spacing:var(--cap-ls);text-transform:uppercase}
+.ring-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+
+.edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;
+  padding-top:16px;border-top:1px solid var(--line)}
+input[type="text"],input[type="date"],select{
+  font-family:inherit;font-size:var(--fs-body);color:var(--text);
+  background:transparent;border:1px solid var(--line);border-radius:var(--r-md);
+  padding:10px 12px;min-width:0;
+  transition:border-color var(--dur-quick) var(--ease-quick),background-color var(--dur-quick) var(--ease-quick)}
+input::placeholder{color:var(--dim)}
+.btn{border:1px solid transparent;border-radius:var(--r-md);cursor:pointer;white-space:nowrap;
+  font-size:var(--fs-small);font-weight:500;padding:10px 18px;
+  background:var(--accent);color:var(--accent-fg);
+  transition:background-color var(--dur-base) var(--ease-base),border-color var(--dur-base) var(--ease-base)}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--text)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn:active{transform:scale(.98)}
+
+/* 两栏：靠容器查询在中/宽档横过来（少一半全局断点） */
+.workgrid{display:grid;gap:var(--block-sp);grid-template-columns:1fr;margin-top:var(--block-sp)}
+@container app (min-width:1100px){
+  .workgrid{grid-template-columns:1.15fr .85fr;align-items:start}
+}
+
+/* 今日速览 */
+.ov-item{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 0;border-bottom:1px solid var(--line);content-visibility:auto;
+  contain-intrinsic-size:auto 48px}
+.ov-item:last-child{border-bottom:none}
+.ov-lab{font-size:var(--fs-small);color:var(--dim)}
+.ov-val{font-size:var(--fs-h2);font-weight:var(--fw-h2);color:var(--text)}
+
+/* 每日新闻 */
+.news-list{margin-top:6px;max-height:360px;overflow:auto;scrollbar-gutter:stable}
+.news-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);
+  content-visibility:auto;contain-intrinsic-size:auto 52px}
+.news-item:last-child{border-bottom:none}
+.news-time{font-family:var(--mono);font-size:var(--fs-small);color:var(--dim);flex:0 0 auto;padding-top:1px}
+.news-main{flex:1;min-width:0}
+.news-title{font-size:var(--fs-small);line-height:1.5;text-wrap:pretty}
+.news-brief{margin-top:4px;font-size:var(--fs-caption);color:var(--dim);line-height:1.55;text-wrap:pretty}
+.card-foot{margin-top:12px;font-size:var(--fs-caption);color:var(--dim)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.nowrap{white-space:nowrap}
+
+/* 入场：只动 transform / opacity，元素默认即终态（reduced-motion 天然兜底） */
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page > *{animation:rise var(--dur-slow) var(--ease-slow) both}
+.page > *:nth-child(2){animation-delay:calc(var(--dur-quick) * .25)}
+.page > *:nth-child(3){animation-delay:calc(var(--dur-quick) * .5)}
+
+/* ===== 令牌条 ===== */
+.tokens{margin-top:40px;padding-top:28px;border-top:1px solid var(--line)}
+.tokens > h2{font-family:var(--font-display);font-size:var(--fs-h2);font-weight:var(--fw-h2)}
+.tokens > p{margin-top:6px;font-size:var(--fs-small);color:var(--dim)}
+.tk-grid{display:grid;gap:28px;margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.tk-grid > *{min-width:0}
+.tk h3{font-size:var(--fs-caption);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  font-weight:500;margin-bottom:14px}
+.sw{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
+.sw figure{display:flex;flex-direction:column;gap:6px}
+.sw .chip{height:52px;border-radius:var(--r-sm);border:1px solid var(--line)}
+.sw figcaption{font-size:10.5px;color:var(--dim);line-height:1.4}
+.sw .chip-name{color:var(--text);font-weight:500}
+.sw code{font-family:var(--mono);font-size:10px;color:var(--dim);display:block;letter-spacing:-.02em}
+
+.ts{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.ts .row-d{display:flex;align-items:baseline;justify-content:space-between;gap:14px;min-width:0;
+  border-bottom:1px solid var(--line);padding-bottom:10px}
+.ts .row-d:last-child{border-bottom:none}
+.ts .samp{font-family:var(--font-display);color:var(--text);min-width:0;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.ts .spec{font-family:var(--mono);font-size:10.5px;color:var(--dim);flex:0 0 auto;text-align:right}
+
+.sp{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.sp .row-d{display:flex;align-items:center;gap:12px;min-width:0}
+.sp .b{height:14px;background:var(--brand);border-radius:2px;flex:0 0 auto}
+.sp .lb{font-family:var(--mono);font-size:11px;color:var(--dim);flex:0 0 auto;width:52px}
+
+.rd{display:flex;gap:14px;flex-wrap:wrap}
+.rd figure{display:flex;flex-direction:column;align-items:center;gap:7px}
+.rd .box{width:56px;height:56px;border:1px solid var(--line);background:var(--card)}
+.rd figcaption{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+
+.mo{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.mo .row-d{display:flex;align-items:baseline;gap:12px;justify-content:space-between;min-width:0;
+  border-bottom:1px solid var(--line);padding-bottom:9px;font-size:var(--fs-small)}
+.mo .row-d:last-child{border-bottom:none}
+.mo .mo-k{font-weight:500}
+.mo .mo-v{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.mo .mo-s{font-size:var(--fs-caption);color:var(--dim);flex:1;text-align:right}
+
+/* reduced-motion 兜底：动效一律关（不是可选项） */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-delay:0s !important;
+    transition-duration:.01ms !important;scroll-behavior:auto !important}
+}
+
+
+.page-head h1,.hero-num,.doc-title,.tokens > h2,.card h2{letter-spacing:0}
+.page-head h1,.hero-num{font-family:var(--font-display);font-weight:400}
+.card{box-shadow:none}
+.card h2 .ic{color:var(--brand)}
+.card-head .btn.ghost{border-radius:0}
+.ov-item,.news-item{border-bottom-style:solid}
+.hero-hint,.news-brief{font-variant-numeric:tabular-nums}
+.doc-badge{background:transparent;border-color:var(--line);color:var(--brand-strong);border-radius:0;letter-spacing:.16em}
+.rd .box{border-radius:0}
+
+</style>
+</head>
+<body>
+<svg id="ic-sprite" xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+<symbol id="ic-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></symbol>
+<symbol id="ic-book" viewBox="0 0 24 24"><path d="M5 5h7v14H5zM12 5h7v14h-7z"/><path d="M5 5a2 2 0 0 0-2 2v10a2 2 0 0 1 2-2M19 5a2 2 0 0 1 2 2v10a2 2 0 0 0-2-2"/></symbol>
+<symbol id="ic-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M8 3v4M16 3v4"/></symbol>
+<symbol id="ic-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M5 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5"/><path d="M14 9h5M14 13h5"/></symbol>
+<symbol id="ic-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-9"/></symbol>
+<symbol id="ic-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+<symbol id="ic-clipboard" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 11h6M9 15h6M9 19h4"/></symbol>
+<symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="ic-desktop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+<symbol id="ic-export" viewBox="0 0 24 24"><path d="M12 3v9m0 0l-4-4m4 4l4-4"/><path d="M4 14h16v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="ic-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></symbol>
+<symbol id="ic-grad" viewBox="0 0 24 24"><path d="M12 4l9 4-9 4-9-4z"/><path d="M7 9v5c0 1.7 2.2 3 5 3s5-1.3 5-3V9"/><path d="M21 8v4"/></symbol>
+<symbol id="ic-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v6H3z"/><path d="M3 13h5l1 3h6l1-3h5"/></symbol>
+<symbol id="ic-megaphone" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2l8 4V5L7 9H5a1 1 0 0 0-1 1Z"/><path d="M20 9a4 4 0 0 1 0 6"/></symbol>
+<symbol id="ic-memo" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol>
+<symbol id="ic-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3M9 21h6"/></symbol>
+<symbol id="ic-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5Z"/></symbol>
+<symbol id="ic-news" viewBox="0 0 24 24"><path d="M4 5h13v14H4z"/><path d="M17 9h3v10h-3z"/><path d="M7 8h7M7 11h7M7 14h4"/></symbol>
+<symbol id="ic-pin" viewBox="0 0 24 24"><path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+<symbol id="ic-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="ic-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></symbol>
+<symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.6"/><path d="M20 5v6h-6"/></symbol>
+<symbol id="ic-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+<symbol id="ic-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 6.4a3 3 0 0 1 0 5.8"/><path d="M21 20c0-2.4-1.2-4-3-4.8"/></symbol>
+<symbol id="ic-warn" viewBox="0 0 24 24"><path d="M12 3.5l8.5 15H3.5z"/><path d="M12 10v4M12 17h.01"/></symbol>
+</svg>
+
+<div class="stage">
+
+  <header class="doc">
+    <div class="doc-top">
+      <span class="doc-badge">方向 C</span>
+      <p class="doc-title">册页 · 编辑感</p>
+    </div>
+    <p class="doc-pos">把系统做成一本「册页」—— 暖骨白纸底、衬线标题、细分隔线、大留白、慢动效。</p>
+    <p class="doc-who">这版适合谁：权威、有文化厚度 —— 契合「播音主持 / 艺德卓绝」的机构叙事，但数据页需单独收紧一档。</p>
+    <ul class="doc-list">
+      <li>背景 #F1ECDE 暖骨白（Stripe Press 的 ground），绝不用正白；分割线唯一装饰 #C8BEA4。</li>
+      <li>display 48 / h1 30 改用衬线（Songti SC / 思源宋体 / STSong），正文仍走系统无衬线。</li>
+      <li>间距基准改 8px、7 档大留白（8/16/24/40/64/96/144）；卡片内边距 clamp(20→64)。</li>
+      <li>圆角 sm0 / md2 / lg0 ——「册页不能有圆角」；投影全删，抽屉浮层才给极重阴影。</li>
+      <li>动效放慢：quick 200 / base 320 / reveal 520 / page 900ms，只做交叉淡入，不做位移炫技。</li>
+    </ul>
+    <p class="doc-note">⚠️ 风险如实标注：衬线标题依赖系统宋体栈（Songti SC / Source Han Serif / STSong）；若不能引入思源宋体，Windows 上观感不稳，且随机器字形差异较大。</p>
+  </header>
+
+  <div class="bar">
+    <button class="ctl" id="phoneBtn" type="button" aria-pressed="false">手机预览</button>
+    <button class="ctl" id="themeBtn" type="button" aria-pressed="false">深色模式</button>
+    <span class="spacer"></span>
+    <span class="bar-note">内容结构取自生产系统「今日」页；课 / 事项 / 新闻为演示数据，三版完全一致。</span>
+  </div>
+
+  <div class="device" id="device">
+<div class="app">
+
+  <aside class="side" aria-label="主导航">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">砺蕴</span>
+      <span class="brand-sub">博学宏才 · 艺德卓绝</span>
+      
+    </div>
+    <div class="greet">李蕴老师，下午好</div>
+    <nav class="nav">
+<button type="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-target"></use></svg><span>今日</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg><span>考勤</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg><span>打卡管理</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg><span>作业</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg><span>名册</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg><span>学生账号</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-card"></use></svg><span>学员档案</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calendar"></use></svg><span>课表</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-moon"></use></svg><span>晚自习</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-chart"></use></svg><span>量化</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-mic"></use></svg><span>模考</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-inbox"></use></svg><span>协作</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg><span>限时征集</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pulse"></use></svg><span>巡检</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-gear"></use></svg><span>设置</span></button>
+    </nav>
+  </aside>
+
+  <div class="col">
+
+    <header class="topbar">
+      <span class="t-mark" aria-hidden="true">砺蕴</span>
+      <span class="t-name">李蕴老师，下午好</span>
+      <span class="t-brandbar" aria-hidden="true"></span>
+    </header>
+
+    <main class="main">
+      <section class="page" aria-labelledby="pgTitle">
+
+        <div class="page-head">
+          <h1 id="pgTitle">今日 <span class="clock" data-clock>--:--:--</span></h1>
+        </div>
+
+        <section class="card" aria-labelledby="cdTitle">
+          <h2 id="cdTitle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-target"></use></svg> 统考倒计时</h2>
+          <div class="hero">
+            <div>
+              <div class="hero-row">
+                <span class="hero-num">127</span>
+                <span class="hero-unit">天</span>
+              </div>
+              <p class="hero-hint">统考：2027-02-08</p>
+            </div>
+            <div class="ring-wrap">
+              <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="备考进度 54%">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="8"/>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--emphasis)" stroke-width="8"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"
+                  stroke-dasharray="326.7" stroke-dashoffset="150.3"/>
+                <text x="60" y="58" text-anchor="middle" font-size="24" font-weight="500"
+                  fill="var(--text)" style="font-family:var(--font-display)">54%</text>
+                <text x="60" y="76" text-anchor="middle" font-size="10"
+                  fill="var(--dim)">备考进度</text>
+              </svg>
+            </div>
+          </div>
+          <div class="edit-row">
+            <input type="text" value="统考" aria-label="倒计时名目" style="max-width:150px">
+            <input type="date" value="2027-02-08" aria-label="目标日期" style="max-width:170px">
+            <button class="btn" type="button">保存</button>
+          </div>
+        </section>
+
+        <div class="workgrid">
+
+          <section class="card" aria-labelledby="ovTitle">
+            <h2 id="ovTitle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 今日速览</h2>
+            <ul>
+<li class="ov-item"><span class="ov-lab">考勤已登记</span><span class="ov-val">42</span></li>
+<li class="ov-item"><span class="ov-lab">考勤异常（迟到/请假）</span><span class="ov-val">3</span></li>
+<li class="ov-item"><span class="ov-lab">晚自习过关</span><span class="ov-val">38 / 42</span></li>
+<li class="ov-item"><span class="ov-lab">今晚作业</span><span class="ov-val">3</span></li>
+            </ul>
+          </section>
+
+          <section class="card" aria-labelledby="newsTitle">
+            <div class="card-head">
+              <h2 id="newsTitle"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-news"></use></svg> <span class="nowrap">每日新闻</span> <span class="meta">2026-10-04 · 6 条</span></h2>
+              <button class="btn ghost" type="button">刷新</button>
+            </div>
+            <ul class="news-list">
+<li class="news-item"><span class="news-time">07:12</span><span class="news-main"><span class="news-title">国内多家博物馆推出夜间开放，暑期客流同比增长</span><span class="news-brief">多家一级博物馆延长闭馆时间，夜场预约量较去年同期明显上升。</span></span></li>
+<li class="news-item"><span class="news-time">08:30</span><span class="news-main"><span class="news-title">教育部发布新学年校园安全提示</span><span class="news-brief">提示围绕消防、食品与心理健康三方面提出具体要求。</span></span></li>
+<li class="news-item"><span class="news-time">10:05</span><span class="news-main"><span class="news-title">我国科研团队在语音合成领域取得新进展</span><span class="news-brief">相关成果可让合成语音更贴近自然语调，已进入开源测试阶段。</span></span></li>
+<li class="news-item"><span class="news-time">12:40</span><span class="news-main"><span class="news-title">多地进入汛期，水利部门启动应急响应</span><span class="news-brief">重点流域加强巡查值守，确保主要堤段安全。</span></span></li>
+<li class="news-item"><span class="news-time">15:20</span><span class="news-main"><span class="news-title">新一轮消费补贴政策落地，覆盖家电与汽车</span><span class="news-brief">补贴将以线上申领、线下核销的方式同步开展。</span></span></li>
+<li class="news-item"><span class="news-time">18:45</span><span class="news-main"><span class="news-title">全国大学生艺术展演落幕，多所院校获奖</span><span class="news-brief">展演历时一周，涉及声乐、舞蹈、戏剧等门类。</span></span></li>
+            </ul>
+            <p class="card-foot">来源：央视新闻 · 出话题评述先看这里</p>
+          </section>
+
+        </div>
+
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="底部标签栏">
+<button type="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-target"></use></svg><span>今日</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg><span>考勤</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg><span>作业</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg><span>名册</span></button>
+<button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-gear"></use></svg><span>设置</span></button>
+    </nav>
+
+  </div>
+</div>
+
+  </div>
+
+<section class="tokens" aria-label="本方向设计令牌">
+  <h2>令牌条 · Token Strip</h2>
+  <p>下面所有色块 / 字号 / 间距 / 圆角都直接读自本方向的 CSS 变量 —— 切换上方「浅色 / 深色」时它们会一起变，用来核对深浅两套 hex 是否都立得住。</p>
+  <div class="tk-grid">
+
+    <div class="tk">
+      <h3>色板 Palette（浅 / 深）</h3>
+      <div class="sw">
+<figure><span class="chip" style="background:var(--bg)"></span><figcaption><span class="chip-name">背景 bg</span><code>#F1ECDE</code><code>#1A1815</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--card)"></span><figcaption><span class="chip-name">卡片 card</span><code>#FFFFFF</code><code>#232019</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--text)"></span><figcaption><span class="chip-name">正文 text</span><code>#1A1A18</code><code>#EDE7DA</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--dim)"></span><figcaption><span class="chip-name">次要 dim</span><code>#736D5A</code><code>#9C927C</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--accent)"></span><figcaption><span class="chip-name">主色 accent</span><code>#1A1A18</code><code>#EDE7DA</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--brand)"></span><figcaption><span class="chip-name">品牌金 brand</span><code>#A8873F</code><code>#C9AB7C</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--emphasis)"></span><figcaption><span class="chip-name">强调 emphasis</span><code>#1B4B5A</code><code>#6E9AA8</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--line)"></span><figcaption><span class="chip-name">分割线 line</span><code>#C8BEA4</code><code>#3A352A</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--ok)"></span><figcaption><span class="chip-name">成功 ok</span><code>#2F7D5D</code><code>#5FA981</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--warn)"></span><figcaption><span class="chip-name">警示 warn</span><code>#AA7A1E</code><code>#C79A3E</code></figcaption></figure>
+<figure><span class="chip" style="background:var(--danger)"></span><figcaption><span class="chip-name">危险 danger</span><code>#B23A2E</code><code>#D06A5C</code></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="tk">
+      <h3>字号阶梯 Type Scale</h3>
+      <div class="ts">
+<div class="row-d"><span class="samp" style="font-size:48px;font-weight:400">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">display / 48px / 400</span></div>
+<div class="row-d"><span class="samp" style="font-size:30px;font-weight:400">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">h1 / 30px / 400</span></div>
+<div class="row-d"><span class="samp" style="font-size:20px;font-weight:500">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">h2 / 20px / 500</span></div>
+<div class="row-d"><span class="samp" style="font-size:16px;font-weight:400">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">body / 16px / 400</span></div>
+<div class="row-d"><span class="samp" style="font-size:14px;font-weight:400">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">small / 14px / 400</span></div>
+<div class="row-d"><span class="samp" style="font-size:12px;font-weight:500">砺蕴教务 · 今日速览 Aa 123</span><span class="spec">caption / 12px / 500</span></div>
+      </div>
+    </div>
+
+    <div class="tk">
+      <h3>间距刻度 Spacing（基准 8px）</h3>
+      <div class="sp">
+<div class="row-d"><span class="lb">8px</span><span class="b" style="width:8px"></span></div>
+<div class="row-d"><span class="lb">16px</span><span class="b" style="width:16px"></span></div>
+<div class="row-d"><span class="lb">24px</span><span class="b" style="width:24px"></span></div>
+<div class="row-d"><span class="lb">40px</span><span class="b" style="width:40px"></span></div>
+<div class="row-d"><span class="lb">64px</span><span class="b" style="width:64px"></span></div>
+<div class="row-d"><span class="lb">96px</span><span class="b" style="width:96px"></span></div>
+<div class="row-d"><span class="lb">144px</span><span class="b" style="width:144px"></span></div>
+      </div>
+    </div>
+
+    <div class="tk">
+      <h3>圆角半径 Radius</h3>
+      <div class="rd">
+<figure><span class="box" style="border-radius:0px;background:var(--card)"></span><figcaption>sm · 0px</figcaption></figure>
+<figure><span class="box" style="border-radius:2px;background:var(--card)"></span><figcaption>md · 2px</figcaption></figure>
+<figure><span class="box" style="border-radius:0px;background:var(--card)"></span><figcaption>lg · 0px</figcaption></figure>
+<figure><span class="box" style="border-radius:999px;background:var(--card)"></span><figcaption>pill · 999px</figcaption></figure>
+      </div>
+    </div>
+
+    <div class="tk">
+      <h3>动效令牌 Motion</h3>
+      <div class="mo">
+<div class="row-d"><span class="mo-k">quick</span><span class="mo-v">200ms · cubic-bezier(.25,.1,.25,1)</span><span class="mo-s">悬停</span></div>
+<div class="row-d"><span class="mo-k">base</span><span class="mo-v">320ms · cubic-bezier(.25,.1,.25,1)</span><span class="mo-s">状态切换</span></div>
+<div class="row-d"><span class="mo-k">reveal</span><span class="mo-v">520ms · cubic-bezier(.22,1,.36,1)</span><span class="mo-s">内容出现</span></div>
+<div class="row-d"><span class="mo-k">page</span><span class="mo-v">900ms · cubic-bezier(.22,1,.36,1)</span><span class="mo-s">切页 / 交叉淡入（慢）</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+</div>
+
+<script>
+(function(){
+  var BP = 680;                 /* 本方向「手机 ⇄ 桌面」断点 */
+  var root = document.documentElement;
+  var mq = window.matchMedia('(max-width:' + (BP - 1) + 'px)');
+  var forcePhone = false;
+
+  function sync(){
+    var phone = forcePhone || mq.matches;
+    root.setAttribute('data-mode', phone ? 'phone' : 'desk');
+    /* 真·窄屏（非手动「手机预览」）时不再套手机壳，让它铺满 */
+    var dev = document.getElementById('device');
+    if (dev) dev.classList.toggle('bare', phone && !forcePhone);
+  }
+  if (mq.addEventListener) mq.addEventListener('change', sync); else mq.addListener(sync);
+
+  var pb = document.getElementById('phoneBtn');
+  if (pb) pb.addEventListener('click', function(){
+    forcePhone = !forcePhone;
+    pb.setAttribute('aria-pressed', String(forcePhone));
+    sync();
+  });
+
+  /* 便于自查 / 分享：地址后加 #phone 直接进手机预览，#dark 直接进深色 */
+  var hash = (location.hash || '').replace('#', '').split(',');
+  if (hash.indexOf('phone') >= 0) { forcePhone = true; if (pb) pb.setAttribute('aria-pressed', 'true'); }
+
+  var tb = document.getElementById('themeBtn');
+  var dark = root.getAttribute('data-theme') === 'dark';
+  if (hash.indexOf('dark') >= 0) dark = true;
+  function applyTheme(){
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    if (tb) tb.setAttribute('aria-pressed', String(dark));
+  }
+  if (tb) tb.addEventListener('click', function(){ dark = !dark; applyTheme(); });
+  applyTheme();
+
+  sync();
+
+  /* 实时时钟：与生产系统一致（24 时制，逐秒） */
+  function p(n){ return String(n).padStart(2, '0'); }
+  function tick(){
+    var t = new Date();
+    var s = p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds());
+    var els = document.querySelectorAll('[data-clock]');
+    for (var i = 0; i < els.length; i++) if (els[i].textContent !== s) els[i].textContent = s;
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
