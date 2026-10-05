@@ -1831,6 +1831,48 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
      所以深色单独把字色换成页底色（实测四套端口皮 6.06–6.84:1，全部过 4.5）。 */
   .tl-now-t{color:var(--bg)}
 }
+
+/* ── ⑰ 全站手机端 · 排版收一档 + 两处版面修正 ──────────────────────────────
+   背景：桌面那套字号阶梯（--fs-title 22 / --fs-h2 18 / --fs-small 14）是给 ≥1100px
+   的宽屏定的，原样落到 390px 手机上整体大一号。⑦b 已经给考勤页单独收过档，这里按
+   同一套做法推广到全站：文字类元素降一档，数据大字与表单控件一律不动。
+
+   ⚠️ 三条硬规矩（与 ⑦b 一致）：
+     1) input / select / textarea 不碰 —— 必须 ≥16px，小于 16px 时 iOS 聚焦会放大整页；
+     2) .hero / .num / .sumrow b 这类「数字主角」不碰 —— 降了页面就没有视觉层级；
+     3) 看板端（.bd-*）不碰 —— 那是挂在办公室墙上的大屏，按 vw 缩放，不归手机管。
+   只加不改：本块不重定义任何 --* 变量、不新增断点，断点只用既有的 699px。 */
+@media (max-width:699px){
+  /* 页面主标题 22 → 20（与 ⑦b 的 .chead h2 同值） */
+  .page-title, .chead h2{font-size:20px}
+  /* 章节 / 卡片标题 18（.card h2 为 17）→ 16 */
+  .sec-h, .seg-h, .chapter h2, .sumbox h3, .card h2,
+  .attgrid .empty h3, .roster-grid .empty h3{font-size:16px}
+  /* 次级说明 14 → 13；提示与图例 13 → 12.5（同 ⑦b） */
+  .sec-meta, .chapter .cmeta, .chead h2 small, .sumrow{font-size:13px}
+  .hint, .legend{font-size:12.5px}
+
+  /* ── 版面修正 1：今日页轴首（.tl-head）──────────────────────────────
+     桌面是三块横排（大数字 · 目标日 · 下一节），靠 flex-wrap + margin-left:auto
+     把「下一节」顶到右端。手机上三段被挤成上下错位、读不出主次，这里竖排 + 左对齐。 */
+  .tl-head{flex-direction:column;align-items:flex-start;gap:var(--sp-3)}
+  .tl-head .tl-meta{flex:0 0 auto;width:100%;min-width:0}
+  .tl-head .tl-next{margin-left:0;text-align:left;width:100%}
+  .tl-head .tl-next .num{font-size:18px}
+}
+
+/* ── ⑰b 考勤页吸顶图例：只有窄机才需要收（**故意不跟 ⑰ 挂同一个断点**）────────
+   ≤1099 时 .legend 是横向 flex 项、flex:0 0 auto，按 max-content 撑到 337.4px
+   （5 个色块 + 文字），而 320px 上内容区只有 296px —— 实测 横向超出 29px。
+   ⚠️ 门槛不能挂在 699：内容区宽 = 视口 − 24，要一行放下 337.4 需要视口 ≥ 361.4，
+      所以 **360px 上它也已经放不下了**（先前注释写「360 下不会触发」，实测会，
+      360 上会从一行变两行）。收在 374px，覆盖 320 / 360 这类窄机；
+      375px 及以上（常见 iPhone 宽度）维持一行不变。
+   flex-shrink + min-width:0 配合父级既有的 flex-wrap:wrap 走的是**换行、不是裁切** ——
+   320px 实测 5 个图例项全部完整可见、无截断，图例占两行。 */
+@media (max-width:374px){
+  #page-att .sumbox:first-child .legend{flex-shrink:1;min-width:0}
+}
 </style>
 </head>
 <body>

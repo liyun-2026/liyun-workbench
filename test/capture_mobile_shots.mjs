@@ -27,6 +27,19 @@ const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const OUT = path.join(dir, 'test', '.shots', 'mobile');
 const SUPER = { user: '李老师', pass: 'liyun2026' };
 
+/* 可选开关（向后兼容，不传就是原行为）：
+   --role=super|teacher|student  --pages=a,b,c  --devices=390,360  --schemes=light,dark  --tag=自定义前缀 */
+const FLAGS = process.argv.slice(2).filter(a => a.startsWith('--'));
+const flag = (name, def) => { const hit = FLAGS.find(a => a.startsWith(`--${name}=`)); return hit ? hit.slice(name.length + 3) : def; };
+const ROLE = String(flag('role', 'super'));
+const TAG_OVERRIDE = flag('tag', '');
+const PAGES_FLAG = String(flag('pages', '')).split(',').filter(Boolean);
+const DEV_FLAG = String(flag('devices', '')).split(',').filter(Boolean);
+const SCHEMES = String(flag('schemes', 'light,dark')).split(',').filter(Boolean);
+/* --mobile=0 用来做「桌面回归」：关掉移动仿真，按真正的桌面视口截图 */
+const MOBILE = String(flag('mobile', '1')) !== '0';
+const ROLE_CRED = { teacher: { user: '张伟', pass: 'liyun2026' }, student: { user: '王梓涵', pass: 'liyun2026' } };
+
 /** 要看哪几页。前 5 个是这次搬到线上的页，后面几个是顺带体检的常用页。 */
 const PAGES = [
   ['home',     '今日'],
@@ -44,6 +57,16 @@ const DEVICES = [
   ['390', 390, 844],
   ['360', 360, 800],
 ];
+
+/* 生效的页 / 机型 / 配色 + 目录前缀（非 super 角色加角色前缀，免得覆盖超级教务那套切片） */
+const PAGES_USE = PAGES_FLAG.length
+  ? PAGES_FLAG.map(id => { const hit = PAGES.find(p => p[0] === id); return [id, hit ? hit[1] : id]; })
+  : PAGES;
+const DEVICES_USE = DEV_FLAG.length
+  ? DEV_FLAG.map(d => DEVICES.find(x => x[0] === d) || [d, Number(d), Number(d) >= 1100 ? 900 : 800])
+  : DEVICES;
+const DIR_PREFIX = TAG_OVERRIDE || (ROLE === 'super' ? '' : ROLE);
+const dtagOf = tag => DIR_PREFIX + tag;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
@@ -84,7 +107,7 @@ const view = (cdp, o) => cdp.send('Emulation.setDeviceMetricsOverride',
 const MAX_TILES = 20;      // 今日页有 79 条新闻、能滚 16 屏，看前 20 屏足够了
 async function shotScroller(cdp, dir, name){
   await cdp.send('Emulation.setDeviceMetricsOverride',
-    { width: cdp._w, height: cdp._h, deviceScaleFactor: 2, mobile: true });
+    { width: cdp._w, height: cdp._h, deviceScaleFactor: cdp._mobile ? 2 : 1, mobile: cdp._mobile });
   await cdp.eval(`(() => {
     const m = document.getElementById('main');
     if (m) m.scrollTop = 0;
@@ -142,8 +165,8 @@ try {
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
   await cdp.send('Runtime.enable'); await cdp.send('Page.enable');
 
-  cdp._w = 390; cdp._h = 844;
-  await view(cdp, { width: 390, height: 844, dsf: 2, mobile: true });
+  cdp._w = 390; cdp._h = 844; cdp._mobile = MOBILE;
+  await view(cdp, { width: 390, height: 844, dsf: MOBILE ? 2 : 1, mobile: MOBILE });
   let loaded = cdp.once('Page.loadEventFired');
   await cdp.send('Page.navigate', { url: `${BASE}/` }); await loaded;
   await sleep(2600);
@@ -221,36 +244,53 @@ try {
   })()`);
   console.log(`  砺蕴一班 ${seed.n1} 人 / 集训班 ${seed.n2} 人\n`);
 
-  await cdp.eval(`(async () => { App.go('settings'); await new Promise(r => setTimeout(r, 500)); Quant.syncAllAtt && Quant.syncAllAtt(); return 1; })()`);
+  await cdp.eval(`(async () => { App.go('settings'); await new Promise(r => setTimeout(r, 500)); if (Auth.isStaff() && Quant.syncAllAtt) Quant.syncAllAtt(); return 1; })()`);
+
+  // ── 非 super 角色：换账号登进去（不走 Auth.logout，它带 confirm 会卡住 headless） ──
+  if (ROLE !== 'super') {
+    const cred = ROLE_CRED[ROLE];
+    if (!cred) throw new Error('未知角色：' + ROLE);
+    const sw = await cdp.eval(`(async () => {
+      Store.setSecret('token',''); Auth._me = null; Auth.show();
+      document.getElementById('gUser').value = ${JSON.stringify(cred.user)};
+      document.getElementById('gPass').value = ${JSON.stringify(cred.pass)};
+      await Auth.submit();
+      await new Promise(r => setTimeout(r, 2200));
+      return { role: Auth.role(), name: Auth.name() };
+    })()`);
+    console.log(`已切换账号 → ${sw.name}（role=${sw.role}）\n`);
+    await sleep(1200);
+  }
 
   // ── 逐机型 × 逐页 × 浅深 ────────────────────────────
-  for (const [tag, w, h] of DEVICES) {
-    cdp._w = w; cdp._h = h;
-    await view(cdp, { width: w, height: h, dsf: 2, mobile: true });
+  for (const [tag, w, h] of DEVICES_USE) {
+    const dtag = dtagOf(tag);
+    cdp._w = w; cdp._h = h; cdp._mobile = MOBILE;
+    await view(cdp, { width: w, height: h, dsf: MOBILE ? 2 : 1, mobile: MOBILE });
     await sleep(400);
-    console.log(`── 机型 ${tag}（${w}×${h}） ──`);
-    for (const scheme of ['light', 'dark']) {
+    console.log(`── 机型 ${dtag}（${w}×${h}） ──`);
+    for (const scheme of SCHEMES) {
       await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
       await sleep(260);
-      for (const [id, label] of PAGES) {
+      for (const [id, label] of PAGES_USE) {
         await cdp.eval(`(async () => { App.go(${JSON.stringify(id)}); await new Promise(r => setTimeout(r, 260)); return 1; })()`);
         await sleep(560);
-        const tdir = path.join(OUT, '_tiles', `${tag}_${id}_${scheme}`);
+        const tdir = path.join(OUT, '_tiles', `${dtag}_${id}_${scheme}`);
         await mkdir(tdir, { recursive: true });
-        await shotScroller(cdp, tdir, `${tag}_${id}_${scheme}`);
+        await shotScroller(cdp, tdir, `${dtag}_${id}_${scheme}`);
       }
     }
     // 整壳图（顶栏 + 底部标签栏）—— 亮色一张、深色一张
-    for (const scheme of ['light', 'dark']) {
+    for (const scheme of SCHEMES) {
       await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
-      await cdp.eval(`(async () => { App.go('home'); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
+      await cdp.eval(`(async () => { App.go(Auth.isStudent() ? 'stuHome' : 'home'); await new Promise(r=>setTimeout(r,400)); return 1; })()`);
       await sleep(500);
-      await shotShell(cdp, OUT, `${tag}_shell_${scheme}`);
+      await shotShell(cdp, OUT, `${dtag}_shell_${scheme}`);
     }
     // 抽屉（手机端导航）
     await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
-    await cdp.eval(`(async () => { App.go('home'); await new Promise(r=>setTimeout(r,300)); App.drawer(true); await new Promise(r=>setTimeout(r,560)); return 1; })()`);
-    await shotShell(cdp, OUT, `${tag}_drawer_light`);
+    await cdp.eval(`(async () => { App.go(Auth.isStudent() ? 'stuHome' : 'home'); await new Promise(r=>setTimeout(r,300)); App.drawer(true); await new Promise(r=>setTimeout(r,560)); return 1; })()`);
+    await shotShell(cdp, OUT, `${dtag}_drawer_light`);
     await cdp.eval(`(() => { App.drawer(false); return 1; })()`);
   }
   console.log('\n✅ 完成 → test/.shots/mobile/');
