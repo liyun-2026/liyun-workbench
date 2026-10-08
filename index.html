@@ -1884,6 +1884,41 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 @media (max-width:699px){
   #page-settings .anchor-nav{display:none}
 }
+
+/* ── 课时统计（阶段一：识别 + 人工确认预览）──────────────────────────────
+   新增的只是一页，样式全部**新起类名 / 局部变量**，不碰任何既有令牌名：
+     · 表头沿用系统里导入表的老做法（--gold 底 + 深字），与 .imptbl / .sgrid 同款；
+     · 低置信度底色用新变量 --hrs-low（只在本页作用域内定义，深浅两套各给一次），
+       不与任何既有 --* 冲突；
+     · 必须看清的正文一律用 --text（super 端口的 --text-dim 白底只有 2.81:1，
+       本页不让它承载要紧文字）；
+     · 窄屏把宽表放进 .hrs-wrap（overflow-x:auto）+ 复用 .grid-hint 那行提示，
+       免得在 390/360 上撑破 .main。
+   ⚠️ 表内 input 固定 16px（iOS 聚焦不放大整页），小于 16px 会被 probe_mobile_layout 当场点名。 */
+#page-hours{ --hrs-low:#FBF1C6; }
+@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; } }
+#page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
+#page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
+#page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
+#page-hours .hrstbl th,#page-hours .hrstbl td{border:1px solid var(--line);padding:3px 4px}
+#page-hours .hrstbl th{background:var(--gold);color:#222;font-weight:500;padding:6px 4px;white-space:nowrap}
+#page-hours .hrstbl td input{padding:5px 6px;font-size:16px;border-radius:5px}
+#page-hours .hrstbl td:nth-child(1){width:82px}
+#page-hours .hrstbl td:nth-child(2){width:148px}
+#page-hours .hrstbl td:nth-child(3){width:120px}
+#page-hours .hrstbl td:nth-child(4){width:100px}
+#page-hours .hrstbl td:nth-child(5){min-width:170px}
+#page-hours .hrstbl td:nth-child(6){width:110px}
+#page-hours .hrstbl td:nth-child(7){width:70px;text-align:center}
+#page-hours .hrstbl td:nth-child(8){width:40px;text-align:center}
+#page-hours tr.hrs-low td{background:var(--hrs-low)}
+#page-hours .hrs-conf{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text)}
+#page-hours .hrs-need{display:inline-block;margin-top:1px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text)}
+#page-hours .hrs-fold{margin-top:10px;font-size:13px;color:var(--text)}
+#page-hours .hrs-fold summary{cursor:pointer}
+#page-hours .hrs-fold ul{margin:6px 0 0;padding-left:18px}
+#page-hours .hrs-fold li{margin:2px 0;line-height:1.6}
 </style>
 </head>
 <body>
@@ -2374,6 +2409,27 @@ try {
       </div>
     </section>
     <!-- ==== 功能：课表 END ==== -->
+
+    <!-- ==== 功能：课时统计 START ==== -->
+    <section class="page" id="page-hours">
+      <div class="page-title">课时统计</div>
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 上传课表</h2>
+        <p class="hint" style="margin-top:0">传课表<b>图片</b>，或 Word（.docx）/ Excel（.xlsx）/ CSV 原件。系统会把课表还原成「周几 × 节次」的结构，在这里给你核对、修改。</p>
+        <p class="hint" style="margin-top:4px">🔴 <b>确认之前不会动系统课表</b> —— 本页只负责「认出来 + 让人核对」，写进课表是下一阶段的事。</p>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
+          <button class="btn" onclick="document.getElementById('hrsFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
+          <button class="btn ghost" onclick="Hours.clear()">清空</button>
+        </div>
+        <input type="file" id="hrsFile" accept="image/*,.txt,.csv,.docx,.xlsx" style="display:none" onchange="Hours.onFile(this)">
+        <p class="hint" id="hrsStat" style="margin:8px 0 0"></p>
+      </div>
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-search"></use></svg> 识别结果（可改）</h2>
+        <div id="hrsBody"></div>
+      </div>
+    </section>
+    <!-- ==== 功能：课时统计 END ==== -->
 
     <!-- ==== 功能：作业 START ==== -->
     <section class="page" id="page-homework">
@@ -4549,6 +4605,9 @@ const App = {
     { id:'roster',    icon:'users', name:'名册',     roles:['super','office','admin','both'], tab:4, onShow: () => Roster.render() },
     { id:'profile',   icon:'card', name:'学员档案', roles:['super','office','admin','teacher','both'], onShow: () => Student.render() },
     { id:'timetable', icon:'calendar', name:'课表',     roles:['super','office','admin','both'], onShow: () => Schedule.render() },
+    /* 课时统计：独立页，四种教务都能用（用户 2026-10-08 定）。阶段一只做「识别 + 人工确认」，
+       不写课表 —— 落库是阶段二。桌面在侧栏「课表」下面，手机上不进底栏（TAB_ORDER 不动）。 */
+    { id:'hours',     icon:'clock',    name:'课时统计', roles:['super','office','admin','both'], onShow: () => Hours.render() },
     { id:'night',     icon:'moon', name:'晚自习',   roles:['super','office','admin','both'], onShow: () => Night.render() },
     { id:'quant',     icon:'chart', name:'量化',     roles:['super','office','admin','both'], onShow: () => Quant.render() },
     { id:'exam',      icon:'mic', name:'模考',     roles:['super','office','admin','both'], onShow: () => Exam.render() },
@@ -4628,14 +4687,14 @@ const App = {
   NAV_ORDER: {
     /* 「学生账号」紧跟「名册」：在哪儿建的号，就在哪儿看得到（老师找不到的那一版是它排在倒数第二）。
        「巡检」统一放在设置前面：谁都能看，老师也能一眼确认自己这边通不通 */
-    super:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
+    super:   ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','teachers','health','settings'],
     /* 总教务：跟首位教务一模一样的功能顺序（老师管理、巡检都进得去）——
        差别只在账号本身的能力与服务端拦的那几处，不在「能看到哪些页」 */
-    office:  ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','teachers','health','settings'],
-    admin:   ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','health','settings'],
+    office:  ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','teachers','health','settings'],
+    admin:   ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','health','settings'],
     /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
        教务那摊排完，再接自己班的授课那摊。 */
-    both:    ['home','att','sign','homework','roster','students','profile','timetable','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
+    both:    ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
     teacher: ['today','news','record','myclass','profile','tickets','settings'],
     student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings']
   },
@@ -5276,6 +5335,125 @@ const Ocr = {
       } catch(e){ lastErr = e; }          // 这套资源不通就换下一套，别让用户看着报错干瞪眼
     }
     throw new Error('识别没成功（' + (lastErr && lastErr.message ? lastErr.message : '资源加载不上') + '）。可以退而用 txt / docx，或换个网络再试一次');
+  },
+
+  /* ── 识别前的图片预处理 ────────────────────────────────────────────────
+     1) 灰度 + 对比度拉伸；
+     2) **裁到内容外框** —— 手机照片常常大片留白，留白会让「整行/整列是表格线」判不准；
+     3) **抹掉表格线** —— 这是课表识别最关键的一步：Tesseract 在带黑色网格的表上
+        会整块误判（实测把一张 5×3 的表读成一团，52 个词里只对 3 个）；
+        把「整行/整列多数是黑」的像素抹白（那是表格边框，不是文字）之后，
+        表头「时间 / 周一 / 周二…」和每一格才认得出来；
+     4) 统一到约 1600px 宽（小的放大、大的缩小）。
+     返回画布与它的尺寸 —— 词块坐标是对着这张画布算的，版面重建必须用同一个 width/height。 */
+  async _prepImage(file){
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => res(im);
+        im.onerror = () => rej(new Error('这张图片读不出来，换一张再试'));
+        im.src = url;
+      });
+      const nw = img.naturalWidth || img.width || 1600;
+      const nh = img.naturalHeight || img.height || 1200;
+
+      /* 分析用画布：先等比缩到不超过 2600px 宽，免得手机大图逐像素扫太慢 */
+      const base = document.createElement('canvas');
+      const bs = Math.min(1, 2600 / nw);
+      base.width = Math.max(1, Math.round(nw * bs));
+      base.height = Math.max(1, Math.round(nh * bs));
+      const bx = base.getContext('2d');
+      bx.fillStyle = '#fff'; bx.fillRect(0, 0, base.width, base.height);
+      bx.drawImage(img, 0, 0, base.width, base.height);
+
+      let data = null;
+      try { data = bx.getImageData(0, 0, base.width, base.height); } catch(e){ data = null; }
+      if (!data) return { canvas: base, width: base.width, height: base.height };   // 取不到像素就按原图走
+
+      const p = data.data, W0 = base.width, H0 = base.height;
+      for (let i = 0; i < p.length; i += 4){
+        let g = 0.299 * p[i] + 0.587 * p[i+1] + 0.114 * p[i+2];
+        g = (g - 128) * 1.6 + 128;                 // 对比度拉伸
+        g = g < 0 ? 0 : (g > 255 ? 255 : g);
+        p[i] = p[i+1] = p[i+2] = g; p[i+3] = 255;
+      }
+
+      /* 内容外框（去空白） */
+      let minX = W0, minY = H0, maxX = -1, maxY = -1;
+      for (let y = 0; y < H0; y++) for (let x = 0; x < W0; x++){
+        if (p[(y * W0 + x) * 4] < 140){
+          if (x < minX) minX = x; if (x > maxX) maxX = x;
+          if (y < minY) minY = y; if (y > maxY) maxY = y;
+        }
+      }
+      if (maxX < 0){ minX = 0; minY = 0; maxX = W0 - 1; maxY = H0 - 1; }
+      const pad = Math.max(6, Math.round(Math.min(W0, H0) * 0.012));
+      minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+      maxX = Math.min(W0 - 1, maxX + pad); maxY = Math.min(H0 - 1, maxY + pad);
+      const cw = maxX - minX + 1, ch = maxY - minY + 1;
+
+      /* 抹表格线：横线占满宽度、竖线占满高度 */
+      for (let y = minY; y <= maxY; y++){
+        let c = 0;
+        for (let x = minX; x <= maxX; x++) if (p[(y * W0 + x) * 4] < 140) c++;
+        if (c > cw * 0.55) for (let x = minX; x <= maxX; x++){ const i = (y * W0 + x) * 4; p[i] = p[i+1] = p[i+2] = 255; }
+      }
+      for (let x = minX; x <= maxX; x++){
+        let c = 0;
+        for (let y = minY; y <= maxY; y++) if (p[(y * W0 + x) * 4] < 140) c++;
+        if (c > ch * 0.55) for (let y = minY; y <= maxY; y++){ const i = (y * W0 + x) * 4; p[i] = p[i+1] = p[i+2] = 255; }
+      }
+      bx.putImageData(data, 0, 0);
+
+      /* 裁到内容框 + 统一到约 1600px 宽 */
+      const scale = Math.min(2.5, Math.max(0.4, 1600 / cw));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(cw * scale));
+      out.height = Math.max(1, Math.round(ch * scale));
+      const ox = out.getContext('2d');
+      ox.fillStyle = '#fff'; ox.fillRect(0, 0, out.width, out.height);
+      if ('imageSmoothingQuality' in ox) ox.imageSmoothingQuality = 'high';
+      ox.drawImage(base, minX, minY, cw, ch, 0, 0, out.width, out.height);
+      return { canvas: out, width: out.width, height: out.height };
+    } finally { URL.revokeObjectURL(url); }
+  },
+
+  /* ── 带坐标的词块识别（课时统计专用）────────────────────────────────────
+     返回 { text, words:[{text,bbox,confidence}], width, height }。
+     • 显式建 worker，关掉 hocr/tsv（少算两遍），只要 text + blocks（blocks 才会展平出 words）；
+     • 三套资源按 OCR_SETS 顺序重试 —— 与 recognize 完全同一套，不另发明；
+     • 进度文案复用 stageText；
+     🔴 新方法，`recognize` 一个字都没动。 */
+  async recognizeWords(file, onProgress, opts){
+    const T = await this.load();
+    const prep = await this._prepImage(file);
+    /* 分页模式：实测课表用 6（当作一整块文本）最稳 —— 抹掉表格线之后，
+       6 能把「时间/周一/周二…」整行表头完整读出来（3 会把 周三 读成 恒三）。
+       callers 可以在第一次失败时用 opts.psm 换一种模式再试一次。 */
+    const psm = String((opts && opts.psm) || '6');
+    let lastErr = null;
+    for (const s of OCR_SETS){
+      let worker = null;
+      try {
+        worker = await T.createWorker('chi_sim', 1, {
+          workerPath: s.worker,
+          corePath:   s.core,
+          langPath:   s.lang,
+          logger: m => { if (onProgress) onProgress(Ocr.stageText(m)); }
+        });
+        await worker.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1' });
+        const { data } = await worker.recognize(prep.canvas, {}, { text: true, blocks: true, hocr: false, tsv: false });
+        const words = (data && data.words ? data.words : []).map(w => ({
+          text: String(w.text || '').trim(),
+          bbox: w.bbox || null,
+          confidence: w.confidence
+        })).filter(w => w.text && w.bbox && typeof w.bbox.x0 === 'number');
+        return { text: String((data && data.text) || ''), words, width: prep.width, height: prep.height };
+      } catch(e){ lastErr = e; }
+      finally { try { if (worker) await worker.terminate(); } catch(e){} }
+    }
+    throw new Error('识别没成功（' + (lastErr && lastErr.message ? lastErr.message : '资源加载不上') + '）。可以退而用 Word / Excel 原件，或换个网络再试一次');
   }
 };
 
@@ -7369,6 +7547,776 @@ const Schedule = {
   del(id){ Store.softDelete('schedule', id); this.render(); }
 };
 /* ==== 功能：课表 END ==== */
+
+
+/* ==== 功能：课时统计 START ==== */
+/* 授课老师课时统计 · **阶段一：识别**。
+   目标：把课表（图片 / Word / Excel / CSV）还原成结构化的「周几 × 节次」，
+        归一化到系统认识的星期 / 时间 / 班级 / 老师 / 教室，再摆成一张**可编辑的确认表**。
+
+   🔴 本阶段只识别、不落库 —— 确认后的结果只进内存 `Hours._draft`，绝不写 Store('schedule')。
+   （写课表是阶段二、按老师聚合是阶段三、排版导出 PDF 是阶段四。）
+
+   两条通路：
+     · 原件通路（.docx / .xlsx / .csv / .txt）→ 直接读表格结构，精确、不经过 OCR；
+       .docx 走已引入的 mammoth.convertToHtml（拿 <table>），.xlsx 自己解 zip（DecompressionStream），
+       csv/txt 按制表符/逗号切；切不出网格就退回「按行当列表」。
+     · 图片通路 → Ocr.recognizeWords 取「带坐标的词块」，再按 x/y 坐标重建列与行。
+
+   归一化一律走 `Hours.norm`：
+     · 星期 → 与 Schedule.DAYS 同值（周一…周日）；
+     · 时间 → **复用 Schedule._tmin 的规则**（含「下午 1~5 点自动 +12 小时」），不另写一套，
+       否则统计出来会和系统其它地方对不上；
+     · 班级 / 老师 / 教室 → 跟名册（Store 'classes' / Staff.teachers() / Store 'rooms'）匹配，
+       匹配不到就原文保留并记一条 unmatched。 */
+const Hours = {
+  CONF_MIN: 75,      // 置信度低于此值 → 标黄 + 计入「需人工确认」
+  _model: null,      // 最近一次识别的完整模型
+  _draft: null,      // 用户确认后的结构化结果（只留内存，本阶段不落库）
+  _busy: false,
+
+  /* ═══════════ 归一化：纯函数 ═══════════ */
+  norm: {
+    /* 标点归一 + 去掉「周一(9/1)」这种括号注 */
+    punct(s){
+      return String(s == null ? '' : s)
+        .replace(/[（(][^）)]*[）)]/g, '')
+        .replace(/：/g, ':').replace(/[．。]/g, '.')
+        .replace(/[～~]/g, '~').replace(/[－–—ー−]/g, '-')
+        .replace(/[至到]/g, '-');
+    },
+
+    /* 星期：星期一 / 周一 / 礼拜一 / 周日 / 周天 / 单字「一」~「日」 → 周一…周日（与 Schedule.DAYS 同值） */
+    day(s){
+      let t = String(s == null ? '' : s)
+        .replace(/[（(][^）)]*[）)]/g, '')
+        .replace(/[\s()（）\[\]【】·.,，、:：|~\-–—]/g, '');
+      let m = /^(?:周|星期|礼拜)([一二三四五六日天])$/.exec(t);
+      if (m) return '周' + (m[1] === '天' ? '日' : m[1]);
+      if (/^[一二三四五六日天]$/.test(t)) return '周' + (t === '天' ? '日' : t);
+      return '';
+    },
+
+    /* 时间 → {start,end,startMin,endMin,full}；分钟数一律走 Schedule._tmin */
+    time(s){
+      const t = this.punct(s);
+      const pad = n => String(n).padStart(2, '0');
+      const range = (h1, m1, h2, m2) => {
+        const a = pad(h1) + ':' + pad(m1), b = pad(h2) + ':' + pad(m2);
+        let sm = Schedule._tmin(a), em = Schedule._tmin(b);
+        if (em < sm) em = sm;                          // 结束早于开始 → 不造负时长
+        return { start: a, end: b, startMin: sm, endMin: em, full: '' };
+      };
+      /* 1) 第X节 / 第X-Y节 → 查作息时间表换算 */
+      const pm = /第\s*(\d{1,2})\s*(?:-)?\s*(\d{1,2})?\s*节/.exec(t);
+      if (pm){
+        const ps = Schedule.periods();
+        if (ps.length){
+          const i1 = Math.min(ps.length - 1, Math.max(0, +pm[1] - 1));
+          const i2 = pm[2] ? Math.min(ps.length - 1, Math.max(i1, +pm[2] - 1)) : i1;
+          const a = ps[i1].start, b = ps[i2].end;
+          return { start: a, end: b, startMin: Schedule._tmin(a), endMin: Schedule._tmin(b), full: pm[0] };
+        }
+      }
+      /* 2) HH:MM-HH:MM（也吃 8.00-9.40） */
+      let m = /(\d{1,2})\s*[:.]\s*(\d{1,2})\s*-\s*(\d{1,2})\s*[:.]\s*(\d{1,2})/.exec(t);
+      if (m){ const r = range(+m[1], +m[2], +m[3], +m[4]); r.full = m[0]; return r; }
+      /* 3) 裸整点 8-9 */
+      m = /(?:^|[^\d])(\d{1,2})\s*-\s*(\d{1,2})(?:[^\d]|$)/.exec(t);
+      if (m){ const r = range(+m[1], 0, +m[2], 0); r.full = m[0]; return r; }
+      /* 4) 单个 HH:MM */
+      m = /(\d{1,2})\s*[:.]\s*(\d{1,2})/.exec(t);
+      if (m){ const r = range(+m[1], +m[2], +m[1], +m[2]); r.full = m[0]; return r; }
+      return null;
+    },
+
+    /* 名册匹配：先精确（去空格、忽略大小写），再相互包含 */
+    pick(raw, list, field){
+      const s = String(raw == null ? '' : raw).trim();
+      if (!s) return null;
+      const key = x => String(x == null ? '' : x).replace(/\s/g, '').toLowerCase();
+      const k = key(s);
+      if (!k) return null;
+      let hit = (list || []).find(o => key(o[field || 'name']) === k);
+      if (!hit) hit = (list || []).find(o => {
+        const n = key(o[field || 'name']);
+        return n && (n.indexOf(k) >= 0 || k.indexOf(n) >= 0);
+      });
+      return hit || null;
+    },
+
+    /* 一格 / 一行文字 → 字段 */
+    fields(text, ctx){
+      let s = String(text == null ? '' : text).replace(/[ \t]+/g, ' ').trim();
+      const out = { day:'', time:null, cls:'', room:'', teacher:'', teacherId:'', title:'', unmatched:[] };
+      if (!s) return out;
+
+      out.day = this.day(s);
+      const t = this.time(s);
+      if (t){ out.time = t; if (t.full) s = s.replace(t.full, ' '); }
+
+      const teachers = (ctx && ctx.teachers) || [];
+      const th = [...teachers].sort((a,b) => (b.name||'').length - (a.name||'').length)
+        .find(u => u.name && s.replace(/\s/g,'').indexOf(u.name.replace(/\s/g,'')) >= 0);
+      if (th){ out.teacher = th.name; out.teacherId = th.id; s = s.replace(th.name, ' '); }
+      else out.unmatched.push('老师没认出来');
+
+      const classes = (ctx && ctx.classes) || [];
+      const cl = [...classes].sort((a,b) => b.length - a.length)
+        .find(n => n && s.replace(/\s/g,'').indexOf(n.replace(/\s/g,'')) >= 0);
+      if (cl){ out.cls = cl; s = s.replace(cl, ' '); }
+      else {
+        const hm = /([\u4e00-\u9fa5A-Za-z0-9]{2,12}?(?:班|年级))/.exec(s);
+        if (hm){ out.cls = hm[1]; s = s.replace(hm[1], ' '); out.unmatched.push('班级「' + hm[1] + '」没在名册里'); }
+        else out.unmatched.push('班级没认出来');
+      }
+
+      const rooms = (ctx && ctx.rooms) || [];
+      let rm = [...rooms].sort((a,b) => b.length - a.length)
+        .find(n => n && s.replace(/\s/g,'').indexOf(n.replace(/\s/g,'')) >= 0);
+      if (!rm){ const bm = /[\[【(（]\s*([^\]】)）]{1,14})\s*[\]】)）]/.exec(s); if (bm) rm = bm[1].trim(); }
+      if (!rm){ const cm = /\bBY\s*\d{1,3}\b/i.exec(s); if (cm) rm = cm[0].replace(/\s+/g,'').toUpperCase(); }
+      if (rm){
+        out.room = rm;
+        s = s.replace(new RegExp(rm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
+      }
+
+      out.title = s.replace(/[-–—,，、:：|/]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      return out;
+    }
+  },
+
+  /* ═══════════ 上下文 / 工具 ═══════════ */
+  _ctx(){
+    let rooms = [], classes = [], teachers = [];
+    try { classes = Store.list('classes').map(c => c.name).filter(Boolean); } catch(e){}
+    try { rooms = Store.list('rooms').map(r => r.name).filter(Boolean); } catch(e){}
+    try { teachers = (typeof Staff !== 'undefined' && Staff.loaded) ? Staff.teachers() : []; } catch(e){}
+    return { classes, rooms, teachers };
+  },
+
+  /* 单元格文本：保留换行（一格多节课就靠它切开），空格压成一个 */
+  _cellText(c){
+    return String(c == null ? '' : c)
+      .replace(/\r\n?/g, '\n').replace(/[ \t]+/g, ' ')
+      .replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim();
+  },
+
+  _emptyModel(via){
+    return { mode:'list', via: via || '', days:[], rows:[], records:[], unassigned:[],
+             warnings:['这份文件里没有可读取的内容'], ms:0 };
+  },
+
+  _finish(m){
+    m.days = (m.days || []).slice().sort((a, b) => Schedule.DAYS.indexOf(a) - Schedule.DAYS.indexOf(b));
+    m.rows = m.rows || []; m.records = m.records || [];
+    m.unassigned = m.unassigned || []; m.warnings = m.warnings || [];
+    return m;
+  },
+
+  /* 一条归一化记录。conf 越低 / 缺字段越多，越要人工确认 */
+  _mkRecord(f, day, t, raw, conf, via){
+    const c = Math.max(0, Math.min(100, Number(conf == null ? 100 : conf)));
+    const notes = (f.unmatched || []).slice();
+    if (!(day || f.day)) notes.unshift('没认出星期');
+    if (!t || !(t.startMin >= 0)) notes.unshift('没认出时间');
+    const low = notes.length > 0 || c < this.CONF_MIN;
+    return {
+      day: day || f.day || '',
+      label: t ? (t.start + '-' + t.end) : '',
+      start: t ? t.start : '', end: t ? t.end : '',
+      startMin: t ? t.startMin : NaN, endMin: t ? t.endMin : NaN,
+      cls: f.cls || '', room: f.room || '', title: f.title || '',
+      teacher: f.teacher || '', teacherId: f.teacherId || '',
+      conf: low && c >= this.CONF_MIN ? Math.round(c * 0.9) : c,
+      needCheck: low, notes,
+      raw: String(raw == null ? '' : raw), via: via || ''
+    };
+  },
+
+  /* ═══════════ 统一入口 ═══════════ */
+  async readSource(file, onProgress){
+    const t0 = performance.now();
+    try { if (typeof Staff !== 'undefined' && !Staff.loaded) await Staff.load(); } catch(e){}
+    const name = (file && file.name) || '';
+    const type = (file && file.type) || '';
+    let model;
+    if (/\.docx$/i.test(name))                                   model = await this._readDocx(file, onProgress);
+    else if (/\.xlsx$/i.test(name))                              model = await this._readXlsx(file, onProgress);
+    else if (/\.(csv|txt)$/i.test(name) || /^text\/plain/.test(type)) model = await this._readCsv(file, onProgress);
+    else if (/^image\//.test(type) || /\.(png|jpe?g|webp|bmp|gif|heic)$/i.test(name)) model = await this._readImage(file, onProgress);
+    else throw new Error('这种文件还不支持：图片、Word(.docx)、Excel(.xlsx)、CSV / TXT 都行；PDF 请先截图再传');
+    model.ms = Math.round(performance.now() - t0);
+    return this._finish(model);
+  },
+
+  /* ═══════════ 通路一：Word（mammoth → <table>，精确）═══════════ */
+  async _readDocx(file, onProgress){
+    if (onProgress) onProgress('正在读取 Word 表格…');
+    if (!window.mammoth) await loadFirstScript([CDN.mammoth], () => window.mammoth, '文档解析引擎');
+    /* 🔴 用 convertToHtml 拿到带 <table> 的 HTML —— 不是 extractRawText，
+       表格结构（行列）必须留住，否则又变回「一堆纯文字」。 */
+    const r = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    const html = (r && r.value) || '';
+    const grid = this._htmlTableToGrid(html);
+    if (grid.length) return this._gridToModel(grid, 'docx');
+    const text = html.replace(/<\/(p|div|tr|table|h\d)>/gi, '\n').replace(/<[^>]+>/g, '');
+    return this._linesToModel(this._lines(text), 'docx');
+  },
+
+  _htmlTableToGrid(html){
+    try {
+      const doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
+      const table = doc.querySelector('table');
+      if (!table) return [];
+      return [...table.querySelectorAll('tr')].map(tr =>
+        [...tr.querySelectorAll('th,td')].map(td => this._cellText(td.textContent || '')));
+    } catch(e){ return []; }
+  },
+
+  /* ═══════════ 通路二：Excel（自解 zip，精确）═══════════ */
+  async _readXlsx(file, onProgress){
+    if (typeof DecompressionStream === 'undefined')
+      throw new Error('这个浏览器不支持直接读 Excel。请把 Excel 另存为 .csv，或截图上传。');
+    if (onProgress) onProgress('正在解压 Excel…');
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const entries = this._unzip(buf);
+    const sheetName = Object.keys(entries).find(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
+    if (!entries['xl/sharedStrings.xml'] && !sheetName) throw new Error('这不是有效的 .xlsx 文件（没找到工作表）');
+    const shared = entries['xl/sharedStrings.xml']
+      ? this._parseSharedStrings(await this._inflate(entries['xl/sharedStrings.xml'])) : [];
+    const grid = this._parseSheet(await this._inflate(entries[sheetName]), shared);
+    if (!grid.length) throw new Error('这个 Excel 里没有内容');
+    return this._gridToModel(grid, 'xlsx');
+  },
+
+  /* 极简 zip 读取：只认「中央目录 → 本地头 → 压缩数据」这条线，够读 xlsx 内的两个 xml */
+  _unzip(buf){
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    let eocd = -1;
+    for (let i = buf.length - 22; i >= 0 && i > buf.length - 66000; i--){
+      if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('这不是有效的 .xlsx 文件（zip 结尾标记没找到）');
+    const count = dv.getUint16(eocd + 10, true);
+    let off = dv.getUint32(eocd + 16, true);
+    const out = {};
+    const dec = new TextDecoder();
+    for (let n = 0; n < count; n++){
+      if (off + 46 > buf.length || dv.getUint32(off, true) !== 0x02014b50) break;
+      const method = dv.getUint16(off + 10, true);
+      const compSize = dv.getUint32(off + 20, true);
+      const nameLen = dv.getUint16(off + 28, true);
+      const extraLen = dv.getUint16(off + 30, true);
+      const commentLen = dv.getUint16(off + 32, true);
+      const localOff = dv.getUint32(off + 42, true);
+      const name = dec.decode(buf.subarray(off + 46, off + 46 + nameLen));
+      const lNameLen = dv.getUint16(localOff + 26, true);
+      const lExtraLen = dv.getUint16(localOff + 28, true);
+      const dataStart = localOff + 30 + lNameLen + lExtraLen;
+      out[name] = { method, data: buf.subarray(dataStart, dataStart + compSize) };
+      off += 46 + nameLen + extraLen + commentLen;
+    }
+    return out;
+  },
+
+  async _inflate(entry){
+    if (!entry) throw new Error('压缩包里的文件缺失');
+    if (entry.method === 0) return new TextDecoder().decode(entry.data);
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([entry.data]).stream().pipeThrough(ds);
+    return await new Response(stream).text();
+  },
+
+  _decodeXml(s){
+    return String(s == null ? '' : s)
+      .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
+      .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+  },
+
+  _parseSharedStrings(xml){
+    const out = [];
+    const re = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+    let m;
+    while ((m = re.exec(xml))){
+      let txt = '';
+      const re2 = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+      let m2;
+      while ((m2 = re2.exec(m[1]))) txt += this._decodeXml(m2[1]);
+      out.push(txt);
+    }
+    return out;
+  },
+
+  _colIdx(letters){
+    let n = 0;
+    for (const ch of String(letters).toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+    return n - 1;
+  },
+
+  _parseSheet(xml, shared){
+    const rows = [];
+    const rowRe = /<row\b([^>]*)>([\s\S]*?)<\/row>/g;
+    let rm;
+    while ((rm = rowRe.exec(xml))){
+      const rIdx = Math.max(0, (Number((/\br="(\d+)"/.exec(rm[1]) || [])[1]) || (rows.length + 1)) - 1);
+      const cells = [];
+      const cRe = /<c\b([^>]*?)(\/>|>([\s\S]*?)<\/c>)/g;
+      let cm;
+      while ((cm = cRe.exec(rm[2]))){
+        const attrs = cm[1] || '', inner = cm[3] || '';
+        const ref = (/\br="([A-Z]+)\d+"/.exec(attrs) || [])[1] || '';
+        const ci = ref ? this._colIdx(ref) : cells.length;
+        const t = (/\bt="([^"]+)"/.exec(attrs) || [])[1] || '';
+        let val = '';
+        if (t === 'inlineStr' || t === 'str'){
+          const im = /<t\b[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+          val = im ? this._decodeXml(im[1]) : '';
+        } else {
+          const vm = /<v>([\s\S]*?)<\/v>/.exec(inner);
+          const raw = vm ? this._decodeXml(vm[1]) : '';
+          val = (t === 's') ? (shared[+raw] || '') : raw;
+        }
+        while (cells.length < ci) cells.push('');
+        cells[ci] = String(val);
+      }
+      while (rows.length < rIdx) rows.push(null);
+      rows[rIdx] = cells;
+    }
+    const alive = rows.filter(Boolean).map(r => { const a = r.slice(); for (let i=0;i<a.length;i++) if (a[i]==null) a[i]=''; return a; });
+    const w = alive.reduce((m, r) => Math.max(m, r.length), 0);
+    return alive.map(r => { const a = r.slice(); while (a.length < w) a.push(''); return a; });
+  },
+
+  /* ═══════════ 通路三：CSV / TXT ═══════════ */
+  async _readCsv(file, onProgress){
+    if (onProgress) onProgress('正在读取表格…');
+    const text = await file.text();
+    return this._textToModel(text, 'csv');
+  },
+
+  _lines(text){
+    return String(text == null ? '' : text).replace(/\r\n?/g, '\n').split('\n')
+      .map(l => l.replace(/[ \t]+$/,'')).filter(l => l.trim());
+  },
+
+  _splitCsv(lines){
+    return lines.map(line => {
+      const out = []; let cur = '', q = false;
+      for (let i = 0; i < line.length; i++){
+        const ch = line[i];
+        if (q){
+          if (ch === '"'){ if (line[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+          else cur += ch;
+        } else if (ch === '"') q = true;
+        else if (ch === ','){ out.push(cur.trim()); cur = ''; }
+        else cur += ch;
+      }
+      out.push(cur.trim());
+      return out;
+    });
+  },
+
+  _textToModel(text, via){
+    const lines = this._lines(text);
+    if (!lines.length) return this._emptyModel(via);
+    const tabs = lines.filter(l => l.indexOf('\t') >= 0).length;
+    const commas = lines.filter(l => l.indexOf(',') >= 0).length;
+    let grid = null;
+    if (tabs >= Math.max(1, lines.length * 0.6)) grid = lines.map(l => l.split('\t').map(c => c.trim()));
+    else if (commas >= Math.max(1, lines.length * 0.6)) grid = this._splitCsv(lines);
+    if (grid && grid.length >= 2 && grid.some(r => r.length >= 2)) return this._gridToModel(grid, via);
+    return this._linesToModel(lines, via);
+  },
+
+  /* ═══════════ 通路四：图片 OCR（带坐标重建）═══════════ */
+  async _readImage(file, onProgress){
+    const res = await Ocr.recognizeWords(file, onProgress);
+    let m = this._wordsToModel(res.words || [], res.width, res.height);
+    /* 降级重试：第一遍（PSM 6）没拼出网格（星期列不足 3 个）时，换 PSM 3 再来一次，
+       谁拼出的记录多就留谁。只在第一遍失败时才多花这一次钱，正常情况不会重复识别。 */
+    if (m.mode !== 'grid' || (m.days || []).length < 3){
+      try {
+        const res2 = await Ocr.recognizeWords(file, onProgress, { psm: '3' });
+        const m2 = this._wordsToModel(res2.words || [], res2.width, res2.height);
+        if ((m2.records || []).length > (m.records || []).length) m = m2;
+      } catch(e){}
+    }
+    return m;
+  },
+
+  /* 把「带坐标的词块」还原成表格。
+     模式判断：相近 y 带上找到 >=3 个不同星期词 → 网格式；否则列表式。 */
+  _wordsToModel(words, W, H){
+    W = W || 1; H = H || 1;
+    const ws = (words || []).filter(w => w && w.text && w.bbox && typeof w.bbox.x0 === 'number')
+      .map(w => ({
+        text: String(w.text).trim(),
+        x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1,
+        cx: (w.bbox.x0 + w.bbox.x1) / 2, cy: (w.bbox.y0 + w.bbox.y1) / 2,
+        conf: Math.max(0, Math.min(100, Math.round(w.confidence == null ? 0 : w.confidence)))
+      })).filter(w => w.text);
+    if (!ws.length) return this._emptyModel('ocr');
+
+    /* 星期词 */
+    const dayWords = [];
+    ws.forEach(w => { const d = this.norm.day(w.text); if (d) dayWords.push({ w, day: d, cx: w.cx, cy: w.cy }); });
+
+    /* 找「相近 y 带、>=3 个不同星期词」 */
+    let band = null;
+    if (dayWords.length >= 3){
+      const sorted = dayWords.slice().sort((a, b) => a.cy - b.cy);
+      const tol = Math.max(12, H * 0.05);
+      let group = [sorted[0]];
+      const flush = () => { if (!band && new Set(group.map(g => g.day)).size >= 3) band = group.slice(); };
+      for (let i = 1; i < sorted.length; i++){
+        if (Math.abs(sorted[i].cy - group[group.length - 1].cy) <= tol) group.push(sorted[i]);
+        else { flush(); group = [sorted[i]]; }
+      }
+      flush();
+    }
+    if (!band) return this._listFromWords(ws, W, H);
+
+    /* ── 列锚点：同一列的重复词合并 ── */
+    band.sort((a, b) => a.cx - b.cx);
+    const cols = [];
+    band.forEach(b => {
+      const last = cols[cols.length - 1];
+      if (last && Math.abs(b.cx - last.cx) <= Math.max(20, W * 0.03)){
+        last.cx = (last.cx + b.cx) / 2;
+        if (last.days.indexOf(b.day) < 0) last.days.push(b.day);
+      } else cols.push({ cx: b.cx, days: [b.day] });
+    });
+    /* ── 列边界：相邻锚点中点；首列左界按「半个列距」退，避开左边的行头列 ──
+       半列距而不是整列距：行头列的内容是**居中**的，退半个列距能把「时间/节次」的
+       中心点留在左界以左（哪怕行头列比普通列宽一倍也成立），不会被误算进周一那一列。 */
+    const colW = cols.length > 1 ? (cols[1].cx - cols[0].cx) : W * 0.15;
+    const leftBound = Math.max(0, cols[0].cx - colW * 0.5);
+    const bounds = cols.map((c, i) => ({
+      day: c.days[0],
+      left: i === 0 ? leftBound : (cols[i-1].cx + c.cx) / 2,
+      right: i === cols.length - 1 ? W + 1 : (c.cx + cols[i+1].cx) / 2
+    }));
+    const hdrCy = band.reduce((s, b) => s + b.cy, 0) / band.length;
+
+    /* ── 行锚点：先把星期词摘掉，再按 y 聚行；只留「带行头词（时间/节次）」的那些带 ──
+       这一步同时把标题行、页脚备注这类「不是数据行」的带滤掉 ——
+       否则它们会变成一排空行，把真数据顶下去。 */
+    const daySet = new Set(band.map(b => b.w));
+    const others = ws.filter(w => !daySet.has(w));
+    const allBands = this._clusterRows(others, H);
+    /* 只留「带行头词（时间/节次）」的那些带；并且**排掉表头所在的那一带** ——
+       OCR 常把「周四」拆成一个认得的「四」和一个认不得的「周」，那个孤零零的「周」
+       会跟行头列的「时间」凑成一带，看着像一行数据（实测就是这样冒出一条空记录）。 */
+    const rowBands = allBands.filter(b =>
+      Math.abs(b.cy - hdrCy) > Math.max(14, H * 0.04) && b.words.some(w => w.cx < leftBound));
+    if (!rowBands.length) return this._listFromWords(ws, W, H);
+    const rowBounds = rowBands.map((b, i) => ({
+      top:    i === 0 ? (hdrCy + b.cy) / 2 : (rowBands[i-1].cy + b.cy) / 2,
+      bottom: i === rowBands.length - 1 ? Infinity : (b.cy + rowBands[i+1].cy) / 2
+    }));
+
+    /* ── 分格：每个词按中心点落进 (行, 列)；落不进去的（表外文字）收进 unassigned ── */
+    const bandOf = new Map();
+    others.forEach(w => bandOf.set(w, -1));
+    rowBands.forEach((b, i) => b.words.forEach(w => bandOf.set(w, i)));
+    const cellsMap = {};
+    const unassigned = [];
+    ws.forEach(w => {
+      if (daySet.has(w)) return;
+      const ri = bandOf.has(w) ? bandOf.get(w) : -1;
+      if (ri < 0){ unassigned.push(w.text); return; }
+      if (w.cx < leftBound) return;               // 行头词（时间/节次），不占格子
+      const ci = bounds.findIndex(cb => w.cx >= cb.left && w.cx < cb.right);
+      if (ci < 0){ unassigned.push(w.text); return; }
+      (cellsMap[ri + '_' + ci] = cellsMap[ri + '_' + ci] || []).push(w);
+    });
+
+    /* ── 拼格 + 建记录 ── */
+    const ctx = this._ctx();
+    const rows = [], records = [];
+    rowBands.forEach((rb, ri) => {
+      const lab = rb.words.filter(w => w.cx < leftBound).sort((a, b) => a.cx - b.cx).map(w => w.text).join(' ');
+      const t = this.norm.time(lab);
+      const cells = {};
+      bounds.forEach((cb, ci) => {
+        const list = cellsMap[ri + '_' + ci];
+        if (!list || !list.length) return;
+        const sorted = list.slice().sort((a, b) => a.cy - b.cy || a.cx - b.cx);
+        let txt = '', prevCy = null;
+        sorted.forEach(w => {
+          if (prevCy != null && Math.abs(w.cy - prevCy) > Math.max(10, H * 0.02)) txt += '\n';
+          else if (txt) txt += ' ';
+          txt += w.text; prevCy = w.cy;
+        });
+        cells[cb.day] = { text: txt, conf: Math.min(...list.map(w => w.conf)) };
+      });
+      rows.push({ label: lab, time: t ? (t.start + '-' + t.end) : '', cells });
+      Object.keys(cells).forEach(day => {
+        const cd = cells[day];
+        cd.text.split('\n').forEach(seg => {
+          const s2 = seg.trim(); if (!s2) return;
+          const f = this.norm.fields(s2, ctx);
+          records.push(this._mkRecord(f, day, f.time || t, s2, cd.conf, 'ocr'));
+        });
+      });
+    });
+
+    const warnings = [];
+    if (!records.length) warnings.push('按坐标没拼出课程格子（可能是这张图太模糊，或课表不是「周几 × 节次」的画法）');
+    if (unassigned.length) warnings.push('有 ' + unassigned.length + ' 处文字落在表外，已列在下面');
+    const m = { mode:'grid', via:'ocr', days: cols.map(c => c.days[0]), rows, records,
+                unassigned, warnings, width: W, height: H };
+    return this._finish(m);
+  },
+
+  /* 按 y 聚类成「行」（同一行的词 y 差小于容差）。返回带 words，后面行头列/分格都要用 */
+  _clusterRows(words, H){
+    const tol = Math.max(10, H * 0.03);
+    const sorted = words.slice().sort((a, b) => a.cy - b.cy);
+    const bands = [];
+    let cur = [];
+    sorted.forEach(w => {
+      if (!cur.length || Math.abs(w.cy - cur[cur.length - 1].cy) <= tol) cur.push(w);
+      else { bands.push(cur); cur = [w]; }
+    });
+    if (cur.length) bands.push(cur);
+    return bands.map(g => {
+      const label = g.slice().sort((a, b) => a.cx - b.cx).map(w => w.text).join(' ');
+      const t = this.norm.time(label);
+      return { cy: g.reduce((s, w) => s + w.cy, 0) / g.length, label, time: t, words: g };
+    });
+  },
+
+  /* 列表式：所有词按 y 聚行，行内按 x 拼，再逐行解析字段 */
+  _listFromWords(ws, W, H){
+    const bands = this._clusterRows(ws, H);
+    const strs = bands.map(b => b.label).filter(Boolean);
+    const m = this._linesToModel(strs, 'ocr');
+    m.mode = 'list'; m.width = W; m.height = H;
+    return m;
+  },
+
+  /* ═══════════ 表格 → 模型 ═══════════ */
+  _gridToModel(grid, via){
+    const clean = (grid || []).map(r => r.map(c => this._cellText(c)));
+    if (!clean.length) return this._emptyModel(via);
+
+    /* 表头行：前 4 行里找含 >=2 个星期词的那一行 */
+    let headerIdx = -1, dayCols = [];
+    for (let i = 0; i < Math.min(clean.length, 4); i++){
+      const cols = [];
+      clean[i].forEach((c, j) => { const d = this.norm.day(c); if (d) cols.push({ day: d, j }); });
+      if (cols.length >= 2){ headerIdx = i; dayCols = cols; break; }
+    }
+    if (headerIdx < 0 || dayCols.length < 2)
+      return this._linesToModel(clean.map(r => r.filter(Boolean).join('  ')), via);
+
+    const labelCol = Math.max(0, dayCols[0].j - 1);
+    const days = [];
+    dayCols.forEach(c => { if (days.indexOf(c.day) < 0) days.push(c.day); });
+    const ctx = this._ctx();
+    const rows = [], records = [], warnings = [];
+    for (let i = headerIdx + 1; i < clean.length; i++){
+      const line = clean[i];
+      if (!line || !line.some(Boolean)) continue;
+      const label = (line[labelCol] || '').trim();
+      const rowTime = this.norm.time(label);
+      const cells = {};
+      let any = false;
+      dayCols.forEach(dc => {
+        const text = (line[dc.j] || '').trim();
+        if (!text) return;
+        any = true;
+        cells[dc.day] = { text, conf: 100 };
+      });
+      if (!any && !label) continue;
+      rows.push({ label, time: rowTime ? (rowTime.start + '-' + rowTime.end) : '', cells });
+      days.forEach(day => {
+        const cd = cells[day];
+        if (!cd) return;
+        cd.text.split('\n').forEach(seg => {
+          const s2 = seg.trim(); if (!s2) return;
+          const f = this.norm.fields(s2, ctx);
+          records.push(this._mkRecord(f, day, f.time || rowTime, s2, cd.conf, via));
+        });
+      });
+    }
+    if (!records.length) warnings.push('表里没解析出课程（这份表可能不是按「周几 × 节次」排的）');
+    return this._finish({ mode:'grid', via, days, rows, records, unassigned: [], warnings });
+  },
+
+  /* 列表 → 模型（每行一节课） */
+  _linesToModel(lines, via){
+    const ctx = this._ctx();
+    const days = [], rows = [], records = [], unassigned = [], warnings = [];
+    (lines || []).forEach((line, i) => {
+      const s = String(line == null ? '' : line).trim();
+      if (!s) return;
+      const f = this.norm.fields(s, ctx);
+      if (!f.day && !f.cls && !f.title && !f.teacher){ unassigned.push(s); return; }
+      if (f.day && days.indexOf(f.day) < 0) days.push(f.day);
+      rows.push({ label: f.day || ('第' + (i + 1) + '行'), time: f.time ? (f.time.start + '-' + f.time.end) : '', cells: {} });
+      records.push(this._mkRecord(f, f.day, f.time, s, 100, via));
+    });
+    if (!records.length) warnings.push('没从这份文件里认出课来');
+    return this._finish({ mode:'list', via, days, rows, records, unassigned, warnings });
+  },
+
+  /* ═══════════ 页面 ═══════════ */
+  render(){
+    const box = document.getElementById('hrsBody');
+    if (!box) return;
+    if (!this._model) box.innerHTML = this._emptyHtml();
+    else this._paint();
+  },
+
+  onFile(input){
+    const file = input && input.files && input.files[0];
+    if (input) input.value = '';
+    if (!file) return;
+    this._run(file);
+  },
+
+  async _run(file){
+    if (this._busy) return UI.toast('正在识别，稍等一下');
+    this._busy = true;
+    this._model = null; this._draft = null;
+    const stat = document.getElementById('hrsStat');
+    const body = document.getElementById('hrsBody');
+    const t0 = performance.now();
+    if (stat) stat.textContent = '正在识别「' + file.name + '」…';
+    if (body) body.innerHTML = '<div class="empty">正在识别…<br><span class="hint" id="hrsProg">准备中…</span></div>';
+    const prog = m => {
+      const el = document.getElementById('hrsProg');
+      if (el) el.textContent = m;
+    };
+    try {
+      const model = await this.readSource(file, prog);
+      this._model = model;
+      if (stat) stat.textContent = '识别完成：' + model.records.length + ' 条，用时 ' +
+        (model.ms / 1000).toFixed(1) + ' 秒。下面核对、修改后点「确认无误」。';
+      this._paint();
+    } catch(e){
+      if (body) body.innerHTML = '<div class="empty">识别失败：' + Util.esc(e && e.message || e) +
+        '<br><span class="hint">可以换 Word / Excel / CSV 原件，或换一张更清楚的图片再试。</span></div>';
+      if (stat) stat.textContent = '识别失败';
+    } finally { this._busy = false; }
+  },
+
+  clear(){
+    this._model = null; this._draft = null;
+    const box = document.getElementById('hrsBody'); if (box) box.innerHTML = this._emptyHtml();
+    const stat = document.getElementById('hrsStat'); if (stat) stat.textContent = '';
+  },
+
+  _emptyHtml(){
+    return '<div class="empty">还没有识别结果。<br><span class="hint">点上面的「选文件识别」，传一张课表图片或 Word / Excel / CSV 文件。识别完这里会出现一张可编辑的对照表。</span></div>';
+  },
+
+  _viaText(v){
+    return { ocr:'图片 OCR', docx:'Word 表格', xlsx:'Excel 表格', csv:'表格 / 文本' }[v] || v || '—';
+  },
+
+  _sumInner(){
+    const m = this._model; if (!m) return '';
+    const need = m.records.filter(r => r.needCheck).length;
+    return '识别到 <b>' + m.records.length + '</b> 条 · 其中 <b>' + need + '</b> 条需人工确认' +
+      ' · 用了 <b>' + ((m.ms || 0) / 1000).toFixed(1) + '</b> 秒' +
+      ' · 通路：<b>' + Util.esc(this._viaText(m.via)) + '</b>' +
+      ' · 模式：<b>' + (m.mode === 'grid' ? '网格（周几 × 节次）' : '列表') + '</b>' +
+      (m.days && m.days.length ? ' · 星期列：<b>' + Util.esc(m.days.join('、')) + '</b>' : '');
+  },
+
+  _paint(){
+    const box = document.getElementById('hrsBody');
+    if (!box || !this._model) return;
+    const m = this._model;
+    const sum = '<div class="hrs-sum" id="hrsSum">' + this._sumInner() + '</div>';
+    const extra = this._extraHtml(m);
+    if (!m.records.length){
+      box.innerHTML = sum + '<div class="empty">没识别出可用的课。<br><span class="hint">可以换一份更清楚的图片，或直接传 Word / Excel / CSV 原件。</span></div>' + extra;
+      return;
+    }
+    box.innerHTML = sum + this._tableHtml(m) + extra + this._confirmHtml(m.records.length);
+  },
+
+  _tableHtml(m){
+    const rows = m.records.map((r, i) => {
+      const cls = r.needCheck ? ' class="hrs-low"' : '';
+      const cell = (k, ph) => '<td><input value="' + Util.esc(r[k] || '') + '" placeholder="' + Util.esc(ph || '') +
+        '" oninput="Hours.edit(' + i + ',\'' + k + '\',this.value)" aria-label="' + Util.esc(ph || k) + '"></td>';
+      return '<tr' + cls + ' data-i="' + i + '">' +
+        cell('day', '周一') + cell('label', '08:00-09:40') + cell('cls', '班级') +
+        cell('room', '教室') + cell('title', '授课内容') + cell('teacher', '老师') +
+        '<td><span class="hrs-conf" title="' + Util.esc((r.notes || []).join('；') || '置信度偏低') + '">' +
+          Math.round(r.conf) + '%' + (r.needCheck ? '<br><span class="hrs-need">待核</span>' : '') + '</span></td>' +
+        '<td><button class="del" title="这行不要" onclick="Hours.del(' + i + ')">✕</button></td>' +
+      '</tr>';
+    }).join('');
+    return '<div class="grid-hint">← 左右滑动看整张表 →</div>' +
+      '<div class="hrs-wrap"><table class="hrstbl"><thead><tr>' +
+        '<th>星期</th><th>节次 / 时间</th><th>班级</th><th>教室</th><th>授课内容</th><th>老师</th><th>置信度</th><th></th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  },
+
+  _extraHtml(m){
+    const parts = [];
+    if (m.unassigned && m.unassigned.length)
+      parts.push('<details class="hrs-fold"><summary>没归位的文字 ' + m.unassigned.length + ' 处（点开看）</summary><ul>' +
+        m.unassigned.map(u => '<li>' + Util.esc(u) + '</li>').join('') + '</ul></details>');
+    if (m.warnings && m.warnings.length)
+      parts.push('<details class="hrs-fold" open><summary>提醒 ' + m.warnings.length + ' 条</summary><ul>' +
+        m.warnings.map(u => '<li>' + Util.esc(u) + '</li>').join('') + '</ul></details>');
+    return parts.join('');
+  },
+
+  _confirmHtml(n){
+    return '<div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">' +
+      '<button class="btn" onclick="Hours.confirm()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-check"></use></svg> 确认无误（' + n + ' 条）</button>' +
+      '</div><p class="hint" id="hrsConfirmMsg" style="margin:8px 0 0"></p>';
+  },
+
+  /* 改一格：置信度直接算满分（人已经看过了），并把这行从「待确认」里摘出来 */
+  edit(i, k, v){
+    const r = this._model && this._model.records[i];
+    if (!r) return;
+    r[k] = v;
+    if (k === 'label'){
+      const t = this.norm.time(v);
+      r.start = t ? t.start : ''; r.end = t ? t.end : '';
+      r.startMin = t ? t.startMin : NaN; r.endMin = t ? t.endMin : NaN;
+    }
+    if (k === 'day'){ const d = this.norm.day(v); if (!d) r.needCheck = false; else r.day = d; }
+    r.conf = 100; r.needCheck = false; r.notes = [];
+    const tr = document.querySelector('#hrsBody tr[data-i="' + i + '"]');
+    if (tr){
+      tr.classList.remove('hrs-low');
+      const c = tr.querySelector('.hrs-conf'); if (c) c.textContent = '100%';
+    }
+    const sum = document.getElementById('hrsSum');
+    if (sum) sum.innerHTML = this._sumInner();
+  },
+
+  del(i){
+    if (!this._model) return;
+    this._model.records.splice(i, 1);
+    this._paint();
+  },
+
+  /* 🔴 阶段一止步于此：只把确认后的结果存进内存，**不写 schedule** */
+  confirm(){
+    const m = this._model;
+    if (!m || !m.records.length) return UI.toast('还没有可确认的识别结果');
+    this._draft = JSON.parse(JSON.stringify(m.records));
+    const el = document.getElementById('hrsConfirmMsg');
+    if (el) el.textContent = '已记下 ' + this._draft.length + ' 条（本阶段只留在内存，不会写进系统课表）。';
+    UI.toast('已确认 ' + this._draft.length + ' 条');
+  }
+};
+/* ==== 功能：课时统计 END ==== */
 
 
 /* ==== 功能：作业 START ==== */

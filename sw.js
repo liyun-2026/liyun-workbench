@@ -77,7 +77,15 @@
    · `Teachers.paintRoles()`：已经有一个总教务就不再列这个身份（正在改那个号时例外）；
      老师管理页加一条指路条，只在「首位教务 + 还没总教务」时露出。
    · `StuAcct.canEdit()` 放行 office（学生账号表的改密码/停用/删除）。 */
-const VERSION = 'v63'; /* v63：巡检页「到期提醒」删掉桌面措辞「续完之后点右边的『改日期』对一下」
+const VERSION = 'v64'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+                       ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
+                          `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
+                          `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
+                          原件通路（.docx 走 mammoth 取 <table>、.xlsx 自解 zip、.csv/txt 切网格）
+                          与图片通路（`Ocr.recognizeWords` 取带 bbox 的词块 → 按坐标重建「周几 × 节次」）；
+                          ③ 归一化统一走 `Hours.norm`，时间一律复用 `Schedule._tmin`（含下午 1~5 点 +12h）。
+                        🔴 本阶段**只识别不落库**：确认结果只进内存 `Hours._draft`，不写 'schedule'。
+                        ⚠️ `Ocr.recognize` 与 `readAnyFile` 一字未动（另起 `recognizeWords`）。无新增静态文件，SHELL 清单不变。 /* v63：巡检页「到期提醒」删掉桌面措辞「续完之后点右边的『改日期』对一下」
                        （用户 2026-10-06 定：那个措辞不要了 —— 手机上是上下排，没有「右边」）。
                        另：学员档案副标题维持不显示（用户确认：以前让它不显示，就继续不显示）。
                        纯文案改动，无新增静态文件，SHELL 清单不变。 /* v62：设置页手机端整条去掉锚点导航（用户点名「占空间，而且不会方便找板块」）——

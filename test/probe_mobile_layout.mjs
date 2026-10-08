@@ -50,7 +50,7 @@ const SUPER = { user: '李老师', pass: 'liyun2026' };
    super 这里列全教务端的页；rules / board / students / health 不进导航但能 App.go 进去。 */
 const ROLE_PAGES = {
   super: [
-    'home','att','sign','homework','roster','students','profile','timetable','night',
+    'home','att','sign','homework','roster','students','profile','timetable','hours','night',
     'quant','exam','coop','gather','teachers','rules','board','health','settings',
   ],
   teacher: ['today','news','record','myclass','profile','tickets','settings'],

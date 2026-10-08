@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>课时统计 · 合成课表（供 OCR 测试）</title>
+<!--
+  这是 test/hours_recognize_check.mjs 的图片夹具源文件。
+  用 test/html2png.mjs 渲染成 test/fixtures/hours_tt.png，再喂给 Hours.readSource 走图片 OCR 通路。
+  ⚠️ 刻意做成「大字号 + 纯黑纯净底 + 粗实线」：只为把「版面重建」这条链路测通，
+     不代表真实课表的识别率（真实拍摄件受光照、手写、合并单元格影响会差得多）。
+  真值（与 hours_recognize_check.mjs 里的 TRUTH_IMG 一致）：
+    表头：时间 / 周一 / 周二 / 周三 / 周四 / 周五
+    08:00-09:40  成人书法基础 少儿口才     播音发声     形体训练   模拟主持
+    10:00-11:40  形体训练     即兴评述     新闻播报     文学朗读   影视配音
+    14:00-15:40  模拟主持     新闻播报     成人书法基础 少儿口才   即兴评述
+-->
+<style>
+  html,body{margin:0;padding:0;background:#fff}
+  body{font-family:"PingFang SC","Heiti SC","Hiragino Sans GB",sans-serif;color:#000}
+  .wrap{padding:28px 30px}
+  h1{font-size:34px;margin:0 0 18px;text-align:center;letter-spacing:2px}
+  table{border-collapse:collapse;width:1100px;table-layout:fixed;font-size:26px}
+  th,td{border:3px solid #000;padding:16px 6px;text-align:center;white-space:nowrap;overflow:hidden}
+  th{font-size:27px;font-weight:700}
+  th:first-child,td:first-child{width:256px;font-size:25px;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>博艺课表</h1>
+    <table>
+      <tr><th>时间</th><th>周一</th><th>周二</th><th>周三</th><th>周四</th><th>周五</th></tr>
+      <tr><td>08:00-09:40</td><td>成人书法基础</td><td>少儿口才</td><td>播音发声</td><td>形体训练</td><td>模拟主持</td></tr>
+      <tr><td>10:00-11:40</td><td>形体训练</td><td>即兴评述</td><td>新闻播报</td><td>文学朗读</td><td>影视配音</td></tr>
+      <tr><td>14:00-15:40</td><td>模拟主持</td><td>新闻播报</td><td>成人书法基础</td><td>少儿口才</td><td>即兴评述</td></tr>
+    </table>
+  </div>
+</body>
+</html>

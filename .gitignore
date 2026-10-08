@@ -17,3 +17,8 @@ test/preview_ports.html
 # 设计探索的位图与字体工作副本（35MB，不进仓库、不进 EdgeOne 部署；文字与矢量记录保留）
 docs/redesign-2026-10/**/*.png
 docs/redesign-2026-10/fonts/
+
+# 课时统计测试的生成夹具（docx / csv / png 由 test/hours_recognize_check.mjs 现场生成，不进仓库）
+test/fixtures/hours_tt.docx
+test/fixtures/hours_tt.csv
+test/fixtures/hours_tt.png
