@@ -25,6 +25,9 @@
  *   5d) 真实 .docx（同上，绝对路径）：3 个各跑一遍并打印实际记录
  *   5e) 表格 <br>/<hr> 与 BY 码（「系统导出」件的形状）：换行不被吞、一格两节课拆得开、
  *       [BY05] / 行首 BY05 / @BY08 三种码各就各位、孤码行并回上一条、提示跟最终字段一致
+ *   5f) 回归（独立复核揪出的三处缺陷）：**行头多时段 × 格内多节**必须逐段配对（P0：老代码只取第一个
+ *       时段 → 整行都记到同一个时间）；「2 个时段 + 1 节 + 1 条附注」只出 1 条并覆盖整段、标待核；
+ *       `_codeStrip` 的 `clsKnown`（.doc 里 [BYxx] 其实是教室）单测；非课表（纯文字）→ suspect 闸门
  *   6) 归一化单元：norm.day 严格/宽松/不误判
  *   7) 路由与权限：super/admin 看得到「课时统计」且能进；teacher/student 看不到、也进不去
  *   8) 不回归：跑一遍仓库里已有的 test/ocr_browser_test.mjs（Ocr.recognize 没被改坏）
@@ -769,6 +772,117 @@ try {
     `班级已填上就不再挂「班级没认出来」，缺老师的提示保留：${JSON.stringify(brhr.notesOn)}`);
   ok(brhr.notesOff.indexOf('班级没认出来') >= 0,
     `班级真的没认出来时，提示照旧保留：${JSON.stringify(brhr.notesOff)}`);
+
+  /* ── 5f/9. 回归：行头多时段 × 格内多节 / 附注 / _codeStrip.clsKnown / 非课表闸门 ──
+     对应独立复核揪出的三处缺陷，其中第一处是 P0（会让人**把课排到错误的时段**）：
+     老代码遇到「行头写了 3 个时段」只取第一个 → 整行都记到同一个时间，
+     10:10-10:50 / 11:00-11:40 这些真实时段**一条都不会出现**。 */
+  console.log('\n【5f/9】回归：行头多时段配对 / 附注 / clsKnown / 非课表闸门 ──');
+
+  /* ① 行头 3 个时段 × 格内 3 节（`课表.docx` 形状：行头 3 列、表头首格 colspan=3、4 个日列） */
+  const slots3 = await cdp.eval(`(() => {
+    const am = '<p>09:20-10:00</p><p>10:10-10:50</p><p>11:00-11:40</p>';
+    const pm = '<p>03:00-03:40</p><p>03:50-04:30</p><p>04:40-05:20</p>';
+    const three = t => '<p>' + t + '</p><p>' + t + '</p><p>' + t + '</p>';
+    const html = '<table>'
+      + '<tr><td colspan="3"></td><td>7月20日 周六</td><td>7月21日 周日</td><td>7月22日 周一</td><td>7月23日 周二</td></tr>'
+      + '<tr><td>BY08</td><td>上午</td><td>' + am + '</td>'
+      +     '<td>' + three('文稿朗诵') + '</td><td>' + three('即兴评述') + '</td>'
+      +     '<td>' + three('新闻播音') + '</td><td>' + three('文稿朗诵') + '</td></tr>'
+      + '<tr><td></td><td>下午</td><td>' + pm + '</td>'
+      +     '<td>' + three('即兴评述') + '</td><td>' + three('文稿朗诵') + '</td>'
+      +     '<td>' + three('新闻播音') + '</td><td>' + three('即兴评述') + '</td></tr>'
+      + '</table>';
+    const grid = Hours._htmlTableToGrid(html);
+    const m = Hours._gridToModel(grid, 'docx');
+    const per = {};
+    m.records.forEach(r => { per[r.day] = per[r.day] || []; per[r.day].push(r.label); });
+    return { n: m.records.length, days: m.days, per, all: m.records.map(r => r.label),
+             mins: m.records.map(r => r.startMin),
+             suspect: m.suspect === true, warnings: m.warnings };
+  })()`);
+  ok(slots3.n === 24, `行头 3 时段 × 格内 3 节：共 ${slots3.n} 条（4 天 × (上午 3 + 下午 3) = 24）`);
+  {
+    /* 标签保留文件里明写的钟点（03:00-03:40），**分钟数**才走 _tmin 的 +12h —— 与既有口径一致 */
+    const want = ['09:20-10:00', '10:10-10:50', '11:00-11:40', '03:00-03:40', '03:50-04:30', '04:40-05:20'].sort();
+    const bad = [];
+    ['周六', '周日', '周一', '周二'].forEach(d => {
+      const got = (slots3.per[d] || []).slice().sort();
+      if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(d + ' 得到 ' + JSON.stringify(got));
+    });
+    ok(bad.length === 0, bad.length ? ('逐天时间对不上：' + bad.join(' / '))
+      : `每个日列都拆成 6 条、上午 3 个 + 下午 3 个时段各 1 次：${JSON.stringify(slots3.per['周六'])}`);
+  }
+  {
+    const pm = slots3.mins.filter(m => [900, 950, 1000].indexOf(m) >= 0);
+    ok(pm.length === 12, `下午三个时段的分钟数已走 _tmin 的 +12h（03:00→900 · 03:50→950 · 04:40→1000，共 12 条）：${JSON.stringify([...new Set(pm)].sort((a, b) => a - b))}`);
+  }
+  {
+    const uniq = [...new Set(slots3.all)];
+    const maxSame = Math.max(...uniq.map(l => slots3.all.filter(x => x === l).length));
+    ok(slots3.all.indexOf('10:10-10:50') >= 0 && slots3.all.indexOf('11:00-11:40') >= 0 &&
+       slots3.all.indexOf('03:50-04:30') >= 0 && slots3.all.indexOf('04:40-05:20') >= 0,
+      `第 2 / 3 个时段都真的出现了（不再「整行全记成第一个时段」）：去重时间 = ${JSON.stringify(uniq)}`);
+    ok(maxSame === 4, `没有任何时段被重复记成「整行」：出现最多的也只出现 ${maxSame} 次（= 每个日列 1 次）`);
+    ok(!slots3.suspect, `正常课表不会被「非课表闸门」误伤（24 条全部带时间/星期）：suspect=${slots3.suspect}｜提醒=${JSON.stringify(slots3.warnings)}`);
+  }
+
+  /* ② 行头 2 个时段 × 格内 1 节 + 1 条附注（`副本课表.docx` 8月6/7日上午的形状；日列要 ≥2 才走网格通路） */
+  const note1 = await cdp.eval(`(() => {
+    const html = '<table>'
+      + '<tr><td colspan="3"></td><td>8月6日 周二</td><td>8月7日 周三</td></tr>'
+      + '<tr><td>BY05</td><td>上午</td><td><p>09:30-10:10</p><p>10:10-11:00</p></td>'
+      +     '<td><p>科学发声——口腔控制</p><p>（重点训练咬字力度）</p></td>'
+      +     '<td><p>播音创作基础——节奏</p></td></tr>'
+      + '</table>';
+    const grid = Hours._htmlTableToGrid(html);
+    const m = Hours._gridToModel(grid, 'docx');
+    return { n: m.records.length, recs: m.records.map(r => ({ day:r.day, start:r.start, end:r.end,
+      startMin:r.startMin, endMin:r.endMin, title:r.title, needCheck:r.needCheck, notes:r.notes })) };
+  })()`);
+  {
+    const tue = note1.recs.filter(r => r.day === '周二');
+    const wed = note1.recs.filter(r => r.day === '周三');
+    ok(tue.length === 1 && wed.length === 1 && note1.n === 2,
+      `行头 2 时段 + 格内 1 节 + 1 附注：每个日列各 1 条（附注并入同一条，不另立一节课）：共 ${note1.n} 条`);
+    ok(tue.length === 1 && tue[0].startMin === 570 && tue[0].endMin === 660,
+      `8月6日上午那一条覆盖整段 09:30-11:00（570→660）：${JSON.stringify(tue.map(r => r.start + '-' + r.end))}`);
+    ok(tue.length === 1 && tue[0].needCheck === true,
+      `「1 条课占满 2 个时段」已标待核：needCheck=${tue.length === 1 ? tue[0].needCheck : '—'}｜notes=${JSON.stringify(tue.length === 1 ? tue[0].notes : [])}`);
+    ok(tue.length === 1 && /科学发声/.test(tue[0].title || '') && /重点训练咬字力度/.test(tue[0].title || ''),
+      `附注并进了 title：${JSON.stringify(tue.length === 1 ? tue[0].title : '')}`);
+    ok(wed.length === 1 && wed[0].startMin === 570 && wed[0].endMin === 660 && wed[0].needCheck === true,
+      `8月7日上午只有 1 节也照整段记 1 条 + 待核：${JSON.stringify(wed)}`);
+  }
+
+  /* ③ _codeStrip：班级已知时 [BYxx] 归**教室**（.doc 的语义）；未传 opts（默认 false）行为一字不变 */
+  const cs2 = await cdp.eval(`(() => {
+    const on  = Hours._codeStrip('08:50-09:10科学发声[BY05]', { clsKnown: true });
+    const off = Hours._codeStrip('08:50-09:10科学发声[BY05]', { clsKnown: false });
+    const dft = Hours._codeStrip('08:50-09:10科学发声[BY05]');
+    const sys = Hours._codeStrip('BY05 科学发声 @BY08', { clsKnown: true });
+    return { on:{cls:on.cls, room:on.room, s:on.s.trim()}, off:{cls:off.cls, room:off.room},
+             dft:{cls:dft.cls, room:dft.room}, sys:{cls:sys.cls, room:sys.room} };
+  })()`);
+  ok(cs2.on.room === 'BY05' && cs2.on.cls === '', `clsKnown:true → [BY05] 归教室、title 干净：${JSON.stringify(cs2.on)}`);
+  ok(cs2.off.cls === 'BY05' && cs2.off.room === '', `clsKnown:false → [BY05] 仍归班级：${JSON.stringify(cs2.off)}`);
+  ok(cs2.dft.cls === 'BY05' && cs2.dft.room === '', `不传 opts（默认 false）行为不变 → 仍归班级：${JSON.stringify(cs2.dft)}`);
+  ok(cs2.sys.cls === 'BY05' && cs2.sys.room === 'BY08',
+    `clsKnown 不影响另两种既有写法：行首裸码仍归班级、@BY08 仍归教室：${JSON.stringify(cs2.sys)}`);
+
+  /* ④ 非课表闸门：纯文字段落（无星期、无时间）→ suspect=true 且提醒里含「不像是课表」 */
+  const notTt = await cdp.eval(`(() => {
+    const lines = Array.from({ length: 25 }, (_, i) => '这是一段讲义正文的测试内容，用于验证非课表闸门，段落编号为' + (i + 1) + '。');
+    const html = '<table>' + lines.map(s => '<tr><td>' + s + '</td></tr>').join('') + '</table>';
+    const grid = Hours._htmlTableToGrid(html);
+    const m = Hours._gridToModel(grid, 'docx');
+    return { n: m.records.length, via: m.via, mode: m.mode,
+             suspect: m.suspect === true, warnings: m.warnings, first: m.warnings[0] || '' };
+  })()`);
+  ok(notTt.n >= 20, `非课表夹具认出了 ${notTt.n} 条内容（≥20 才会走闸门判定）`);
+  ok(notTt.suspect === true, `纯文字段落 → suspect=true（via=${notTt.via} mode=${notTt.mode}）`);
+  ok(/不像是课表/.test(notTt.first),
+    `非课表提醒已**置顶**在 warnings 第一位：${JSON.stringify(notTt.first).slice(0, 120)}…`);
 
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');

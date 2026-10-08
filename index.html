@@ -1895,10 +1895,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
      · 窄屏把宽表放进 .hrs-wrap（overflow-x:auto）+ 复用 .grid-hint 那行提示，
        免得在 390/360 上撑破 .main。
    ⚠️ 表内 input 固定 16px（iOS 聚焦不放大整页），小于 16px 会被 probe_mobile_layout 当场点名。 */
-#page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; }
-@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; } }
+#page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; --hrs-suspect-bg:#F7E1DC; --hrs-suspect-fg:#8A2417; --hrs-suspect-bd:#B23A2E; }
+@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; --hrs-suspect-bg:#3A1C16; --hrs-suspect-fg:#F4C9C0; --hrs-suspect-bd:#C4544A; } }
 #page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
 #page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
+/* 「不像课表」横幅：朱砂族。新令牌只在本页作用域定义 —— body.role-* 覆盖的是 --text/--text-dim
+   这类既有令牌，不会碰这两个新名字；fg 对 bg 的对比度明/暗两套都 ≥4.5:1（按 8 组合实测过）。 */
+#page-hours .hrs-suspect{margin:0 0 12px;padding:10px 12px;border:1px solid var(--hrs-suspect-bd);border-left-width:4px;border-radius:8px;background:var(--hrs-suspect-bg);color:var(--hrs-suspect-fg);font-size:14px;line-height:1.7}
 #page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 #page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
 #page-hours .hrstbl th,#page-hours .hrstbl td{border:1px solid var(--line);padding:3px 4px}
@@ -7819,6 +7822,20 @@ const Hours = {
     m.days = (m.days || []).slice().sort((a, b) => Schedule.DAYS.indexOf(a) - Schedule.DAYS.indexOf(b));
     m.rows = m.rows || []; m.records = m.records || [];
     m.unassigned = m.unassigned || []; m.warnings = m.warnings || [];
+    /* 非课表闸门：认出一堆内容、却几乎没有「时间」或完全没有「星期」→ 多半是讲义 / 文字稿 / 名单。
+       正常课表绝不会命中（时间与星期是它的骨架）。命中只加一条**置顶**提醒 + 前端一条横幅，
+       绝不拦着人用 —— 万一真是课表，人还能手动改。
+       （readSource 收尾会再调一次 _finish；m.suspect 已置位就跳过，免得提醒重复堆。） */
+    if (!m.suspect && m.records.length >= 20){
+      const timed = m.records.filter(r => r.startMin >= 0).length;
+      const dayed = m.records.filter(r => r.day).length;
+      if (timed / m.records.length < 0.15 || dayed === 0){
+        m.suspect = true;
+        m.suspectMsg = '这份文件不像是课表：认出 ' + m.records.length + ' 条内容，其中只有 ' + timed +
+          ' 条带时间。可能是讲义、文字稿或名单。如果这确实是课表，请换一份更清楚的截图，或另存为 Excel 再传。';
+        m.warnings.unshift(m.suspectMsg);
+      }
+    }
     return m;
   },
 
@@ -7902,7 +7919,8 @@ const Hours = {
      段级标签（<p>/<div>）**故意不当换行**：实测同一份真实 docx 里，格内多个 <p>
      有时是「同一条课的分行说明」（`课表.docx` 的「模考 / 09:00候场抽题 /（按照统考流程…）」），
      当成换行会把一条课拆成几条空课 —— 真正该拆的「一格多节」由 _splitSections 按**时间段**切。 */
-  _cellRawText(el){
+  _cellRawText(el, opt){
+    const pb = !!(opt && opt.paraBreak);
     let out = '';
     const walk = node => {
       const kids = node.childNodes || [];
@@ -7912,11 +7930,39 @@ const Hours = {
         if (n.nodeType !== 1) continue;
         const tag = String(n.tagName || '').toUpperCase();
         if (tag === 'BR' || tag === 'HR'){ out += '\n'; continue; }
+        /* opt.paraBreak：块级边界（<p>/<div>）也当换行 —— 只给「行头多时段 × 格内多节」
+           那条新路（_cellRawLines）用；默认 false，所以现有调用点的输出**一字不变**。 */
+        const block = pb && (tag === 'P' || tag === 'DIV');
+        if (block) out += '\n';
         walk(n);
+        if (block) out += '\n';
       }
     };
     walk(el);
     return out;
+  },
+
+  /* 一格 → 「块级段」列表：<p>/<div> 各成一段；td 直接子节点里的裸文本 / 行内元素合成一段。
+     每段内部 <br>/<hr> 仍转 \n（沿用 _cellRawText 的规则）；td 里没有任何块级子元素时返回 [整格原文]。
+     只给「行头写了多个时段、格内又没自带时间」那条配对逻辑用 ——
+     **_cellRawText(td)（不加 opt）的输出必须逐字节不变**，所以这里另起一条取文路径。 */
+  _cellRawLines(td){
+    const kids = (td && td.childNodes) || [];
+    const segs = [];
+    let bare = '', anyBlock = false;
+    const flush = () => { if (bare !== '') { segs.push(bare); bare = ''; } };
+    for (let i = 0; i < kids.length; i++){
+      const n = kids[i];
+      if (n.nodeType === 3){ bare += (n.nodeValue == null ? '' : n.nodeValue); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = String(n.tagName || '').toUpperCase();
+      if (tag === 'P' || tag === 'DIV'){ anyBlock = true; flush(); segs.push(this._cellRawText(n)); continue; }
+      if (tag === 'BR' || tag === 'HR'){ bare += '\n'; continue; }
+      bare += this._cellRawText(n);
+    }
+    flush();
+    if (!anyBlock) return [this._cellRawText(td)];
+    return segs;
   },
 
   _htmlTableToGrid(html){
@@ -7934,6 +7980,8 @@ const Hours = {
         [...tr.querySelectorAll('th,td')].forEach(td => {
           while (row[c] !== undefined) c++;                 // 跳过上行 rowspan 占用的列
           const text = this._cellText(this._cellRawText(td));
+          /* 额外的「块级段」列表（text 仍与老代码逐字节一致）—— 供「行头多时段」配对用 */
+          const lines = this._cellRawLines(td);
           const cs = Math.max(1, parseInt(td.getAttribute('colspan') || '1', 10) || 1);
           const rs = Math.max(1, parseInt(td.getAttribute('rowspan') || '1', 10) || 1);
           let clipped = false;
@@ -7946,8 +7994,8 @@ const Hours = {
               const cc = c + dc;
               if (target[cc] !== undefined) continue;        // 已被别的合并占住（畸形表）→ 先到先得
               target[cc] = (dr === 0 && dc === 0)
-                ? { text, merged: false, src: null }
-                : { text, merged: true, src: { r, c } };
+                ? { text, merged: false, src: null, lines }
+                : { text, merged: true, src: { r, c }, lines };
             }
           }
           if (clipped) this._gridNotes.push('第 ' + (r + 1) + ' 行的合并单元格跨过了表格末尾，已按表格实际行数截断');
@@ -7958,7 +8006,7 @@ const Hours = {
       const w = grid.reduce((m, g) => Math.max(m, g.length), 0);
       return grid.map(g => {
         const a = g.slice(0, w);
-        while (a.length < w) a.push({ text:'', merged:false, src:null });
+        while (a.length < w) a.push({ text:'', merged:false, src:null, lines: [] });
         return a;
       });
     } catch(e){
@@ -8322,9 +8370,11 @@ const Hours = {
   /* 行头列们 → {cls, slot, room, time, unmatched}。
      真实表头左边有 1~3 列行头（规格实测）：BY08｜上午｜08:40-09:10、BY03｜下午。
      这些是「这一行是谁、哪个时段、几点」，**绝不塞进 title**；认不出的一律进 unmatched。 */
-  _headFields(vals, ctx){
-    const out = { cls:'', slot:'', room:'', time:null, unmatched:[] };
-    (vals || []).forEach(v0 => {
+  _headFields(vals, ctx, opt){
+    const out = { cls:'', slot:'', room:'', time:null, times:[], unmatched:[] };
+    const lines = (opt && opt.lines) || [];
+    let dupTime = '';
+    (vals || []).forEach((v0, vi) => {
       const v = String(v0 == null ? '' : v0).trim();
       if (!v) return;
       const st = this.norm.stamp(v);
@@ -8336,7 +8386,25 @@ const Hours = {
          只认 HH:MM-HH:MM 这种明写的区间，所以「只写第3节」仍旧走作息表，行为不变。 */
       const mk = this._timeMarks(v);
       const t = mk.length ? this.norm.time(mk[0].t) : this.norm.time(v);
-      if (t){ if (!out.time) out.time = t; else out.unmatched.push('行头里有多个时间，只取了第一个「' + out.time.full + '」'); return; }
+      if (t){
+        if (!out.time) out.time = t; else if (!dupTime) dupTime = out.time.full;
+        /* out.times = 这一「时间列」里**按顺序找到的全部合法时段**（同一区间只留一次）。
+           真实课表一行里写了 3 个时段（09:20-10:00 / 10:10-10:50 / 11:00-11:40），
+           老代码只取第一个 → 整行都记到 09:20-10:00（会让人按错时间排课）。
+           `lines` 是 _htmlTableToGrid 为每个格存的「块级段」列表（csv/xlsx 没有，退回整格扫）。 */
+        const own = lines[vi];
+        const segs = (own && own.length) ? own : [v];
+        const add = tt => { if (tt && !out.times.some(x => x.start === tt.start && x.end === tt.end)) out.times.push(tt); };
+        if (segs.length === 1){
+          const mks = this._timeMarks(segs[0]);
+          if (mks.length) mks.forEach(m2 => add(this.norm.time(m2.t)));
+          else add(this.norm.time(segs[0]));
+        } else {
+          segs.forEach(seg => this._timeMarks(seg).forEach(m2 => add(this.norm.time(m2.t))));
+        }
+        if (!out.times.length) add(t);
+        return;
+      }
       const cl = this.norm.pick(v, (ctx && ctx.classes) || []);
       if (cl){ out.cls = cl; return; }
       if (/^[A-Za-z]{1,4}\s*\d{1,3}$/.test(v.replace(/\s/g, ''))){ out.cls = v.replace(/\s/g, ''); return; }
@@ -8346,6 +8414,10 @@ const Hours = {
       if (cm){ out.cls = cm[1]; out.unmatched.push('行头班级「' + cm[1] + '」没在名册里'); return; }
       out.unmatched.push('行头「' + v + '」没认出来');
     });
+    /* 「只取了第一个」这句只在**拿不到多时段清单**时才说 —— 拿到了就交给 _gridToModel 逐段配对，
+       再挂这句反而会让人以为时间没救了。 */
+    if (dupTime && out.times.length < 2)
+      out.unmatched.push('行头里有多个时间，只取了第一个「' + dupTime + '」');
     return out;
   },
 
@@ -8354,12 +8426,21 @@ const Hours = {
        · BY05 …   行首裸码 → 班级（`学生课表模板2` / `系统导出` 用的就是这种）
        · @BY08    → 教室（`系统导出` 里 `BY05 科学发声` 后面跟的 `@BY08`）
      必须在 norm.fields **之前**剥：否则 BY 码会被它当「教室」抢走（`\bBY\d+\b` 那条），
-     或者粘在课名里出不去。 */
-  _codeStrip(text){
+     或者粘在课名里出不去。
+     opts.clsKnown（默认 false）：**班级已经从行头认出来了**（老版 .doc：行头第 1 列就是
+     `暑6班`，格内每节课后面的 `[BYxx]` 其实是**教室**码 —— 同一班上午在 BY08、下午在 BY05）。
+     此时 [..] 的码归 room 而不是 cls；`[..]` 之外的两条写法（行首裸码 / @BY08）**一字不动**，
+     免得把 `BY05 科学发声 @BY08` 那条通路弄坏。 */
+  _codeStrip(text, opts){
     let s = String(text == null ? '' : text);
     let cls = '', room = '';
+    const clsKnown = !!(opts && opts.clsKnown);
     const codeOf = c => String(c).replace(/\s/g, '').toUpperCase();
-    s = s.replace(/\[([A-Za-z]{1,4}\s*\d{1,3})\]/g, (_, c) => { if (!cls) cls = codeOf(c); return ' '; });
+    s = s.replace(/\[([A-Za-z]{1,4}\s*\d{1,3})\]/g, (_, c) => {
+      if (clsKnown){ if (!room) room = codeOf(c); }
+      else if (!cls) cls = codeOf(c);
+      return ' ';
+    });
     s = s.replace(/[@＠]\s*([A-Za-z]{1,4}\s*\d{1,3})(?![0-9])/g, (_, c) => { if (!room) room = codeOf(c); return ' '; });
     s = s.replace(/(^|\n)[ \t]*([A-Za-z]{1,4}\s*\d{1,3})(?![0-9])[ \t]*(?=\s|$)/g,
                   (m, head, c) => { if (!cls) cls = codeOf(c); return head; });
@@ -8391,7 +8472,8 @@ const Hours = {
 
   /* 一节的正文 → 字段：内容里的 [BY03] / 行首 BY03 → 班级、xx老师 → 老师、@BY08 → 教室、· 当分隔符去掉。 */
   _sectionFields(body, base, ctx){
-    const code = this._codeStrip(body);
+    /* 班级已从行头认出来（.doc：行头就是班级名）→ 格内 [BYxx] 归**教室**，别顶掉真班级 */
+    const code = this._codeStrip(body, { clsKnown: !!(base && base.cls) });
     let s = code.s.replace(/·/g, ' ').replace(/[ \t]+/g, ' ').trim();
     const f = this.norm.fields(s, ctx);
     let teacher = f.teacher;
@@ -8439,6 +8521,66 @@ const Hours = {
       recs.push(rec);
     });
     return recs;
+  },
+
+  /* 行头写了 ≥2 个时段、格内又是「一条课一块」（没有自带时间）时的配对。真实两种形状都在这条路上：
+       · 行头 3 个时段、格内 3 条课（`课表.docx`）→ 1:1 配对，各占一个时段；
+       · 行头 2 个时段、格内 1 条课 + 1 条附注（`副本课表.docx` 8月6日上午）→ 整段记 1 节 + 标待核。
+     必须先认出**附注段落**（`（重点训练咬字力度）`、`注：…`、`说明：…`、`备注：…`）——
+     否则「2 段 = 2 条课」会被草率地配到 2 个时段上（这就是 8月6日上午的坑）。
+     返回：记录数组 ｜ null（对不上/不适用 → 交回现有逻辑）。
+     对不上时把一条 warning 写进 sink.warnings（**绝不静默按第一个时段糊过去**）。
+     sink = { unassigned, warnings, label, rowNo }（都在 _gridToModel 的同一作用域里）。 */
+  _cellBySlots(lines, times, base, via, conf, ctx, sink){
+    const flat = [];
+    (lines || []).forEach(l => String(l == null ? '' : l).split('\n').forEach(x => {
+      const t = x.replace(/[ \t]{2,}/g, ' ').trim();
+      if (t) flat.push(t);
+    }));
+    if (!flat.length) return null;
+    const isNote = t => /^\s*[（(]/.test(t) || /^\s*注\s*[:：]/.test(t) || /^\s*(说明|备注)\s*[:：]/.test(t);
+    /* 附注并进**上一条课**（用空格连）；上一条不存在（附注顶头）→ 记下来，绝不静默丢 */
+    const seq = [], orphan = [];
+    flat.forEach(t => {
+      if (isNote(t)){ if (seq.length) seq[seq.length - 1].notes.push(t); else orphan.push(t); }
+      else seq.push({ title: t, notes: [] });
+    });
+    if (orphan.length && sink && sink.unassigned) orphan.forEach(o => sink.unassigned.push(o));
+    const K = seq.length, N = times.length;
+    if (K === 0) return null;
+    /* 只拿「课行」去解析字段，附注**不参与** norm.fields —— 否则像 `（重点训练咬字力度）`
+       这种附注会被它的「括号即教室」启发式抢成 room（教室列会冒出「重点训练咬字力度」）。
+       附注按规格**原样并进 title**（用空格连）。 */
+    const mkOne = (title, notes, t) => {
+      const f = this._sectionFields(title, base, ctx);
+      const noteStr = (notes || []).join(' ').trim();
+      if (noteStr) f.title = (f.title ? f.title + ' ' : '') + noteStr;
+      const raw = [title].concat(notes || []).join(' ').trim();
+      return this._mkRecord(f, base.day || '', t, raw, conf, via);
+    };
+    if (K === 1 && N >= 2){
+      /* 这一条课**占满整段**：行头给了 N 个时段但格内只有 1 条课（连堂 / 附注被当课）。
+         时间取「首段起点 → 末段终点」，并标待核 —— 人一看就知道这里需要手动确认。 */
+      const first = times[0], last = times[N - 1];
+      const t = { start: first.start, end: last.end,
+                  startMin: first.startMin, endMin: last.endMin, full: first.start + '-' + last.end };
+      const rec = mkOne(seq[0].title, seq[0].notes, t);
+      rec.needCheck = true;
+      rec.notes = (rec.notes || []).concat('这一格只有 1 条课，行头写了 ' + N + ' 个时段，已按整段 ' +
+        t.start + '-' + t.end + ' 记 1 节；若实际是 ' + N + ' 节请手动拆开');
+      return [rec];
+    }
+    if (K === N){
+      /* 1:1 配对：第 i 条课 → times[i]（含各自的附注） */
+      return seq.map((s, i) => mkOne(s.title, s.notes, times[i]));
+    }
+    /* K>N 或 1<K<N：对不上 → 退回现有逻辑（按第一个时段取），并明确提示核对 */
+    if (sink && sink.warnings){
+      const who = [base && base.cls, base && base.slot].filter(Boolean).join(' ');
+      sink.warnings.push('第 ' + (sink.rowNo || '') + ' 行「' + (who || sink.label || '') + '」这一格有 ' +
+        K + ' 条课、行头写了 ' + N + ' 个时段，对不上，已按第一个时段取，请核对');
+    }
+    return null;
   },
 
   /* ═══════════ 老版 Word（.doc）：CFB 解容器 + 取正文（零依赖、best-effort）═══════════ */
@@ -8655,11 +8797,15 @@ const Hours = {
 
   /* ═══════════ 表格 → 模型 ═══════════ */
   _gridToModel(grid, via){
-    /* 格子可能是纯字符串（csv/xlsx），也可能是 _htmlTableToGrid 建的 {text,merged} 对象 */
-    const clean = (grid || []).map(r => (r || []).map(c =>
-      (c && typeof c === 'object')
-        ? { text: this._cellText(c.text), merged: !!c.merged }
-        : { text: this._cellText(c), merged: false }));
+    /* 格子可能是纯字符串（csv/xlsx），也可能是 _htmlTableToGrid 建的 {text,merged,lines} 对象 */
+    const clean = (grid || []).map(r => (r || []).map(c => {
+      if (c && typeof c === 'object'){
+        const o = { text: this._cellText(c.text), merged: !!c.merged };
+        if (c.lines) o.lines = c.lines;      // 「块级段」列表（只有 HTML/docx 那条路有）
+        return o;
+      }
+      return { text: this._cellText(c), merged: false };
+    }));
     if (!clean.length) return this._emptyModel(via);
     /* 取出上一次 _htmlTableToGrid 留下的提醒并立刻清空 —— 免得串到后面 csv/xlsx 的读取上 */
     const warnings = (this._gridNotes || []).slice();
@@ -8713,18 +8859,20 @@ const Hours = {
     if (via === 'doc') warnings.push('这是老版 Word（.doc）文件，我是尽力解析的，请逐格核对');
     const ctx = this._ctx();
     const rows = [], records = [], unassigned = [];
-    const prevHead = {}, headUn = {};
+    const prevHead = {}, prevHeadLines = {}, headUn = {};
     for (let i = headerIdx + 1; i < clean.length; i++){
       const line = clean[i];
       if (!line || !line.some(c => c.text)) continue;
-      /* 行头：合并续格（本格为空）沿用上一行的值 —— 「BY08」只写一次、下面留空就靠这条。 */
+      /* 行头：合并续格（本格为空）沿用上一行的值 —— 「BY08」只写一次、下面留空就靠这条。
+         lines（块级段）也一并沿用：时间列第 2 行常是「留空沿用上一行」。 */
       const headVals = headCols.map(j => {
         let t = ((line[j] || {}).text || '').trim();
         if (!t){ if (prevHead[j] != null) t = prevHead[j]; }
-        else prevHead[j] = t;
+        else { prevHead[j] = t; prevHeadLines[j] = (line[j] || {}).lines || null; }
         return t;
       });
-      const hf = this._headFields(headVals, ctx);
+      const headLines = headCols.map(j => prevHeadLines[j] || null);
+      const hf = this._headFields(headVals, ctx, { lines: headLines });
       (hf.unmatched || []).forEach(u => { headUn[u] = true; });
       const label = headVals.filter(Boolean).join(' ');
       const rowTime = hf.time || this.norm.time(label);
@@ -8736,7 +8884,7 @@ const Hours = {
         if (!text) return;
         any = true;
         if (cell.merged) hasMerged = true;
-        cells[colKey(dc)] = { text, conf: 100, merged: !!cell.merged };
+        cells[colKey(dc)] = { text, conf: 100, merged: !!cell.merged, lines: cell.lines || null };
       });
       /* 表头重复列（如 colspan 撑出来的第二列「周一」）：单元格内容收进 unassigned，绝不静默丢 */
       Object.keys(extraColSet).forEach(j => {
@@ -8752,12 +8900,20 @@ const Hours = {
                        cls: hf.cls || '', room: hf.room || '' };
         /* 一格塞了好几节课（真实课表就是这样）→ 按时间段拆成多条；拆不动就退回原「一格一条」。 */
         let recs = this._cellRecords(cd.text, base, via, cd.conf, ctx);
+        /* 行头写了 ≥2 个时段、这一格又**没有自带时间**（拆不出时间段）→ 按行头的时段与格内
+           「一条课一块」对齐（_cellBySlots）。自带时间的格（老版 .doc 那种）一律走既有
+           _splitSections 逻辑，绝不进这里 —— 保证那条通路的拆法一字不变。 */
+        if (!recs && hf.times.length >= 2 && this._splitSections(cd.text) === null){
+          recs = this._cellBySlots(cd.lines, hf.times, base, via, cd.conf, ctx,
+            { unassigned, warnings, label, rowNo: i + 1 });
+        }
         if (!recs){
           recs = [];
           this._joinCodeLines(cd.text).forEach(seg => {
             /* 单格里的 [BYxx] / 行首 BYxx / @BYxx 与多节拆分走**同一口径**剥干净：
-               既免得标题里残留「[ ]」，也免得 BY 码被当成教室、或粘在课名上。 */
-            const code = this._codeStrip(seg);
+               既免得标题里残留「[ ]」，也免得 BY 码被当成教室、或粘在课名上。
+               班级已从行头认出（base.cls）→ [BYxx] 归教室，与 _sectionFields 同一口径。 */
+            const code = this._codeStrip(seg, { clsKnown: !!(base.cls) });
             const s2 = code.s.replace(/[ \t]{2,}/g, ' ').trim();
             if (!s2){ unassigned.push(seg); return; }     // 只剩码、又没上一行可并 → 放到「未归位」让人看见，绝不静默丢
             const f = this.norm.fields(s2, ctx);
@@ -8902,12 +9058,20 @@ const Hours = {
     if (!box || !this._model) return;
     const m = this._model;
     const sum = '<div class="hrs-sum" id="hrsSum">' + this._sumInner() + '</div>';
+    const sus = this._suspectHtml(m);
     const extra = this._extraHtml(m);
     if (!m.records.length){
-      box.innerHTML = sum + '<div class="empty">没识别出可用的课。<br><span class="hint">可以换一份更清楚的图片，或直接传 Word / Excel / CSV 原件。</span></div>' + extra;
+      box.innerHTML = sum + sus + '<div class="empty">没识别出可用的课。<br><span class="hint">可以换一份更清楚的图片，或直接传 Word / Excel / CSV 原件。</span></div>' + extra;
       return;
     }
-    box.innerHTML = sum + this._tableHtml(m) + extra + this._confirmHtml(m.records.length);
+    box.innerHTML = sum + sus + this._tableHtml(m) + extra + this._confirmHtml(m.records.length);
+  },
+
+  /* 「不像课表」横幅（m.suspect 由 _finish 的闸门置位）—— 放在预览表**上方**，最醒目的位置 */
+  _suspectHtml(m){
+    if (!m || !m.suspect) return '';
+    const msg = m.suspectMsg || '这份文件不像是课表，请核对后再用。';
+    return '<div class="hrs-suspect" role="alert">' + Util.esc(msg) + '</div>';
   },
 
   _tableHtml(m){
