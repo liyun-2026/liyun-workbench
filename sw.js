@@ -190,7 +190,36 @@
       如实 / 空隙列进 unassigned。全部**直接调纯函数**，不放真实学校文件。
    ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；`TAB_ORDER`、`Ocr.recognize`、
       `readAnyFile` 一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-const VERSION = 'v67'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v68：**「课时统计」第三轮复核修复：Fix G 收窄 + 列数钉正（吃连续空列）+ `_dayGap1` 2 月底算错** ——
+   ⚠️ 先更正 v67 记录里的两处不实表述：
+      · 「其余 5 份逐字段完全一致（零回归）」**不准确** —— 实测 `notes`/`warnings` 在 4 份文件上确实变了
+        （v67 的 Fix G 触发面过宽，`课表.docx` / `副本课表.docx` / `26年暑期第2周学生课表.doc` /
+        `系统导出.doc` 共 254 条被多挂一条注记）。本轮收窄后给新数字。
+      · 「行头班名格在 cells[9]/[18]/[27]」**是错的** —— 真实是 **cells[9]/[18]/[36]**
+        （`cells[27]` 是 rowspan 续格、值为空）。已改正。
+   ① 【必修·误刷】v67 的 Fix G（`cls` 命中纯代码 → 标待核）触发面太宽，把好文件整表刷黄：
+      该校「系统导出」类文件约定**行首裸码就是班级**（`BY05 科学发声 @BY08`：BY05 是班、@BY08 是教室），
+      这类记录 `cls='BY05'` 是对的，却被逐条报警。实测命中（v67 口径）：`课表.docx` 82/82、
+      `系统导出.doc` 80/82、`副本课表.docx` 8/8、`26年暑期第2周学生课表.doc` 84/84，共 254 条。
+      改法：`_mkRecord` 里触发条件收窄为「`cls` 命中 `/^[A-Za-z]{1,4}\d{1,3}$/` **且** 该记录 `room` 为空」
+      （系统导出类记录都能从 `@BYxx` 拿到 room → 不再误报）；文案改中性「可能」。
+      实测 `系统导出.doc`：Fix G 命中 **80 → 0**（该文件 `room` 非空 80/82）。
+   ② 【必修·列数】`_docCellsToGrid` 的列数钉正（v67 那条「C 落在空列时看 C+1 是不是班名」）只能吃
+      **尾部 1 个空列**，尾部有 2 个空列时仍判少、整表左移。改法：「C 之后连续的空白格全部跳过」
+      （`while (C < list.length && String(list[C]||'').trim() === '') C++;`），并把「行头班名格」也算作
+      列数候选（`isHeadName`）；此段必须在既有边界校验（`C < 2` 放弃）之前，且 `list[C]` 非空时循环
+      不执行（保住「无尾空列」那种正确用例）。实测对抗用例（直接调 `Hours._docCellsToGrid`，期望
+      9/8/10/9 → 全部命中）；5 份真实 `.doc` 的 colCount 一个都没变坏。
+   ③ 【必修·小】`_dayGap1`（判断「两个日期是否正好差 1 天」，供「只有日期」的列顺推星期）的基准年取 2024
+      （闰年）→ `2月28日 → 3月1日` 被算成差 2 天、顺推直接断。改成固定**非闰年 2025** 做基准、取模基数改
+      **365**（用 366 会把 `12月31日 → 1月1日` 算成差 2）。`2月29日` 在非闰年不存在 → 返回空（本系统只
+      服务暑期课表表头，宁可留空请人核对，不瞎推）。
+   ④ `test/hours_recognize_check.mjs` 新增 5h 段（12 组断言）：列数 4 个对抗用例 / `_dayGap1` 5 个日期
+      断言 / Fix G 收窄 3 种触发（纯代码+无教室→仍报、纯代码+有教室→不报、班名→不报）；并把 5g 里 Fix G
+      的注记断言改用新文案。全部**直接调纯函数**，不放真实学校文件。
+   ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；`TAB_ORDER`、`Ocr.recognize`、
+      `readAnyFile` 一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+const VERSION = 'v68'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

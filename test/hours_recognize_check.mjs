@@ -946,8 +946,8 @@ try {
     const c = Hours._mkRecord({ cls:'TEACH01', title:'某课', unmatched:[] }, '周一', t, 'TEACH01 某课', 100, 'csv');
     return { a:{nc:a.needCheck, notes:a.notes}, b:{nc:b.needCheck, notes:b.notes}, c:{nc:c.needCheck, notes:c.notes} };
   })()`);
-  ok(fixG.a.nc === true && fixG.a.notes.some(t => /班级这一列现在填的是代码「BY05」/.test(t)),
-    `cls 是纯代码 → 标待核 + 注记「看起来像教室号」：${JSON.stringify(fixG.a.notes)}`);
+  ok(fixG.a.nc === true && fixG.a.notes.some(t => /班级这一列是代码「BY05」/.test(t)),
+    `cls 是纯代码且无教室 → 标待核 + 注记「可能是教室号」：${JSON.stringify(fixG.a.notes)}`);
   ok(fixG.b.nc === false && !fixG.b.notes.some(t => /班级这一列/.test(t)),
     `cls 是班名（暑6班）→ 不触发安全网：${JSON.stringify(fixG.b.notes)}`);
   ok(fixG.c.nc === false, `cls「TEACH01」字母超 4 位 → 不算纯代码、不触发（边界）：${JSON.stringify(fixG.c.notes)}`);
@@ -991,6 +991,67 @@ try {
   })()`);
   ok(gapCol.un.some(u => /空隙列的字/.test(u)),
     `表头空隙列的内容进了「未归位」、不静默丢：unassigned=${JSON.stringify(gapCol.un)}`);
+
+  /* ── 5h/9. 回归（第三轮复核）：Fix G 收窄（有教室不误报）/ 列数钉正吃多个空列 / _dayGap1 非闰年基准 ──
+     全部直接调纯函数。 */
+  console.log('\n【5h/9】回归：Fix G 收窄 / 列数钉正（多空列·尾格非空）/ _dayGap1 跨 2 月底 ──');
+
+  /* ① 问题 2：列数钉正必须吃下「尾部多个空列」与「尾格非空」，且不能让 8 格那种正确用例变坏 */
+  const colCases = await cdp.eval(`(() => {
+    const D = ['7月26日  周六','7月27日  周日','7月28日  周一','7月29日  周二','7月30日  周三','7月31日','8月1日'];
+    const L = '08:50-09:10科学发声[BY05]';
+    const mk = head => {
+      const tail = head.length - 8;
+      const row = name => { const a = [name]; for (let k = 0; k < 7; k++) a.push(L); for (let k = 0; k < tail; k++) a.push(''); return a; };
+      return head.slice().concat(row('暑6班\\n（半天班）'), row('暑8班\\n（全天班）'));
+    };
+    const one = head => {
+      const built = Hours._docCellsToGrid(mk(head));
+      const m = Hours._gridToModel(built.grid, 'doc');
+      const cc = /^[A-Za-z]{1,4}\\d{1,3}$/;
+      return { colCount: built.colCount, badCls: m.records.filter(x => cc.test(String(x.cls || ''))).length };
+    };
+    return { c9: one([''].concat(D, [''])), c8: one([''].concat(D)),
+             c10: one([''].concat(D, ['', ''])), c9note: one([''].concat(D, ['备注'])) };
+  })()`);
+  ok(colCases.c9.colCount === 9 && colCases.c9.badCls === 0,
+    `表头 9 格（尾 1 空列 = 真实件形状）→ colCount=${colCases.c9.colCount}（期望 9）`);
+  ok(colCases.c8.colCount === 8 && colCases.c8.badCls === 0,
+    `表头 8 格（无尾空列）→ colCount=${colCases.c8.colCount}（期望 8，没被改坏）`);
+  ok(colCases.c10.colCount === 10 && colCases.c10.badCls === 0,
+    `表头 10 格（尾部 2 空列）→ colCount=${colCases.c10.colCount}（期望 10；上一版只得 8 并出现 cls 污染）`);
+  ok(colCases.c9note.colCount === 9 && colCases.c9note.badCls === 0,
+    `表头 9 格但尾格非空「备注」→ colCount=${colCases.c9note.colCount}（期望 9；上一版只得 8）`);
+
+  /* ② 问题 3：_dayGap1 的基准年必须是非闰年（否则 2月28日→3月1日 被 2月29日 顶断） */
+  const gaps = await cdp.eval(`({
+    feb28_mar1: Hours._dayGap1('2月28日','3月1日'),
+    feb29_mar1: Hours._dayGap1('2月29日','3月1日'),
+    jul31_aug1: Hours._dayGap1('7月31日','8月1日'),
+    dec31_jan1: Hours._dayGap1('12月31日','1月1日'),
+    jul30_aug1: Hours._dayGap1('7月30日','8月1日')
+  })`);
+  ok(gaps.feb28_mar1 === true, `非闰年基准：2月28日→3月1日 = ${gaps.feb28_mar1}（期望 true；闰年基准会算成 false）`);
+  ok(gaps.feb29_mar1 === false, `2月29日 非闰年不存在 → 不瞎推 = ${gaps.feb29_mar1}（期望 false，按注释里的依据）`);
+  ok(gaps.jul31_aug1 === true, `7月31日→8月1日 = ${gaps.jul31_aug1}（期望 true）`);
+  ok(gaps.dec31_jan1 === true, `跨年：12月31日→1月1日 = ${gaps.dec31_jan1}（期望 true；取模用 366 会算成 false）`);
+  ok(gaps.jul30_aug1 === false, `7月30日→8月1日 = ${gaps.jul30_aug1}（期望 false，差 2 天不算相邻）`);
+
+  /* ③ Fix G 收窄：纯代码**且有教室**（「系统导出」类文件里行首码本来就是班级）不再误报 */
+  const fixG2 = await cdp.eval(`(() => {
+    const t = { start:'08:00', end:'09:40', startMin:480, endMin:580 };
+    const noRoom = Hours._mkRecord({ cls:'BY05', room:'', title:'科学发声', unmatched:[] }, '周一', t, 'BY05 科学发声', 100, 'csv');
+    const wRoom  = Hours._mkRecord({ cls:'BY05', room:'BY08', title:'科学发声', unmatched:[] }, '周一', t, 'BY05 科学发声 @BY08', 100, 'csv');
+    const name   = Hours._mkRecord({ cls:'暑6班', room:'', title:'某课', unmatched:[] }, '周一', t, '暑6班 某课', 100, 'csv');
+    const hit = r => (r.notes || []).some(s => /可能是教室号而不是班级名/.test(s));
+    return { noRoom:{hit:hit(noRoom), notes:noRoom.notes, nc:noRoom.needCheck},
+             wRoom:{hit:hit(wRoom), notes:wRoom.notes}, name:{hit:hit(name)} };
+  })()`);
+  ok(fixG2.noRoom.hit === true && fixG2.noRoom.nc === true,
+    `纯代码 + **无教室** → 仍触发（真该看的那格）：${JSON.stringify(fixG2.noRoom.notes)}`);
+  ok(fixG2.wRoom.hit === false,
+    `纯代码 + **有教室**（系统导出类：行首码本来就是班级）→ 不再误报：notes=${JSON.stringify(fixG2.wRoom.notes)}`);
+  ok(fixG2.name.hit === false, `班名 → 不触发：notes=${JSON.stringify(fixG2.name.notes)}`);
 
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
