@@ -1900,18 +1900,19 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 #page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
 #page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
 #page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
-#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:760px}
+#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
 #page-hours .hrstbl th,#page-hours .hrstbl td{border:1px solid var(--line);padding:3px 4px}
 #page-hours .hrstbl th{background:var(--gold);color:#222;font-weight:500;padding:6px 4px;white-space:nowrap}
 #page-hours .hrstbl td input{padding:5px 6px;font-size:16px;border-radius:5px}
 #page-hours .hrstbl td:nth-child(1){width:82px}
 #page-hours .hrstbl td:nth-child(2){width:148px}
-#page-hours .hrstbl td:nth-child(3){width:120px}
-#page-hours .hrstbl td:nth-child(4){width:100px}
-#page-hours .hrstbl td:nth-child(5){min-width:170px}
-#page-hours .hrstbl td:nth-child(6){width:110px}
-#page-hours .hrstbl td:nth-child(7){width:70px;text-align:center}
-#page-hours .hrstbl td:nth-child(8){width:40px;text-align:center}
+#page-hours .hrstbl td:nth-child(3){width:58px}
+#page-hours .hrstbl td:nth-child(4){width:120px}
+#page-hours .hrstbl td:nth-child(5){width:100px}
+#page-hours .hrstbl td:nth-child(6){min-width:170px}
+#page-hours .hrstbl td:nth-child(7){width:110px}
+#page-hours .hrstbl td:nth-child(8){width:70px;text-align:center}
+#page-hours .hrstbl td:nth-child(9){width:40px;text-align:center}
 #page-hours tr.hrs-low td{background:var(--hrs-low)}
 /* 黄底行的典型状态是「字段没认出来、输入框是空的」—— 用户可见文字其实就是这些 placeholder。
    全局 `input::placeholder{color:var(--text-dim)}` 在黄底上只有 2.5~4.1:1（端口皮肤下更差），
@@ -2419,13 +2420,13 @@ try {
       <div class="page-title">课时统计</div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 上传课表</h2>
-        <p class="hint" style="margin-top:0">传课表<b>图片</b>，或 Word（.docx）/ Excel（.xlsx）/ CSV 原件。系统会把课表还原成「周几 × 节次」的结构，在这里给你核对、修改。</p>
+        <p class="hint" style="margin-top:0">传课表<b>图片</b>，或 Word（<b>.doc / .docx</b>）/ Excel（<b>.xls / .xlsx</b>）/ CSV 原件。系统会把课表还原成「周几 × 节次」的结构，在这里给你核对、修改。老版 Word（.doc）我是尽力解析，结果一定会标「待核」，请逐格核对；<b>PDF 请先截图再传</b>。</p>
         <p class="hint" style="margin-top:4px">🔴 <b>确认之前不会动系统课表</b> —— 本页只负责「认出来 + 让人核对」，写进课表是下一阶段的事。</p>
         <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
           <button class="btn" onclick="document.getElementById('hrsFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
           <button class="btn ghost" onclick="Hours.clear()">清空</button>
         </div>
-        <input type="file" id="hrsFile" accept="image/*,.txt,.csv,.docx,.xlsx" style="display:none" onchange="Hours.onFile(this)">
+        <input type="file" id="hrsFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.txt,.csv,.doc,.docx,.xls,.xlsx,.pdf" style="display:none" onchange="Hours.onFile(this)">
         <p class="hint" id="hrsStat" style="margin:8px 0 0"></p>
       </div>
       <div class="card wide">
@@ -7634,6 +7635,30 @@ const Hours = {
       return out;
     },
 
+    /* 日期 + 星期 + 时段 三合一拆解 —— 真实课表的表头/行头就长这样：
+         「7月27日  周一」「8月1日周六」「8月17日周一」「8月22日周六上午」「7月20日周六」。
+       与 day() 的分工：day() 的边界规则是「正文行不许误判」的护栏，**不动**；
+       stamp() 是给「表头 / 行头 / 列表行头」用的**放宽**读取器，且只在**有日期时**才允许
+       「日期紧贴星期」这种写法（所以「每周一练」这类课程名仍不会被当成星期）。
+       返回 { date:'7月27日', day:'周一', slot:'上午' }，认不出的项为空串。 */
+    stamp(s){
+      const raw = String(s == null ? '' : s).replace(/[（(][^）)]*[）)]/g, '');
+      const out = { date:'', day:'', slot:'' };
+      let dm = /(\d{1,2})\s*月\s*(\d{1,2})\s*(?:[日号]|(?=(?:周|星期|礼拜)))/.exec(raw);
+      if (!dm) dm = /(\d{1,2})\s*[-/.]\s*(\d{1,2})\s*(?:[日号]|(?=(?:周|星期|礼拜)))/.exec(raw);
+      if (dm) out.date = (+dm[1]) + '月' + (+dm[2]) + '日';
+      /* 星期：先按 day() 的严格写法（整格就是「周X」）；再放宽到「日期+星期」紧贴的写法。 */
+      let d = this.day(raw, { strict: true });
+      if (!d && out.date){
+        const wm = /(?:周|星期|礼拜)([一二三四五六日天])/.exec(raw);
+        if (wm) d = '周' + (wm[1] === '天' ? '日' : wm[1]);
+      }
+      out.day = d;
+      const sm = /(上午|下午|晚上|全天|早上|中午|傍晚)/.exec(raw);
+      if (sm) out.slot = sm[1];
+      return out;
+    },
+
     /* 时间词在**原始行**里的起点（找不到返回 -1）—— 只用来判断多个星期候选谁离时间最近。
        与 time() 的四类写法对齐（第X节 / HH:MM-HH:MM / HH:MM / 裸整点），找**最靠左**的一个。 */
     _timePos(s){
@@ -7800,7 +7825,14 @@ const Hours = {
   /* 一条归一化记录。conf 越低 / 缺字段越多，越要人工确认 */
   _mkRecord(f, day, t, raw, conf, via){
     const c = Math.max(0, Math.min(100, Number(conf == null ? 100 : conf)));
-    const notes = (f.unmatched || []).slice();
+    /* 提示要跟**最终**字段一致：班级/老师已经填上了（多来自列头/行头，或单格里的 BY 码），
+       就不能再挂一句「班级没认出来」—— 那会让人对着已有的班级做无用功。
+       （多节路径的 _sectionFields 早就这样过滤了，这里补上单节路径，口径统一。） */
+    const notes = (f.unmatched || []).filter(u => {
+      if (f.cls && /^班级|^行头班级/.test(u)) return false;
+      if (f.teacher && /^老师/.test(u)) return false;
+      return true;
+    });
     if (!(day || f.day)) notes.unshift('没认出星期');
     if (!t || !(t.startMin >= 0)) notes.unshift('没认出时间');
     /* 一行里出现多个星期 → fields 取了最靠近时间的那个（**这是猜的**）→ 标黄请人核对。
@@ -7817,6 +7849,7 @@ const Hours = {
       startMin: t ? t.startMin : NaN, endMin: t ? t.endMin : NaN,
       cls: f.cls || '', room: f.room || '', title: f.title || '',
       teacher: f.teacher || '', teacherId: f.teacherId || '',
+      date: f.date || '', slot: f.slot || '',
       conf: low && c >= this.CONF_MIN ? Math.round(c * 0.9) : c,
       needCheck: low, notes,
       raw: String(raw == null ? '' : raw), via: via || ''
@@ -7831,10 +7864,13 @@ const Hours = {
     const type = (file && file.type) || '';
     let model;
     if (/\.docx$/i.test(name))                                   model = await this._readDocx(file, onProgress);
+    else if (/\.doc$/i.test(name) || /msword/.test(type))        model = await this._readDoc(file, onProgress);
     else if (/\.xlsx$/i.test(name))                              model = await this._readXlsx(file, onProgress);
+    else if (/\.xls$/i.test(name))                               throw new Error('老版 Excel（.xls）我这次还没做。请在 Excel / WPS 里「另存为 .xlsx」，或截图上传。');
     else if (/\.(csv|txt)$/i.test(name) || /^text\/plain/.test(type)) model = await this._readCsv(file, onProgress);
     else if (/^image\//.test(type) || /\.(png|jpe?g|webp|bmp|gif|heic)$/i.test(name)) model = await this._readImage(file, onProgress);
-    else throw new Error('这种文件还不支持：图片、Word(.docx)、Excel(.xlsx)、CSV / TXT 都行；PDF 请先截图再传');
+    else if (/\.pdf$/i.test(name) || /application\/pdf/.test(type)) throw new Error('PDF 我读不了，请先把课表那一页截图，再传图片。');
+    else throw new Error('这种文件还不支持：图片、Word（.doc / .docx）、Excel（.xls / .xlsx）、CSV / TXT 都行；PDF 请先截图再传');
     model.ms = Math.round(performance.now() - t0);
     return this._finish(model);
   },
@@ -7859,6 +7895,30 @@ const Hours = {
      被合并占用的格子填上**同一份文本**并打 `merged:true` + `src`（来自哪一格）——
      课表里的合并格通常就是「这两天是同一节课」，复制过去比留空更接近真相，也让人看得出填了什么。
      每行补齐到全表最大列数（缺的补空字符串）；畸形表格尽力还原、不抛异常。 */
+  /* 表格单元格取文：`<br>` / `<hr>` **必须是换行** ——
+     textContent 会把它们悄悄吞掉，把真实文件里「一格好几条」粘成一行
+     （实测：`博艺2026暑期第一周学生课表（系统导出）.doc` 一格两节课，
+      取出来变成 `BY05 科学发声 @BY08BY06 科学发声 @BY08`，谁也拆不开）。
+     段级标签（<p>/<div>）**故意不当换行**：实测同一份真实 docx 里，格内多个 <p>
+     有时是「同一条课的分行说明」（`课表.docx` 的「模考 / 09:00候场抽题 /（按照统考流程…）」），
+     当成换行会把一条课拆成几条空课 —— 真正该拆的「一格多节」由 _splitSections 按**时间段**切。 */
+  _cellRawText(el){
+    let out = '';
+    const walk = node => {
+      const kids = node.childNodes || [];
+      for (let i = 0; i < kids.length; i++){
+        const n = kids[i];
+        if (n.nodeType === 3){ out += (n.nodeValue == null ? '' : n.nodeValue); continue; }
+        if (n.nodeType !== 1) continue;
+        const tag = String(n.tagName || '').toUpperCase();
+        if (tag === 'BR' || tag === 'HR'){ out += '\n'; continue; }
+        walk(n);
+      }
+    };
+    walk(el);
+    return out;
+  },
+
   _htmlTableToGrid(html){
     this._gridNotes = [];
     try {
@@ -7873,7 +7933,7 @@ const Hours = {
         let c = 0;
         [...tr.querySelectorAll('th,td')].forEach(td => {
           while (row[c] !== undefined) c++;                 // 跳过上行 rowspan 占用的列
-          const text = this._cellText(td.textContent || '');
+          const text = this._cellText(this._cellRawText(td));
           const cs = Math.max(1, parseInt(td.getAttribute('colspan') || '1', 10) || 1);
           const rs = Math.max(1, parseInt(td.getAttribute('rowspan') || '1', 10) || 1);
           let clipped = false;
@@ -8232,6 +8292,367 @@ const Hours = {
     return m;
   },
 
+  /* ═══════════ 「一格多节」拆分（真实课表一个格里塞了好几节课）═══════════ */
+  /* 一格文本里的时间段标记；每次都 new 一个 RegExp，免得 g 标志的 lastIndex 串味 */
+  _timeMarks(text){
+    const s = String(text == null ? '' : text);
+    const re = /\d{1,2}\s*[:：]\s*\d{2}\s*[-—–~～至到]\s*\d{1,2}\s*[:：]\s*\d{2}/g;
+    const out = [];
+    let m;
+    while ((m = re.exec(s))) out.push({ at: m.index, end: m.index + m[0].length, t: m[0] });
+    return out;
+  },
+
+  /* 一格 → 若干「节」{timeStr, body}。有 ≥2 个时间段才拆；否则返回 null，
+     交回原来的「一格一条」逻辑 —— 保证既有行为一字不变。 */
+  _splitSections(text){
+    const s = String(text == null ? '' : text);
+    const marks = this._timeMarks(s);
+    if (marks.length < 2) return null;
+    const out = [];
+    const pre = s.slice(0, marks[0].at).trim();
+    if (pre) out.push({ timeStr: '', body: pre, pre: true });
+    marks.forEach((mk, i) => {
+      const body = s.slice(mk.end, i + 1 < marks.length ? marks[i + 1].at : s.length).trim();
+      out.push({ timeStr: mk.t, body: body, pre: false });
+    });
+    return out;
+  },
+
+  /* 行头列们 → {cls, slot, room, time, unmatched}。
+     真实表头左边有 1~3 列行头（规格实测）：BY08｜上午｜08:40-09:10、BY03｜下午。
+     这些是「这一行是谁、哪个时段、几点」，**绝不塞进 title**；认不出的一律进 unmatched。 */
+  _headFields(vals, ctx){
+    const out = { cls:'', slot:'', room:'', time:null, unmatched:[] };
+    (vals || []).forEach(v0 => {
+      const v = String(v0 == null ? '' : v0).trim();
+      if (!v) return;
+      const st = this.norm.stamp(v);
+      if (st.slot){ if (!out.slot) out.slot = st.slot; return; }
+      if (st.day) return;
+      /* 行头同时写了「第1节」和「08:50–09:10」时，**以文件里明写的钟点为准** ——
+         拿「第1节」去查作息表，得到的是作息表的时间；而这个班那几天的真实课点
+         就写在文件里（实测系统导出件是 `第1节<br>08:50–09:10`）。
+         只认 HH:MM-HH:MM 这种明写的区间，所以「只写第3节」仍旧走作息表，行为不变。 */
+      const mk = this._timeMarks(v);
+      const t = mk.length ? this.norm.time(mk[0].t) : this.norm.time(v);
+      if (t){ if (!out.time) out.time = t; else out.unmatched.push('行头里有多个时间，只取了第一个「' + out.time.full + '」'); return; }
+      const cl = this.norm.pick(v, (ctx && ctx.classes) || []);
+      if (cl){ out.cls = cl; return; }
+      if (/^[A-Za-z]{1,4}\s*\d{1,3}$/.test(v.replace(/\s/g, ''))){ out.cls = v.replace(/\s/g, ''); return; }
+      const rm = this.norm.pick(v, (ctx && ctx.rooms) || []);
+      if (rm){ out.room = rm; return; }
+      const cm = /([\u4e00-\u9fa5A-Za-z0-9]{2,12}?(?:班|年级))/.exec(v);
+      if (cm){ out.cls = cm[1]; out.unmatched.push('行头班级「' + cm[1] + '」没在名册里'); return; }
+      out.unmatched.push('行头「' + v + '」没认出来');
+    });
+    return out;
+  },
+
+  /* 一节正文里剥出「班级码 / 教室码」—— 学校的真实课表三种写法混着用，都认：
+       · [BY05]   → 班级（规格里点名的那种）
+       · BY05 …   行首裸码 → 班级（`学生课表模板2` / `系统导出` 用的就是这种）
+       · @BY08    → 教室（`系统导出` 里 `BY05 科学发声` 后面跟的 `@BY08`）
+     必须在 norm.fields **之前**剥：否则 BY 码会被它当「教室」抢走（`\bBY\d+\b` 那条），
+     或者粘在课名里出不去。 */
+  _codeStrip(text){
+    let s = String(text == null ? '' : text);
+    let cls = '', room = '';
+    const codeOf = c => String(c).replace(/\s/g, '').toUpperCase();
+    s = s.replace(/\[([A-Za-z]{1,4}\s*\d{1,3})\]/g, (_, c) => { if (!cls) cls = codeOf(c); return ' '; });
+    s = s.replace(/[@＠]\s*([A-Za-z]{1,4}\s*\d{1,3})(?![0-9])/g, (_, c) => { if (!room) room = codeOf(c); return ' '; });
+    s = s.replace(/(^|\n)[ \t]*([A-Za-z]{1,4}\s*\d{1,3})(?![0-9])[ \t]*(?=\s|$)/g,
+                  (m, head, c) => { if (!cls) cls = codeOf(c); return head; });
+    return { s: s, cls: cls, room: room };
+  },
+
+  /* 一格多行时，把「只有班级码 / 教室码」的孤行并回上一行
+     （真实课表：`BY05 科学发声` 下面单独跟一行 `@BY08`）。
+     孤行单独成记录会变成「没有课名的空课」；并回上一行，它正好就是那条课的教室。
+     孤行出现在**最前面**时（`BY05` 顶头，下面是课名）没有上一行可并 → 记着，并到下一行。 */
+  _joinCodeLines(text){
+    const isCode = t => /^[@＠]?[ \t]*[A-Za-z]{1,4}[ \t]*\d{1,3}[ \t]*$/.test(t);
+    const out = [];
+    let pending = '';
+    String(text == null ? '' : text).split('\n').forEach(seg => {
+      const t = seg.trim();
+      if (!t) return;
+      if (isCode(t)){
+        if (out.length) out[out.length - 1] = (out[out.length - 1] + ' ' + t).trim();
+        else pending = (pending + ' ' + t).trim();
+        return;
+      }
+      out.push((pending + ' ' + t).trim());
+      pending = '';
+    });
+    if (pending) out.push(pending);
+    return out;
+  },
+
+  /* 一节的正文 → 字段：内容里的 [BY03] / 行首 BY03 → 班级、xx老师 → 老师、@BY08 → 教室、· 当分隔符去掉。 */
+  _sectionFields(body, base, ctx){
+    const code = this._codeStrip(body);
+    let s = code.s.replace(/·/g, ' ').replace(/[ \t]+/g, ' ').trim();
+    const f = this.norm.fields(s, ctx);
+    let teacher = f.teacher;
+    if (!teacher){ const tm = /([\u4e00-\u9fa5]{1,4}老师)/.exec(s); if (tm) teacher = tm[1]; }
+    let cls = (base && base.cls) || f.cls || code.cls || '';
+    if (!cls){ const cm = /([\u4e00-\u9fa5A-Za-z0-9]{2,12}?(?:班|年级))/.exec(s); if (cm) cls = cm[1]; }
+    const room = (base && base.room) || f.room || code.room || '';
+    const slot = (base && base.slot) || '';
+    let rest = s;
+    if (slot) rest = rest.split(slot).join(' ');
+    if (cls) rest = rest.split(cls).join(' ');
+    if (teacher) rest = rest.split(teacher).join(' ');
+    if (f.room) rest = rest.replace(new RegExp(String(f.room).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
+    rest = rest.replace(/[-–—,，、:：|/]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    const unmatched = (f.unmatched || []).filter(u => {
+      if (cls && /^班级/.test(u)) return false;
+      if (teacher && /^老师/.test(u)) return false;
+      return true;
+    });
+    return { day:(base && base.day) || '', date:(base && base.date) || '', slot:(base && base.slot) || '',
+             cls, room, teacher, teacherId: f.teacherId || '', title: rest, unmatched };
+  },
+
+  /* 一格 → 记录数组。base = {day,date,slot,rowTime,cls,room}（来自列头 / 行头）。
+     没拆成多节时返回 null → 交回原逻辑。 */
+  _cellRecords(text, base, via, conf, ctx){
+    const secs = this._splitSections(text);
+    if (!secs) return null;
+    const recs = [];
+    secs.forEach(sec => {
+      const f = this._sectionFields(sec.body, base, ctx);
+      if (sec.pre){
+        /* 一节之前那段没有时间的文字，多半是行头（日期 / 星期 / 时段），不是一节课 ——
+           把日期、星期、时段剔干净后没剩下什么，就不给它造一条记录。 */
+        let t0 = String(f.title || '');
+        if (f.date) t0 = t0.split(f.date).join(' ');
+        t0 = t0.replace(/(?:周|星期|礼拜)[一二三四五六日天]/, ' ');
+        if (f.slot) t0 = t0.split(f.slot).join(' ');
+        if (!t0.trim() && !f.cls && !f.teacher) return;
+      }
+      const t = sec.timeStr ? this.norm.time(sec.timeStr) : (base.rowTime || null);
+      const raw = (sec.timeStr ? (sec.timeStr + ' ') : '') + sec.body;
+      const rec = this._mkRecord(f, base.day || '', t, raw, conf, via);
+      if (sec.pre) rec.notes = (rec.notes || []).concat('这一格开头有一段没有时间的文字，也单列出来了');
+      recs.push(rec);
+    });
+    return recs;
+  },
+
+  /* ═══════════ 老版 Word（.doc）：CFB 解容器 + 取正文（零依赖、best-effort）═══════════ */
+  /* 读 header → DIFAT/FAT → 目录 → 取 WordDocument 流；正文按
+     ① fcMin..fcMac 直读 → ② CLX 分段表 → ③ 兜底扫最长一段 UTF-16LE，
+     取「\x07 单元格分隔符最多」的那一份（\x07 才是 Word 的格线，真实文件里它最可靠）。 */
+  _readDocText(buf){
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    const FREE = 0xFFFFFFFF, END = 0xFFFFFFFE, FATSECT = 0xFFFFFFFD, DIFSECT = 0xFFFFFFFC;
+    const ss = 1 << dv.getUint16(0x1E, true);
+    if (!ss || (ss & (ss - 1)) !== 0 || ss < 128) throw new Error('这份 .doc 的扇区大小不对，读不了');
+    const sec = s => buf.subarray((s + 1) * ss, (s + 1) * ss + ss);
+    const difat = [];
+    for (let i = 0; i < 109; i++){ const v = dv.getUint32(0x4C + 4 * i, true); if (v !== FREE) difat.push(v); }
+    let nxt = dv.getUint32(0x44, true), guard = 0;
+    while (nxt !== FREE && nxt !== END && guard++ < 100000){
+      const off = (nxt + 1) * ss;
+      if (off + ss > buf.length) break;
+      for (let i = 0; i < ss / 4 - 1; i++){ const v = dv.getUint32(off + 4 * i, true); if (v !== FREE) difat.push(v); }
+      nxt = dv.getUint32(off + ss - 4, true);
+    }
+    const fat = [];
+    difat.forEach(fs => {
+      const off = (fs + 1) * ss;
+      if (off + ss > buf.length) return;
+      for (let i = 0; i < ss / 4; i++) fat.push(dv.getUint32(off + 4 * i, true));
+    });
+    const chain = (start, table) => {
+      const out = []; let c = start, g = 0;
+      while (c !== END && c !== FREE && c !== FATSECT && c !== DIFSECT && g++ < table.length + 8){ out.push(c); c = c < table.length ? table[c] : END; }
+      return out;
+    };
+    const readChain = (start, size, table) => {
+      const chunks = []; let got = 0;
+      for (const s of chain(start, table)){ const b = sec(s); chunks.push(b); got += b.length; if (size && got >= size) break; }
+      let len = 0; chunks.forEach(b => { len += b.length; });
+      const all = new Uint8Array(len); let o = 0;
+      chunks.forEach(b => { all.set(b, o); o += b.length; });
+      return size ? all.subarray(0, size) : all;
+    };
+    const dirdata = readChain(dv.getUint32(0x30, true), 0, fat);
+    const entries = [];
+    for (let i = 0; i + 128 <= dirdata.length; i += 128){
+      const e = dirdata.subarray(i, i + 128);
+      const edv = new DataView(e.buffer, e.byteOffset, 128);
+      const nlen = edv.getUint16(0x40, true);
+      let name = '';
+      if (nlen >= 2){ for (let k = 0; k + 1 < nlen - 2; k += 2) name += String.fromCharCode(e[k] | (e[k + 1] << 8)); }
+      entries.push({ name: name, type: e[0x42], start: edv.getUint32(0x74, true), size: edv.getUint32(0x78, true) });
+    }
+    /* 小于 4096 字节的流存在 mini 流里，得先拿到 root 的 mini 流和 mini-FAT */
+    const miniCut = dv.getUint32(0x38, true);
+    const minifatFirst = dv.getUint32(0x3C, true);
+    let minifat = [];
+    if (minifatFirst !== END && minifatFirst !== FREE){
+      const mf = readChain(minifatFirst, 0, fat);
+      const mdv = new DataView(mf.buffer, mf.byteOffset, mf.byteLength);
+      for (let i = 0; i + 4 <= mf.length; i += 4) minifat.push(mdv.getUint32(i, true));
+    }
+    const root = entries.find(e => e.type === 5);
+    const ministream = root ? readChain(root.start, root.size, fat) : new Uint8Array(0);
+    const getStream = name => {
+      const e = entries.find(x => x.name === name && x.type === 2);
+      if (!e) return null;
+      if (e.size < miniCut && ministream.length){
+        const chunks = []; let got = 0;
+        for (const s of chain(e.start, minifat)){ const b = ministream.subarray(s * 64, (s + 1) * 64); chunks.push(b); got += b.length; if (got >= e.size) break; }
+        let len = 0; chunks.forEach(b => { len += b.length; });
+        const all = new Uint8Array(len); let o = 0;
+        chunks.forEach(b => { all.set(b, o); o += b.length; });
+        return all.subarray(0, e.size);
+      }
+      return readChain(e.start, e.size, fat);
+    };
+    const wd = getStream('WordDocument');
+    if (!wd || wd.length < 64) throw new Error('这份 .doc 里没找到正文（可能是加密文档，或不是 Word 文件）');
+    const wdv = new DataView(wd.buffer, wd.byteOffset, wd.byteLength);
+    const dec16 = a => { let s = ''; for (let i = 0; i + 1 < a.length; i += 2) s += String.fromCharCode(a[i] | (a[i + 1] << 8)); return s; };
+    const flags = wdv.getUint16(0x0A, true);
+    const fcMin = wdv.getUint32(0x18, true), fcMac = wdv.getUint32(0x1C, true);
+    const fcClx = wdv.getUint32(0x01A2, true), lcbClx = wdv.getUint32(0x01A6, true);
+    const cands = [];
+    /* ① fcMin..fcMac 直读（实测这几个文件这段最干净） */
+    if (fcMac > fcMin && fcMac <= wd.length) cands.push(dec16(wd.subarray(fcMin, fcMac)));
+    /* ② CLX 分段表（快速保存会把正文切成多段） */
+    if (lcbClx > 0 && lcbClx < 0x800000){
+      const tbl = getStream(((flags >> 9) & 1) ? '1Table' : '0Table') || getStream('1Table') || getStream('0Table');
+      if (tbl && fcClx + lcbClx <= tbl.length){
+        const clx = tbl.subarray(fcClx, fcClx + lcbClx);
+        const cdv = new DataView(clx.buffer, clx.byteOffset, clx.byteLength);
+        let i = 0, pieces = null;
+        while (i < clx.length){
+          const t = clx[i];
+          if (t === 1){ if (i + 3 > clx.length) break; i += 3 + cdv.getInt16(i + 1, true); }
+          else if (t === 2){
+            if (i + 5 > clx.length) break;
+            const lcb = cdv.getUint32(i + 1, true);
+            if (i + 5 + lcb > clx.length) break;
+            const plc = clx.subarray(i + 5, i + 5 + lcb);
+            const pdv = new DataView(plc.buffer, plc.byteOffset, plc.byteLength);
+            const n = ((lcb - 4) / 12) | 0;
+            const cps = [];
+            for (let k = 0; k <= n; k++) cps.push(pdv.getUint32(4 * k, true));
+            pieces = [];
+            for (let k = 0; k < n; k++){
+              const fc = pdv.getUint32(4 * (n + 1) + 8 * k + 2, true);
+              pieces.push({ fc: fc & 0x3FFFFFFF, comp: (fc & 0x40000000) !== 0, cnt: cps[k + 1] - cps[k] });
+            }
+            break;
+          } else break;
+        }
+        if (pieces && pieces.length){
+          let s = '';
+          pieces.forEach(p => {
+            const seg = wd.subarray(p.fc, p.fc + (p.comp ? p.cnt : p.cnt * 2));
+            if (p.comp){ for (let k = 0; k < seg.length; k++) s += String.fromCharCode(seg[k]); }
+            else s += dec16(seg);
+          });
+          cands.push(s);
+        }
+      }
+    }
+    /* ③ 兜底：扫整个流里最长的一段可读 UTF-16LE */
+    cands.push(dec16(this._longestUtf16(wd)));
+    const score = t => {
+      const c7 = (t.match(/\x07/g) || []).length;
+      const jc = (t.match(/[\u4e00-\u9fa5]/g) || []).length;
+      return (c7 >= 2 ? 1e6 : 0) + c7 * 1000 + Math.min(jc, 4000);
+    };
+    let best = cands[0] || '';
+    cands.forEach(c => { if (score(c) > score(best)) best = c; });
+    return best;
+  },
+
+  /* 在字节流里找最长的一段「可读 UTF-16LE」（排除 NUL，免得把零填充当正文） */
+  _longestUtf16(u8){
+    const good = u => (u >= 0x4E00 && u <= 0x9FFF) || (u >= 0x3000 && u <= 0x303F) || (u >= 0xFF00 && u <= 0xFFEF)
+      || (u >= 0x20 && u <= 0x7E) || u === 0x0D || u === 0x0A || u === 0x07;
+    let bestS = 0, bestN = 0;
+    for (let parity = 0; parity < 2; parity++){
+      let i = parity;
+      while (i + 1 < u8.length){
+        let j = i, cnt = 0;
+        while (j + 1 < u8.length){ const u = u8[j] | (u8[j + 1] << 8); if (good(u)){ cnt++; j += 2; } else break; }
+        if (cnt > bestN){ bestN = cnt; bestS = i; }
+        i = j > i ? j + 2 : i + 2;
+      }
+    }
+    return u8.subarray(bestS, bestS + bestN * 2);
+  },
+
+  /* 正文按 \x07（Word 的格线）切格，剔掉 \r / 其它控制符与多余空白 */
+  _docSplitCells(text){
+    return String(text == null ? '' : text).split('\x07').map(seg => this._cellText(
+      String(seg).replace(/[\x0b\x0c]/g, '\n').replace(/[\x00-\x08\x0e-\x1f]/g, '')));
+  },
+
+  /* 老版 .doc 的格子 → 矩形网格（best-effort）。
+     真实形状（实测）：表头 = [行头列…] + [日期+星期 列…] + 可能的尾部空列，
+     数据行格子数与表头相同 —— 用**第一个班级码格 / 时段格**的位置定列数。 */
+  _docCellsToGrid(cells){
+    const list = (cells || []).map(c => this._cellText(c));
+    const dayAt = [];
+    list.forEach((c, i) => { if (this.norm.stamp(c).day) dayAt.push(i); });
+    if (dayAt.length < 2) return null;
+    /* 表头的日期列必定是连续的一段：取最长连续段 */
+    let best = [dayAt[0], dayAt[0]], run = [dayAt[0], dayAt[0]];
+    for (let k = 1; k < dayAt.length; k++){
+      if (dayAt[k] === run[1] + 1) run[1] = dayAt[k];
+      else { if (run[1] - run[0] > best[1] - best[0]) best = run.slice(); run = [dayAt[k], dayAt[k]]; }
+    }
+    if (run[1] - run[0] > best[1] - best[0]) best = run.slice();
+    const r0 = best[0], r1 = best[1];
+    if (r1 - r0 + 1 < 2) return null;
+    let C = -1;
+    for (let i = r1 + 1; i < list.length; i++){
+      const v = list[i].replace(/\s/g, '');
+      if (/^[A-Za-z]{1,4}\d{1,3}$/.test(v) || /^\d{1,4}$/.test(v) || /^(上午|下午|晚上|全天)$/.test(v)){ C = i; break; }
+    }
+    if (C < 0 || C < r0 + 1 || C > r1 + 4) C = r1 + 1;
+    if (C < 2) return null;
+    const grid = [];
+    for (let i = 0; i < list.length; i += C) grid.push(list.slice(i, i + C));
+    return { grid: grid, colCount: C, r0: r0, r1: r1 };
+  },
+
+  /* 老版 .doc 通路入口 */
+  async _readDoc(file, onProgress){
+    if (onProgress) onProgress('正在读取老版 Word（.doc）…');
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (buf.length < 8) throw new Error('这个文件是空的');
+    const isOle = buf[0] === 0xD0 && buf[1] === 0xCF && buf[2] === 0x11 && buf[3] === 0xE0
+               && buf[4] === 0xA1 && buf[5] === 0xB1 && buf[6] === 0x1A && buf[7] === 0xE1;
+    if (!isOle){
+      /* 实测里就有「扩展名是 .doc，内容其实是 HTML」的系统导出件 —— 能认出来的顺手读掉，
+         认不出的给明确提示，绝不静默失败。 */
+      let head = '';
+      try { head = new TextDecoder('utf-8').decode(buf.subarray(0, 512)); } catch(e){}
+      if (/^\uFEFF?\s*</.test(head) || /<html|<table|<body/i.test(head)){
+        const html = new TextDecoder('utf-8').decode(buf);
+        const grid = this._htmlTableToGrid(html);
+        if (grid.length) return this._gridToModel(grid, 'doc');
+        return this._linesToModel(this._lines(html.replace(/<[^>]+>/g, '\n')), 'doc');
+      }
+      if (/^\s*\{\\rtf/.test(head)) throw new Error('这份「.doc」其实是 RTF 格式，我暂时读不了。请用 Word / WPS 打开后另存为 .docx，或截图上传。');
+      throw new Error('这份「.doc」不是标准的老版 Word 文件（也不像 HTML），我读不了。请另存为 .docx，或截图上传。');
+    }
+    const text = this._readDocText(buf);
+    const built = this._docCellsToGrid(this._docSplitCells(text));
+    if (built) return this._gridToModel(built.grid, 'doc');
+    /* 拼不出网格 → 把 \x07（Word 的格线）当换行，退回按行当列表 */
+    return this._linesToModel(this._lines(String(text).replace(/\x07/g, '\n')), 'doc');
+  },
+
   /* ═══════════ 表格 → 模型 ═══════════ */
   _gridToModel(grid, via){
     /* 格子可能是纯字符串（csv/xlsx），也可能是 _htmlTableToGrid 建的 {text,merged} 对象 */
@@ -8244,19 +8665,25 @@ const Hours = {
     const warnings = (this._gridNotes || []).slice();
     this._gridNotes = [];
 
-    /* 表头行：前 4 行里找含 >=2 个星期词的那一行（strict：只认孤立星期词，别对正文乱触发） */
+    /* 表头行：前 4 行里找含 >=2 个「日列」的那一行。
+       日列判定用 norm.stamp（**只在表头行放宽**）：允许「7月27日  周一」「8月1日周六」这种
+       「日期+星期」混写，也保留只写「周一」的老写法；正文行仍走 day() 的边界规则 ——
+       「每周一练 / 周三强化班」不误判的护栏不许破。 */
     let headerIdx = -1, dayCols = [], extraCols = [];
     const dupDays = {};
     for (let i = 0; i < Math.min(clean.length, 4); i++){
       const cols = [];
-      clean[i].forEach((c, j) => { const d = this.norm.day(c.text, { strict: true }); if (d) cols.push({ day: d, j }); });
+      clean[i].forEach((c, j) => { const st = this.norm.stamp(c.text); if (st.day) cols.push({ day: st.day, date: st.date, slot: st.slot, j }); });
       if (cols.length >= 2){
         headerIdx = i;
-        /* 同一个星期名出现在 ≥2 列（多半是合并单元格造成的）→ 只保留第一列，其余列不参与课表解析 */
+        /* 同一个 (星期, 日期, 时段) 的列重复出现（多半是 colspan 撑出来的）→ 只保留第一列。
+           注意：多周课表里「周五」会**合法地**出现两次（7/10 与 7/17）—— 日期不同就不算重复，
+           两列都保留，记录各带自己的 date，绝不丢课。 */
         const seen = {};
         cols.forEach(c => {
-          if (seen[c.day]){ dupDays[c.day] = (dupDays[c.day] || 1) + 1; extraCols.push(c); }
-          else { seen[c.day] = true; dayCols.push(c); }
+          const k = c.day + '|' + c.date + '|' + c.slot;
+          if (Object.prototype.hasOwnProperty.call(seen, k)){ dupDays[c.day] = (dupDays[c.day] || 1) + 1; extraCols.push(c); }
+          else { seen[k] = true; dayCols.push(c); }
         });
         break;
       }
@@ -8264,22 +8691,43 @@ const Hours = {
     if (headerIdx < 0 || dayCols.length < 2)
       return this._linesToModel(clean.map(r => r.map(c => c.text).filter(Boolean).join('  ')), via);
 
-    const labelCol = Math.max(0, dayCols[0].j - 1);
+    /* 行头列：第一个日列**左边所有列**都是行头 —— 真实表头左边有 1~3 列
+       （BY08｜上午｜08:40-09:10、BY03｜下午、班级｜时间）。 */
+    const headCols = [];
+    for (let j = 0; j < dayCols[0].j; j++) headCols.push(j);
     const days = [];
     dayCols.forEach(c => { if (days.indexOf(c.day) < 0) days.push(c.day); });
+    /* 列键：星期不重复时就用星期名（老行为，UI/测试都按天取格）；
+       多周课表里同一天会合法地出现两次 → 键里补上日期 + 时段，两列各留各的课。 */
+    const dayCount = {};
+    dayCols.forEach(c => { dayCount[c.day] = (dayCount[c.day] || 0) + 1; });
+    const colKey = c => dayCount[c.day] > 1
+      ? (c.day + ' ' + (c.date || '') + (c.slot ? ' ' + c.slot : '')).trim()
+      : c.day;
     /* 表头重复列：多出来的列**不许静默丢格** —— 内容一律进 unassigned，并给一条人话提醒。
        （这是整个功能的底线：宁可让人看到一行看不懂的东西，也不能让数据无声消失。） */
     const extraColSet = {};
     extraCols.forEach(c => { extraColSet[c.j] = true; });
     Object.keys(dupDays).forEach(d => warnings.push(
       '表头里「' + d + '」出现了 ' + dupDays[d] + ' 次（可能是合并单元格造成的），只按第一列取课，多出来的内容已放在下面「未归位」里'));
+    if (via === 'doc') warnings.push('这是老版 Word（.doc）文件，我是尽力解析的，请逐格核对');
     const ctx = this._ctx();
     const rows = [], records = [], unassigned = [];
+    const prevHead = {}, headUn = {};
     for (let i = headerIdx + 1; i < clean.length; i++){
       const line = clean[i];
       if (!line || !line.some(c => c.text)) continue;
-      const label = ((line[labelCol] || {}).text || '').trim();
-      const rowTime = this.norm.time(label);
+      /* 行头：合并续格（本格为空）沿用上一行的值 —— 「BY08」只写一次、下面留空就靠这条。 */
+      const headVals = headCols.map(j => {
+        let t = ((line[j] || {}).text || '').trim();
+        if (!t){ if (prevHead[j] != null) t = prevHead[j]; }
+        else prevHead[j] = t;
+        return t;
+      });
+      const hf = this._headFields(headVals, ctx);
+      (hf.unmatched || []).forEach(u => { headUn[u] = true; });
+      const label = headVals.filter(Boolean).join(' ');
+      const rowTime = hf.time || this.norm.time(label);
       const cells = {};
       let any = false, hasMerged = false;
       dayCols.forEach(dc => {
@@ -8288,7 +8736,7 @@ const Hours = {
         if (!text) return;
         any = true;
         if (cell.merged) hasMerged = true;
-        cells[dc.day] = { text, conf: 100, merged: !!cell.merged };
+        cells[colKey(dc)] = { text, conf: 100, merged: !!cell.merged };
       });
       /* 表头重复列（如 colspan 撑出来的第二列「周一」）：单元格内容收进 unassigned，绝不静默丢 */
       Object.keys(extraColSet).forEach(j => {
@@ -8297,13 +8745,33 @@ const Hours = {
       });
       if (!any && !label) continue;
       rows.push({ label, time: rowTime ? (rowTime.start + '-' + rowTime.end) : '', cells });
-      days.forEach(day => {
-        const cd = cells[day];
+      dayCols.forEach(dc => {
+        const cd = cells[colKey(dc)];
         if (!cd) return;
-        cd.text.split('\n').forEach(seg => {
-          const s2 = seg.trim(); if (!s2) return;
-          const f = this.norm.fields(s2, ctx);
-          const rec = this._mkRecord(f, day, f.time || rowTime, s2, cd.conf, via);
+        const base = { day: dc.day, date: dc.date || '', slot: hf.slot || dc.slot || '', rowTime: rowTime || null,
+                       cls: hf.cls || '', room: hf.room || '' };
+        /* 一格塞了好几节课（真实课表就是这样）→ 按时间段拆成多条；拆不动就退回原「一格一条」。 */
+        let recs = this._cellRecords(cd.text, base, via, cd.conf, ctx);
+        if (!recs){
+          recs = [];
+          this._joinCodeLines(cd.text).forEach(seg => {
+            /* 单格里的 [BYxx] / 行首 BYxx / @BYxx 与多节拆分走**同一口径**剥干净：
+               既免得标题里残留「[ ]」，也免得 BY 码被当成教室、或粘在课名上。 */
+            const code = this._codeStrip(seg);
+            const s2 = code.s.replace(/[ \t]{2,}/g, ' ').trim();
+            if (!s2){ unassigned.push(seg); return; }     // 只剩码、又没上一行可并 → 放到「未归位」让人看见，绝不静默丢
+            const f = this.norm.fields(s2, ctx);
+            if (!f.slot && base.slot) f.slot = base.slot;
+            if (!f.date && base.date) f.date = base.date;
+            if (!f.cls) f.cls = base.cls || code.cls || '';
+            if (!f.room) f.room = base.room || code.room || '';
+            if (f.slot && f.title) f.title = String(f.title).split(f.slot).join(' ').replace(/\s{2,}/g, ' ').trim();
+            recs.push(this._mkRecord(f, dc.day, f.time || rowTime, s2, cd.conf, via));
+          });
+        }
+        recs.forEach(rec => {
+          /* 🔴 老版 .doc 通路：一律标「待核」—— 我是尽力解析的，不能让它悄悄变成「已确认」。 */
+          if (via === 'doc'){ rec.needCheck = true; rec.notes = (rec.notes || []).concat('老版 Word（.doc），请核对这一格'); }
           /* 合并格复制出来的记录：这一天确实有课，但「是不是同一天」得人来看 —— 计入待确认 */
           if (cd.merged){
             rec.merged = true; rec.needCheck = true;
@@ -8314,24 +8782,53 @@ const Hours = {
       });
       if (hasMerged) warnings.push('第 ' + (i + 1) + ' 行有合并单元格，已按同一内容填到合并的每一天，请核对');
     }
+    Object.keys(headUn).forEach(u => warnings.push('表头左边有没认出来的行头：' + u));
     if (!records.length) warnings.push('表里没解析出课程（这份表可能不是按「周几 × 节次」排的）');
     return this._finish({ mode:'grid', via, days, rows, records, unassigned, warnings });
   },
 
-  /* 列表 → 模型（每行一节课） */
+  /* 列表 → 模型（每行一节课；一行里塞了好几节就按时间段拆开） */
   _linesToModel(lines, via){
     const ctx = this._ctx();
     const days = [], rows = [], records = [], unassigned = [], warnings = [];
+    /* 🔴 老版 .doc 通路：一律标「待核」—— 尽力解析的结果不能悄悄变成「已确认」。 */
+    const markDoc = rec => {
+      if (via === 'doc'){ rec.needCheck = true; rec.notes = (rec.notes || []).concat('老版 Word（.doc），请核对这一格'); }
+      return rec;
+    };
     (lines || []).forEach((line, i) => {
       const s = String(line == null ? '' : line).trim();
       if (!s) return;
+      /* 行头三合一：8月17日周一 → date+day；8月22日周六上午 → 再加 slot=上午 */
+      const st = this.norm.stamp(s);
+      const base = { day: st.day, date: st.date, slot: st.slot, rowTime: null, cls:'', room:'' };
+      const multi = this._cellRecords(s, base, via, 100, ctx);
+      if (multi){
+        if (!multi.length){ unassigned.push(s); return; }
+        if (st.day && days.indexOf(st.day) < 0) days.push(st.day);
+        rows.push({ label: st.day || ('第' + (i + 1) + '行'), time: multi[0].label || '', cells: {} });
+        multi.forEach(rec => records.push(markDoc(rec)));
+        return;
+      }
       const f = this.norm.fields(s, ctx);
+      if (!f.day && st.day) f.day = st.day;
+      if (!f.date && st.date) f.date = st.date;
+      if (!f.slot && st.slot) f.slot = st.slot;
+      /* 日期/星期是从行头 stamp 补来的（norm.fields 当时没认出来），标题里那句要一并剔掉 */
+      if (st.date || st.day){
+        let tt = String(f.title || '');
+        if (st.date) tt = tt.split(st.date).join(' ');
+        tt = tt.replace(new RegExp('(?:周|星期|礼拜)[' + (st.day ? st.day.slice(1) : '一二三四五六日天') + ']', 'g'), ' ');
+        f.title = tt.replace(/\s{2,}/g, ' ').trim();
+      }
+      if (f.slot && f.title) f.title = String(f.title).split(f.slot).join(' ').replace(/\s{2,}/g, ' ').trim();
       if (!f.day && !f.cls && !f.title && !f.teacher){ unassigned.push(s); return; }
       if (f.day && days.indexOf(f.day) < 0) days.push(f.day);
       rows.push({ label: f.day || ('第' + (i + 1) + '行'), time: f.time ? (f.time.start + '-' + f.time.end) : '', cells: {} });
-      records.push(this._mkRecord(f, f.day, f.time, s, 100, via));
+      records.push(markDoc(this._mkRecord(f, f.day, f.time, s, 100, via)));
     });
     if (!records.length) warnings.push('没从这份文件里认出课来');
+    if (via === 'doc') warnings.push('这是老版 Word（.doc）文件，我是尽力解析的，请逐格核对');
     return this._finish({ mode:'list', via, days, rows, records, unassigned, warnings });
   },
 
@@ -8387,7 +8884,7 @@ const Hours = {
   },
 
   _viaText(v){
-    return { ocr:'图片 OCR', docx:'Word 表格', xlsx:'Excel 表格', csv:'表格 / 文本' }[v] || v || '—';
+    return { ocr:'图片 OCR', docx:'Word 表格', doc:'Word（老版 .doc，尽力解析）', xlsx:'Excel 表格', csv:'表格 / 文本' }[v] || v || '—';
   },
 
   _sumInner(){
@@ -8419,7 +8916,7 @@ const Hours = {
       const cell = (k, ph) => '<td><input value="' + Util.esc(r[k] || '') + '" placeholder="' + Util.esc(ph || '') +
         '" oninput="Hours.edit(' + i + ',\'' + k + '\',this.value)" aria-label="' + Util.esc(ph || k) + '"></td>';
       return '<tr' + cls + ' data-i="' + i + '">' +
-        cell('day', '周一') + cell('label', '08:00-09:40') + cell('cls', '班级') +
+        cell('day', '周一') + cell('label', '08:00-09:40') + cell('slot', '上午') + cell('cls', '班级') +
         cell('room', '教室') + cell('title', '授课内容') + cell('teacher', '老师') +
         '<td><span class="hrs-conf" title="' + Util.esc((r.notes || []).join('；') || '置信度偏低') + '">' +
           Math.round(r.conf) + '%' + (r.needCheck ? '<br><span class="hrs-need">待核</span>' : '') + '</span></td>' +
@@ -8428,7 +8925,7 @@ const Hours = {
     }).join('');
     return '<div class="grid-hint">← 左右滑动看整张表 →</div>' +
       '<div class="hrs-wrap"><table class="hrstbl"><thead><tr>' +
-        '<th>星期</th><th>节次 / 时间</th><th>班级</th><th>教室</th><th>授课内容</th><th>老师</th><th>置信度</th><th></th>' +
+        '<th>星期</th><th>节次 / 时间</th><th>时段</th><th>班级</th><th>教室</th><th>授课内容</th><th>老师</th><th>置信度</th><th></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   },
 

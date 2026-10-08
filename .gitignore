@@ -25,6 +25,15 @@ test/fixtures/hours_tt.xlsx
 test/fixtures/hours_tt_merged.docx
 test/fixtures/hours_tt_realgeom.docx
 test/fixtures/hours_tt.png
+# v65 新增的匿名合成夹具（「日期+星期」表头 / 3 列行头 / 格内多节 / 列表式 / 像样课表），同样现场生成
+test/fixtures/hours_tt_dateday.csv
+test/fixtures/hours_tt_head3.csv
+test/fixtures/hours_tt_list2.csv
+test/fixtures/hours_tt_list3.csv
+test/fixtures/hours_tt_rich.csv
+test/fixtures/hours_tt_rich.docx
+# 两通路对比实验的临时产物（test/measure|render_hours_two_paths*.mjs 生成本地对比图用）
+test/fixtures/_two_paths/
 
 # Python 编译缓存
 test/__pycache__/

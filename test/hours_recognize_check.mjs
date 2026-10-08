@@ -18,10 +18,17 @@
  *      网格矩形、合并格文本填到每一列/行、逐天课程集合一致（不串列、不丢课）、warnings 有提示；
  *      另：真实 Word 登记表（存在才跑）断言每行 6 列、27 行
  *   5) xlsx 通路：Python 手写最小 OOXML → _readXlsx 自解 zip → 逐格一致
+ *   5b) 真实形状（匿名合成夹具）：「日期+星期」表头 / 3 列行头（含合并续格）/ 格内多节拆分
+ *       （[BY03]→班级、xx老师→老师、时段→slot、时间走 _tmin）/ 列表式 date+day+slot
+ *   5c) 真实老版 .doc（**绝对路径读，绝不复制进仓库**；不在就 skip 且不计入通过）：
+ *       8 个逐个跑，断言不抛异常、条数 = 待核数、有「尽力解析」提醒，并打印前 5 条实际记录
+ *   5d) 真实 .docx（同上，绝对路径）：3 个各跑一遍并打印实际记录
+ *   5e) 表格 <br>/<hr> 与 BY 码（「系统导出」件的形状）：换行不被吞、一格两节课拆得开、
+ *       [BY05] / 行首 BY05 / @BY08 三种码各就各位、孤码行并回上一条、提示跟最终字段一致
  *   6) 归一化单元：norm.day 严格/宽松/不误判
  *   7) 路由与权限：super/admin 看得到「课时统计」且能进；teacher/student 看不到、也进不去
  *   8) 不回归：跑一遍仓库里已有的 test/ocr_browser_test.mjs（Ocr.recognize 没被改坏）
- *   9) 手机端：test/probe_mobile_layout.mjs 量 hours 在 390 / 360 下的 overX 与 <16px 控件
+ *   9) 手机端：test/probe_mobile_layout.mjs 量 hours 在 390 / 360 / 320 下的 overX 与 <16px 控件
  *
  * 🔴 任何一项没过都会在最下面汇总并把 exit code 置 1。
  */
@@ -91,6 +98,25 @@ const DAYWORD = /(周|星期|礼拜)[一二三四五六日天]/;
 
 /* 真实 Word（存在才跑）：/Volumes/山野万里/… 那张「教师授课日志登记表」，首行有 colspan=5、末格 rowspan=2 */
 const REAL_WORD = '/Volumes/山野万里/2019教师授课日志登记表（用专属信纸打印）.docx';
+
+/* 🔴 用户报障的真实课表：**只按绝对路径读，绝不复制进仓库**
+   （这个仓库是 EdgeOne 的部署源，放进 fixtures = 把学校真实课表公开出去）。
+   不存在就明确 skip，**不计入通过**。 */
+const REAL_DOCS = [
+  '/Users/xielihui/Desktop/博艺/博艺暑期/26年暑期第2周学生课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/26年暑期第3周学生课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/26年暑期第3老师课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/26年暑期第一周学生课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/26年暑期课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/学生个人课表.doc',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/博艺2026暑期第一周学生课表（系统导出）.doc',
+  '/Users/xielihui/Desktop/砺蕴教务系统/砺蕴素材/砺蕴工作系统课表板块试用课表.doc',
+];
+const REAL_DOCXES = [
+  '/Users/xielihui/Desktop/博艺/课件/课表.docx',
+  '/Users/xielihui/Desktop/博艺/博艺暑期/学生课表模板2.docx',
+  '/Users/xielihui/Desktop/博艺/课件/周末课表模板.docx',
+];
 
 /* 图片夹具（test/fixtures/hours_tt.html）：5 天 × 3 节 */
 const IMG_DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -293,6 +319,19 @@ try {
   ok(!rt.tab.super && !rt.tab.office && !rt.tab.admin && !rt.tab.both && !rt.tab.teacher && !rt.tab.student,
      'TAB_ORDER 一个都没动（底栏不含 hours）');
   ok(rt.after.super === 1, "'hours' 紧跟在 'timetable' 后面");
+
+  /* 1b. 上传框 accept 回归 —— 用户报的 bug：没写 .doc，macOS 选择器把 .doc 全部置灰，根本选不了 */
+  const acc = await cdp.eval(`(() => {
+    const el = document.getElementById('hrsFile');
+    return { accept: el ? (el.getAttribute('accept') || '') : null,
+             hint: (document.querySelector('#page-hours .hint') || {}).textContent || '' };
+  })()`);
+  ok(!!acc.accept && /\.doc\b/.test(acc.accept) && /\.docx\b/.test(acc.accept),
+     '上传框 accept 含 .doc 与 .docx（用户报障的回归）：' + acc.accept);
+  ok(!!acc.accept && /\.xls\b/.test(acc.accept) && /\.xlsx\b/.test(acc.accept) && /\.pdf\b/.test(acc.accept),
+     '上传框 accept 含 .xls / .xlsx / .pdf：' + acc.accept);
+  ok(/\.doc/.test(acc.hint) && /PDF|截图/.test(acc.hint),
+     '上传卡片文案说明了 .doc 支持与 PDF 截图：' + acc.hint.slice(0, 90) + '…');
 
   /* ── 2. docx 通路 ── */
   console.log('\n【2/9】docx 通路（mammoth → 表格，精确）──');
@@ -532,6 +571,205 @@ try {
   ok(xlsxBad.length === 0, xlsxBad.length ? ('格子对不上：' + xlsxBad.join(' / ')) : '逐格与真值一致（9/9）');
   ok(xlsx.n === 9, `records 条数 = ${xlsx.n}（期望 9）`);
 
+  /* ── 5b/9. 真实课表的四种形状（匿名合成夹具，永远能跑）── */
+  console.log('\n【5b/9】真实形状：日期+星期表头 / 多列行头 / 格内多节 / 列表式 ──');
+  const b64Of = n => readFileSync(path.join(FIX, n)).toString('base64');
+  const ddB64 = b64Of('hours_tt_dateday.csv');
+  const h3B64 = b64Of('hours_tt_head3.csv');
+  const l3B64 = b64Of('hours_tt_list3.csv');
+  const l2B64 = b64Of('hours_tt_list2.csv');
+
+  /* ① 表头「日期 + 星期」混写 + 行头 2 列 + 格内多节 */
+  const dateday = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(ddB64)}, 'hours_tt_dateday.csv', 'text/csv');
+    const m = await Hours.readSource(f, () => {});
+    return { via:m.via, mode:m.mode, days:m.days,
+      recs:m.records.map(r=>({day:r.day,date:r.date,slot:r.slot,cls:r.cls,teacher:r.teacher,title:r.title,start:r.start,end:r.end,startMin:r.startMin,endMin:r.endMin})) };
+  })()`);
+  ok(dateday.via === 'csv' && dateday.mode === 'grid',
+     `日期+星期表头被判成网格（via=${dateday.via} mode=${dateday.mode}）`);
+  ok(eq(dateday.days, ['周一','周二','周三']),
+     `日期+星期表头：星期列 = ${JSON.stringify(dateday.days)}（期望 周一/周二/周三）`);
+  {
+    /* 周一那一格 = 「02:50-03:10普通话发音[BY03]03:10-03:50余老师·声调调值1[BY03]」
+       → 必须拆成 2 条，时间 890/910/950 全走 _tmin（02:50 → 14:50） */
+    const sec = dateday.recs.filter(r => r.startMin === 890 || r.startMin === 910);
+    ok(sec.length === 2 && sec.every(r => r.day === '周一' && r.date === '7月27日'),
+       `格内多节：周一那一格拆成 2 条（02:50→890 走 _tmin 的下午 +12h）：${JSON.stringify(sec.map(r => r.start + '-' + r.end + ' ' + r.title))}`);
+    ok(sec.length === 2 && sec.every(r => r.cls === 'BY03'),
+       `内容里的 [BY03] → cls：${JSON.stringify([...new Set(sec.map(r => r.cls))])}`);
+    ok(sec.some(r => r.teacher === '余老师'),
+       `老师名 → teacher：${JSON.stringify(sec.map(r => r.teacher))}`);
+    ok(sec.length === 2 && sec.every(r => r.slot === '下午'),
+       `行头「下午」→ slot（不进 title）：${JSON.stringify([...new Set(sec.map(r => r.slot))])}`);
+    const dirty = sec.filter(r => /余老师|BY03|下午/.test(r.title));
+    ok(dirty.length === 0, `title 里没残留 老师名 / [BYxx] / 时段：${JSON.stringify(sec.map(r => r.title))}`);
+  }
+
+  /* ② 行头 3 列（BY08｜上午｜08:40-09:10）+ 合并续格（第 2 行「BY08」留空要沿用） */
+  const head3 = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(h3B64)}, 'hours_tt_head3.csv', 'text/csv');
+    const m = await Hours.readSource(f, () => {});
+    return { via:m.via, mode:m.mode, days:m.days,
+      recs:m.records.map(r=>({day:r.day,date:r.date,slot:r.slot,cls:r.cls,label:r.label,title:r.title})) };
+  })()`);
+  ok(head3.mode === 'grid' && eq(head3.days, ['周一','周六','周日']),
+     `3 列行头：仍判成网格、星期列 = ${JSON.stringify(head3.days)}（按 DAYS 排序 → 周一/周六/周日）`);
+  {
+    const r1 = head3.recs.filter(r => r.label === '08:40-09:10');
+    ok(r1.length === 3 && r1.every(x => x.cls === 'BY08' && x.slot === '上午'),
+       `行头三列各就各位（BY08→cls、上午→slot、08:40-09:10→时间），没被当成课程内容：${JSON.stringify(r1)}`);
+    const r2 = head3.recs.filter(r => r.label === '03:00-03:40');
+    ok(r2.length === 3 && r2.every(x => x.cls === 'BY08' && x.slot === '下午'),
+       `行头「合并续格」（第 2 行 BY08 留空）沿用上一行，且「下午」覆盖继承来的「上午」：${JSON.stringify(r2)}`);
+    const bad = head3.recs.filter(r => /BY08|上午|下午|08:40|03:00/.test(r.title));
+    ok(bad.length === 0, `title 里没有残留行头：${JSON.stringify(head3.recs.map(r => r.title))}`);
+  }
+
+  /* ③ 3 列列表式：8月17日周一｜上午｜09:30-09:40… （首列合并跨上午/下午） */
+  const list3 = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(l3B64)}, 'hours_tt_list3.csv', 'text/csv');
+    const m = await Hours.readSource(f, () => {});
+    return { via:m.via, mode:m.mode, days:m.days,
+      recs:m.records.map(r=>({day:r.day,date:r.date,slot:r.slot,label:r.label,startMin:r.startMin,title:r.title})) };
+  })()`);
+  ok(list3.via === 'csv' && list3.mode === 'list',
+     `3 列列表式：走列表模式（via=${list3.via} mode=${list3.mode}）`);
+  {
+    const mon = list3.recs.filter(r => r.day === '周一');
+    ok(mon.length === 4 && mon.every(r => r.date === '8月17日') &&
+       mon.filter(r => r.slot === '上午').length === 2 && mon.filter(r => r.slot === '下午').length === 2,
+       `8月17日周一 → date+day；上午/下午 → slot；格内 2+2 节各自拆开：${JSON.stringify(mon.map(r => ({ d:r.day, dt:r.date, s:r.slot, l:r.label, t:r.title })))}`);
+    ok(mon.some(r => r.startMin === 570) && mon.some(r => r.startMin === 930),
+       `3 列列表式：时间走 _tmin（09:30=570、03:30→15:30=930）：${JSON.stringify(mon.map(r => r.label))}`);
+  }
+
+  /* ④ 2 列列表式：8月22日周六上午｜09:30-09:40… （日期+星期+时段挤在一格） */
+  const list2 = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(l2B64)}, 'hours_tt_list2.csv', 'text/csv');
+    const m = await Hours.readSource(f, () => {});
+    return { via:m.via, mode:m.mode, days:m.days,
+      recs:m.records.map(r=>({day:r.day,date:r.date,slot:r.slot,label:r.label,startMin:r.startMin,title:r.title})) };
+  })()`);
+  {
+    const sat = list2.recs.filter(r => r.day === '周六');
+    ok(sat.length === 4 && sat.every(r => r.date === '8月22日') &&
+       sat.filter(r => r.slot === '上午').length === 2 && sat.filter(r => r.slot === '下午').length === 2,
+       `2 列列表式：8月22日周六上午 → date+day+slot、格内 2 节拆开：${JSON.stringify(sat.map(r => ({ l:r.label, t:r.title, s:r.slot, dt:r.date })))}`);
+    const am = sat.filter(r => r.slot === '上午');
+    ok(am.some(r => r.startMin === 570) && am.some(r => r.startMin === 580),
+       `2 列列表式：两条各自的时间对（09:30=570 / 09:40=580）：${JSON.stringify(am.map(r => r.label))}`);
+  }
+
+  /* ── 5c/9. 真实老版 .doc（绝对路径读；不在就 skip，不计入通过）── */
+  console.log('\n【5c/9】真实老版 .doc（CFB / OLE2；读绝对路径，不复制进仓库）──');
+  let docRan = 0;
+  for (const p of REAL_DOCS) {
+    if (!existsSync(p)) { skips.push(`真实 .doc 不在（${p}）`); console.log('  ⏭️  跳过：不存在 ' + p); continue; }
+    docRan++;
+    const b64 = readFileSync(p).toString('base64');
+    const r = await cdp.eval(`(async () => {
+      ${PAGE_HELPERS}
+      try {
+        const f = window.__mkFile(${JSON.stringify(b64)}, ${JSON.stringify(path.basename(p))}, 'application/msword');
+        const m = await Hours.readSource(f, () => {});
+        return { ok:true, via:m.via, mode:m.mode, days:m.days, n:m.records.length,
+          need:m.records.filter(x => x.needCheck).length, ms:m.ms, warnings:m.warnings,
+          top:m.records.slice(0,5).map(x => ({ day:x.day, date:x.date, slot:x.slot, label:x.label, cls:x.cls, teacher:x.teacher, title:x.title })) };
+      } catch(e){ return { ok:false, err:String((e && e.message) || e) }; }
+    })()`);
+    console.log(`  · ${path.basename(p)}`);
+    if (!r.ok) { ok(false, `  「${path.basename(p)}」识别时抛异常：${r.err}`); continue; }
+    ok(true, `  不抛异常（via=${r.via} mode=${r.mode} 记录 ${r.n} 条 / 待核 ${r.need} 条 / ${(r.ms/1000).toFixed(1)}s）`);
+    console.log(`      星期列=${JSON.stringify(r.days)}; 提醒=${JSON.stringify(r.warnings)}`);
+    r.top.forEach((x, i) => console.log(`      [${i+1}] ` + JSON.stringify(x)));
+    ok(r.need === r.n && r.n > 0, `  老版 .doc 通路：${r.need}/${r.n} 条全标「待核」`);
+    ok((r.warnings || []).some(w => /老版 Word/.test(w)), '  老版 .doc 通路有「尽力解析、请逐格核对」提醒');
+  }
+  console.log(`  · 真实 .doc：跑了 ${docRan}/${REAL_DOCS.length} 个（其余不存在已跳过）`);
+
+  /* ── 5d/9. 真实 .docx（绝对路径读；不在就 skip）── */
+  console.log('\n【5d/9】真实 .docx（mammoth → <table>）──');
+  let docxRan = 0;
+  for (const p of REAL_DOCXES) {
+    if (!existsSync(p)) { skips.push(`真实 .docx 不在（${p}）`); console.log('  ⏭️  跳过：不存在 ' + p); continue; }
+    docxRan++;
+    const b64 = readFileSync(p).toString('base64');
+    const r = await cdp.eval(`(async () => {
+      ${PAGE_HELPERS}
+      try {
+        if (!window.mammoth) await loadFirstScript([CDN.mammoth], () => window.mammoth, '文档解析引擎');
+        const f = window.__mkFile(${JSON.stringify(b64)}, ${JSON.stringify(path.basename(p))},
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        const m = await Hours.readSource(f, () => {});
+        return { ok:true, via:m.via, mode:m.mode, days:m.days, n:m.records.length, ms:m.ms, warnings:m.warnings,
+          top:m.records.slice(0,5).map(x => ({ day:x.day, date:x.date, slot:x.slot, label:x.label, cls:x.cls, teacher:x.teacher, title:x.title })) };
+      } catch(e){ return { ok:false, err:String((e && e.message) || e) }; }
+    })()`);
+    console.log(`  · ${path.basename(p)}`);
+    if (!r.ok) { ok(false, `  「${path.basename(p)}」识别时抛异常：${r.err}`); continue; }
+    ok(true, `  不抛异常（via=${r.via} mode=${r.mode} 记录 ${r.n} 条 / ${(r.ms/1000).toFixed(1)}s）`);
+    console.log(`      星期列=${JSON.stringify(r.days)}; 提醒=${JSON.stringify(r.warnings)}`);
+    r.top.forEach((x, i) => console.log(`      [${i+1}] ` + JSON.stringify(x)));
+  }
+  console.log(`  · 真实 .docx：跑了 ${docxRan}/${REAL_DOCXES.length} 个（其余不存在已跳过）`);
+
+  /* ── 5e/9. 表格里的 <br>/<hr> 与 BY 码（真实「系统导出」件的形状）──
+     那 8 个真实 .doc 里有一份其实**不是 Word，是系统导出的 HTML**
+     （`博艺2026暑期第一周学生课表（系统导出）.doc`，实测文件头是 UTF-8 BOM + `<html>`）。
+     它一格长这样：`BY05 科学发声<br>@BY08<hr>BY06 科学发声<br>@BY08`
+     —— 一格是**两节课**（BY05 / BY06 各一节「科学发声」，教室 BY08）。
+     旧代码用 textContent 取文，`<br>` / `<hr>` 全被吞掉 → 粘成
+     `BY05 科学发声 @BY08BY06 科学发声 @BY08`，谁也拆不开（42 条全是这种粘连标题）。
+     这里钉住四件事：① 换行别再被吞；② BY 码三种写法（[BY05] / 行首 BY05 / @BY08）；
+     ③ 「只有码」的孤行并回上一条；④ 提示跟最终字段一致（班级填上了就别再说「班级没认出来」）。 */
+  console.log('\n【5e/9】表格 <br>/<hr> 与 BY 码（系统导出件形状）──');
+  const brhr = await cdp.eval(`(() => {
+    const html = '<table><tr><th>节次/时间</th><th>07-10<br>周五</th><th>07-11<br>周六</th></tr>'
+      + '<tr><td>第1节<br>08:50–09:10</td><td>BY05 科学发声<br>@BY08<hr>BY06 科学发声<br>@BY08</td>'
+      + '<td>一模考试</td></tr></table>';
+    const grid = Hours._htmlTableToGrid(html);
+    const m = Hours._gridToModel(grid, 'doc');
+    const cs = Hours._codeStrip('[BY03] 普通话发音 @BY08');
+    const jl = Hours._joinCodeLines('BY05 科学发声\\n@BY08');
+    const jl2 = Hours._joinCodeLines('BY05\\n艺考服装\\n拍摄 试穿');
+    const mkOn  = Hours._mkRecord({ cls:'BY05', title:'科学发声', unmatched:['班级没认出来','老师没认出来'] }, '周五', null, 'x', 100, 'csv');
+    const mkOff = Hours._mkRecord({ cls:'',     title:'科学发声', unmatched:['班级没认出来','老师没认出来'] }, '周五', null, 'x', 100, 'csv');
+    return { cell: grid[1][1].text, head: grid[0].map(c => c.text),
+             mode: m.mode, days: m.days,
+             recs: m.records.map(r => ({ day:r.day, date:r.date, label:r.label, cls:r.cls, room:r.room, title:r.title })),
+             cs: { s: cs.s.trim(), cls: cs.cls, room: cs.room },
+             jl: jl, jl2: jl2, notesOn: mkOn.notes, notesOff: mkOff.notes };
+  })()`);
+  ok(brhr.cell.indexOf('\n') >= 0 && brhr.cell.indexOf('@BY08BY06') < 0,
+    `<br>/<hr> 取成换行、不再把两节课粘成一行：${JSON.stringify(brhr.cell)}`);
+  ok(JSON.stringify(brhr.head) === JSON.stringify(['节次/时间', '07-10\n周五', '07-11\n周六']),
+    `表头日期也换行了，仍是「日期+星期」：${JSON.stringify(brhr.head)}`);
+  ok(brhr.mode === 'grid' && JSON.stringify(brhr.days) === '["周五","周六"]' && brhr.recs.length === 3,
+    `一格两节课 → 3 条记录（周五 2 + 周六 1）：mode=${brhr.mode} days=${JSON.stringify(brhr.days)} n=${brhr.recs.length}`);
+  ok(brhr.recs[0].cls === 'BY05' && brhr.recs[1].cls === 'BY06'
+     && brhr.recs[0].room === 'BY08' && brhr.recs[1].room === 'BY08'
+     && brhr.recs[0].title === '科学发声' && brhr.recs[1].title === '科学发声',
+    `行首 BY05/BY06 → 班级、@BY08 → 教室、title 干净：${JSON.stringify(brhr.recs.slice(0, 2))}`);
+  ok(brhr.recs[2].title === '一模考试' && brhr.recs[2].cls === '',
+    `单格一条照旧：${JSON.stringify(brhr.recs[2])}`);
+  ok(brhr.recs[0].label === '08:50-09:10' && brhr.recs[0].date === '7月10日' && brhr.recs[0].day === '周五',
+    `行头「第1节 / 08:50–09:10」以文件里明写的钟点为准（不拿第X节去套作息表）：${JSON.stringify({ label: brhr.recs[0].label, date: brhr.recs[0].date, day: brhr.recs[0].day })}`);
+  ok(brhr.cs.s === '普通话发音' && brhr.cs.cls === 'BY03' && brhr.cs.room === 'BY08',
+    `三种 BY 码写法都剥干净（[BY03]→班级、@BY08→教室、标题不留残渣）：${JSON.stringify(brhr.cs)}`);
+  ok(brhr.jl.length === 1 && /@BY08/.test(brhr.jl[0]),
+    `「只有码」的孤行并回上一行（不再变成没课名的空记录）：${JSON.stringify(brhr.jl)}`);
+  ok(brhr.jl2.length === 2 && brhr.jl2[0] === 'BY05 艺考服装',
+    `开头的孤码并到下一行（「BY05」顶头、下面是课名）：${JSON.stringify(brhr.jl2)}`);
+  ok(brhr.notesOn.indexOf('班级没认出来') < 0 && brhr.notesOn.indexOf('老师没认出来') >= 0,
+    `班级已填上就不再挂「班级没认出来」，缺老师的提示保留：${JSON.stringify(brhr.notesOn)}`);
+  ok(brhr.notesOff.indexOf('班级没认出来') >= 0,
+    `班级真的没认出来时，提示照旧保留：${JSON.stringify(brhr.notesOff)}`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {
@@ -768,7 +1006,7 @@ try {
   console.log((ocrRun.stdout || '').trim().split('\n').slice(-8).map(l => '     ' + l).join('\n'));
   ok(ocrRun.status === 0, `已有 OCR 测试仍然通过（exit ${ocrRun.status}）` + (ocrRun.status === 0 ? '' : ('｜' + (ocrRun.stderr || '').trim().slice(0, 400))));
 
-  for (const w of [390, 360]) {
+  for (const w of [390, 360, 320]) {
     const jsonOut = path.join(tmpdir(), `hours_probe_${w}.json`);
     const pr = spawnSync(NODE, [path.join(WORK, 'test', 'probe_mobile_layout.mjs'),
       String(5600 + w % 10), '--width=' + w, '--pages=hours', '--role=super', '--json=' + jsonOut],
