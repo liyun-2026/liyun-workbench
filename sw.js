@@ -283,7 +283,15 @@
       旧表 1 条进「往期课表」、写完跳课表页）；320/360/390 overX=0。
    ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；TAB_ORDER、Ocr.recognize、readAnyFile
       一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-const VERSION = 'v71'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v72：**版本代号 VoxOS 上线（用户 2026-10-09 定）** ——
+   ① 换算规则 = **20 个内部版本一档**：V71=4.11、V72=4.12，往后每发一版 +0.01
+      （4.20 = V80 → 5.01 = V81）。代号长期不变，只涨数字。
+   ② 设置页标题下新增版本行「砺蕴教务 · VoxOS 4.12」：Settings.render 向 SW 要内部
+      版本号，Health.verCode() 换算 —— 单一来源，不手写死；SW 拿不到就用 HTML 占位。
+   ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
+   实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
+   ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+const VERSION = 'v72'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

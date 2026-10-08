@@ -2702,6 +2702,7 @@ try {
     <section class="page" id="page-settings">
       <h1 class="page-title">设置</h1>
       <p class="page-sub"><span class="only-desk">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</span><span class="only-mob">常用在最前 · 高级在下面 · 往下滑就能看完</span></p>
+      <p class="hint" id="verLine" style="margin:2px 0 0">砺蕴教务 · VoxOS 4.12</p>
 
       <div class="anchor-layout">
         <nav class="anchor-nav" id="anchorNav" aria-label="设置锚点">
@@ -4168,6 +4169,16 @@ const Health = {
     { id:'dom', name:'域名 liyun2026.top', date:'2027-09-18', where:'域名注册商后台 → 续费' }
   ],
 
+  /* ── 版本代号（用户 2026-10-09 定：VoxOS，20 个内部版本一档）──
+     'v72' → 'VoxOS 4.12'。代号写死，数字从 sw.js 上报的 VERSION 换算 ——
+     以后每发一版自动 +0.01（4.20 = V80 → 5.01 = V81），不用手改。 */
+  verCode(v){
+    const n = parseInt(String(v || '').replace(/^\D+/, ''), 10);
+    if (!n) return '';
+    const block = Math.ceil(n / 20), pos = n - (block - 1) * 20;
+    return 'VoxOS ' + block + '.' + String(pos).padStart(2, '0');
+  },
+
   KEY:  '_health',      // 本机状态，_ 开头不上传、也不触发同步
   HIST: '_healthHist',
   CFG:  '_healthAuto',
@@ -4301,7 +4312,7 @@ const Health = {
     const sh = await this.shell();
     items.push({
       g:'res', name:'离线可开', level: sh.version ? 'ok' : 'warn',
-      value: sh.version ? ('第 ' + sh.version + ' 版') : '还没启用',
+      value: sh.version ? (this.verCode(sh.version) || ('第 ' + sh.version + ' 版')) : '还没启用',
       note: sh.version ? 'App Shell 已存到本机，断跨境那一段也能进'
                        : '刷新或重装一次就有了；没有它也照样能用，只是冷启动慢约一秒'
     });
@@ -12173,6 +12184,14 @@ const Settings = {
 
   render(){
     this.bindChrome();
+    /* 版本行：代号 + 数字从 SW 上报的内部版本换算（单一来源）。拿不到就保持 HTML 里的占位。 */
+    const vl = document.getElementById('verLine');
+    if (vl && !vl.dataset.done){
+      Health.shell().then(sh => {
+        const t = sh && sh.version ? ('砺蕴教务 · ' + Health.verCode(sh.version)) : '';
+        if (t){ vl.textContent = t; vl.dataset.done = '1'; }
+      }).catch(() => {});
+    }
     const staff = Auth.isStaff();
     const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
 
