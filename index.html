@@ -7619,6 +7619,41 @@ const Hours = {
       return '';
     },
 
+    /* 扫出**整行里全部**宽松星期候选，各带位置 {day,start,end} —— 供 fields() 在多个候选中挑一个。
+       边界规则与 day() 的宽松分支**完全一致**（前＝行首/非汉字数字的分隔符/「每」，后＝行尾/分隔符/数字/至·到），
+       所以「每周一练」「周三强化班」照旧不误判；这里只比 day() 多返回「有几个、各在哪」。 */
+    days(s){
+      const out = [];
+      const re = /(?:^|[^\u4e00-\u9fa5A-Za-z0-9]|每)(周|星期|礼拜)([一二三四五六日天])(?=$|[^\u4e00-\u9fa5A-Za-z0-9]|[0-9]|至|到)/g;
+      let m;
+      while ((m = re.exec(s))){
+        const tok = m[1] + m[2];                    // 「周X」/「星期X」/「礼拜X」本体（不含前置边界字符）
+        const end = m.index + m[0].length;
+        out.push({ day: '周' + (m[2] === '天' ? '日' : m[2]), start: end - tok.length, end });
+      }
+      return out;
+    },
+
+    /* 时间词在**原始行**里的起点（找不到返回 -1）—— 只用来判断多个星期候选谁离时间最近。
+       与 time() 的四类写法对齐（第X节 / HH:MM-HH:MM / HH:MM / 裸整点），找**最靠左**的一个。 */
+    _timePos(s){
+      const pats = [
+        /第\s*\d{1,2}\s*(?:[-–—~～至到]\s*\d{1,2}\s*)?节/,
+        /\d{1,2}\s*[:.]\s*\d{1,2}\s*[-–—~～至到]\s*\d{1,2}\s*[:.]\s*\d{1,2}/,
+        /\d{1,2}\s*[:.]\s*\d{1,2}/,
+        /(?:^|[^\d])\d{1,2}\s*[-–—~～至到]\s*\d{1,2}(?:[^\d]|$)/
+      ];
+      let best = -1;
+      for (const re of pats){
+        const m = re.exec(s);
+        if (!m) continue;
+        let idx = m.index;
+        if (/[^\d]/.test(m[0][0])) idx += 1;        // 裸整点那条会带上前面的非数字字符，起点右移一位
+        if (best < 0 || idx < best) best = idx;
+      }
+      return best;
+    },
+
     /* 时间 → {start,end,startMin,endMin,full}；分钟数一律走 Schedule._tmin */
     time(s){
       const t = this.punct(s);
@@ -7670,12 +7705,29 @@ const Hours = {
     /* 一格 / 一行文字 → 字段 */
     fields(text, ctx){
       const s = String(text == null ? '' : text).replace(/[ \t]+/g, ' ').trim();
-      const out = { day:'', time:null, cls:'', room:'', teacher:'', teacherId:'', title:'', unmatched:[] };
+      const out = { day:'', dayGuessed:false, dayCandidates:[], time:null, cls:'', room:'', teacher:'', teacherId:'', title:'', unmatched:[] };
       if (!s) return out;
 
-      /* ① 星期：只**认**，先不破坏字符串 —— 名字里含「周X」的班级/课程（如「每周一练」「周三强化班」）
-             必须靠完整原文才认得出来；星期词要到第 ⑥ 步兜底成内容时才剔掉。 */
-      out.day = this.day(s);
+      /* ① 星期：在**未剥标点/括号的原始行**上扫出**全部**候选 —— 名字里含「周X」的班级/课程
+             （如「每周一练」「周三强化班」）必须靠完整原文才认得出来，括号包住的「（周一）」也要认；
+             星期词要到第 ⑥ 步兜底成内容时才剔掉。
+             · 唯一候选 → 直接用（现状行为）；
+             · ≥2 个候选（多见于「周二,强化 周三 08:00 …」这类名字里混了星期词的行）→ 取**结束位置最靠近
+               时间词起点**的那个；没有时间词则取第一个 —— 这时是**猜的**，标 dayGuessed=true，
+               交给 _mkRecord 标黄请人核对。否则整节课会静默记到错的那一天。 */
+      const cands = this.days(s);
+      out.dayCandidates = cands.map(c => c.day);
+      if (cands.length === 1){
+        out.day = cands[0].day;
+      } else if (cands.length >= 2){
+        const tp = this._timePos(s);
+        let pick = cands[0];
+        if (tp >= 0) pick = cands.slice().sort((a, b) => Math.abs(a.end - tp) - Math.abs(b.end - tp))[0];
+        out.day = pick.day;
+        out.dayGuessed = true;
+      } else {
+        out.day = this.day(s);   // 兜底：整串就是星期词 / 单字「一」这类只有 day() 才认的写法
+      }
 
       /* ② 时间 */
       const t = this.time(s);
@@ -7751,6 +7803,12 @@ const Hours = {
     const notes = (f.unmatched || []).slice();
     if (!(day || f.day)) notes.unshift('没认出星期');
     if (!t || !(t.startMin >= 0)) notes.unshift('没认出时间');
+    /* 一行里出现多个星期 → fields 取了最靠近时间的那个（**这是猜的**）→ 标黄请人核对。
+       🔴 唯一候选时 dayGuessed 为 false，这里绝不加 —— 否则正常的列表式课表会逐行变黄、黄底就成了噪音。
+       `(!day || day === f.day)`：网格/OCR 通路里星期来自列头，若列头独立给出了这一天，
+       说明行内那个「候选」没参与定日，就不该按「我猜的」来提示。 */
+    if (f.dayGuessed && (!day || day === f.day))
+      notes.push('这一行里出现了多个星期（' + (f.dayCandidates || []).join(' / ') + '），我取了最靠近时间的那个，请核对');
     const low = notes.length > 0 || c < this.CONF_MIN;
     return {
       day: day || f.day || '',

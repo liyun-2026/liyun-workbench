@@ -695,6 +695,66 @@ try {
   ok(wdCls.b.day === '' && wdCls.b.cls === '周三强化班' && wdCls.b.teacher === '王老师',
      `同上（周三强化班）：${JSON.stringify(wdCls.b)}`);
 
+  /* 8d. 多星期候选：名字里混进了星期词时，取「结束位置最靠近时间词」的那个，并标 dayGuessed（第五轮复核的真风险）。
+     这三行原先会把整节课**静默记到错的那一天**：名字里的「周X」被当成了整行的星期。 */
+  const multiDay = await cdp.eval(`(() => {
+    const ctx = { classes:['每周一练'], rooms:['BY05','BY06','BY07','BY08','BY09'],
+                  teachers:[{name:'王老师',id:'t1'},{name:'李老师',id:'t2'},{name:'张伟',id:'t3'}] };
+    const pick = l => { const x = Hours.norm.fields(l, ctx); return { day:x.day, g:x.dayGuessed, c:x.dayCandidates }; };
+    const rg = Hours.norm.fields('每周一练 18:00 王老师 BY05', ctx);
+    return {
+      a: pick('周二,强化 周三 08:00 王老师 BY05'),
+      b: pick('"周一"特别班 周二 08:00 王老师 BY05'),
+      c: pick('《周一》节目 周三 08:00 王老师 BY05'),
+      d: pick('（周一）08:00 成人书法 王老师'),
+      e: pick('周一 08:00-09:40 成人书法 王老师 BY05 301'),
+      regress: { day: rg.day, cls: rg.cls, g: rg.dayGuessed }
+    };
+  })()`);
+  ok(multiDay.a.day === '周三' && multiDay.a.g === true,
+     `多星期候选取最近时间的那个：'周二,强化 周三 08:00 …' → day=${JSON.stringify(multiDay.a.day)} dayGuessed=${multiDay.a.g}（期望 周三/true）候选=${JSON.stringify(multiDay.a.c)}`);
+  ok(multiDay.b.day === '周二' && multiDay.b.g === true,
+     `引号里的星期不当真：'"周一"特别班 周二 08:00 …' → day=${JSON.stringify(multiDay.b.day)} dayGuessed=${multiDay.b.g}（期望 周二/true）候选=${JSON.stringify(multiDay.b.c)}`);
+  ok(multiDay.c.day === '周三' && multiDay.c.g === true,
+     `书名号里的星期不当真：'《周一》节目 周三 08:00 …' → day=${JSON.stringify(multiDay.c.day)} dayGuessed=${multiDay.c.g}（期望 周三/true）候选=${JSON.stringify(multiDay.c.c)}`);
+  ok(multiDay.d.day === '周一' && multiDay.d.g === false,
+     `括号包住的星期能认出来：'（周一）08:00 成人书法 王老师' → day=${JSON.stringify(multiDay.d.day)} dayGuessed=${multiDay.d.g}（期望 周一/false）`);
+  ok(multiDay.e.day === '周一' && multiDay.e.g === false,
+     `单候选不标「猜的」：'周一 08:00-09:40 …' → day=${JSON.stringify(multiDay.e.day)} dayGuessed=${multiDay.e.g}（期望 周一/false）`);
+  ok(multiDay.regress.day === '' && multiDay.regress.cls === '每周一练' && multiDay.regress.g === false,
+     `回归护栏（第三轮修好的）：'每周一练 18:00 王老师 BY05' → day=${JSON.stringify(multiDay.regress.day)} cls=${JSON.stringify(multiDay.regress.cls)} dayGuessed=${multiDay.regress.g}（期望 ''/每周一练/false）`);
+
+  /* 8e. 降噪（最重要的一条）：正常列表式课表跑**完整流程**后 7/7 天正确、7/7 行**不带 needCheck**。
+     用一份与名册完全对得上的 ctx 跑 readSource —— 否则「班级/老师没认出来」的 unmatched 也会把行标黄，
+     那不是这里要证的点。临时替换 Hours._ctx 注入干净名册，跑完复原。 */
+  const listB64b = Buffer.from(LIST_LINES.join('\n'), 'utf8').toString('base64');
+  const noise = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const ctx = { classes:['成人书法','少儿口才','形体训练','播音发声','模拟主持','新闻播报','即兴评述'],
+                  rooms:['BY05','BY06','BY07','BY08','BY09'],
+                  teachers:[{name:'王老师',id:'t1'},{name:'李老师',id:'t2'},{name:'张伟',id:'t3'}] };
+    const orig = Hours._ctx;
+    Hours._ctx = () => ctx;
+    try {
+      const f = window.__mkFile(${JSON.stringify(listB64b)}, 'hours_list2.csv', 'text/csv');
+      const m = await Hours.readSource(f, () => {});
+      return { mode:m.mode, recs:m.records.map(r => ({ day:r.day, title:r.title, needCheck:!!r.needCheck,
+        notes:r.notes || [], guessed:!!Hours.norm.fields(r.raw, ctx).dayGuessed })) };
+    } finally { Hours._ctx = orig; }
+  })()`);
+  {
+    const badDay = noise.recs.map((r, i) => r.day === LIST_DAYS[i] ? null : `第${i + 1}行 期望${LIST_DAYS[i]} 得到「${r.day}」`).filter(Boolean);
+    ok(noise.mode === 'list' && noise.recs.length === 7 && badDay.length === 0,
+       `降噪 · 完整流程：${noise.recs.length}/7 行的 day 正确` + (badDay.length ? '｜' + badDay.join(' / ') : '') +
+       '｜实际=' + JSON.stringify(noise.recs.map(r => r.day)));
+    ok(noise.recs.length === 7 && noise.recs.every(r => r.guessed === false),
+       `降噪 · dayGuessed 全为 false（唯一候选不算猜）：${JSON.stringify(noise.recs.map(r => r.guessed))}`);
+    const yellow = noise.recs.map((r, i) => r.needCheck ? `第${i + 1}行(${r.notes.join('；')})` : null).filter(Boolean);
+    ok(yellow.length === 0, yellow.length ? ('正常列表被误标黄：' + yellow.join(' / ')) : '降噪 · 7/7 行都不带 needCheck（黄底没有被滥标）');
+    const dayInTitle2 = noise.recs.filter(r => DAYWORD.test(r.title)).map(r => `${r.day}→「${r.title}」`);
+    ok(dayInTitle2.length === 0, dayInTitle2.length ? ('title 里还残留星期词：' + dayInTitle2.join(' / ')) : '降噪 · title 里没有星期词');
+  }
+
   /* ── 6. 收尾：关掉自己的服务，跑仓库里已有的两个脚本 ── */
   try { cdp?.ws.close(); } catch {}
   chrome?.kill('SIGKILL'); server?.kill('SIGKILL');
