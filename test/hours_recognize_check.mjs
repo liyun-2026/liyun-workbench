@@ -13,15 +13,21 @@
  *   1) docx 通路：Python 手写最小 docx（3 天 × 3 节）→ Hours.readSource → 与真值逐格一致
  *   2) 图片通路：test/html2png.mjs 把合成课表 HTML 渲染成 PNG → Hours.readSource →
  *      走 OCR 通路、星期列数正确、≥80% 格子对得上、每条 record 的起止分钟数正确
- *   3) csv 通路：网格逐格一致
- *   4) 路由与权限：super/admin 看得到「课时统计」且能进；teacher/student 看不到、也进不去
- *   5) 不回归：跑一遍仓库里已有的 test/ocr_browser_test.mjs（Ocr.recognize 没被改坏）
- *   6) 手机端：test/probe_mobile_layout.mjs 量 hours 在 390 / 360 下的 overX 与 <16px 控件
+ *   3) csv 通路：网格逐格一致；**列表式课表**（一行一节课）csv 与合成词块两路各跑一遍，7/7 天正确
+ *   4) 合并单元格：colspan / rowspan 的 HTML 单元 + 真 docx（mammoth）——
+ *      网格矩形、合并格文本填到每一列/行、逐天课程集合一致（不串列、不丢课）、warnings 有提示；
+ *      另：真实 Word 登记表（存在才跑）断言每行 6 列、27 行
+ *   5) xlsx 通路：Python 手写最小 OOXML → _readXlsx 自解 zip → 逐格一致
+ *   6) 归一化单元：norm.day 严格/宽松/不误判
+ *   7) 路由与权限：super/admin 看得到「课时统计」且能进；teacher/student 看不到、也进不去
+ *   8) 不回归：跑一遍仓库里已有的 test/ocr_browser_test.mjs（Ocr.recognize 没被改坏）
+ *   9) 手机端：test/probe_mobile_layout.mjs 量 hours 在 390 / 360 下的 overX 与 <16px 控件
  *
  * 🔴 任何一项没过都会在最下面汇总并把 exit code 置 1。
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
+import { existsSync, readFileSync } from 'node:fs';
 import { readFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -54,6 +60,37 @@ const TBL_ROWS = [
   ['14:00-15:40', '模拟主持', '新闻播报', '成人书法基础'],
 ];
 const TBL_MIN = [[480, 580], [600, 700], [840, 940]];   // _tmin: 08:00/09:40 · 10:00/11:40 · 14:00/15:40
+
+/* 带合并单元格的 docx（test/fixtures/hours_tt_merged.docx，由 make_hours_fixtures.py 内置生成）：
+   表头 时间|周一|周二|周三|周四；第 1 数据行『少儿口才』跨 2 列（周二+周三同一天课）、
+   第 2 数据行『即兴评述』跨 2 行（周二连着两节是同一节课）。
+   期望按**每天课程的多重集合**比对（比「集合」更严：连重复条数都要对得上 —— 串列/丢课/多课都能当场抓到）。 */
+const MERGED_HEADER = ['时间', '周一', '周二', '周三', '周四'];
+const MERGED_DAYS = MERGED_HEADER.slice(1);
+const MERGED_EXPECT = {
+  '周一': ['成人书法', '形体训练', '模拟主持'],
+  '周二': ['少儿口才', '即兴评述', '即兴评述'],          // 跨列的『少儿口才』+ 跨行两节的『即兴评述』
+  '周三': ['少儿口才', '新闻播报', '影视配音'],
+  '周四': ['播音发声', '文学朗读', '少儿口才'],
+};
+const MERGED_COLSPAN_ROW = 1;    // 第 1 数据行（0=表头）
+const MERGED_ROWSPAN_ROWS = [2, 3];
+
+/* 列表式课表（一行一节课）：7 行 × 7 天，星期词必须被认出来、且不进 title */
+const LIST_LINES = [
+  '周一 08:00-09:40 成人书法 王老师 BY05 301',
+  '周二 10:00-11:40 少儿口才 李老师 BY06 302',
+  '周三 14:00-15:40 形体训练 张伟 BY05 303',
+  '周四 08:00-09:40 播音发声 王老师 BY07 304',
+  '周五 10:00-11:40 模拟主持 李老师 BY05 305',
+  '周六 14:00-15:40 新闻播报 张伟 BY08 306',
+  '周日 08:00-09:40 即兴评述 王老师 BY09 307',
+];
+const LIST_DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const DAYWORD = /(周|星期|礼拜)[一二三四五六日天]/;
+
+/* 真实 Word（存在才跑）：/Volumes/山野万里/… 那张「教师授课日志登记表」，首行有 colspan=5、末格 rowspan=2 */
+const REAL_WORD = '/Volumes/山野万里/2019教师授课日志登记表（用专属信纸打印）.docx';
 
 /* 图片夹具（test/fixtures/hours_tt.html）：5 天 × 3 节 */
 const IMG_DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -149,11 +186,11 @@ window.__mkFile = (b64, name, type) => {
 let server, chrome, profile, cdp;
 try {
   /* ── 0. 生成夹具 ── */
-  console.log('\n【0/6】生成夹具 …');
+  console.log('\n【0/9】生成夹具 …');
   const truthPath = path.join(tmpdir(), 'hours_truth.json');
   await writeFile(truthPath, JSON.stringify({ header: TBL_HEADER, rows: TBL_ROWS }), 'utf8');
   const py = spawnSync(PY, [path.join(WORK, 'test', 'make_hours_fixtures.py'), FIX, truthPath], { encoding: 'utf8' });
-  ok(py.status === 0, 'docx / csv 夹具生成：' + (py.stdout || '').trim() + (py.status === 0 ? '' : ('｜stderr: ' + (py.stderr || '').trim())));
+  ok(py.status === 0, 'docx / csv / xlsx / 合并格 docx 夹具生成：' + (py.stdout || '').trim() + (py.status === 0 ? '' : ('｜stderr: ' + (py.stderr || '').trim())));
 
   const pngOut = spawnSync(NODE, [path.join(WORK, 'test', 'html2png.mjs'),
     path.join(FIX, 'hours_tt.html'), path.join(FIX, 'hours_tt.png'), '1100', '2'],
@@ -164,7 +201,9 @@ try {
   const docxB64 = (await readFile(path.join(FIX, 'hours_tt.docx'))).toString('base64');
   const csvB64 = (await readFile(path.join(FIX, 'hours_tt.csv'))).toString('base64');
   const pngB64 = (await readFile(path.join(FIX, 'hours_tt.png'))).toString('base64');
-  console.log(`  · docx ${Math.round(docxB64.length * 3 / 4 / 1024)}KB · csv ${Math.round(csvB64.length * 3 / 4 / 1024)}KB · png ${Math.round(pngB64.length * 3 / 4 / 1024)}KB`);
+  const xlsxB64 = (await readFile(path.join(FIX, 'hours_tt.xlsx'))).toString('base64');
+  const mergedB64 = (await readFile(path.join(FIX, 'hours_tt_merged.docx'))).toString('base64');
+  console.log(`  · docx ${Math.round(docxB64.length * 3 / 4 / 1024)}KB · csv ${Math.round(csvB64.length * 3 / 4 / 1024)}KB · png ${Math.round(pngB64.length * 3 / 4 / 1024)}KB · xlsx ${Math.round(xlsxB64.length * 3 / 4 / 1024)}KB · 合并格 docx ${Math.round(mergedB64.length * 3 / 4 / 1024)}KB`);
 
   /* ── 起服务 + 浏览器 ── */
   console.log('\n【起】静态服务 + 真 Chrome（无头）…');
@@ -220,7 +259,7 @@ try {
   })()`);
 
   /* ── 1. 路由 / 导航 / 模块存在性 ── */
-  console.log('\n【1/6】路由、侧栏顺序、模块与 Ocr ──');
+  console.log('\n【1/9】路由、侧栏顺序、模块与 Ocr ──');
   const rt = await cdp.eval(`(() => {
     const ids = App.routes.map(r => r.id);
     const has = (a, id) => Array.isArray(a) && a.indexOf(id) >= 0;
@@ -254,7 +293,7 @@ try {
   ok(rt.after.super === 1, "'hours' 紧跟在 'timetable' 后面");
 
   /* ── 2. docx 通路 ── */
-  console.log('\n【2/6】docx 通路（mammoth → 表格，精确）──');
+  console.log('\n【2/9】docx 通路（mammoth → 表格，精确）──');
   const docx = await cdp.eval(`(async () => {
     ${PAGE_HELPERS}
     const f = window.__mkFile(${JSON.stringify(docxB64)}, 'hours_tt.docx',
@@ -283,7 +322,7 @@ try {
   ok(docx.n === 9, `records 条数 = ${docx.n}（期望 9）`);
 
   /* ── 3. csv 通路 ── */
-  console.log('\n【3/6】csv 通路 ──');
+  console.log('\n【3/9】csv 通路 + 列表式课表 ──');
   const csv = await cdp.eval(`(async () => {
     ${PAGE_HELPERS}
     const f = window.__mkFile(${JSON.stringify(csvB64)}, 'hours_tt.csv', 'text/csv');
@@ -303,8 +342,142 @@ try {
   ok(csvBad.length === 0, csvBad.length ? ('格子对不上：' + csvBad.join(' / ')) : '逐格与真值一致（9/9）');
   ok(csv.n === 9, `records 条数 = ${csv.n}（期望 9）`);
 
+  /* ── 3b. 列表式课表（一行一节课）：星期必须被认出来、且不进 title ── */
+  const listText = LIST_LINES.join('\n');
+  const listB64 = Buffer.from(listText, 'utf8').toString('base64');
+  const listCsv = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(listB64)}, 'hours_list.csv', 'text/csv');
+    const m = await Hours.readSource(f, () => {});
+    return { via: m.via, mode: m.mode, days: m.days,
+      recs: m.records.map(r => ({ day: r.day, title: r.title, label: r.label })) };
+  })()`);
+  ok(listCsv.via === 'csv' && listCsv.mode === 'list',
+     `列表式课表走 csv 通路 + 列表模式（via=${listCsv.via} mode=${listCsv.mode}）`);
+  {
+    const badDay = listCsv.recs.map((r, i) => r.day === LIST_DAYS[i] ? null : `第${i + 1}行 期望${LIST_DAYS[i]} 得到「${r.day}」`).filter(Boolean);
+    ok(listCsv.recs.length === 7 && badDay.length === 0,
+       `列表式课表 csv：${listCsv.recs.length}/7 行的 day 正确` + (badDay.length ? '｜' + badDay.join(' / ') : '') +
+       '｜实际=' + JSON.stringify(listCsv.recs.map(r => r.day)));
+    const dayInTitle = listCsv.recs.filter(r => DAYWORD.test(r.title)).map(r => `${r.day}→「${r.title}」`);
+    ok(dayInTitle.length === 0, dayInTitle.length ? ('title 里还残留星期词：' + dayInTitle.join(' / ')) : '列表式课表 csv：title 里没有星期词');
+  }
+
+  /* 合成词块（OCR 列表）同一份数据再走一遍 */
+  const words = [];
+  LIST_LINES.forEach((line, i) => {
+    let x = 40;
+    for (const p of line.split(' ')) {
+      const w = p.length * 16;
+      words.push({ text: p, bbox: { x0: x, y0: 40 + i * 40, x1: x + w, y1: 40 + i * 40 + 26 }, confidence: 95 });
+      x += w + 8;
+    }
+  });
+  const listWords = await cdp.eval(`(() => {
+    const m = Hours._wordsToModel(${JSON.stringify(words)}, 1000, 400);
+    return { mode: m.mode, days: m.days, recs: m.records.map(r => ({ day: r.day, title: r.title })) };
+  })()`);
+  ok(listWords.mode === 'list', `合成词块判定为列表模式（mode=${listWords.mode}）`);
+  {
+    const badDay = listWords.recs.map((r, i) => r.day === LIST_DAYS[i] ? null : `第${i + 1}行 期望${LIST_DAYS[i]} 得到「${r.day}」`).filter(Boolean);
+    ok(listWords.recs.length === 7 && badDay.length === 0,
+       `合成词块：${listWords.recs.length}/7 行的 day 正确` + (badDay.length ? '｜' + badDay.join(' / ') : '') +
+       '｜实际=' + JSON.stringify(listWords.recs.map(r => r.day)));
+    const badTitle = listWords.recs.filter(r => DAYWORD.test(r.title)).map(r => r.title);
+    ok(badTitle.length === 0, badTitle.length ? ('title 里还残留星期词：' + badTitle.join(' / ')) : '合成词块：title 里没有星期词');
+  }
+
+  /* ── 4/9. 合并单元格（colspan / rowspan）── */
+  console.log('\n【4/9】合并单元格（colspan / rowspan 不串列、不丢课）──');
+  /* 4a. 直接给 _htmlTableToGrid 一段带 colspan/rowspan 的 HTML：确定性覆盖网格算法本身 */
+  const htmlGrid = await cdp.eval(`(() => {
+    const html = '<table>'
+      + '<tr><td>时间</td><td>周一</td><td>周二</td><td>周三</td><td>周四</td></tr>'
+      + '<tr><td>08:00-09:40</td><td>成人书法</td><td colspan="2">少儿口才</td><td>播音发声</td></tr>'
+      + '<tr><td>10:00-11:40</td><td>形体训练</td><td rowspan="2">即兴评述</td><td>新闻播报</td><td>文学朗读</td></tr>'
+      + '<tr><td>14:00-15:40</td><td>模拟主持</td><td>影视配音</td><td>少儿口才</td></tr>'
+      + '</table>';
+    const g = Hours._htmlTableToGrid(html);
+    return { rows: g.length, widths: g.map(r => r.length),
+      texts: g.map(r => r.map(c => c && c.text)), merged: g.map(r => r.map(c => !!(c && c.merged))) };
+  })()`);
+  ok(htmlGrid.widths.every(w => w === 5) && htmlGrid.rows === 4,
+     `HTML 合并格：矩形网格，每行 ${JSON.stringify(htmlGrid.widths)} 列、${htmlGrid.rows} 行`);
+  ok(htmlGrid.texts[1][2] === '少儿口才' && htmlGrid.texts[1][3] === '少儿口才' && htmlGrid.merged[1][3] === true,
+     `HTML colspan：『少儿口才』填到被合并的每一列（周二/周三）：${JSON.stringify(htmlGrid.texts[1])}`);
+  ok(htmlGrid.texts[2][2] === '即兴评述' && htmlGrid.texts[3][2] === '即兴评述' && htmlGrid.merged[3][2] === true,
+     `HTML rowspan：『即兴评述』填到被合并的每一行（第 2/3 数据行）`);
+  ok(htmlGrid.texts[3][3] === '影视配音' && htmlGrid.texts[3][4] === '少儿口才',
+     `HTML 合并格之后**没有串列**：${JSON.stringify(htmlGrid.texts[3])}`);
+
+  /* 4b. 真 docx 走 mammoth → _htmlTableToGrid → _gridToModel，逐天比对课程集合 */
+  const merged = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(mergedB64)}, 'hours_tt_merged.docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    const m = await Hours.readSource(f, () => {});
+    return { via: m.via, mode: m.mode, days: m.days, warnings: m.warnings,
+      rows: m.rows.map(r => r.cells),
+      recs: m.records.map(r => ({ day: r.day, title: r.title, merged: !!r.merged, needCheck: !!r.needCheck })) };
+  })()`);
+  ok(merged.via === 'docx' && merged.mode === 'grid', `合并格 docx 走 docx 网格通路（via=${merged.via} mode=${merged.mode}）`);
+  ok(eq(merged.days, MERGED_DAYS), `合并格 docx 星期列 = ${JSON.stringify(merged.days)}`);
+  {
+    let bad = [];
+    for (const day of MERGED_DAYS) {
+      const got = merged.recs.filter(r => r.day === day).map(r => r.title).sort();
+      const want = MERGED_EXPECT[day].slice().sort();
+      if (!eq(got, want)) bad.push(`${day} 期望 ${JSON.stringify(want)} 得到 ${JSON.stringify(got)}`);
+    }
+    ok(bad.length === 0, bad.length ? ('逐天比对不一致：' + bad.join(' / ')) : '合并格 docx：逐天课程与真值一致（4/4 天，含条数；无串列、无丢失、无多课）');
+  }
+  ok(merged.recs.some(r => r.merged && r.needCheck),
+     `合并格复制出来的记录标了 merged 且计入待确认（merged 记录 ${merged.recs.filter(r => r.merged).length} 条）`);
+  ok((merged.warnings || []).some(w => /合并单元格/.test(w)),
+     `warnings 里有合并提示：${JSON.stringify(merged.warnings)}`);
+
+  /* 4c. 真实 Word（存在才跑） */
+  if (existsSync(REAL_WORD)) {
+    const realB64 = readFileSync(REAL_WORD).toString('base64');
+    const real = await cdp.eval(`(async () => {
+      ${PAGE_HELPERS}
+      if (!window.mammoth) await loadFirstScript([CDN.mammoth], () => window.mammoth, '文档解析引擎');
+      const f = window.__mkFile(${JSON.stringify(realB64)}, 'real.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      const r = await window.mammoth.convertToHtml({ arrayBuffer: await f.arrayBuffer() });
+      const g = Hours._htmlTableToGrid(r.value);
+      return { rows: g.length, widths: g.map(x => x.length) };
+    })()`);
+    ok(real.widths.length === 27 && real.widths.every(w => w === 6),
+       `真实 Word 课表：行数 = ${real.rows}（期望 27）、每行列数 = ${JSON.stringify([...new Set(real.widths)])}（期望 [6]）`);
+  } else {
+    ok(true, `真实 Word 不存在，已跳过：${REAL_WORD}`);
+  }
+
+  /* ── 5/9. xlsx 通路 ── */
+  console.log('\n【5/9】xlsx 通路 ──');
+  const xlsx = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    const f = window.__mkFile(${JSON.stringify(xlsxB64)}, 'hours_tt.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const m = await Hours.readSource(f, () => {});
+    return { via: m.via, mode: m.mode, days: m.days,
+      rows: m.rows.map(r => Object.fromEntries(Object.entries(r.cells).map(([k, v]) => [k, v.text]))),
+      n: m.records.length };
+  })()`);
+  ok(xlsx.via === 'xlsx', `走的是 xlsx 通路（via=${xlsx.via}）`);
+  ok(xlsx.mode === 'grid', `模式判定为网格（mode=${xlsx.mode}）`);
+  ok(eq(xlsx.days, TBL_HEADER.slice(1)), `星期列 = ${JSON.stringify(xlsx.days)}`);
+  let xlsxBad = [];
+  for (let i = 0; i < TBL_ROWS.length; i++)
+    for (let j = 0; j < TBL_HEADER.length - 1; j++)
+      if (((xlsx.rows[i] || {})[TBL_HEADER[j+1]]) !== TBL_ROWS[i][j+1])
+        xlsxBad.push(`[${i}][${TBL_HEADER[j+1]}] 期望「${TBL_ROWS[i][j+1]}」得到「${(xlsx.rows[i]||{})[TBL_HEADER[j+1]]}」`);
+  ok(xlsxBad.length === 0, xlsxBad.length ? ('格子对不上：' + xlsxBad.join(' / ')) : '逐格与真值一致（9/9）');
+  ok(xlsx.n === 9, `records 条数 = ${xlsx.n}（期望 9）`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
-  console.log('\n【4/6】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
+  console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {
     ${PAGE_HELPERS}
     const f = window.__mkFile(${JSON.stringify(pngB64)}, 'hours_tt.png', 'image/png');
@@ -353,7 +526,7 @@ try {
   ok(perRow.every(c => c >= 4), `每行都认出 ≥4 格：${JSON.stringify(perRow)}`);
 
   /* ── 5. 路由与权限 ── */
-  console.log('\n【5/6】路由与权限（super / admin / teacher / student）──');
+  console.log('\n【7/9】路由与权限（super / admin / teacher / student）──');
   const probePerm = () => cdp.eval(`(() => {
     const navHas = [...document.querySelectorAll('#nav button')].some(b => b.dataset.id === 'hours');
     const drawerHas = [...document.querySelectorAll('#dgrid button')].some(b => b.dataset.id === 'hours');
@@ -406,13 +579,31 @@ try {
   ok(paint.on && paint.hasUpload && paint.body && String(paint.title).indexOf('课时统计') >= 0,
      `super 进页正常渲染（标题「${paint.title}」，上传框在，识别区有内容）`);
 
+  /* ── 8/9. 归一化单元：星期识别 ── */
+  console.log('\n【8/9】归一化单元（norm.day）──');
+  const dayUnit = await cdp.eval(`(() => ({
+    strictWord: Hours.norm.day('周一'),
+    strictStar: Hours.norm.day('星期一'),
+    single:     Hours.norm.day('一'),
+    inLine:     Hours.norm.day('周一 08:00-09:40 成人书法 王老师 BY05 301'),
+    strictMode: Hours.norm.day('周一 08:00-09:40 成人书法 王老师 BY05 301', { strict: true }),
+    weekend:    Hours.norm.day('周末'),
+    plain:      Hours.norm.day('成人书法基础')
+  }))()`);
+  ok(dayUnit.strictWord === '周一' && dayUnit.strictStar === '周一' && dayUnit.single === '周一',
+     `孤立星期词仍认得出：${JSON.stringify(dayUnit.strictWord)}/${JSON.stringify(dayUnit.strictStar)}/${JSON.stringify(dayUnit.single)}`);
+  ok(dayUnit.inLine === '周一', `整行里也能挖出星期：norm.day('周一 08:00-09:40 …') = ${JSON.stringify(dayUnit.inLine)}`);
+  ok(dayUnit.strictMode === '', `strict 模式对整行不触发（仍给表头用）：${JSON.stringify(dayUnit.strictMode)}`);
+  ok(dayUnit.weekend === '' && dayUnit.plain === '',
+     `『周末』『成人书法基础』不硬塞成某一天：${JSON.stringify(dayUnit.weekend)}/${JSON.stringify(dayUnit.plain)}`);
+
   /* ── 6. 收尾：关掉自己的服务，跑仓库里已有的两个脚本 ── */
   try { cdp?.ws.close(); } catch {}
   chrome?.kill('SIGKILL'); server?.kill('SIGKILL');
   chrome = null; server = null;
   await sleep(800);
 
-  console.log('\n【6/6】跑仓库已有的脚本（不回归 + 手机端）──');
+  console.log('\n【9/9】跑仓库已有的脚本（不回归 + 手机端）──');
   const ocrRun = spawnSync(NODE, [path.join(WORK, 'test', 'ocr_browser_test.mjs'), WORK, String(5490)],
     { encoding: 'utf8', cwd: WORK, maxBuffer: 32 * 1024 * 1024 });
   console.log('  ── test/ocr_browser_test.mjs 末几行 ──');

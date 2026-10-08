@@ -18,7 +18,12 @@ test/preview_ports.html
 docs/redesign-2026-10/**/*.png
 docs/redesign-2026-10/fonts/
 
-# 课时统计测试的生成夹具（docx / csv / png 由 test/hours_recognize_check.mjs 现场生成，不进仓库）
+# 课时统计测试的生成夹具（docx / csv / xlsx / png 由 test/hours_recognize_check.mjs 现场生成，不进仓库）
 test/fixtures/hours_tt.docx
 test/fixtures/hours_tt.csv
+test/fixtures/hours_tt.xlsx
+test/fixtures/hours_tt_merged.docx
 test/fixtures/hours_tt.png
+
+# Python 编译缓存
+test/__pycache__/

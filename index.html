@@ -1895,8 +1895,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
      · 窄屏把宽表放进 .hrs-wrap（overflow-x:auto）+ 复用 .grid-hint 那行提示，
        免得在 390/360 上撑破 .main。
    ⚠️ 表内 input 固定 16px（iOS 聚焦不放大整页），小于 16px 会被 probe_mobile_layout 当场点名。 */
-#page-hours{ --hrs-low:#FBF1C6; }
-@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; } }
+#page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; }
+@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; } }
 #page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
 #page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
 #page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
@@ -1913,6 +1913,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 #page-hours .hrstbl td:nth-child(7){width:70px;text-align:center}
 #page-hours .hrstbl td:nth-child(8){width:40px;text-align:center}
 #page-hours tr.hrs-low td{background:var(--hrs-low)}
+/* 黄底行的典型状态是「字段没认出来、输入框是空的」—— 用户可见文字其实就是这些 placeholder。
+   全局 `input::placeholder{color:var(--text-dim)}` 在黄底上只有 2.5~4.1:1（端口皮肤下更差），
+   这里用本页专属令牌 --hrs-ph 覆盖，只作用于黄底行。 */
+#page-hours tr.hrs-low input::placeholder,#page-hours tr.hrs-low textarea::placeholder{color:var(--hrs-ph)}
 #page-hours .hrs-conf{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text)}
 #page-hours .hrs-need{display:inline-block;margin-top:1px;font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--text)}
 #page-hours .hrs-fold{margin-top:10px;font-size:13px;color:var(--text)}
@@ -7574,6 +7578,7 @@ const Hours = {
   _model: null,      // 最近一次识别的完整模型
   _draft: null,      // 用户确认后的结构化结果（只留内存，本阶段不落库）
   _busy: false,
+  _gridNotes: [],    // _htmlTableToGrid 递交给 _gridToModel 的提醒（畸形表格等）
 
   /* ═══════════ 归一化：纯函数 ═══════════ */
   norm: {
@@ -7586,14 +7591,22 @@ const Hours = {
         .replace(/[至到]/g, '-');
     },
 
-    /* 星期：星期一 / 周一 / 礼拜一 / 周日 / 周天 / 单字「一」~「日」 → 周一…周日（与 Schedule.DAYS 同值） */
-    day(s){
+    /* 星期：星期一 / 周一 / 礼拜一 / 周日 / 周天 / 单字「一」~「日」 → 周一…周日（与 Schedule.DAYS 同值）
+       · 严格（整串就是一个星期词）用于网格表头判定：传 opts.strict；
+       · 宽松（整行里搜「周X / 星期X / 礼拜X」）用于列表模式 —— 列表一行就是「周X 时间 班级 …」，
+         整串必然不是孤立的星期词，不加宽松查找就会 100% 丢星期；
+       · 宽松只认带「周/星期/礼拜」前缀的写法，不对「周末」这种硬塞某一天，单字宽容仍只在 strict 下生效。 */
+    day(s, opts){
       let t = String(s == null ? '' : s)
         .replace(/[（(][^）)]*[）)]/g, '')
         .replace(/[\s()（）\[\]【】·.,，、:：|~\-–—]/g, '');
       let m = /^(?:周|星期|礼拜)([一二三四五六日天])$/.exec(t);
       if (m) return '周' + (m[1] === '天' ? '日' : m[1]);
       if (/^[一二三四五六日天]$/.test(t)) return '周' + (t === '天' ? '日' : t);
+      if (!(opts && opts.strict)){
+        const lm = /(?:周|星期|礼拜)([一二三四五六日天])/.exec(t);
+        if (lm) return '周' + (lm[1] === '天' ? '日' : lm[1]);
+      }
       return '';
     },
 
@@ -7651,15 +7664,14 @@ const Hours = {
       const out = { day:'', time:null, cls:'', room:'', teacher:'', teacherId:'', title:'', unmatched:[] };
       if (!s) return out;
 
+      /* ① 星期：先认出来，再把星期词从整行剥掉 —— 列表模式一行就是「周X 时间 班级 老师 教室 内容」，
+             不剥掉的话它会一路混进 title。 */
       out.day = this.day(s);
+      if (out.day) s = s.replace(/(周|星期|礼拜)\s*[一二三四五六日天]/, ' ');
+
+      /* ② 时间 → ③ 班级 → ④ 老师 → ⑤ 教室 → ⑥ 剩下的当内容 */
       const t = this.time(s);
       if (t){ out.time = t; if (t.full) s = s.replace(t.full, ' '); }
-
-      const teachers = (ctx && ctx.teachers) || [];
-      const th = [...teachers].sort((a,b) => (b.name||'').length - (a.name||'').length)
-        .find(u => u.name && s.replace(/\s/g,'').indexOf(u.name.replace(/\s/g,'')) >= 0);
-      if (th){ out.teacher = th.name; out.teacherId = th.id; s = s.replace(th.name, ' '); }
-      else out.unmatched.push('老师没认出来');
 
       const classes = (ctx && ctx.classes) || [];
       const cl = [...classes].sort((a,b) => b.length - a.length)
@@ -7670,6 +7682,12 @@ const Hours = {
         if (hm){ out.cls = hm[1]; s = s.replace(hm[1], ' '); out.unmatched.push('班级「' + hm[1] + '」没在名册里'); }
         else out.unmatched.push('班级没认出来');
       }
+
+      const teachers = (ctx && ctx.teachers) || [];
+      const th = [...teachers].sort((a,b) => (b.name||'').length - (a.name||'').length)
+        .find(u => u.name && s.replace(/\s/g,'').indexOf(u.name.replace(/\s/g,'')) >= 0);
+      if (th){ out.teacher = th.name; out.teacherId = th.id; s = s.replace(th.name, ' '); }
+      else out.unmatched.push('老师没认出来');
 
       const rooms = (ctx && ctx.rooms) || [];
       let rm = [...rooms].sort((a,b) => b.length - a.length)
@@ -7764,14 +7782,53 @@ const Hours = {
     return this._linesToModel(this._lines(text), 'docx');
   },
 
+  /* 把 <table> 还原成**矩形网格**（不是每行 querySelectorAll 一下）：
+     逐行放置单元格，读到 colspan 就占 N 列、读到 rowspan 就在后续 N-1 行的对应列登记「被占用」，
+     放格时先跳过这些被占用的列 —— 否则合并格之后会**静默串列 / 丢课**。
+     被合并占用的格子填上**同一份文本**并打 `merged:true` + `src`（来自哪一格）——
+     课表里的合并格通常就是「这两天是同一节课」，复制过去比留空更接近真相，也让人看得出填了什么。
+     每行补齐到全表最大列数（缺的补空字符串）；畸形表格尽力还原、不抛异常。 */
   _htmlTableToGrid(html){
+    this._gridNotes = [];
     try {
       const doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
       const table = doc.querySelector('table');
       if (!table) return [];
-      return [...table.querySelectorAll('tr')].map(tr =>
-        [...tr.querySelectorAll('th,td')].map(td => this._cellText(td.textContent || '')));
-    } catch(e){ return []; }
+      const trs = [...table.querySelectorAll('tr')];
+      const grid = [];
+      const ensure = r => { while (grid.length <= r) grid.push([]); return grid[r]; };
+      trs.forEach((tr, r) => {
+        const row = ensure(r);
+        let c = 0;
+        [...tr.querySelectorAll('th,td')].forEach(td => {
+          while (row[c] !== undefined) c++;                 // 跳过上行 rowspan 占用的列
+          const text = this._cellText(td.textContent || '');
+          const cs = Math.max(1, parseInt(td.getAttribute('colspan') || '1', 10) || 1);
+          const rs = Math.max(1, parseInt(td.getAttribute('rowspan') || '1', 10) || 1);
+          for (let dr = 0; dr < rs; dr++){
+            const target = ensure(r + dr);
+            for (let dc = 0; dc < cs; dc++){
+              const cc = c + dc;
+              if (target[cc] !== undefined) continue;        // 已被别的合并占住（畸形表）→ 先到先得
+              target[cc] = (dr === 0 && dc === 0)
+                ? { text, merged: false, src: null }
+                : { text, merged: true, src: { r, c } };
+            }
+          }
+          c += cs;
+        });
+      });
+      if (!grid.length) return [];
+      const w = grid.reduce((m, g) => Math.max(m, g.length), 0);
+      return grid.map(g => {
+        const a = g.slice(0, w);
+        while (a.length < w) a.push({ text:'', merged:false, src:null });
+        return a;
+      });
+    } catch(e){
+      this._gridNotes.push('这份表格结构有点不规则，已尽量还原，请核对');
+      return [];
+    }
   },
 
   /* ═══════════ 通路二：Excel（自解 zip，精确）═══════════ */
@@ -7960,9 +8017,9 @@ const Hours = {
       })).filter(w => w.text);
     if (!ws.length) return this._emptyModel('ocr');
 
-    /* 星期词 */
+    /* 星期词（OCR 表头上下文：strict，保持原行为，不对整块文字乱触发） */
     const dayWords = [];
-    ws.forEach(w => { const d = this.norm.day(w.text); if (d) dayWords.push({ w, day: d, cx: w.cx, cy: w.cy }); });
+    ws.forEach(w => { const d = this.norm.day(w.text, { strict: true }); if (d) dayWords.push({ w, day: d, cx: w.cx, cy: w.cy }); });
 
     /* 找「相近 y 带、>=3 个不同星期词」 */
     let band = null;
@@ -8101,36 +8158,45 @@ const Hours = {
 
   /* ═══════════ 表格 → 模型 ═══════════ */
   _gridToModel(grid, via){
-    const clean = (grid || []).map(r => r.map(c => this._cellText(c)));
+    /* 格子可能是纯字符串（csv/xlsx），也可能是 _htmlTableToGrid 建的 {text,merged} 对象 */
+    const clean = (grid || []).map(r => (r || []).map(c =>
+      (c && typeof c === 'object')
+        ? { text: this._cellText(c.text), merged: !!c.merged }
+        : { text: this._cellText(c), merged: false }));
     if (!clean.length) return this._emptyModel(via);
+    /* 取出上一次 _htmlTableToGrid 留下的提醒并立刻清空 —— 免得串到后面 csv/xlsx 的读取上 */
+    const warnings = (this._gridNotes || []).slice();
+    this._gridNotes = [];
 
-    /* 表头行：前 4 行里找含 >=2 个星期词的那一行 */
+    /* 表头行：前 4 行里找含 >=2 个星期词的那一行（strict：只认孤立星期词，别对正文乱触发） */
     let headerIdx = -1, dayCols = [];
     for (let i = 0; i < Math.min(clean.length, 4); i++){
       const cols = [];
-      clean[i].forEach((c, j) => { const d = this.norm.day(c); if (d) cols.push({ day: d, j }); });
+      clean[i].forEach((c, j) => { const d = this.norm.day(c.text, { strict: true }); if (d) cols.push({ day: d, j }); });
       if (cols.length >= 2){ headerIdx = i; dayCols = cols; break; }
     }
     if (headerIdx < 0 || dayCols.length < 2)
-      return this._linesToModel(clean.map(r => r.filter(Boolean).join('  ')), via);
+      return this._linesToModel(clean.map(r => r.map(c => c.text).filter(Boolean).join('  ')), via);
 
     const labelCol = Math.max(0, dayCols[0].j - 1);
     const days = [];
     dayCols.forEach(c => { if (days.indexOf(c.day) < 0) days.push(c.day); });
     const ctx = this._ctx();
-    const rows = [], records = [], warnings = [];
+    const rows = [], records = [];
     for (let i = headerIdx + 1; i < clean.length; i++){
       const line = clean[i];
-      if (!line || !line.some(Boolean)) continue;
-      const label = (line[labelCol] || '').trim();
+      if (!line || !line.some(c => c.text)) continue;
+      const label = ((line[labelCol] || {}).text || '').trim();
       const rowTime = this.norm.time(label);
       const cells = {};
-      let any = false;
+      let any = false, hasMerged = false;
       dayCols.forEach(dc => {
-        const text = (line[dc.j] || '').trim();
+        const cell = line[dc.j] || { text:'', merged:false };
+        const text = (cell.text || '').trim();
         if (!text) return;
         any = true;
-        cells[dc.day] = { text, conf: 100 };
+        if (cell.merged) hasMerged = true;
+        cells[dc.day] = { text, conf: 100, merged: !!cell.merged };
       });
       if (!any && !label) continue;
       rows.push({ label, time: rowTime ? (rowTime.start + '-' + rowTime.end) : '', cells });
@@ -8140,9 +8206,16 @@ const Hours = {
         cd.text.split('\n').forEach(seg => {
           const s2 = seg.trim(); if (!s2) return;
           const f = this.norm.fields(s2, ctx);
-          records.push(this._mkRecord(f, day, f.time || rowTime, s2, cd.conf, via));
+          const rec = this._mkRecord(f, day, f.time || rowTime, s2, cd.conf, via);
+          /* 合并格复制出来的记录：这一天确实有课，但「是不是同一天」得人来看 —— 计入待确认 */
+          if (cd.merged){
+            rec.merged = true; rec.needCheck = true;
+            rec.notes = (rec.notes || []).concat('这格是合并单元格，已按同一内容填到合并的每一天');
+          }
+          records.push(rec);
         });
       });
+      if (hasMerged) warnings.push('第 ' + (i + 1) + ' 行有合并单元格，已按同一内容填到合并的每一天，请核对');
     }
     if (!records.length) warnings.push('表里没解析出课程（这份表可能不是按「周几 × 节次」排的）');
     return this._finish({ mode:'grid', via, days, rows, records, unassigned: [], warnings });
