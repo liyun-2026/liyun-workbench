@@ -938,7 +938,8 @@ try {
   ok(noGuess.colCount === 4 && noGuess.n === 3 && noGuess.days.indexOf('周一') >= 0 && noGuess.days.indexOf('周二') >= 0,
     `推不出的列不进星期列表、也不丢格：colCount=${noGuess.colCount} n=${noGuess.n} days=${JSON.stringify(noGuess.days)}`);
 
-  /* ③ Fix G 安全网：cls 是纯代码（`BY05`）→ 标待核 + 注记；是班名 → 不触发 */
+  /* ③ Fix G 安全网（v69 起降级为**文件级**）：_mkRecord 不再逐行标黄 / 挂注记 ——
+     真按教室排的表（实测 课表.docx 76/82）会被整表刷黄，待核信号归零。 */
   const fixG = await cdp.eval(`(() => {
     const t = { start:'08:00', end:'09:40', startMin:480, endMin:580 };
     const a = Hours._mkRecord({ cls:'BY05', title:'某课', unmatched:[] }, '周一', t, 'BY05 某课', 100, 'csv');
@@ -946,11 +947,26 @@ try {
     const c = Hours._mkRecord({ cls:'TEACH01', title:'某课', unmatched:[] }, '周一', t, 'TEACH01 某课', 100, 'csv');
     return { a:{nc:a.needCheck, notes:a.notes}, b:{nc:b.needCheck, notes:b.notes}, c:{nc:c.needCheck, notes:c.notes} };
   })()`);
-  ok(fixG.a.nc === true && fixG.a.notes.some(t => /班级这一列是代码「BY05」/.test(t)),
-    `cls 是纯代码且无教室 → 标待核 + 注记「可能是教室号」：${JSON.stringify(fixG.a.notes)}`);
+  ok(fixG.a.nc === false && !fixG.a.notes.some(t => /班级这一列是代码/.test(t)),
+    `Fix G 已降级为文件级：纯代码 + 无教室也**不**逐行标黄 / 挂注记：${JSON.stringify(fixG.a.notes)}`);
   ok(fixG.b.nc === false && !fixG.b.notes.some(t => /班级这一列/.test(t)),
     `cls 是班名（暑6班）→ 不触发安全网：${JSON.stringify(fixG.b.notes)}`);
   ok(fixG.c.nc === false, `cls「TEACH01」字母超 4 位 → 不算纯代码、不触发（边界）：${JSON.stringify(fixG.c.notes)}`);
+
+  /* ③b Fix G 文件级提醒：≥3 条「纯代码 + 无教室」→ 顶部只出 1 条；<3 条 / 都有教室 → 不出 */
+  const fixG3 = await cdp.eval(`(() => {
+    const mk = (code, room) => ({ cls: code ? 'BY05' : '暑6班', room: room || '', title:'某课', needCheck:false, notes:[] });
+    const many = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: Array.from({length:5}, () => mk(true, '')), unassigned:[], warnings:[] });
+    const few  = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: Array.from({length:2}, () => mk(true, '')), unassigned:[], warnings:[] });
+    const withRoom = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: Array.from({length:5}, () => mk(true, 'BY08')), unassigned:[], warnings:[] });
+    const hit = m => (m.warnings || []).filter(s => /「班级」填的是代码/.test(s)).length;
+    return { many:{n:hit(many), yellow: many.records.filter(r => r.needCheck).length},
+             few:{n:hit(few)}, withRoom:{n:hit(withRoom)} };
+  })()`);
+  ok(fixG3.many.n === 1 && fixG3.many.yellow === 0,
+    `文件级提醒：5 条纯代码无教室 → 顶部**只出 1 条**提醒、且不逐行刷黄：${JSON.stringify(fixG3.many)}`);
+  ok(fixG3.few.n === 0, `只有 2 条 → 不到阈值（3）不出提醒：${JSON.stringify(fixG3.few)}`);
+  ok(fixG3.withRoom.n === 0, `纯代码但都有教室（系统导出类）→ 不出提醒：${JSON.stringify(fixG3.withRoom)}`);
 
   /* ④ Fix F2 闸门文案：dayed===0 与「时间占比低」分开说，不再「20 条里只有 20 条带时间」 */
   const gate = await cdp.eval(`(() => {
@@ -1037,7 +1053,8 @@ try {
   ok(gaps.dec31_jan1 === true, `跨年：12月31日→1月1日 = ${gaps.dec31_jan1}（期望 true；取模用 366 会算成 false）`);
   ok(gaps.jul30_aug1 === false, `7月30日→8月1日 = ${gaps.jul30_aug1}（期望 false，差 2 天不算相邻）`);
 
-  /* ③ Fix G 收窄：纯代码**且有教室**（「系统导出」类文件里行首码本来就是班级）不再误报 */
+  /* ③ Fix G 收窄（v69 文件级）：纯代码**且有教室**（「系统导出」类文件里行首码本来就是班级）
+     不出提醒；逐行也不再标黄 / 挂注记。 */
   const fixG2 = await cdp.eval(`(() => {
     const t = { start:'08:00', end:'09:40', startMin:480, endMin:580 };
     const noRoom = Hours._mkRecord({ cls:'BY05', room:'', title:'科学发声', unmatched:[] }, '周一', t, 'BY05 科学发声', 100, 'csv');
@@ -1047,8 +1064,8 @@ try {
     return { noRoom:{hit:hit(noRoom), notes:noRoom.notes, nc:noRoom.needCheck},
              wRoom:{hit:hit(wRoom), notes:wRoom.notes}, name:{hit:hit(name)} };
   })()`);
-  ok(fixG2.noRoom.hit === true && fixG2.noRoom.nc === true,
-    `纯代码 + **无教室** → 仍触发（真该看的那格）：${JSON.stringify(fixG2.noRoom.notes)}`);
+  ok(fixG2.noRoom.hit === false && fixG2.noRoom.nc === false,
+    `纯代码 + **无教室** → 逐行不再标黄 / 挂注记（已归并到文件级一条）：${JSON.stringify(fixG2.noRoom.notes)}`);
   ok(fixG2.wRoom.hit === false,
     `纯代码 + **有教室**（系统导出类：行首码本来就是班级）→ 不再误报：notes=${JSON.stringify(fixG2.wRoom.notes)}`);
   ok(fixG2.name.hit === false, `班名 → 不触发：notes=${JSON.stringify(fixG2.name.notes)}`);

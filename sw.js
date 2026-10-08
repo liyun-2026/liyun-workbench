@@ -219,7 +219,33 @@
       的注记断言改用新文案。全部**直接调纯函数**，不放真实学校文件。
    ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；`TAB_ORDER`、`Ocr.recognize`、
       `readAnyFile` 一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-const VERSION = 'v68'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v69：**Fix G 从「逐行标待核」降级为「文件级一条提醒」** ——
+   用户裁决（2026-10-08）：v68 的 Fix G 收窄后，`课表.docx` 仍有 **76/82 行**是黄底（实测）。
+   那些记录**不是误报** —— `课表.docx` 是按**教室**排的表，行头第一列 `BY08`/`BY06` 本来就是教室号，
+   被填进「班级」列确实该让人知道。但**按行刷黄等于把信号清零**：整表都是黄的，「待核」就不再表示
+   「这几行特别可疑」，用户会直接忽略掉整个信号 —— 这比不报更糟。
+   ① `_mkRecord` 里的 Fix G **整块删掉**：不再设 `needCheck`、不再往 `rec.notes` 写那句。
+      🔴 别的 `needCheck` 来源（.doc 一律待核、合并格、整段推断、星期顺推、`dayGuessed`）一个字没动。
+   ② 改到 `_finish` 收尾处**文件级统计**：`codeCls` = `cls` 命中 `/^[A-Za-z]{1,4}\d{1,3}$/` **且**
+      `room` 为空的记录数；`codeCls >= 3` 时往 `warnings` **最前**插**一条**中性提醒
+      「这份表里有 N 条记录的「班级」填的是代码（如 BY08、BY05）…可能是教室号而不是班级名，请核对…」。
+      同一条文案只出现一次（`_finish` 会被调用两次 → 用 `m._codeClsWarn` 去重）。
+      阈值取 3 的理由：1~2 条更像某格偶发混进一个码的毛刺，为它在干净文件顶上挂一条提醒是噪音；
+      ≥3 才够得上「这一列都这样」的形态。
+      文案**不含 markdown 粗体**（`**教室号**` 那种）—— 提醒列表是用 `Util.esc` 当纯文本渲染的，
+      写进去会原样露出星号；故只用「」包裹、不加星号。
+   ③ `cls` / `room` 的值一律不动，不改任何实质字段。
+   实测（绝对路径引用真实文件、**绝不复制进仓库**；2026-10-09 主控复核）：**黄底行数并没有因此下降** ——
+      `课表.docx` 黄底 82→82、`副本课表.doc` 104→104，因为黄底的真实来源是「老师没认出来」（74/82）
+      与 `.doc` 一律待核的设计行为，Fix G 的注记只是**叠加**在已经黄的行上；去掉它黄底数不变。
+      改的是**提醒形态**：`课表.docx` / `副本课表.docx` / `26年暑期第2周学生课表.doc` 各由
+      76/8/30 条重复注记 → **1 条**文件级提醒（N 分别为 76/8/30）；`系统导出.doc`（codeCls=0）无提醒；
+      6 份真实文件实质字段（`day/time/cls/room/title/teacher`）逐条一致（v68 vs v69 sig 全等）。
+   ④ `test/hours_recognize_check.mjs`：5h 段里 Fix G 的断言由「逐行标待核」改为「逐行**不**标待核 +
+   文件级提醒**恰好 1 条**且 N 正确、`codeCls<3` 时**不**提醒、`_finish` 重复调用不重复提醒」。
+   ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；`TAB_ORDER`、`Ocr.recognize`、
+      `readAnyFile` 一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+const VERSION = 'v69'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
