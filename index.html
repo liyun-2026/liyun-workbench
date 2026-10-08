@@ -263,6 +263,28 @@ body{
 .nav button .ico{display:block;font-size:21px;margin-bottom:3px}
 .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 
+/* ==== 侧栏收起（v71，用户点名）：桌面 ≥700 才有；手机本来就是抽屉，不受影响 ====
+   看宽表（课时统计的对照表有 11 列）时侧栏那 76px 也算占地 —— 收起后 .main 自动吃满。
+   状态记在 localStorage（ly_side_min），下次进来保持上回的选择。 */
+.side-fold{
+  margin-top:auto;flex-shrink:0;border:none;background:transparent;font-family:inherit;
+  padding:8px 2px;border-radius:10px;cursor:pointer;
+  color:var(--rail-text);font-size:11px;line-height:1.35;
+}
+.side-fold b{display:block;font-size:17px;font-weight:400}
+.side-fold:hover{background:var(--rail-on);color:var(--rail-on-text)}
+.side-unfold{
+  display:none;position:fixed;left:8px;top:10px;z-index:60;
+  width:34px;height:34px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--text);
+  font-size:16px;line-height:1;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.10);
+}
+@media (min-width:700px){
+  body.side-min .side{display:none}
+  body.side-min .side-unfold{display:flex}
+}
+
 /* ==== 内容区 ==== */
 .main{
   flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -1903,20 +1925,22 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    这类既有令牌，不会碰这两个新名字；fg 对 bg 的对比度明/暗两套都 ≥4.5:1（按 8 组合实测过）。 */
 #page-hours .hrs-suspect{margin:0 0 12px;padding:10px 12px;border:1px solid var(--hrs-suspect-bd);border-left-width:4px;border-radius:8px;background:var(--hrs-suspect-bg);color:var(--hrs-suspect-fg);font-size:14px;line-height:1.7}
 #page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
-#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:980px}
+#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:950px}
 #page-hours .hrstbl th,#page-hours .hrstbl td{border:1px solid var(--line);padding:3px 4px}
 #page-hours .hrstbl th{background:var(--gold);color:#222;font-weight:500;padding:6px 4px;white-space:nowrap}
-#page-hours .hrstbl td input,#page-hours .hrstbl td select{padding:5px 6px;font-size:16px;border-radius:5px}
-#page-hours .hrstbl td:nth-child(1){width:82px}
-#page-hours .hrstbl td:nth-child(2){width:112px}
-#page-hours .hrstbl td:nth-child(3){width:148px}
-#page-hours .hrstbl td:nth-child(4){width:58px}
-#page-hours .hrstbl td:nth-child(5){width:120px}
-#page-hours .hrstbl td:nth-child(6){width:100px}
+#page-hours .hrstbl td input,#page-hours .hrstbl td select{padding:5px 6px;font-size:16px;border-radius:5px;width:100%;min-width:0}
+/* v71 列宽按实际内容收：班级/教室就是 BY03、暑6班 这种 4~5 字，日期补了年份要 2026年7月26日，
+   归属下拉要放得下「休息」+ 箭头 —— 省下来的全给「授课内容」（弹性列）。 */
+#page-hours .hrstbl td:nth-child(1){width:56px}
+#page-hours .hrstbl td:nth-child(2){width:138px}
+#page-hours .hrstbl td:nth-child(3){width:114px}
+#page-hours .hrstbl td:nth-child(4){width:52px}
+#page-hours .hrstbl td:nth-child(5){width:78px}
+#page-hours .hrstbl td:nth-child(6){width:78px}
 #page-hours .hrstbl td:nth-child(7){min-width:170px}
-#page-hours .hrstbl td:nth-child(8){width:104px}
-#page-hours .hrstbl td:nth-child(9){width:66px}
-#page-hours .hrstbl td:nth-child(10){width:70px;text-align:center}
+#page-hours .hrstbl td:nth-child(8){width:86px}
+#page-hours .hrstbl td:nth-child(9){width:76px}
+#page-hours .hrstbl td:nth-child(10){width:66px;text-align:center}
 #page-hours .hrstbl td:nth-child(11){width:40px;text-align:center}
 /* 练声 / 考试 / 休息：不归老师管的行，整行淡灰一层，跟「待核黄」区分开 */
 #page-hours tr.hrs-non td{background:var(--hrs-non-bg);color:var(--hrs-non-fg)}
@@ -2056,7 +2080,9 @@ try {
     <nav class="nav" id="nav">
       <!-- 由 App.routes 自动渲染 -->
     </nav>
+    <button class="side-fold only-desk" onclick="App.foldSide(true)" title="收起侧栏，把整屏让给内容（点左上角浮窗可展开）" aria-label="收起侧栏"><b>«</b>收起</button>
   </aside>
+  <button class="side-unfold only-desk" onclick="App.foldSide(false)" title="展开侧栏" aria-label="展开侧栏">»</button>
   <!-- ==== 侧边栏 END ==== -->
 
   <div class="col">
@@ -2396,26 +2422,17 @@ try {
         <div id="schSmallBody" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-inbox"></use></svg> 导入课表文字</h2>
-        <div class="row" style="justify-content:space-between;align-items:center">
-          <button class="btn ghost" onclick="document.getElementById('schFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-inbox"></use></svg> 导入课表（已合并到「课时统计」）</h2>
+        <p class="hint" style="margin-top:0">上传课表的入口合并到了侧栏的<b>「课时统计」</b>：那边能认 Word（<b>.doc / .docx</b>）、Excel、CSV 和图片，识别完逐格核对、自动分好「授课 / 练声 / 考试 / 休息」，确认后一键写进这里的课表（写之前会自动把现有课表存进「往期课表」）。</p>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
+          <button class="btn" onclick="App.go('hours')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 去「课时统计」上传</button>
+          <button class="btn ghost" onclick="Schedule.renderArch();document.getElementById('archCard').scrollIntoView({behavior:'smooth'})">看往期课表</button>
         </div>
         <input type="file" id="schFile" accept="image/*,.txt,.docx" style="display:none" onchange="Schedule.importFile(this)">
         <p class="hint" id="impStat" style="margin:6px 0 0"></p>
-        <textarea id="impText" placeholder="把课表文字贴在这里（从 Excel 直接复制最好，一行一节课）。形如：&#10;7月10日 周五&#10;08:00-09:40 即兴评述 BY05 [BY08]&#10;10:00-11:40 形体 BY06" style="margin-top:8px;min-height:120px"></textarea>
-        <details style="margin-top:8px">
-          <summary class="hint" style="cursor:pointer">能认出来什么（点开看）</summary>
-        </details>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:8px;align-items:center">
-          <label class="hint" style="margin:0">年份 <input type="number" id="impYear" value="2026" min="2020" max="2035" style="max-width:80px"></label>
-          <button class="btn" onclick="Schedule.parseLocal()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-search"></use></svg> 解析（本机）</button>
-          <button class="btn ghost" onclick="Schedule.archiveText()">原文存入往期</button>
-          <button class="btn ghost" onclick="Schedule.clearImport()">清空</button>
-        </div>
-        <div id="impPreview"></div>
-        <p class="hint" id="impNote" style="margin:8px 0 0"></p>
+        <textarea id="impText" style="display:none"></textarea>
       </div>
-      <div class="card wide">
+      <div class="card wide" id="archCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-folder"></use></svg> 往期课表</h2>
         <div id="archBody"></div>
       </div>
@@ -2428,7 +2445,7 @@ try {
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 上传课表</h2>
         <p class="hint" style="margin-top:0">传课表<b>图片</b>，或 Word（<b>.doc / .docx</b>）/ Excel（<b>.xls / .xlsx</b>）/ CSV 原件。系统会把课表还原成「周几 × 节次」的结构，在这里给你核对、修改。老版 Word（.doc）我是尽力解析，结果一定会标「待核」，请逐格核对；<b>PDF 请先截图再传</b>。</p>
-        <p class="hint" style="margin-top:4px">🔴 <b>确认之前不会动系统课表</b> —— 本页只负责「认出来 + 让人核对」，写进课表是下一阶段的事。</p>
+        <p class="hint" style="margin-top:4px">确认无误后可<b>一键写入系统课表</b>（学生端、老师端的首页课表用的就是它）—— 写入前会自动把现在的课表存进「往期课表」，写的是<b>整表替换</b>，弹窗里会再问你一次。</p>
         <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
           <button class="btn" onclick="document.getElementById('hrsFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
           <button class="btn ghost" onclick="Hours.clear()">清空</button>
@@ -4820,6 +4837,19 @@ const App = {
     document.getElementById('drawer')?.classList.toggle('on', !!on);
   },
 
+  /** 侧栏收起 / 展开（v71）：只影响桌面 ≥700；手机侧栏本来就是抽屉，类挂上也没作用。
+      状态记 localStorage，下次进工作台保持上回的选择（restoreSide 在进工作台时调）。 */
+  foldSide(v){
+    const on = v == null ? !document.body.classList.contains('side-min') : !!v;
+    document.body.classList.toggle('side-min', on);
+    try { localStorage.setItem('ly_side_min', on ? '1' : ''); } catch(e){}
+  },
+  restoreSide(){
+    let on = false;
+    try { on = localStorage.getItem('ly_side_min') === '1'; } catch(e){}
+    document.body.classList.toggle('side-min', on);
+  },
+
   go(id){
     if (!this.can(id)) return UI.toast('这个功能你的账号看不到');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
@@ -4857,6 +4887,7 @@ const App = {
     this.renderChrome();
     Greet.start();                              // 左上角问候 + 今日时钟，每秒走一格
     if (Auth.isStaff()) Settings.initRules();   // 量化占位细则，只有教务这边需要
+    this.restoreSide();                         // 侧栏收起状态（v71）：上回收起了就保持收起
     const last = Store.get('_lastPage');
     /* 网址带 ?board=1 = 这台机器是当看板用的（桌面快捷方式里写死这个参数）：
        直接落在看板上，不走「上次停在哪」。教务端才有看板，老师/学生照旧。 */
@@ -7158,8 +7189,10 @@ const Schedule = {
   },
 
   clearImport(){
-    document.getElementById('impText').value = '';
-    document.getElementById('impStat').textContent = '';
+    const t = document.getElementById('impText');
+    const s = document.getElementById('impStat');
+    if (t) t.value = '';
+    if (s) s.textContent = '';
   },
 
   /* ══════════ 导入：本机规则解析（不联网、不花钱） ══════════
@@ -7344,9 +7377,9 @@ const Schedule = {
 
   impImport(){
     const rows = (this._impRows || []).filter(r => r.date && r.title);
-    if (!rows.length) return UI.toast('表里没有可导入的课（日期和内容都要有）');
+    if (!rows.length){ UI.toast('表里没有可导入的课（日期和内容都要有）'); return false; }
     const exist = Store.list('schedule').length;
-    if (exist && !confirm('系统里现在有 ' + exist + ' 节课。\n\n导入是【整表替换】：现有课表先存进「往期课表」，再换成下面这批。继续吗？')) return;
+    if (exist && !confirm('系统里现在有 ' + exist + ' 节课。\n\n导入是【整表替换】：现有课表先存进「往期课表」，再换成下面这批。继续吗？')) return false;
 
     this.archiveCurrent();
     Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
@@ -7378,9 +7411,10 @@ const Schedule = {
     this.impCancel();
     this.clearImport();
     this.render();
-    document.getElementById('impStat').textContent =
-      '导入完成：' + n + ' 节。原课表已存入「往期课表」。';
+    const st = document.getElementById('impStat');
+    if (st) st.textContent = '导入完成：' + n + ' 节。原课表已存入「往期课表」。';
     UI.toast('导入完成：' + n + ' 节');
+    return true;
   },
 
   addPeriod(){
@@ -9237,7 +9271,7 @@ const Hours = {
     /* 课表原件里只有「7月26日」没有年份 → 给一个整表补年份的入口，补完才好跟真实日期对 */
     const yearBar = '<div class="row" style="margin:0 0 8px;gap:8px;flex-wrap:wrap;align-items:center">' +
       '<label for="hrsYear" style="font-size:14px;color:var(--text)">日期补年份</label>' +
-      '<input id="hrsYear" type="number" inputmode="numeric" min="2000" max="2100" placeholder="如 2025" style="width:96px;padding:5px 6px;font-size:16px;border-radius:5px">' +
+      '<input id="hrsYear" type="number" inputmode="numeric" min="2000" max="2100" placeholder="如 2025" value="' + String(this._year || '').replace(/[^0-9]/g, '').slice(0, 4) + '" oninput="Hours._year=this.value" style="width:96px;padding:5px 6px;font-size:16px;border-radius:5px">' +
       '<button class="btn" onclick="Hours.applyYear()" style="margin:0">整表补上</button>' +
       '<span class="hint" style="font-size:12.5px">课表原件里只写了「7月26日」没写年份</span></div>';
     return yearBar +
@@ -9272,9 +9306,67 @@ const Hours = {
   },
 
   _confirmHtml(n){
+    const synced = this._draft && this._draft.length
+      ? '<button class="btn" onclick="Hours.toSchedule()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-check"></use></svg> 写入系统课表（' + this._draft.length + ' 条）</button>'
+      : '';
     return '<div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">' +
       '<button class="btn" onclick="Hours.confirm()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-check"></use></svg> 确认无误（' + n + ' 条）</button>' +
+      synced +
       '</div><p class="hint" id="hrsConfirmMsg" style="margin:8px 0 0"></p>';
+  },
+
+  /* 🔴 v71 起「确认」之后可以真正写进系统课表（学生端 / 老师端首页读的就是它）：
+     复用 Schedule.impImport 的整条写入链（弹窗再问一次 → 现有课表自动存「往期课表」→ 整表替换
+     → 时间自动对到节次）。这里只负责把确认过的记录换成它要的行格式：日期必须是 ISO（缺年份的
+     先用「日期补年份」补齐），教室/老师里的「/」清成空串（那是预览层的展示约定）。 */
+  _validIso(y, mo, d){
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+    const iso = y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    return isNaN(new Date(iso + 'T00:00:00')) ? '' : iso;
+  },
+  _isoDate(s, fbYear){
+    const t = String(s == null ? '' : s).trim();
+    if (!t) return '';
+    let m = /(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})/.exec(t);
+    if (m) return this._validIso(+m[1], +m[2], +m[3]);
+    m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t);
+    if (m) return this._validIso(+m[1], +m[2], +m[3]);
+    m = /(\d{1,2})\s*月\s*(\d{1,2})/.exec(t);
+    if (m && /^\d{4}$/.test(String(fbYear || ''))) return this._validIso(+fbYear, +m[1], +m[2]);
+    return '';
+  },
+  toSchedule(){
+    const rows = this._draft || [];
+    if (!rows.length) return UI.toast('先点「确认无误」，再写入系统课表');
+    const yEl = document.getElementById('hrsYear');
+    const fbYear = yEl ? String(yEl.value).trim() : '';
+    const out = [], noDate = [];
+    rows.forEach(r => {
+      const iso = this._isoDate(r.date, fbYear);
+      if (!iso){ noDate.push(r); return; }
+      out.push({
+        date: iso, time: r.label || '',
+        cls: (r.cls === '/' ? '' : r.cls) || '',
+        title: r.title || '',
+        room: r.room === '/' ? '' : (r.room || ''),
+        _tname: r.teacher === '/' ? '' : (r.teacher || ''),
+        kind: 'big'
+      });
+    });
+    if (!out.length)
+      return UI.toast(noDate.length ? '日期都缺年份 —— 先在上面补年份、点「整表补上」，再写入' : '没有可写入的课');
+    Schedule._impRows = out;
+    const okw = Schedule.impImport();
+    if (!okw){ UI.toast('没有写入（你在弹窗里选了取消）'); return; }
+    this._draft = null;
+    const yv = fbYear;
+    this._paint();
+    const y2 = document.getElementById('hrsYear'); if (y2 && yv) y2.value = yv;
+    const msg = document.getElementById('hrsConfirmMsg');
+    if (msg) msg.textContent = '已写入 ' + out.length + ' 条' +
+      (noDate.length ? '；另有 ' + noDate.length + ' 条因缺年份没写（补年份后可再写）' : '') + '。';
+    UI.toast('已写入系统课表：' + out.length + ' 条');
+    App.go('timetable');
   },
 
   /* 改一格：置信度直接算满分（人已经看过了），并把这行从「待确认」里摘出来 */
@@ -9315,13 +9407,14 @@ const Hours = {
     this._paint();
   },
 
-  /* 🔴 阶段一止步于此：只把确认后的结果存进内存，**不写 schedule** */
+  /* 🔴 v71：确认后的记录可以写进系统课表（toSchedule）—— 提示语与新按钮配套 */
   confirm(){
     const m = this._model;
     if (!m || !m.records.length) return UI.toast('还没有可确认的识别结果');
     this._draft = JSON.parse(JSON.stringify(m.records));
+    this._paint();
     const el = document.getElementById('hrsConfirmMsg');
-    if (el) el.textContent = '已记下 ' + this._draft.length + ' 条（本阶段只留在内存，不会写进系统课表）。';
+    if (el) el.textContent = '已记下 ' + this._draft.length + ' 条。没问题就点「写入系统课表」（写之前会自动备份现有课表）。';
     UI.toast('已确认 ' + this._draft.length + ' 条');
   }
 };

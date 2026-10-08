@@ -261,7 +261,29 @@
    实测：hours_recognize_check 0 失败；320/360/390 overX=0。
    ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；TAB_ORDER、Ocr.recognize、readAnyFile
       一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-const VERSION = 'v70'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v71：**侧栏可收起 + 上传合二为一 + 列宽收紧（用户 2026-10-09 三条，都要）** ——
+   ① 侧栏收起：侧栏底部「«收起」→ body.side-min 隐藏侧栏，左上角浮窗「»」展开；
+      localStorage(ly_side_min) 记忆，进工作台 restoreSide() 恢复。只作用于桌面 ≥700，
+      手机侧栏本来就是抽屉不受影响。看 11 列宽表时这 76px 就是让给内容的。
+   ② 上传合二为一：课表页「导入课表文字」卡撤掉，换成指向「课时统计」的入口卡；
+      课时统计「确认无误」后新增「写入系统课表（N 条）」—— 复用 Schedule.impImport 整条
+      写入链（弹窗再问一次 → 现有课表自动存「往期课表」→ 整表替换 → 时间自动对节次）。
+      Hours.toSchedule() 负责换行格式：日期换 ISO（缺年份的跳过并提示先补年份）、
+      预览层的「/」清成空串、kind 统一 'big'（schedule 的 big/small 是大小课，与归属档位是两码事）。
+      impImport 补返回值 true/false（原来 undefined），clearImport/impStat 加空元素守卫
+      （课表页那张卡的输入框撤了，别让空引用炸了写入链）。#impText/#impStat/#schFile 留隐藏壳。
+   ③ 列宽按实际内容收（用户：「班级和教室只有 4~5 个字符就收紧，其他多留空间，把字符全展现出来」）：
+      星期 82→56、节次 148→114、班级 120→78、教室 100→78、老师 104→86；
+      日期 112→138（补年份后 2026年7月26日 要放得下）、归属 66→76（下拉「休息」+箭头不截断）；
+      授课内容保持弹性列吃掉省下的空间；表宽 980→950。
+   ④ 端到端测试揪出并修掉：填完「日期补年份」→ 点「确认无误」整表重绘会把年份清掉 →
+      「写入系统课表」读到空年份、缺年日期全部跳过 → 写入 0 条。修法 = 年份挂 Hours._year
+      随 oninput 记住、重绘时回填 value，任何重绘都不再丢。
+   实测：hours_recognize_check 223 断言 0 失败（含端到端：种 1 条旧课表 → 写入 9 条全 ISO、
+      旧表 1 条进「往期课表」、写完跳课表页）；320/360/390 overX=0。
+   ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；TAB_ORDER、Ocr.recognize、readAnyFile
+      一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+const VERSION = 'v71'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

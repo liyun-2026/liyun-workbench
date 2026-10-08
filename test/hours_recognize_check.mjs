@@ -1123,6 +1123,105 @@ try {
   ok(kindDom.hasYear && kindDom.dateVal === '7月26日',
     `日期列显示原件里的日期 + 顶部有「补年份」入口：${kindDom.dateVal}`);
 
+  /* ── 3i. v71：侧栏收起 / 日期换 ISO / 一键写入课表 / 列宽收紧 / 上传合并 ── */
+  console.log('\n【5i】v71：侧栏收起 + 写入课表 + 列宽 …');
+  const fold = await cdp.eval(`(() => {
+    const b = document.querySelector('.side-fold'), u = document.querySelector('.side-unfold');
+    if (!b || !u) return { has:false };
+    App.foldSide(true);
+    const minOn = document.body.classList.contains('side-min');
+    const rule = [...document.styleSheets].some(ss => { try {
+      return [...ss.cssRules].some(r => /body\\.side-min \\.side\\s*\\{[^}]*display:\\s*none/.test(r.cssText)); } catch(e){ return false; } });
+    const keep = localStorage.getItem('ly_side_min');
+    App.foldSide(false);
+    const restored = !document.body.classList.contains('side-min');
+    return { has:true, minOn, rule, keep, restored };
+  })()`);
+  ok(fold.has && fold.minOn && fold.rule && fold.keep === '1' && fold.restored,
+    `侧栏收起：按钮在、收起后 body.side-min + CSS 规则命中、localStorage 记忆、再点恢复：${JSON.stringify(fold)}`);
+
+  const iso = await cdp.eval(`({
+    a: Hours._isoDate('2026年7月26日',''),
+    b: Hours._isoDate('7月26日','2025'),
+    c: Hours._isoDate('2026-07-26',''),
+    d: Hours._isoDate('7月26日',''),
+    e: Hours._isoDate('13月40日','2025'),
+    f: Hours._isoDate('','2025')
+  })`);
+  ok(iso.a === '2026-07-26' && iso.b === '2025-07-26' && iso.c === '2026-07-26',
+    `日期换 ISO：带年 / 裸日期+补年份 / 已是 ISO：${JSON.stringify(iso)}`);
+  ok(iso.d === '' && iso.e === '' && iso.f === '',
+    `缺年份又不给补 / 非法日期 / 空值 → 返空串（宁可不写也不造日期）：${JSON.stringify(iso)}`);
+
+  const sync = await cdp.eval(`(async () => {
+    if (!Hours._model || !Hours._model.records.length){
+      // 不再跳过：端到端写入链是 v71 的核心，自己把 docx 夹具读进来再测
+      // （readSource 只返回模型，_model 是外层 read() 赋值的，这里手动补上）
+      const f = window.__mkFile(${JSON.stringify(docxB64)}, 'hours_tt.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      Hours._model = await Hours.readSource(f, () => {});
+    }
+    if (!Hours._model || !Hours._model.records.length) return { skip:true };
+    // 这份合成夹具的表头没有日期行（真实原件才有「7月26日」）—— 给每条补一个日期再走链路
+    Hours._model.records.forEach((r, i) => { if (!r.date) r.date = '7月' + (26 + (i % 5)) + '日'; });
+    Hours._paint();                                // 先把预览渲染出来，「补年份」输入框才存在（真实用户看到的就是这个）
+    window.confirm = () => true;                     // 无头浏览器里让 impImport 的弹窗过
+    const y = document.getElementById('hrsYear'); if (y){ y.value = '2025'; y.dispatchEvent(new Event('input')); }
+    Hours.applyYear();                             // 真实用户动作：点「整表补上」→ 日期变成 2025年7月26日
+    const applied = Hours._model.records.every(r => /2025年/.test(r.date));
+    Hours.confirm();
+    const y2 = document.getElementById('hrsYear');   // confirm 会整表重绘：年份必须还在（v71 修的丢年份 bug）
+    const yearKept = !!y2 && y2.value === '2025';
+    const btn = document.getElementById('hrsBody').innerHTML.indexOf('写入系统课表') >= 0;
+    Store.upsert('schedule', { date:'2025-07-01', time:'08:00-09:40', cls:'旧班级', title:'旧课（验证存档用）', kind:'big' });
+    const before = Store.list('schedule').length;
+    Hours.toSchedule();
+    const items = Store.list('schedule');
+    const on = document.querySelector('.page.on');
+    return { btn, before, n: items.length,
+             isoAll: items.every(x => /^\\d{4}-\\d{2}-\\d{2}$/.test(x.date)),
+             hasSlash: items.some(x => x.teacher === '/' || x.room === '/'),
+             arch: Store.list('schedule_archive').length,
+             page: on ? on.id : '', yearKept, applied,
+             dbg: { hYear: Hours._year, y2val: y2 ? y2.value : null,
+                    y2html: y2 ? y2.outerHTML.slice(0, 220) : null } };
+  })()`);
+  if (sync.skip){
+    skips.push('3i 写入链：模型里没有记录（夹具没加载），跳过');
+  } else {
+    ok(sync.btn, `确认后出现「写入系统课表」按钮（实测：${sync.btn}）`);
+    ok(sync.applied, `「整表补上」把 2025 年补进所有日期（实测：${sync.applied}）`);
+    ok(sync.yearKept, `确认重绘后「日期补年份」输入框里的年份不被清掉（实测：${sync.yearKept}）`);
+    ok(sync.n > 0 && sync.isoAll, `写入课表：${sync.before} → ${sync.n} 条，日期全部是 ISO（实测）`);
+    ok(!sync.hasSlash, `预览层的「/」不会带进课表（教室/老师该空的空）：${sync.hasSlash}`);
+    ok(sync.arch > 0, `写入前旧课表自动存进「往期课表」（实测：${sync.arch} 条存档）`);
+    ok(sync.page === 'page-timetable', `写完自动跳到课表页（实测：${sync.page}）`);
+  }
+
+  const mergedCard = await cdp.eval(`(() => {
+    App.go('timetable');                       // 卡片在隐藏页里 offsetParent 全是 null，先点亮课表页再量
+    const card = [...document.querySelectorAll('#page-timetable .card')].find(c => c.textContent.indexOf('导入课表') >= 0);
+    const visBtn = card ? [...card.querySelectorAll('button')].filter(b => b.offsetParent !== null).map(b => b.textContent.trim()) : [];
+    return { hasMerge: !!card && card.textContent.indexOf('已合并到「课时统计」') >= 0,
+             visBtn, textareaVisible: (() => { const t = document.getElementById('impText'); return !!t && t.offsetParent !== null; })() };
+  })()`);
+  ok(mergedCard.hasMerge && mergedCard.visBtn.some(t => t.indexOf('课时统计') >= 0) && !mergedCard.textareaVisible,
+    `课表页上传已合并：入口卡指向「课时统计」、旧的贴文字框不再出现（实测按钮：${mergedCard.visBtn.join('｜')}）`);
+
+  const w = await cdp.eval(`(() => {
+    // 页面模型此时可能为空（进页面只渲染上传壳），与 5h 一样用 _tableHtml 合成一张表来量
+    const host = document.getElementById('page-hours');
+    const d = document.createElement('div');
+    d.innerHTML = Hours._tableHtml({ records: [
+      { day:'周一', date:'7月26日', label:'08:00-09:40', slot:'上午', cls:'BY03', room:'BY03', title:'文稿朗诵', teacher:'王老师', kind:'lesson', conf:100, needCheck:false, notes:[] }
+    ]});
+    host.appendChild(d);
+    const t = d.querySelector('.hrstbl');
+    const mw = t ? getComputedStyle(t).minWidth : '';
+    d.remove();
+    return mw;
+  })()`);
+  ok(w === '950px', `列宽收紧后的表宽 950px（实测：${w || '表未渲染'}）`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {
