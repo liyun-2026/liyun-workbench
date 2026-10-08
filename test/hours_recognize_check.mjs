@@ -1070,6 +1070,59 @@ try {
     `纯代码 + **有教室**（系统导出类：行首码本来就是班级）→ 不再误报：notes=${JSON.stringify(fixG2.wRoom.notes)}`);
   ok(fixG2.name.hit === false, `班名 → 不触发：notes=${JSON.stringify(fixG2.name.notes)}`);
 
+  /* ── 3h. 归属档位（v70 用户定）：授课 / 练声 / 考试 / 休息 + 斜杠规则 + 计课时口径 ── */
+  console.log('\n【5h】归属档位（练声/考试/休息不归老师）…');
+  const kindU = await cdp.eval(`(() => {
+    const k = t => Hours._kindOf(t);
+    const t = { start:'08:00', end:'09:40', startMin:480, endMin:580 };
+    const mk = title => Hours._mkRecord({ cls:'BY03', room:'BY03', teacher:'', title, unmatched:[] }, '周一', t, title, 100, 'doc');
+    const withT = Hours._mkRecord({ cls:'BY03', room:'BY08', teacher:'王老师', title:'文稿朗诵', unmatched:[] }, '周一', t, '文稿朗诵 王老师', 100, 'doc');
+    return {
+      k: { rest:k('休息'), rest2:k('休息一天'), exam:k('三模考试'), exam2:k('模拟考试'),
+           pr:k('普通话发音'), pr2:k('科学发声'), pr3:k('科学发声——口腔控制'), lesson:k('文稿朗诵'),
+           lesson2:k('声调调值1'), lesson3:k('形体仪态实训') },
+      r: { pr: mk('普通话发音'), rest: mk('休息'), exam: mk('三模考试'), lesson: withT }
+    };
+  })()`);
+  ok(kindU.k.rest === 'rest' && kindU.k.rest2 === 'rest', `休息 → rest（含「休息一天」）：${JSON.stringify(kindU.k)}`);
+  ok(kindU.k.exam === 'exam' && kindU.k.exam2 === 'exam', `模考/考试 → exam：${JSON.stringify(kindU.k)}`);
+  ok(kindU.k.pr === 'practice' && kindU.k.pr2 === 'practice' && kindU.k.pr3 === 'practice',
+    `普通话发音 / 科学发声（含带说明的变体）→ practice（练声档）：${JSON.stringify(kindU.k)}`);
+  ok(kindU.k.lesson === 'lesson' && kindU.k.lesson2 === 'lesson' && kindU.k.lesson3 === 'lesson',
+    `正常课（文稿朗诵 / 声调调值1 / 形体仪态实训）→ lesson：${JSON.stringify(kindU.k)}`);
+  ok(kindU.r.pr.kind === 'practice' && kindU.r.pr.teacher === '/' && kindU.r.pr.room === 'BY03',
+    `练声行：老师 = /（教室保留）：${JSON.stringify({t:kindU.r.pr.teacher, r:kindU.r.pr.room})}`);
+  ok(kindU.r.rest.kind === 'rest' && kindU.r.rest.teacher === '/' && kindU.r.rest.room === '/',
+    `休息行：老师 = / 且教室 = /（只留班级）：${JSON.stringify({t:kindU.r.rest.teacher, r:kindU.r.rest.room})}`);
+  ok(kindU.r.exam.kind === 'exam' && kindU.r.exam.teacher === '/',
+    `考试行：老师 = /（同样不计老师课时）：${JSON.stringify({t:kindU.r.exam.teacher})}`);
+  ok(kindU.r.lesson.kind === 'lesson' && kindU.r.lesson.teacher === '王老师',
+    `正常课老师不被斜杠覆盖：${kindU.r.lesson.teacher}`);
+  ok(Hours_page_countable(kindU), `计课时口径：只有 lesson 计入（实测见下）`);
+  function Hours_page_countable(u){
+    const c = t => t === 'lesson';
+    return c(u.r.lesson.kind) && !c(u.r.pr.kind) && !c(u.r.rest.kind) && !c(u.r.exam.kind);
+  }
+  const kindDom = await cdp.eval(`(() => {
+    const html = Hours._tableHtml({ records: [
+      { day:'周一', date:'7月26日', label:'08:00-09:40', slot:'上午', cls:'BY03', room:'BY03', title:'休息', teacher:'/', kind:'rest', conf:90, needCheck:false, notes:[] },
+      { day:'周二', date:'7月27日', label:'08:00-09:40', slot:'上午', cls:'BY03', room:'BY08', title:'文稿朗诵', teacher:'王老师', kind:'lesson', conf:100, needCheck:false, notes:[] }
+    ]});
+    const d = document.createElement('div'); d.innerHTML = html;
+    const ths = [...d.querySelectorAll('th')].map(t => t.textContent);
+    const tr0 = d.querySelector('tbody tr');
+    const sel = tr0.querySelector('select');
+    return { ths, tr0cls: tr0.className, selVal: sel ? sel.value : '',
+             hasYear: !!d.querySelector('#hrsYear'),
+             dateVal: (tr0.querySelectorAll('input')[1] || {}).value };
+  })()`);
+  ok(kindDom.ths.join(',') === '星期,日期,节次 / 时间,时段,班级,教室,授课内容,老师,归属,置信度,',
+    `表头新增「日期」「归属」两列（实测：${kindDom.ths.join('｜')}）`);
+  ok(kindDom.tr0cls === 'hrs-non' && kindDom.selVal === 'rest',
+    `练声/考试/休息行 = 淡灰 hrs-non（不抢待核黄）、下拉选中正确：${kindDom.tr0cls}/${kindDom.selVal}`);
+  ok(kindDom.hasYear && kindDom.dateVal === '7月26日',
+    `日期列显示原件里的日期 + 顶部有「补年份」入口：${kindDom.dateVal}`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {

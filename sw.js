@@ -245,7 +245,23 @@
    文件级提醒**恰好 1 条**且 N 正确、`codeCls<3` 时**不**提醒、`_finish` 重复调用不重复提醒」。
    ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；`TAB_ORDER`、`Ocr.recognize`、
       `readAnyFile` 一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-const VERSION = 'v69'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v70：**归属档位 + 日期列（用户 2026-10-09 点名）** ——
+   用户原话：「普通话发音和科学发声这两个全部都属于学生的早功和午功，是没有老师去带的，所以老师那里
+   你可以画个斜杠……你要把它归为练声这档……早功的课程是不算到老师的课时计算当中的，考试和早功、
+   午功统称为练声不归老师去管」「休息的话，那只标注班级，教室就打斜杠，老师也打斜杠就可以了」
+   「要整张课表把年月日也要显现出来」。
+   ① 新增归属档位：授课 / 练声（早功·午功：普通话发音、科学发声等）/ 考试 / 休息；
+      按最终 title 自动归类（休息 > 考试 > 练声 > 授课），_mkRecord 收尾统一口径 —— 所有通路一致。
+   ② 斜杠规则：练声/考试 → 老师 = /；休息 → 老师 = / 且教室 = /；🔴 不标黄不挂注记（规则内正常形态）。
+   ③ 预览表加「日期」列（原 date 字段一直有、只是没显示）+ 顶部「日期补年份」整表一键补（原件只写
+      「7月26日」没写年份）；改归属时斜杠跟着规则走，改回「授课」自动清掉 / 让人填真名。
+   ④ 统计口径落定：_countable() = 只有「授课」计入老师课时 —— 阶段三统计、阶段四导出都按这条；
+      顶部汇总条实时显示「计入老师课时 N 条（练声/考试/休息 M 条不计）」。
+   ⑤ 新令牌 --hrs-non-bg/fg（练声/考试/休息行淡灰，与「待核黄」区分；明/暗两套）。
+   实测：hours_recognize_check 0 失败；320/360/390 overX=0。
+   ⚠️ 只动 index.html / sw.js / test/hours_recognize_check.mjs；TAB_ORDER、Ocr.recognize、readAnyFile
+      一字未动。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+const VERSION = 'v70'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

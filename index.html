@@ -1895,27 +1895,31 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
      · 窄屏把宽表放进 .hrs-wrap（overflow-x:auto）+ 复用 .grid-hint 那行提示，
        免得在 390/360 上撑破 .main。
    ⚠️ 表内 input 固定 16px（iOS 聚焦不放大整页），小于 16px 会被 probe_mobile_layout 当场点名。 */
-#page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; --hrs-suspect-bg:#F7E1DC; --hrs-suspect-fg:#8A2417; --hrs-suspect-bd:#B23A2E; }
-@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; --hrs-suspect-bg:#3A1C16; --hrs-suspect-fg:#F4C9C0; --hrs-suspect-bd:#C4544A; } }
+#page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; --hrs-suspect-bg:#F7E1DC; --hrs-suspect-fg:#8A2417; --hrs-suspect-bd:#B23A2E; --hrs-non-bg:#EFEDE7; --hrs-non-fg:#6E685C; }
+@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; --hrs-suspect-bg:#3A1C16; --hrs-suspect-fg:#F4C9C0; --hrs-suspect-bd:#C4544A; --hrs-non-bg:#2E2C27; --hrs-non-fg:#A9A296; } }
 #page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
 #page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
 /* 「不像课表」横幅：朱砂族。新令牌只在本页作用域定义 —— body.role-* 覆盖的是 --text/--text-dim
    这类既有令牌，不会碰这两个新名字；fg 对 bg 的对比度明/暗两套都 ≥4.5:1（按 8 组合实测过）。 */
 #page-hours .hrs-suspect{margin:0 0 12px;padding:10px 12px;border:1px solid var(--hrs-suspect-bd);border-left-width:4px;border-radius:8px;background:var(--hrs-suspect-bg);color:var(--hrs-suspect-fg);font-size:14px;line-height:1.7}
 #page-hours .hrs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
-#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:820px}
+#page-hours .hrstbl{border-collapse:collapse;width:100%;font-size:13px;min-width:980px}
 #page-hours .hrstbl th,#page-hours .hrstbl td{border:1px solid var(--line);padding:3px 4px}
 #page-hours .hrstbl th{background:var(--gold);color:#222;font-weight:500;padding:6px 4px;white-space:nowrap}
-#page-hours .hrstbl td input{padding:5px 6px;font-size:16px;border-radius:5px}
+#page-hours .hrstbl td input,#page-hours .hrstbl td select{padding:5px 6px;font-size:16px;border-radius:5px}
 #page-hours .hrstbl td:nth-child(1){width:82px}
-#page-hours .hrstbl td:nth-child(2){width:148px}
-#page-hours .hrstbl td:nth-child(3){width:58px}
-#page-hours .hrstbl td:nth-child(4){width:120px}
-#page-hours .hrstbl td:nth-child(5){width:100px}
-#page-hours .hrstbl td:nth-child(6){min-width:170px}
-#page-hours .hrstbl td:nth-child(7){width:110px}
-#page-hours .hrstbl td:nth-child(8){width:70px;text-align:center}
-#page-hours .hrstbl td:nth-child(9){width:40px;text-align:center}
+#page-hours .hrstbl td:nth-child(2){width:112px}
+#page-hours .hrstbl td:nth-child(3){width:148px}
+#page-hours .hrstbl td:nth-child(4){width:58px}
+#page-hours .hrstbl td:nth-child(5){width:120px}
+#page-hours .hrstbl td:nth-child(6){width:100px}
+#page-hours .hrstbl td:nth-child(7){min-width:170px}
+#page-hours .hrstbl td:nth-child(8){width:104px}
+#page-hours .hrstbl td:nth-child(9){width:66px}
+#page-hours .hrstbl td:nth-child(10){width:70px;text-align:center}
+#page-hours .hrstbl td:nth-child(11){width:40px;text-align:center}
+/* 练声 / 考试 / 休息：不归老师管的行，整行淡灰一层，跟「待核黄」区分开 */
+#page-hours tr.hrs-non td{background:var(--hrs-non-bg);color:var(--hrs-non-fg)}
 #page-hours tr.hrs-low td{background:var(--hrs-low)}
 /* 黄底行的典型状态是「字段没认出来、输入框是空的」—— 用户可见文字其实就是这些 placeholder。
    全局 `input::placeholder{color:var(--text-dim)}` 在黄底上只有 2.5~4.1:1（端口皮肤下更差），
@@ -7859,6 +7863,28 @@ const Hours = {
     return m;
   },
 
+  /* ═══════════ 归属（v70，用户定）：授课 / 练声 / 考试 / 休息 ═══════════ */
+  /* 用户 2026-10-09 原话：「普通话发音和科学发声这两个全部都属于学生的早功和午功，是没有老师去带的，
+     所以老师那里你可以画个斜杠……你要把它归为练声这档……早功的课程是不算到老师的课时计算当中的，
+     考试和早功、午功统称为练声不归老师去管。」
+     规则落地：
+       · 练声（早功/午功）：普通话发音、科学发声（含「XX实训」变体）等 → 老师 = /
+       · 考试（模考/考试/统考…）→ 老师 = /（同样不计老师课时）
+       · 休息 → 老师 = / 且教室 = /（用户：「只标注班级，教室就打斜杠，老师也打斜杠」）
+     🔴 归了非授课**不标黄、不挂注记** —— 这是规则内的正常形态，不是「没认出来」；
+        归属在下拉框里，用户可随时改回「授课」（改完老师格里的「/」他自己填）。 */
+  KINDS: [['lesson','授课'],['practice','练声'],['exam','考试'],['rest','休息']],
+  _kindText(k){ const hit = this.KINDS.find(x => x[0] === k); return hit ? hit[1] : '授课'; },
+  _kindOf(title){
+    const s = String(title == null ? '' : title);
+    if (/休息/.test(s)) return 'rest';
+    if (/(模考|模拟考|模拟考试|考试|统考|校考|联考)/.test(s)) return 'exam';
+    if (/(普通话发音|科学发声|练声|早功|午功|开嗓|晨功)/.test(s)) return 'practice';
+    return 'lesson';
+  },
+  /* 统计口径（阶段三/四的导出也按这条）：只有「授课」计入老师课时 */
+  _countable(r){ return !r || (r.kind || 'lesson') === 'lesson'; },
+
   /* 一条归一化记录。conf 越低 / 缺字段越多，越要人工确认 */
   _mkRecord(f, day, t, raw, conf, via){
     const c = Math.max(0, Math.min(100, Number(conf == null ? 100 : conf)));
@@ -7883,14 +7909,18 @@ const Hours = {
        信号反而被清零，比不报更糟。改成「整个文件统计一次、只在顶部提醒一条」，见 _finish。
        这里**不再**设 needCheck、**不再**写 notes（cls / room 的值也一律不动）。 */
     const low = notes.length > 0 || c < this.CONF_MIN;
+    /* 归属（按最终 title 判）+ 斜杠规则。放在收尾处 = 所有通路（网格/列表/OCR）同一口径。 */
+    const kind = this._kindOf(f.title);
+    const teacher = kind !== 'lesson' ? '/' : (f.teacher || '');
+    const room = kind === 'rest' ? '/' : (f.room || '');
     return {
       day: day || f.day || '',
       label: t ? (t.start + '-' + t.end) : '',
       start: t ? t.start : '', end: t ? t.end : '',
       startMin: t ? t.startMin : NaN, endMin: t ? t.endMin : NaN,
-      cls: f.cls || '', room: f.room || '', title: f.title || '',
-      teacher: f.teacher || '', teacherId: f.teacherId || '',
-      date: f.date || '', slot: f.slot || '',
+      cls: f.cls || '', room, title: f.title || '',
+      teacher, teacherId: kind !== 'lesson' ? '' : (f.teacherId || ''),
+      date: f.date || '', slot: f.slot || '', kind,
       conf: low && c >= this.CONF_MIN ? Math.round(c * 0.9) : c,
       needCheck: low, notes,
       raw: String(raw == null ? '' : raw), via: via || ''
@@ -9154,7 +9184,11 @@ const Hours = {
   _sumInner(){
     const m = this._model; if (!m) return '';
     const need = m.records.filter(r => r.needCheck).length;
+    const cnt = m.records.filter(r => this._countable(r)).length;
+    const non = m.records.length - cnt;
     return '识别到 <b>' + m.records.length + '</b> 条 · 其中 <b>' + need + '</b> 条需人工确认' +
+      ' · 计入老师课时 <b>' + cnt + '</b> 条' +
+      (non ? '（练声 / 考试 / 休息 <b>' + non + '</b> 条不计）' : '') +
       ' · 用了 <b>' + ((m.ms || 0) / 1000).toFixed(1) + '</b> 秒' +
       ' · 通路：<b>' + Util.esc(this._viaText(m.via)) + '</b>' +
       ' · 模式：<b>' + (m.mode === 'grid' ? '网格（周几 × 节次）' : '列表') + '</b>' +
@@ -9184,21 +9218,46 @@ const Hours = {
 
   _tableHtml(m){
     const rows = m.records.map((r, i) => {
-      const cls = r.needCheck ? ' class="hrs-low"' : '';
+      const kind = r.kind || 'lesson';
+      /* 练声/考试/休息：淡灰一层（不抢「待核黄」的信号）；黄底优先级更高（两者都有时黄底赢） */
+      const cls = r.needCheck ? ' class="hrs-low"' : (kind !== 'lesson' ? ' class="hrs-non"' : '');
       const cell = (k, ph) => '<td><input value="' + Util.esc(r[k] || '') + '" placeholder="' + Util.esc(ph || '') +
         '" oninput="Hours.edit(' + i + ',\'' + k + '\',this.value)" aria-label="' + Util.esc(ph || k) + '"></td>';
+      const kindSel = '<td><select onchange="Hours.edit(' + i + ',\'kind\',this.value)" aria-label="归属">' +
+        this.KINDS.map(k => '<option value="' + k[0] + '"' + (kind === k[0] ? ' selected' : '') + '>' + k[1] + '</option>').join('') +
+        '</select></td>';
       return '<tr' + cls + ' data-i="' + i + '">' +
-        cell('day', '周一') + cell('label', '08:00-09:40') + cell('slot', '上午') + cell('cls', '班级') +
-        cell('room', '教室') + cell('title', '授课内容') + cell('teacher', '老师') +
+        cell('day', '周一') + cell('date', '7月26日') + cell('label', '08:00-09:40') + cell('slot', '上午') + cell('cls', '班级') +
+        cell('room', '教室') + cell('title', '授课内容') + cell('teacher', '老师') + kindSel +
         '<td><span class="hrs-conf" title="' + Util.esc((r.notes || []).join('；') || '置信度偏低') + '">' +
           Math.round(r.conf) + '%' + (r.needCheck ? '<br><span class="hrs-need">待核</span>' : '') + '</span></td>' +
         '<td><button class="del" title="这行不要" onclick="Hours.del(' + i + ')">✕</button></td>' +
       '</tr>';
     }).join('');
-    return '<div class="grid-hint">← 左右滑动看整张表 →</div>' +
+    /* 课表原件里只有「7月26日」没有年份 → 给一个整表补年份的入口，补完才好跟真实日期对 */
+    const yearBar = '<div class="row" style="margin:0 0 8px;gap:8px;flex-wrap:wrap;align-items:center">' +
+      '<label for="hrsYear" style="font-size:14px;color:var(--text)">日期补年份</label>' +
+      '<input id="hrsYear" type="number" inputmode="numeric" min="2000" max="2100" placeholder="如 2025" style="width:96px;padding:5px 6px;font-size:16px;border-radius:5px">' +
+      '<button class="btn" onclick="Hours.applyYear()" style="margin:0">整表补上</button>' +
+      '<span class="hint" style="font-size:12.5px">课表原件里只写了「7月26日」没写年份</span></div>';
+    return yearBar +
+      '<div class="grid-hint">← 左右滑动看整张表 →</div>' +
       '<div class="hrs-wrap"><table class="hrstbl"><thead><tr>' +
-        '<th>星期</th><th>节次 / 时间</th><th>时段</th><th>班级</th><th>教室</th><th>授课内容</th><th>老师</th><th>置信度</th><th></th>' +
+        '<th>星期</th><th>日期</th><th>节次 / 时间</th><th>时段</th><th>班级</th><th>教室</th><th>授课内容</th><th>老师</th><th>归属</th><th>置信度</th><th></th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  },
+
+  /* 日期整表补年份：只补还没写「年」的，已补过的不动（可重复点） */
+  applyYear(){
+    const inp = document.getElementById('hrsYear');
+    const y = inp ? String(inp.value).trim() : '';
+    if (!/^\d{4}$/.test(y) || +y < 2000 || +y > 2100) return UI.toast('先填一个 4 位年份，比如 2025');
+    let n = 0;
+    ((this._model && this._model.records) || []).forEach(r => {
+      if (r.date && r.date.indexOf('年') < 0){ r.date = y + '年' + r.date; n++; }
+    });
+    this._paint();
+    UI.toast(n ? ('已给 ' + n + ' 条的日期补上 ' + y + ' 年') : '没有需要补的（日期都是空的或已带年份）');
   },
 
   _extraHtml(m){
@@ -9229,6 +9288,17 @@ const Hours = {
       r.startMin = t ? t.startMin : NaN; r.endMin = t ? t.endMin : NaN;
     }
     if (k === 'day'){ const d = this.norm.day(v); if (!d) r.needCheck = false; else r.day = d; }
+    /* 改归属 → 斜杠跟着规则走：改「休息」补 /；改回「授课」把 / 清空让人填真名字；
+       改成练声/考试时只把**空的**老师格补成 /（已经写了名字的不覆盖）。 */
+    if (k === 'kind'){
+      if (v === 'rest'){ r.teacher = '/'; r.room = '/'; }
+      else if (v === 'lesson'){ if (r.teacher === '/') r.teacher = ''; if (r.room === '/') r.room = ''; }
+      else if (!r.teacher || r.teacher === '/'){ r.teacher = '/'; }
+      const yv = (document.getElementById('hrsYear') || {}).value || '';
+      this._paint();
+      const y2 = document.getElementById('hrsYear'); if (y2 && yv) y2.value = yv;
+      return;
+    }
     r.conf = 100; r.needCheck = false; r.notes = [];
     const tr = document.querySelector('#hrsBody tr[data-i="' + i + '"]');
     if (tr){
