@@ -28,6 +28,10 @@
  *   5f) 回归（独立复核揪出的三处缺陷）：**行头多时段 × 格内多节**必须逐段配对（P0：老代码只取第一个
  *       时段 → 整行都记到同一个时间）；「2 个时段 + 1 节 + 1 条附注」只出 1 条并覆盖整段、标待核；
  *       `_codeStrip` 的 `clsKnown`（.doc 里 [BYxx] 其实是教室）单测；非课表（纯文字）→ suspect 闸门
+ *   5g) 回归（第二轮独立复核）：老版 .doc 表头里「只有日期、没写星期」的列 + 尾部空列 → 列数必须钉正
+ *       （旧代码整张网格左移、班级列被教室码污染）；只有日期的列顺推星期（顺不出就留空 + 待核）；
+ *       cls 是纯代码 → 安全网标待核；闸门两分支文案不再自相矛盾；`_cellBySlots` 退回提示如实；
+ *       表头空隙列的内容进「未归位」（绝不静默丢）。全部直接调纯函数，不依赖真实学校文件。
  *   6) 归一化单元：norm.day 严格/宽松/不误判
  *   7) 路由与权限：super/admin 看得到「课时统计」且能进；teacher/student 看不到、也进不去
  *   8) 不回归：跑一遍仓库里已有的 test/ocr_browser_test.mjs（Ocr.recognize 没被改坏）
@@ -184,8 +188,9 @@ class Cdp {
 
 /* ── 判定记账 ── */
 let failed = 0;
+let okCount = 0;    // ok() 被调用的总次数（**本文件**的断言数；子脚本打印的 ✅ 不在这里计）
 const skips = [];   // 明确「跳过」的项：只提示，**不计入通过**
-const ok = (c, m) => { console.log((c ? '  ✅ ' : '  ❌ ') + m); if (!c) failed++; };
+const ok = (c, m) => { okCount++; console.log((c ? '  ✅ ' : '  ❌ ') + m); if (!c) failed++; };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const normText = s => String(s || '').replace(/[\s，。、,.;；:：!！?？~～\-—_（）()【】\[\]{}\/\\|]/g, '');
 /** 相似度：完全相等 1，互相包含按长度比，否则 LCS 比 */
@@ -884,6 +889,109 @@ try {
   ok(/不像是课表/.test(notTt.first),
     `非课表提醒已**置顶**在 warnings 第一位：${JSON.stringify(notTt.first).slice(0, 120)}…`);
 
+  /* ── 5g/9. 回归（第二轮独立复核揪出的 1 处硬伤 + 2 处误导文案 + 1 个安全网缺口）──
+     硬伤：老版 .doc 表头里「只有日期、没写星期」的列（`7月31日` / `8月1日`）被漏掉 →
+     整张网格左移，班级列被教室码污染。**全部直接调纯函数**，不依赖真实学校文件
+     （仓库即 EdgeOne 部署源，真实件绝不进 test/fixtures）。 */
+  console.log('\n【5g/9】回归：.doc 只有日期的表头列 / 顺推星期 / cls 纯代码安全网 / 误导文案 ──');
+
+  /* ① 表头 9 格（尾部还有一个空列）+「只有日期」的 2 列 → 列数必须是 9，班级来自行头、[BYxx] 归教室 */
+  const docGrid = await cdp.eval(`(() => {
+    const lesson = () => '08:50-09:10科学发声[BY05]\\n09:10-09:50余老师[BY06]\\n10:00-10:40朗诵艺术鉴赏[BY03]\\n10:50-11:30形体[BY05]';
+    const cells = ['', '7月26日  周六', '7月27日  周日', '7月28日  周一', '7月29日  周二', '7月30日  周三', '7月31日', '8月1日', ''];
+    ['暑6班\\n（半天班）', '暑8班\\n（全天班）', '暑9班\\n（全天班）'].forEach(name => {
+      cells.push(name);
+      for (let k = 0; k < 7; k++) cells.push(lesson());
+      cells.push('');                       // 尾部那个空列（真实 .doc 每行也是 9 格，与表头对齐）
+    });
+    const built = Hours._docCellsToGrid(cells);
+    const m = Hours._gridToModel(built.grid, 'doc');
+    const clsCode = /^[A-Za-z]{1,4}\\d{1,3}$/;
+    return { colCount: built.colCount, r0: built.r0, r1: built.r1, head: built.grid[0],
+             n: m.records.length, days: m.days,
+             clsSet: [...new Set(m.records.map(r => r.cls).filter(Boolean))].sort(),
+             badCls: m.records.filter(r => clsCode.test(String(r.cls || ''))).length,
+             roomNonEmpty: m.records.filter(r => r.room).length,
+             guessedDays: [...new Set(m.records.filter(r => (r.notes || []).some(t => /顺推/.test(t))).map(r => r.day))].sort() };
+  })()`);
+  ok(docGrid.colCount === 9, `.doc 表头「只有日期」+ 尾部空列 → colCount=${docGrid.colCount}（期望 9；旧代码 6、只放宽 dayAt 只得 8、仍错位）`);
+  ok(docGrid.head.length === 9 && docGrid.head[7] === '8月1日' && docGrid.head[8] === '',
+    `表头 9 格、尾部空列被算进来：${JSON.stringify(docGrid.head)}`);
+  ok(docGrid.badCls === 0 && docGrid.clsSet.indexOf('暑6班') >= 0 && docGrid.clsSet.indexOf('暑8班') >= 0,
+    `没有任何记录的 cls 是纯代码（班级该来自行头班名）：badCls=${docGrid.badCls}｜cls 集合=${JSON.stringify(docGrid.clsSet)}`);
+  ok(docGrid.roomNonEmpty > 0 && docGrid.roomNonEmpty === docGrid.n,
+    `行头班级已知 → [BYxx] 全归教室：room 非空 ${docGrid.roomNonEmpty}/${docGrid.n}`);
+  ok(docGrid.guessedDays.indexOf('周四') >= 0 && docGrid.guessedDays.indexOf('周五') >= 0 && docGrid.days.length === 7,
+    `只有日期的两列顺推出周四/周五并标待核：guessed=${JSON.stringify(docGrid.guessedDays)}｜星期列=${JSON.stringify(docGrid.days)}`);
+
+  /* ② 顺推不出来（前一列没日期）→ day 留空 + 待核，绝不错猜 */
+  const noGuess = await cdp.eval(`(() => {
+    const cells = ['', '周一', '周二', '7月31日', '暑6班', '08:50-09:10科学发声[BY05]', '08:50-09:10形体[BY05]', '08:50-09:10台词[BY05]'];
+    const built = Hours._docCellsToGrid(cells);
+    const m = Hours._gridToModel(built.grid, 'doc');
+    const blank = m.records.filter(r => !r.day);
+    return { colCount: built.colCount, n: m.records.length, blank: blank.length,
+             notes: blank.map(r => r.notes || []), days: m.days };
+  })()`);
+  ok(noGuess.blank === 1 && noGuess.notes.every(ns => ns.some(t => /星期没认出来/.test(t))),
+    `前一列没有日期 → 推不出星期：该列留空 + 标待核（不瞎猜）：${JSON.stringify(noGuess.notes)}`);
+  ok(noGuess.colCount === 4 && noGuess.n === 3 && noGuess.days.indexOf('周一') >= 0 && noGuess.days.indexOf('周二') >= 0,
+    `推不出的列不进星期列表、也不丢格：colCount=${noGuess.colCount} n=${noGuess.n} days=${JSON.stringify(noGuess.days)}`);
+
+  /* ③ Fix G 安全网：cls 是纯代码（`BY05`）→ 标待核 + 注记；是班名 → 不触发 */
+  const fixG = await cdp.eval(`(() => {
+    const t = { start:'08:00', end:'09:40', startMin:480, endMin:580 };
+    const a = Hours._mkRecord({ cls:'BY05', title:'某课', unmatched:[] }, '周一', t, 'BY05 某课', 100, 'csv');
+    const b = Hours._mkRecord({ cls:'暑6班', title:'某课', unmatched:[] }, '周一', t, '暑6班 某课', 100, 'csv');
+    const c = Hours._mkRecord({ cls:'TEACH01', title:'某课', unmatched:[] }, '周一', t, 'TEACH01 某课', 100, 'csv');
+    return { a:{nc:a.needCheck, notes:a.notes}, b:{nc:b.needCheck, notes:b.notes}, c:{nc:c.needCheck, notes:c.notes} };
+  })()`);
+  ok(fixG.a.nc === true && fixG.a.notes.some(t => /班级这一列现在填的是代码「BY05」/.test(t)),
+    `cls 是纯代码 → 标待核 + 注记「看起来像教室号」：${JSON.stringify(fixG.a.notes)}`);
+  ok(fixG.b.nc === false && !fixG.b.notes.some(t => /班级这一列/.test(t)),
+    `cls 是班名（暑6班）→ 不触发安全网：${JSON.stringify(fixG.b.notes)}`);
+  ok(fixG.c.nc === false, `cls「TEACH01」字母超 4 位 → 不算纯代码、不触发（边界）：${JSON.stringify(fixG.c.notes)}`);
+
+  /* ④ Fix F2 闸门文案：dayed===0 与「时间占比低」分开说，不再「20 条里只有 20 条带时间」 */
+  const gate = await cdp.eval(`(() => {
+    const mk = (dayed, timed, n) => Array.from({ length: n }, (_, i) => ({ day: dayed ? '周一' : '', startMin: i < timed ? 480 : NaN, label:'', title:'文字' + i }));
+    const a = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: mk(false, 0, 25), unassigned:[], warnings:[] });
+    const b = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: mk(true, 0, 25), unassigned:[], warnings:[] });
+    const c = Hours._finish({ mode:'list', via:'csv', days:[], rows:[], records: mk(true, 25, 25), unassigned:[], warnings:[] });
+    return { a:{suspect:a.suspect, msg:a.suspectMsg}, b:{suspect:b.suspect, msg:b.suspectMsg}, c:{suspect:c.suspect} };
+  })()`);
+  ok(gate.a.suspect === true && /但一条都没认出是星期几/.test(gate.a.msg) && !/条带时间/.test(gate.a.msg),
+    `闸门 dayed===0 分支不再自相矛盾：${gate.a.msg}`);
+  ok(gate.b.suspect === true && /其中只有 0 条带时间（HH:MM）/.test(gate.b.msg),
+    `闸门「时间占比低」分支说清条数：${gate.b.msg}`);
+  ok(gate.c.suspect !== true, `正常课表（25 条全带时间/星期）不误伤：suspect=${gate.c.suspect}`);
+
+  /* ⑤ Fix F1 `_cellBySlots` 退回提示：如实描述 + 带日列，不谎称「已按第一个时段取」 */
+  const f1 = await cdp.eval(`(() => {
+    const html = '<table>'
+      + '<tr><td colspan="3"></td><td>7月25日 周四</td><td>7月26日 周五</td></tr>'
+      + '<tr><td>BY08</td><td>上午</td><td><p>09:00-09:40</p><p>09:50-10:30</p><p>10:40-11:20</p></td>'
+      +     '<td><p>模考</p><p>09:00候场抽题</p></td><td><p>正常课</p></td></tr>'
+      + '</table>';
+    const m = Hours._gridToModel(Hours._htmlTableToGrid(html), 'docx');
+    return { warn: (m.warnings || []).filter(w => /对不上/.test(w)) };
+  })()`);
+  ok(f1.warn.length >= 1 && f1.warn.every(w => w.indexOf('已按第一个时段取') < 0) &&
+     f1.warn.some(w => /周四/.test(w) && /7月25日/.test(w)),
+    `退回提示改成如实描述、且带上日列：${JSON.stringify(f1.warn)}`);
+
+  /* ⑥ 表头空隙列（既非日列也非行头）→ 内容进「未归位」，绝不静默丢 */
+  const gapCol = await cdp.eval(`(() => {
+    const html = '<table>'
+      + '<tr><th>时间</th><th>周一</th><th></th><th>周二</th></tr>'
+      + '<tr><td>08:00-09:40</td><td>成人书法</td><td>这是空隙列的字</td><td>少儿口才</td></tr>'
+      + '</table>';
+    const m = Hours._gridToModel(Hours._htmlTableToGrid(html), 'docx');
+    return { un: m.unassigned, days: m.days, n: m.records.length };
+  })()`);
+  ok(gapCol.un.some(u => /空隙列的字/.test(u)),
+    `表头空隙列的内容进了「未归位」、不静默丢：unassigned=${JSON.stringify(gapCol.un)}`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {
@@ -1137,6 +1245,7 @@ try {
     ok((v.smallCtl || []).length === 0, `probe @${w}：没有 <16px 的表单控件${low.length ? '｜' + low.join(' | ') : ''}`);
   }
 
+  console.log(`\n本文件 ok() 断言共调用 ${okCount} 次（子脚本 ocr_browser_test.mjs 打印的 ✅ 不计入 —— 上一轮口径差就在这里）`);
   console.log(failed ? `\n❌ 有 ${failed} 项没过\n` : '\n✅ 课时统计 · 阶段一 全部检查通过\n');
   if (skips.length) console.log('⏭️  跳过 ' + skips.length + ' 项（**不计入通过**）：\n     ' + skips.join('\n     ') + '\n');
 } catch (e) {
