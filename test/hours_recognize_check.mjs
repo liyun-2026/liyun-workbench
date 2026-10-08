@@ -155,6 +155,7 @@ class Cdp {
 
 /* ── 判定记账 ── */
 let failed = 0;
+const skips = [];   // 明确「跳过」的项：只提示，**不计入通过**
 const ok = (c, m) => { console.log((c ? '  ✅ ' : '  ❌ ') + m); if (!c) failed++; };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const normText = s => String(s || '').replace(/[\s，。、,.;；:：!！?？~～\-—_（）()【】\[\]{}\/\\|]/g, '');
@@ -203,7 +204,8 @@ try {
   const pngB64 = (await readFile(path.join(FIX, 'hours_tt.png'))).toString('base64');
   const xlsxB64 = (await readFile(path.join(FIX, 'hours_tt.xlsx'))).toString('base64');
   const mergedB64 = (await readFile(path.join(FIX, 'hours_tt_merged.docx'))).toString('base64');
-  console.log(`  · docx ${Math.round(docxB64.length * 3 / 4 / 1024)}KB · csv ${Math.round(csvB64.length * 3 / 4 / 1024)}KB · png ${Math.round(pngB64.length * 3 / 4 / 1024)}KB · xlsx ${Math.round(xlsxB64.length * 3 / 4 / 1024)}KB · 合并格 docx ${Math.round(mergedB64.length * 3 / 4 / 1024)}KB`);
+  const realGeomB64 = (await readFile(path.join(FIX, 'hours_tt_realgeom.docx'))).toString('base64');
+  console.log(`  · docx ${Math.round(docxB64.length * 3 / 4 / 1024)}KB · csv ${Math.round(csvB64.length * 3 / 4 / 1024)}KB · png ${Math.round(pngB64.length * 3 / 4 / 1024)}KB · xlsx ${Math.round(xlsxB64.length * 3 / 4 / 1024)}KB · 合并格 docx ${Math.round(mergedB64.length * 3 / 4 / 1024)}KB · 真实几何 docx ${Math.round(realGeomB64.length * 3 / 4 / 1024)}KB`);
 
   /* ── 起服务 + 浏览器 ── */
   console.log('\n【起】静态服务 + 真 Chrome（无头）…');
@@ -436,7 +438,60 @@ try {
   ok((merged.warnings || []).some(w => /合并单元格/.test(w)),
      `warnings 里有合并提示：${JSON.stringify(merged.warnings)}`);
 
-  /* 4c. 真实 Word（存在才跑） */
+  /* 4b2. 对抗用例：第三轮独立复核揪出的 3 个重写回归 */
+  const adv = await cdp.eval(`(() => {
+    const perDay = recs => { const d = {}; recs.forEach(r => { (d[r.day] = d[r.day] || []).push(r.title); }); return d; };
+
+    /* A8：最后一行的 <td rowspan="5"> 跨过表尾 —— 不许凭空造行、不许把一节课复制成 N 条 */
+    const g8 = Hours._htmlTableToGrid('<table><tr><td>时间</td><td>周一</td><td>周二</td></tr>'
+      + '<tr><td>08:00</td><td rowspan="5">A课</td><td>B课</td></tr></table>');
+    const m8 = Hours._gridToModel(g8, 'docx');
+
+    /* A11：3 个 <tr>，最后一行 <td rowspan="2"> —— 同样不许造行 */
+    const g11 = Hours._htmlTableToGrid('<table><tr><td>时间</td><td>周一</td><td>周二</td></tr>'
+      + '<tr><td>08:00</td><td>A</td><td>B</td></tr>'
+      + '<tr><td>10:00</td><td rowspan="2">C</td><td>D</td></tr></table>');
+    const m11 = Hours._gridToModel(g11, 'docx');
+
+    /* A12：表头 <td colspan="2">周一</td> —— 重复星期列不许静默丢格 */
+    const g12 = Hours._htmlTableToGrid('<table><tr><td>时间</td><td colspan="2">周一</td><td>周二</td></tr>'
+      + '<tr><td>08:00</td><td>A</td><td>B</td><td>C</td></tr></table>');
+    const m12 = Hours._gridToModel(g12, 'docx');
+
+    return {
+      a8:  { gridRows: g8.length,  dataRows: m8.rows.length,  perDay: perDay(m8.records),  warnings: m8.warnings  },
+      a11: { gridRows: g11.length, dataRows: m11.rows.length, perDay: perDay(m11.records), warnings: m11.warnings },
+      a12: { gridRows: g12.length, dataRows: m12.rows.length, perDay: perDay(m12.records), unassigned: m12.unassigned, warnings: m12.warnings }
+    };
+  })()`);
+  ok(adv.a8.gridRows === 2 && eq(adv.a8.perDay['周一'], ['A课']) && eq(adv.a8.perDay['周二'], ['B课']),
+     `A8 rowspan 越界不造幽灵行：网格 ${adv.a8.gridRows} 行（期望 2）、数据行 ${adv.a8.dataRows}，逐天 ${JSON.stringify(adv.a8.perDay)}（期望 周一[A课] 周二[B课]）`);
+  ok((adv.a8.warnings || []).some(w => /跨过了表格末尾/.test(w)),
+     `A8 越界已截断并有提醒：${JSON.stringify(adv.a8.warnings)}`);
+  ok(adv.a11.gridRows === 3 && eq(adv.a11.perDay['周一'], ['A','C']) && eq(adv.a11.perDay['周二'], ['B','D']),
+     `A11 rowspan 越界不造幽灵行：网格 ${adv.a11.gridRows} 行（期望 3）、数据行 ${adv.a11.dataRows}，逐天 ${JSON.stringify(adv.a11.perDay)}（期望 周一[A,C] 周二[B,D]）`);
+  ok(adv.a12.gridRows === 2 && eq(adv.a12.perDay['周一'], ['A']) && eq(adv.a12.perDay['周二'], ['C']) &&
+     (adv.a12.unassigned || []).indexOf('B') >= 0,
+     `A12 表头重复列：网格 ${adv.a12.gridRows} 行，只按第一列取课 ${JSON.stringify(adv.a12.perDay)}（期望 周一[A] 周二[C]），多余列内容进未归位 = ${JSON.stringify(adv.a12.unassigned)}`);
+  ok((adv.a12.warnings || []).some(w => /出现了 2 次/.test(w)),
+     `A12 重复列有提醒：${JSON.stringify(adv.a12.warnings)}`);
+
+  /* 4c. 「真实模板几何」常驻夹具：27 行 × 6 列，首行首格 colspan=5、首行末格 rowspan=2。
+         复刻自 /Volumes/山野万里/2019教师授课日志登记表（用专属信纸打印）.docx 的真实几何 ——
+         这条断言**永远会跑**，不再依赖外接卷在不在。 */
+  const realGeom = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    if (!window.mammoth) await loadFirstScript([CDN.mammoth], () => window.mammoth, '文档解析引擎');
+    const f = window.__mkFile(${JSON.stringify(realGeomB64)}, 'hours_tt_realgeom.docx',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    const r = await window.mammoth.convertToHtml({ arrayBuffer: await f.arrayBuffer() });
+    const g = Hours._htmlTableToGrid(r.value);
+    return { rows: g.length, widths: g.map(x => x.length) };
+  })()`);
+  ok(realGeom.rows === 27 && realGeom.widths.every(w => w === 6),
+     `真实模板几何夹具：行数 = ${realGeom.rows}（期望 27）、每行列数 = ${JSON.stringify([...new Set(realGeom.widths)])}（期望 [6]）`);
+
+  /* 4d. 真实 Word（外接卷在时才额外跑；卷不在 = 明确「跳过」，**不计入通过**） */
   if (existsSync(REAL_WORD)) {
     const realB64 = readFileSync(REAL_WORD).toString('base64');
     const real = await cdp.eval(`(async () => {
@@ -451,7 +506,8 @@ try {
     ok(real.widths.length === 27 && real.widths.every(w => w === 6),
        `真实 Word 课表：行数 = ${real.rows}（期望 27）、每行列数 = ${JSON.stringify([...new Set(real.widths)])}（期望 [6]）`);
   } else {
-    ok(true, `真实 Word 不存在，已跳过：${REAL_WORD}`);
+    skips.push(`真实 Word 不在（${REAL_WORD}）—— 已由 4c 的常驻几何夹具覆盖 27×6`);
+    console.log(`  ⏭️  跳过：真实 Word 不在（${REAL_WORD}）—— 已由 4c 的常驻几何夹具覆盖 27×6`);
   }
 
   /* ── 5/9. xlsx 通路 ── */
@@ -597,6 +653,48 @@ try {
   ok(dayUnit.weekend === '' && dayUnit.plain === '',
      `『周末』『成人书法基础』不硬塞成某一天：${JSON.stringify(dayUnit.weekend)}/${JSON.stringify(dayUnit.plain)}`);
 
+  /* 8b. 宽松模式改成「字段边界」判定后：名字里含「周X」的不许误判，紧贴/带前缀的仍要认得 */
+  const dayBound = await cdp.eval(`(() => ({
+    everyDay:    Hours.norm.day('每周一练'),
+    qiang:       Hours.norm.day('周三强化班'),
+    spaceTime:   Hours.norm.day('周一 08:00-09:40 成人书法 王老师 BY05 301'),
+    tight:       Hours.norm.day('周一08:00'),
+    everyFri:    Hours.norm.day('每周五 08:00'),
+    range:       Hours.norm.day('周一至周三'),
+    classSuffix: Hours.norm.day('周一班'),
+    weekend:     Hours.norm.day('周末'),
+    cycle:       Hours.norm.day('周期'),
+    thirdWeek:   Hours.norm.day('第三周'),
+    oneWeek:     Hours.norm.day('一周'),
+    comma:       Hours.norm.day('周一,08:00'),
+    fullBang:    Hours.norm.day('周一；08:00'),
+    twoDays:     Hours.norm.day('周一周二'),
+    morning:     Hours.norm.day('上午周一')
+  }))()`);
+  ok(dayBound.everyDay === '' && dayBound.qiang === '' && dayBound.classSuffix === '',
+     `名含「周X」不误判：每周一练=${JSON.stringify(dayBound.everyDay)} 周三强化班=${JSON.stringify(dayBound.qiang)} 周一班=${JSON.stringify(dayBound.classSuffix)}`);
+  ok(dayBound.spaceTime === '周一' && dayBound.tight === '周一' && dayBound.everyFri === '周五' && dayBound.range === '周一',
+     `紧贴 / 带「每」/ 区间 仍认得：'周一 08:00…'=${JSON.stringify(dayBound.spaceTime)} '周一08:00'=${JSON.stringify(dayBound.tight)} '每周五 08:00'=${JSON.stringify(dayBound.everyFri)} '周一至周三'=${JSON.stringify(dayBound.range)}`);
+  ok(dayBound.weekend === '' && dayBound.cycle === '' && dayBound.thirdWeek === '' && dayBound.oneWeek === '',
+     `『周末』『周期』『第三周』『一周』都不误判：${JSON.stringify([dayBound.weekend, dayBound.cycle, dayBound.thirdWeek, dayBound.oneWeek])}`);
+  ok(dayBound.comma === '周一' && dayBound.fullBang === '周一',
+     `逗号 / 分号紧贴仍认得：'周一,08:00'=${JSON.stringify(dayBound.comma)} '周一；08:00'=${JSON.stringify(dayBound.fullBang)}｜'周一周二'=${JSON.stringify(dayBound.twoDays)}（无分隔符，不认）｜'上午周一'=${JSON.stringify(dayBound.morning)}（前字非边界，不认）`);
+
+  /* 8c. 列表模式：班级/老师/教室一律用**完整原始行**匹配 —— 名字里含「周X」的班级必须认得出 */
+  const wdCls = await cdp.eval(`(() => {
+    const ctx = { classes:['每周一练','周三强化班'], rooms:['BY05'], teachers:[{name:'王老师', id:'t1'}] };
+    const a = Hours.norm.fields('每周一练 18:00 王老师 BY05', ctx);
+    const b = Hours.norm.fields('周三强化班 10:00 王老师 BY05', ctx);
+    return {
+      a:{day:a.day,cls:a.cls,teacher:a.teacher,room:a.room,title:a.title},
+      b:{day:b.day,cls:b.cls,teacher:b.teacher,room:b.room,title:b.title}
+    };
+  })()`);
+  ok(wdCls.a.day === '' && wdCls.a.cls === '每周一练' && wdCls.a.teacher === '王老师' && wdCls.a.room === 'BY05',
+     `名含「周X」的班级认得出：${JSON.stringify(wdCls.a)}（期望 day='' cls='每周一练' teacher='王老师' room='BY05'）`);
+  ok(wdCls.b.day === '' && wdCls.b.cls === '周三强化班' && wdCls.b.teacher === '王老师',
+     `同上（周三强化班）：${JSON.stringify(wdCls.b)}`);
+
   /* ── 6. 收尾：关掉自己的服务，跑仓库里已有的两个脚本 ── */
   try { cdp?.ws.close(); } catch {}
   chrome?.kill('SIGKILL'); server?.kill('SIGKILL');
@@ -628,6 +726,7 @@ try {
   }
 
   console.log(failed ? `\n❌ 有 ${failed} 项没过\n` : '\n✅ 课时统计 · 阶段一 全部检查通过\n');
+  if (skips.length) console.log('⏭️  跳过 ' + skips.length + ' 项（**不计入通过**）：\n     ' + skips.join('\n     ') + '\n');
 } catch (e) {
   console.error('\n💥 测试中断：' + (e && e.message ? e.message : e) + '\n');
   console.error(e && e.stack ? String(e.stack).split('\n').slice(0, 6).join('\n') : '');

@@ -7593,18 +7593,27 @@ const Hours = {
 
     /* 星期：星期一 / 周一 / 礼拜一 / 周日 / 周天 / 单字「一」~「日」 → 周一…周日（与 Schedule.DAYS 同值）
        · 严格（整串就是一个星期词）用于网格表头判定：传 opts.strict；
-       · 宽松（整行里搜「周X / 星期X / 礼拜X」）用于列表模式 —— 列表一行就是「周X 时间 班级 …」，
+       · 宽松（整行里按**字段边界**搜「周X / 星期X / 礼拜X」）用于列表模式 —— 列表一行就是「周X 时间 班级 …」，
          整串必然不是孤立的星期词，不加宽松查找就会 100% 丢星期；
-       · 宽松只认带「周/星期/礼拜」前缀的写法，不对「周末」这种硬塞某一天，单字宽容仍只在 strict 下生效。 */
+       · 宽松只认带「周/星期/礼拜」前缀、且**前后都是字段边界**的写法（前＝行首/非汉字数字的分隔符/「每」，
+         后＝行尾/非汉字数字的分隔符/数字/「至·到」），所以「每周一练」「周三强化班」不会被误判；
+         也不对「周末」这种硬塞某一天，单字宽容仍只在 strict 下生效。 */
     day(s, opts){
-      let t = String(s == null ? '' : s)
-        .replace(/[（(][^）)]*[）)]/g, '')
+      const raw = String(s == null ? '' : s)
+        .replace(/[（(][^）)]*[）)]/g, '');
+      let t = raw
         .replace(/[\s()（）\[\]【】·.,，、:：|~\-–—]/g, '');
       let m = /^(?:周|星期|礼拜)([一二三四五六日天])$/.exec(t);
       if (m) return '周' + (m[1] === '天' ? '日' : m[1]);
       if (/^[一二三四五六日天]$/.test(t)) return '周' + (t === '天' ? '日' : t);
       if (!(opts && opts.strict)){
-        const lm = /(?:周|星期|礼拜)([一二三四五六日天])/.exec(t);
+        /* 宽松模式：必须落在**字段边界**上 —— 前一个字符是行首 / 非汉字非字母数字的分隔符 / 「每」，
+           后一个字符是行尾 / 非汉字非字母数字的分隔符 / 数字 / 「至·到」。
+           于是「每周一练」「周三强化班」「周一班」不会被误判成星期（后面紧跟汉字 → 不算边界），
+           而「周一 08:00」「周一08:00」「每周五 08:00」「周一至周三」「周一,08:00」都仍然认得出。
+           （用「非汉字/非字母数字」而不是逐个枚举分隔符：否则 全角分号 `；`、方括号 `[周一]` 这类
+             旧代码本来能认的写法会变成新失败点。） */
+        const lm = /(?:^|[^\u4e00-\u9fa5A-Za-z0-9]|每)(?:周|星期|礼拜)([一二三四五六日天])(?=$|[^\u4e00-\u9fa5A-Za-z0-9]|[0-9]|至|到)/.exec(raw);
         if (lm) return '周' + (lm[1] === '天' ? '日' : lm[1]);
       }
       return '';
@@ -7660,33 +7669,33 @@ const Hours = {
 
     /* 一格 / 一行文字 → 字段 */
     fields(text, ctx){
-      let s = String(text == null ? '' : text).replace(/[ \t]+/g, ' ').trim();
+      const s = String(text == null ? '' : text).replace(/[ \t]+/g, ' ').trim();
       const out = { day:'', time:null, cls:'', room:'', teacher:'', teacherId:'', title:'', unmatched:[] };
       if (!s) return out;
 
-      /* ① 星期：先认出来，再把星期词从整行剥掉 —— 列表模式一行就是「周X 时间 班级 老师 教室 内容」，
-             不剥掉的话它会一路混进 title。 */
+      /* ① 星期：只**认**，先不破坏字符串 —— 名字里含「周X」的班级/课程（如「每周一练」「周三强化班」）
+             必须靠完整原文才认得出来；星期词要到第 ⑥ 步兜底成内容时才剔掉。 */
       out.day = this.day(s);
-      if (out.day) s = s.replace(/(周|星期|礼拜)\s*[一二三四五六日天]/, ' ');
 
-      /* ② 时间 → ③ 班级 → ④ 老师 → ⑤ 教室 → ⑥ 剩下的当内容 */
+      /* ② 时间 */
       const t = this.time(s);
-      if (t){ out.time = t; if (t.full) s = s.replace(t.full, ' '); }
+      if (t) out.time = t;
 
+      /* ③ 班级 → ④ 老师 → ⑤ 教室：一律拿**完整原始行**匹配，匹配前不剥任何词 */
       const classes = (ctx && ctx.classes) || [];
       const cl = [...classes].sort((a,b) => b.length - a.length)
         .find(n => n && s.replace(/\s/g,'').indexOf(n.replace(/\s/g,'')) >= 0);
-      if (cl){ out.cls = cl; s = s.replace(cl, ' '); }
+      if (cl) out.cls = cl;
       else {
         const hm = /([\u4e00-\u9fa5A-Za-z0-9]{2,12}?(?:班|年级))/.exec(s);
-        if (hm){ out.cls = hm[1]; s = s.replace(hm[1], ' '); out.unmatched.push('班级「' + hm[1] + '」没在名册里'); }
+        if (hm){ out.cls = hm[1]; out.unmatched.push('班级「' + hm[1] + '」没在名册里'); }
         else out.unmatched.push('班级没认出来');
       }
 
       const teachers = (ctx && ctx.teachers) || [];
       const th = [...teachers].sort((a,b) => (b.name||'').length - (a.name||'').length)
         .find(u => u.name && s.replace(/\s/g,'').indexOf(u.name.replace(/\s/g,'')) >= 0);
-      if (th){ out.teacher = th.name; out.teacherId = th.id; s = s.replace(th.name, ' '); }
+      if (th){ out.teacher = th.name; out.teacherId = th.id; }
       else out.unmatched.push('老师没认出来');
 
       const rooms = (ctx && ctx.rooms) || [];
@@ -7694,12 +7703,16 @@ const Hours = {
         .find(n => n && s.replace(/\s/g,'').indexOf(n.replace(/\s/g,'')) >= 0);
       if (!rm){ const bm = /[\[【(（]\s*([^\]】)）]{1,14})\s*[\]】)）]/.exec(s); if (bm) rm = bm[1].trim(); }
       if (!rm){ const cm = /\bBY\s*\d{1,3}\b/i.exec(s); if (cm) rm = cm[0].replace(/\s+/g,'').toUpperCase(); }
-      if (rm){
-        out.room = rm;
-        s = s.replace(new RegExp(rm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
-      }
+      if (rm) out.room = rm;
 
-      out.title = s.replace(/[-–—,，、:：|/]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+      /* ⑥ 兜底成「授课内容」：**到这里才**把已识别出的 星期词 / 时间词 / 班名 / 老师名 / 教室名 从行里剔掉 */
+      let rest = s;
+      if (out.day) rest = rest.replace(/(周|星期|礼拜)\s*[一二三四五六日天]/, ' ');
+      if (t && t.full) rest = rest.replace(t.full, ' ');
+      if (out.cls) rest = rest.replace(out.cls, ' ');
+      if (out.teacher) rest = rest.replace(out.teacher, ' ');
+      if (out.room) rest = rest.replace(new RegExp(out.room.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), ' ');
+      out.title = rest.replace(/[-–—,，、:：|/]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
       return out;
     }
   },
@@ -7805,7 +7818,11 @@ const Hours = {
           const text = this._cellText(td.textContent || '');
           const cs = Math.max(1, parseInt(td.getAttribute('colspan') || '1', 10) || 1);
           const rs = Math.max(1, parseInt(td.getAttribute('rowspan') || '1', 10) || 1);
+          let clipped = false;
           for (let dr = 0; dr < rs; dr++){
+            /* 🔴 网格行数**只能等于源表格的 <tr> 个数**：rowspan 越界就夹到表尾，
+               否则会按 rowspan 把行数组撑大 → 凭空造出幽灵行、同一节课被复制成 N 条。 */
+            if (r + dr > trs.length - 1){ clipped = true; break; }
             const target = ensure(r + dr);
             for (let dc = 0; dc < cs; dc++){
               const cc = c + dc;
@@ -7815,6 +7832,7 @@ const Hours = {
                 : { text, merged: true, src: { r, c } };
             }
           }
+          if (clipped) this._gridNotes.push('第 ' + (r + 1) + ' 行的合并单元格跨过了表格末尾，已按表格实际行数截断');
           c += cs;
         });
       });
@@ -8169,11 +8187,21 @@ const Hours = {
     this._gridNotes = [];
 
     /* 表头行：前 4 行里找含 >=2 个星期词的那一行（strict：只认孤立星期词，别对正文乱触发） */
-    let headerIdx = -1, dayCols = [];
+    let headerIdx = -1, dayCols = [], extraCols = [];
+    const dupDays = {};
     for (let i = 0; i < Math.min(clean.length, 4); i++){
       const cols = [];
       clean[i].forEach((c, j) => { const d = this.norm.day(c.text, { strict: true }); if (d) cols.push({ day: d, j }); });
-      if (cols.length >= 2){ headerIdx = i; dayCols = cols; break; }
+      if (cols.length >= 2){
+        headerIdx = i;
+        /* 同一个星期名出现在 ≥2 列（多半是合并单元格造成的）→ 只保留第一列，其余列不参与课表解析 */
+        const seen = {};
+        cols.forEach(c => {
+          if (seen[c.day]){ dupDays[c.day] = (dupDays[c.day] || 1) + 1; extraCols.push(c); }
+          else { seen[c.day] = true; dayCols.push(c); }
+        });
+        break;
+      }
     }
     if (headerIdx < 0 || dayCols.length < 2)
       return this._linesToModel(clean.map(r => r.map(c => c.text).filter(Boolean).join('  ')), via);
@@ -8181,8 +8209,14 @@ const Hours = {
     const labelCol = Math.max(0, dayCols[0].j - 1);
     const days = [];
     dayCols.forEach(c => { if (days.indexOf(c.day) < 0) days.push(c.day); });
+    /* 表头重复列：多出来的列**不许静默丢格** —— 内容一律进 unassigned，并给一条人话提醒。
+       （这是整个功能的底线：宁可让人看到一行看不懂的东西，也不能让数据无声消失。） */
+    const extraColSet = {};
+    extraCols.forEach(c => { extraColSet[c.j] = true; });
+    Object.keys(dupDays).forEach(d => warnings.push(
+      '表头里「' + d + '」出现了 ' + dupDays[d] + ' 次（可能是合并单元格造成的），只按第一列取课，多出来的内容已放在下面「未归位」里'));
     const ctx = this._ctx();
-    const rows = [], records = [];
+    const rows = [], records = [], unassigned = [];
     for (let i = headerIdx + 1; i < clean.length; i++){
       const line = clean[i];
       if (!line || !line.some(c => c.text)) continue;
@@ -8197,6 +8231,11 @@ const Hours = {
         any = true;
         if (cell.merged) hasMerged = true;
         cells[dc.day] = { text, conf: 100, merged: !!cell.merged };
+      });
+      /* 表头重复列（如 colspan 撑出来的第二列「周一」）：单元格内容收进 unassigned，绝不静默丢 */
+      Object.keys(extraColSet).forEach(j => {
+        const text = ((line[+j] || {}).text || '').trim();
+        if (text) text.split('\n').forEach(seg => { const s3 = seg.trim(); if (s3) unassigned.push(s3); });
       });
       if (!any && !label) continue;
       rows.push({ label, time: rowTime ? (rowTime.start + '-' + rowTime.end) : '', cells });
@@ -8218,7 +8257,7 @@ const Hours = {
       if (hasMerged) warnings.push('第 ' + (i + 1) + ' 行有合并单元格，已按同一内容填到合并的每一天，请核对');
     }
     if (!records.length) warnings.push('表里没解析出课程（这份表可能不是按「周几 × 节次」排的）');
-    return this._finish({ mode:'grid', via, days, rows, records, unassigned: [], warnings });
+    return this._finish({ mode:'grid', via, days, rows, records, unassigned, warnings });
   },
 
   /* 列表 → 模型（每行一节课） */

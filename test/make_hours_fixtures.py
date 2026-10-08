@@ -12,6 +12,7 @@
     hours_tt.csv            —— 由真值生成
     hours_tt.xlsx           —— 由真值生成（最小 OOXML：走 _readXlsx 那条自解 zip 的通路）
     hours_tt_merged.docx    —— 内置的**带合并单元格**表格（数据行里一个跨 2 列 + 一个跨 2 行）
+    hours_tt_realgeom.docx  —— 复刻真实登记表几何：27 行 × 6 列，首行首格 colspan=5、首行末格 rowspan=2
 
 docx 是手写的最小 OOXML（zip + word/document.xml 里的 w:tbl），xlsx 同样是手写最小 OOXML ——
 故意不用 python-docx / openpyxl：本机没装，而且「最小可用文件」正好能反过来验证
@@ -184,6 +185,17 @@ MERGED_ROWS = [
     ["14:00-15:40", "模拟主持", {"vmerge": True}, "影视配音", "少儿口才"],
 ]
 
+# ── 复刻真实「教师授课日志登记表」的几何（常驻夹具，取代对外接卷的依赖）──
+# 27 行 × 6 列；第 1 行首格 colspan=5、第 1 行末格 rowspan=2（「时长」竖跨两行）。
+# 第 2 行末列放 vMerge 延续格（Word 规定纵向合并必须占位），mammoth 会把它并进上一行的
+# rowspan —— 于是 HTML 里第 1 行只有 2 个 <td>（colspan5 + rowspan2）、第 2 行 5 个 <td>，
+# 剩下 25 行各 6 个 <td>，网格还原出来正好 27 行 × 6 列。
+REAL_GEOM_HEADER = [{"text": "授课教师：", "colspan": 5}, {"text": "时长", "rowspan": 2}]
+REAL_GEOM_ROWS = (
+    [["", "班级", "教室", "授课时间", "授课内容", {"vmerge": True}]]
+    + [["", "", "", "", "", ""] for _ in range(25)]
+)   # 1（表头）+ 26 = 27 行
+
 
 def main():
     if len(sys.argv) < 3:
@@ -198,7 +210,9 @@ def main():
     make_xlsx(os.path.join(outdir, "hours_tt.xlsx"), truth["header"], truth["rows"])
     make_docx(os.path.join(outdir, "hours_tt_merged.docx"),
               MERGED_HEADER, MERGED_ROWS, cols=len(MERGED_HEADER))
-    print("已生成：%s（docx + csv + xlsx + 合并格 docx）" % outdir)
+    make_docx(os.path.join(outdir, "hours_tt_realgeom.docx"),
+              REAL_GEOM_HEADER, REAL_GEOM_ROWS, cols=6)
+    print("已生成：%s（docx + csv + xlsx + 合并格 docx + 真实几何 docx）" % outdir)
     return 0
 
 

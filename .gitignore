@@ -23,6 +23,7 @@ test/fixtures/hours_tt.docx
 test/fixtures/hours_tt.csv
 test/fixtures/hours_tt.xlsx
 test/fixtures/hours_tt_merged.docx
+test/fixtures/hours_tt_realgeom.docx
 test/fixtures/hours_tt.png
 
 # Python 编译缓存
