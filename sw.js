@@ -291,6 +291,16 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+/* v74：**大课表对齐修正 + 作息两卡并排（用户 2026-10-10 点名修）** ——
+   ① 大课表表头补齐「班级 | 时段 | 节次/时间」三格：之前表头只有班级+日期 1+N 格，
+      日期表头整体左移两格，07-27 周一 压在「上午/下午」列上（用户截图抓到）。
+   ② 课程格去掉班级名前缀：班级在班块左格已经对好，格内只留 课程 + 老师 @教室。
+      Word 导出表头同步成 班级|时段|节次/时间（PNG 本来就是手绘坐标，无此问题）。
+   ③ 作息两卡并排真正生效：宽屏 ≥1100px 的 .page.on 是两列网格，
+      「大作息+小课」的 .row 被塞进左半栏 541px 里只能上下堆 —— 补
+      #page-timetable 单列覆盖（同 今日/考勤/名册/作业/设置 的既有模式）。
+   实测：verify_v74 断言全过（表头几何对齐 dx=0 / 课程格无班级名 / 两卡同排）。
+   ⚠️ 只动 index.html / sw.js，VERSION 加一。 */
 /* v73：**大课表改版（方案B 班级分块）+ 统一时间轴 + 小课/加课解耦（用户 2026-10-10 定）** ——
    ① 大课表换版式：行 = 班级块（班级格 / 上午下午格纵向合并），每节次一行、时间格与课程格
       逐行对齐；点时间格直接改该节时间；点课程格加/改课（自动带上本班班级）。
@@ -305,7 +315,7 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v73'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const VERSION = 'v74'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

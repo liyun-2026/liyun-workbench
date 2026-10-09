@@ -1819,6 +1819,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .seg{margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--line)}
 .s-card{scroll-margin-top:84px}
 @media (min-width:1100px){ .page#page-settings.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px){ .page#page-timetable.on{grid-template-columns:minmax(0,1fr)} } /* 课表页：大作息/小课两卡并排、大课表全宽，别掉进两列网格 */
 /* 锚点跳转后别被吸顶导航压住：设置页里每个可跳的 [id] 都留出导航条的高度 */
 .anchor-layout [id]{scroll-margin-top:76px}
 
@@ -6888,7 +6889,7 @@ const Schedule = {
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
     const names = this.gridBlocks(items);
-    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级 / 时间</th>';
+    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时段</th><th class="corner">节次 / 时间</th>';
     cols.forEach(c => { html += `<th><div class="gd">${c.date.slice(5)}</div><div class="gw">周${c.wd}</div></th>`; });
     html += '</tr></thead><tbody>';
     /* 一个班一个块：行 = 节次（时间格与课程格逐行对齐），班级格 / 上午下午格纵向合并 */
@@ -6933,7 +6934,7 @@ const Schedule = {
     if (!cell.length) return '';
     return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
         <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
-        <div class="sch">${x.cls ? Util.esc(x.cls)+' · ' : ''}${x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : '')}${x.room ? ' @'+Util.esc(x.room) : ''}</div>
+        <div class="sch">${[x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : ''), x.room ? Util.esc(x.room) : ''].filter(Boolean).join(' @')}</div>
       </div>`).join('');
   },
   cellOpen(date, periodId, editId, preCls){
@@ -7818,7 +7819,7 @@ const Schedule = {
     if (loose.length || !items.length) blockRows('', loose);
     const head = cols.map(c => `<th style="background:#c9ab7c">${c.date.slice(5)}<br>周${c.wd}</th>`).join('');
     const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
-      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c"></th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时段</th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></body></html>';
     const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '博艺课表.doc'; a.click();
     UI.toast('Word 已生成');
