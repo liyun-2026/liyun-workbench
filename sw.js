@@ -291,7 +291,21 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v72'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v73：**大课表改版（方案B 班级分块）+ 统一时间轴 + 小课/加课解耦（用户 2026-10-10 定）** ——
+   ① 大课表换版式：行 = 班级块（班级格 / 上午下午格纵向合并），每节次一行、时间格与课程格
+      逐行对齐；点时间格直接改该节时间；点课程格加/改课（自动带上本班班级）。
+      节次被删/没挂节次的课在班块末尾「其他」行兜住，不许静默消失。
+   ② 统一时间轴：periods 每段补 dur（时长）/ gap（课间）/ auto（自动顺延）。
+      改早上时间点「全表顺延」，auto 段从上一节结束+课间连推；关掉某段自动 = 变锚点。
+      老数据迁移时先全部钉住（不动用户已排好的时间）。练声 = 名叫早功/午功的段，加几段算几次。
+      消费方（Today/Stu/Home/冲突/导出）照旧只读 start/end/name，零感知。
+   ③ 作息卡收缩：原来整版竖排列表收成一行 chips + 「编辑 / 统一时间轴」展开；右侧并排新
+      「小课 / 加课」卡 —— 时间自由填、不占全局节次、periodId 强制空，只有相关师生能看到。
+      addMini 不再读 miniPeriod 下拉。
+   ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
+   实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
+   ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+const VERSION = 'v73'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

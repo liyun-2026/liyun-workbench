@@ -1073,6 +1073,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .sgrid thead .gd{font-size:13px}
 .sgrid thead .gw{font-size:11px;color:#5b4a2a}
 .sgrid .phead{background:var(--bg2,#f6f5f2);font-weight:500;white-space:nowrap;font-size:12px}
+/* ── 班级分块版式（v73 用户定：方案B）——班级/时段/时间三列 ── */
+.sgrid td.ccls{background:#f3efe6;color:#8a6f45;font-weight:700;text-align:center;vertical-align:middle;min-width:0;cursor:default;font-size:13px}
+.sgrid td.cslot{background:#f8f5ec;color:#6e685c;text-align:center;vertical-align:middle;min-width:0;cursor:default;white-space:nowrap;font-size:12px}
+.sgrid td.ctime{background:#faf8f2;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;white-space:nowrap;font-size:12px;line-height:1.5}
+.sgrid td.ctime:hover{background:#f3efe6}
+.sgrid td.ctime .hint{font-size:11px}
 .sgrid td{height:56px;cursor:pointer;min-width:124px;position:relative}
 .sgrid td:hover{background:#fbf7ee}
 .sgrid .add{position:absolute;right:4px;bottom:2px;color:#c9ab7c;font-size:15px;opacity:0;font-weight:700}
@@ -2334,14 +2340,33 @@ try {
     <!-- ==== 功能：课表 START ==== -->
     <section class="page" id="page-timetable">
       <div class="page-title">课表</div>
-      <div class="card wide">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 每日作息时间</h2>
-        <div id="periodList"></div>
-        <div class="row" style="margin-top:10px">
-          <input type="text" id="perName" placeholder="节次名，如：第1节" style="max-width:130px">
-          <input type="time" id="perStart" style="max-width:125px">
-          <input type="time" id="perEnd" style="max-width:125px">
-          <button class="btn" onclick="Schedule.addPeriod()">加入</button>
+      <div class="row" style="align-items:stretch;flex-wrap:wrap">
+        <div class="card" style="flex:1.15;min-width:340px;margin:0 12px 0 0">
+          <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 大作息 · 大班课表用 <span class="hint" style="display:inline;font-weight:400">已定死 · 全体同步</span></h2>
+          <div id="ruleChips" class="row" style="flex-wrap:wrap;gap:6px;margin:0"></div>
+          <div class="row" style="margin-top:10px;gap:8px;align-items:center">
+            <button class="btn ghost" onclick="Schedule.toggleRule()">编辑 / 统一时间轴</button>
+            <span class="hint" style="margin:0">改早上时间，后面各节自动顺延</span>
+          </div>
+          <div id="rulePanel" style="display:none;margin-top:12px"></div>
+        </div>
+        <div class="card" style="flex:1;min-width:340px;margin:0">
+          <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 小课 / 加课 <span class="hint" style="display:inline;font-weight:400">只进相关师生课表 · 时间自由填</span></h2>
+          <div class="row">
+            <select id="miniDay" style="max-width:100px"></select>
+            <input type="text" id="miniTime" placeholder="时间自由填，如 13:00-14:00" style="max-width:200px">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="miniStu" list="stuSuggestions" placeholder="学员，如：张三">
+            <datalist id="stuSuggestions"></datalist>
+            <input type="text" id="miniTitle" placeholder="内容，如：一对一·自备稿件" style="flex:1.4;min-width:150px">
+          </div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <select id="miniTeacher" style="max-width:160px"></select>
+            <button class="btn" onclick="Schedule.addMini()">加入小课/加课</button>
+          </div>
+          <div id="schSmallBody" style="margin-top:10px"></div>
+          <p class="hint" style="margin:8px 0 0">小课/加课<b>不占全局节次</b>：时间写多少就是多少，只有当事学生和带课老师的课表会出现这一条，其他人的界面、大课表、导出发学生的图都不受影响。</p>
         </div>
       </div>
       <div class="card wide">
@@ -2402,24 +2427,6 @@ try {
         <div id="conflictBox" style="margin-top:10px"></div>
         <p class="grid-hint">← 左右滑动看完整一周 →</p>
         <div id="gridWrap" style="margin-top:12px;overflow-x:auto"></div>
-      </div>
-      <div class="card wide">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 小课</h2>
-        <div class="row">
-          <select id="miniDay" style="max-width:100px"></select>
-          <select id="miniPeriod"></select>
-          <input type="time" id="miniTime" style="max-width:118px" title="不按节次时单独填时间">
-        </div>
-        <div class="row" style="margin-top:8px">
-          <input type="text" id="miniStu" list="stuSuggestions" placeholder="学员，如：张三">
-          <datalist id="stuSuggestions"></datalist>
-          <input type="text" id="miniTitle" placeholder="内容，如：一对一·自备稿件" style="flex:1.4;min-width:150px">
-        </div>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap">
-          <select id="miniTeacher" style="max-width:160px"></select>
-          <button class="btn" onclick="Schedule.addMini()">加入小课</button>
-        </div>
-        <div id="schSmallBody" style="margin-top:10px"></div>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-inbox"></use></svg> 导入课表（已合并到「课时统计」）</h2>
@@ -6575,6 +6582,151 @@ const Schedule = {
   periods(){
     return Store.list('periods', (a,b) => this._tmin(a.start) - this._tmin(b.start));
   },
+
+  /* ── 统一时间轴（v73 用户定）：节次是一条链，改早上时间，后面 auto 段自动顺延 ──
+     每段带 dur（时长/分钟）、gap（到下一段的课间/分钟）、auto（true = 由上一段推算）。
+     手动段（auto=false）是锚点，推算链从它重新起步。老数据缺字段先补齐（先全部钉住，
+     不悄悄改用户已排好的时间），要用「全表顺延」时再把段落开成自动。 */
+  _fmtMin(m){
+    let h = Math.floor(m / 60);
+    if (h >= 13) h -= 12;                      // 14:50 → 02:50，跟课表原件的 12 小时制写法一致
+    return String(h).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  },
+  _migratePeriods(){
+    const ps = this.periods();
+    ps.forEach((p, i) => {
+      if (p.dur != null && p.gap != null && p.auto != null) return;
+      const dur = Math.max(1, this._tmin(p.end) - this._tmin(p.start));
+      const nxt = ps[i + 1];
+      const gap = nxt ? Math.max(0, this._tmin(nxt.start) - this._tmin(p.end)) : 0;
+      Store.upsert('periods', Object.assign({}, p, { dur, gap, auto: false }));
+    });
+  },
+  recalcPeriods(){
+    this._migratePeriods();
+    const ps = this.periods();
+    /* 课间属于「上一段」（gap = 这一段结束到下一段开始的间隔）：
+       auto 段的 start = 上一段的 end + 上一段的 gap。 */
+    let prev = null;   // { end: 分钟, gap: 上一段到本段的课间 }
+    ps.forEach(p => {
+      const cur = Store.list('periods').find(q => q.id === p.id) || p;
+      if (p.auto && prev){
+        const start = prev.end + (prev.gap || 0);
+        const end = start + (p.dur || 40);
+        Store.upsert('periods', Object.assign({}, cur, { start: this._fmtMin(start), end: this._fmtMin(end) }));
+        prev = { end, gap: p.gap };
+      } else {
+        prev = { end: this._tmin(cur.end), gap: p.gap };
+      }
+    });
+  },
+  /** 紧凑版作息卡：收起 = 一行 chips；展开 = 每段 名称/开始/时长/课间/自动 */
+  renderPeriods(){
+    this._migratePeriods();
+    const ps = this.periods();
+    const chips = document.getElementById('ruleChips');
+    if (chips) chips.innerHTML = ps.length
+      ? ps.map((p, i) => {
+          const nm = p.name && !/^\d{1,2}:\d{2}/.test(p.name) ? Util.esc(p.name) + ' ' : '';
+          return `<span class="chip"><b>第${i + 1}节</b> ${nm}${Util.esc(p.start)}–${Util.esc(p.end)}${p.auto ? '' : ' <span class="hint" style="display:inline;margin:0">·手动</span>'}</span>`;
+        }).join('')
+      : '<span class="hint" style="margin:0">还没有节次，点「编辑 / 统一时间轴」加一段</span>';
+    const panel = document.getElementById('rulePanel');
+    if (panel && this._ruleOpen){
+      panel.innerHTML =
+        '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<label class="hint" style="margin:0">早上从 <input type="time" id="ruleMorning" style="max-width:110px" value="' + Util.esc(ps[0] ? ps[0].start : '') + '"></label>' +
+          '<button class="btn" style="padding:4px 12px" onclick="Schedule.setMorning()">全表顺延</button>' +
+          '<button class="btn ghost" style="padding:4px 12px" onclick="Schedule.addRuleSeg()">＋ 加一段</button>' +
+        '</div>' +
+        ps.map((p, i) => `<div class="row" style="gap:6px;align-items:center;margin:8px 0 0;flex-wrap:wrap;font-size:13px">
+            <span style="width:46px;color:var(--dgold);font-weight:600">第${i + 1}节</span>
+            <input type="text" value="${Util.esc(p.name)}" placeholder="名称，如 早功" style="max-width:92px" onchange="Schedule.ruleEdit('${p.id}','name',this.value)">
+            <input type="time" value="${Util.esc(p.start)}" style="max-width:104px" ${p.auto ? 'disabled title="自动段：由上一节推算"' : ''} onchange="Schedule.ruleEdit('${p.id}','start',this.value)">
+            <label class="hint" style="margin:0;white-space:nowrap">时长 <input type="number" min="5" value="${p.dur != null ? p.dur : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','dur',this.value)"> 分</label>
+            <label class="hint" style="margin:0;white-space:nowrap">课间 <input type="number" min="0" value="${p.gap != null ? p.gap : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','gap',this.value)"> 分</label>
+            <label class="hint" style="margin:0;white-space:nowrap"><input type="checkbox" ${p.auto ? 'checked' : ''} style="width:auto" onchange="Schedule.ruleEdit('${p.id}','auto',this.checked)"> 自动顺延</label>
+            <button class="del" onclick="Schedule.delPeriod('${p.id}')" title="删掉这一段">✕</button>
+          </div>`).join('') +
+        '<p class="hint" style="margin:8px 0 0">「自动顺延」的段：开始 = 上一节结束 + 课间。改早上时间点「全表顺延」一起重排；关掉某段的自动，它就变成锚点，后面从它重新算。练声就是一段名字叫「早功 / 午功」的节次，要几次加几段。</p>';
+    }
+  },
+  toggleRule(){
+    this._ruleOpen = !this._ruleOpen;
+    const p = document.getElementById('rulePanel');
+    if (p) p.style.display = this._ruleOpen ? '' : 'none';
+    this.renderPeriods();
+  },
+  ruleEdit(id, k, v){
+    const p = Store.list('periods').find(q => q.id === id);
+    if (!p) return;
+    const o = Object.assign({}, p);
+    if (k === 'name') o.name = String(v).trim();
+    else if (k === 'dur') o.dur = Math.max(1, +v || 0);
+    else if (k === 'gap') o.gap = Math.max(0, +v || 0);
+    else if (k === 'auto'){ o.auto = !!v; if (!o.auto){ o.start = p.start; o.end = p.end; } }
+    else if (k === 'start'){ o.start = v; o.auto = false; }
+    Store.upsert('periods', o);
+    if (k !== 'name') this.recalcPeriods();
+    this.render();
+  },
+  addRuleSeg(){
+    const ps = this.periods();
+    const last = ps[ps.length - 1];
+    const start = last ? this._tmin(last.end) + (last.gap != null ? last.gap : 10) : 8 * 60;
+    Store.upsert('periods', { name: '第' + (ps.length + 1) + '节', start: this._fmtMin(start),
+      end: this._fmtMin(start + 40), dur: 40, gap: 10, auto: !!last });
+    this.recalcPeriods(); this.render();
+  },
+  setMorning(){
+    const tEl = document.getElementById('ruleMorning');
+    const t = tEl ? tEl.value : '';
+    const ps = this.periods();
+    if (!t || !ps.length) return UI.toast('先填早上开始时间');
+    const first = ps[0];
+    const start = this._tmin(t);
+    const end = start + (first.dur || Math.max(1, this._tmin(first.end) - this._tmin(first.start)));
+    Store.upsert('periods', Object.assign({}, first, { start: this._fmtMin(start), end: this._fmtMin(end) }));
+    this.recalcPeriods(); this.render(); UI.toast('已按新时间顺延全部自动段');
+  },
+  /** 大课表里点时间格：直接改这一节（改开始会自动关掉顺延、钉成锚点） */
+  perEdit(id){
+    this._migratePeriods();
+    const p = Store.list('periods').find(q => q.id === id);
+    if (!p) return;
+    const html = `<div class="mask" onclick="Schedule.cellClose(event)"><div class="picker" style="max-width:340px" onclick="event.stopPropagation()">
+      <div class="page-title" style="font-size:18px">改这一节的时间</div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
+        <input type="text" id="peName" placeholder="名称（如：早功 / 第1节）" value="${Util.esc(p.name || '')}">
+        <label class="hint" style="margin:0">开始 <input type="time" id="peStart" value="${Util.esc(p.start)}" ${p.auto ? 'disabled' : ''} style="max-width:130px"></label>
+        <label class="hint" style="margin:0;white-space:nowrap">时长（分钟）<input type="number" id="peDur" min="5" value="${p.dur != null ? p.dur : ''}" style="max-width:80px"></label>
+        <label class="hint" style="margin:0;white-space:nowrap">课间（到下一段，分钟）<input type="number" id="peGap" min="0" value="${p.gap != null ? p.gap : ''}" style="max-width:80px"></label>
+        <label class="hint" style="margin:0;white-space:nowrap"><input type="checkbox" id="peAuto" ${p.auto ? 'checked' : ''} style="width:auto" onchange="document.getElementById('peStart').disabled=this.checked"> 自动顺延（由上一节推算）</label>
+      </div>
+      <div class="row" style="margin-top:14px;justify-content:flex-end;gap:8px">
+        <button class="btn ghost" onclick="Schedule.cellClose()">取消</button>
+        <button class="btn" onclick="Schedule.perSave('${id}')">保存</button>
+      </div>
+    </div></div>`;
+    const old = document.getElementById('cellMask');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.id = 'cellMask'; div.innerHTML = html;
+    document.body.appendChild(div);
+  },
+  perSave(id){
+    const p = Store.list('periods').find(q => q.id === id);
+    if (!p) return;
+    const o = Object.assign({}, p);
+    o.name = document.getElementById('peName').value.trim() || o.name;
+    o.dur = Math.max(1, +document.getElementById('peDur').value || o.dur || 40);
+    o.gap = Math.max(0, +document.getElementById('peGap').value || 0);
+    o.auto = document.getElementById('peAuto').checked;
+    if (!o.auto) o.start = document.getElementById('peStart').value || o.start;
+    Store.upsert('periods', o);
+    this.recalcPeriods();
+    this.cellClose(); this.render();
+  },
   /** 一条课的时间排序键（取时间串里第一个 HH:MM，下午 12 小时制同样折成 24 小时） */
   _tkey(item){
     const m = /(\d{1,2}):(\d{2})/.exec(this.timeOf(item) || '');
@@ -6637,17 +6789,6 @@ const Schedule = {
 
     if (Staff.loaded) fill();
     else Staff.load().then(fill);
-  },
-
-  renderPeriods(){
-    const ps = this.periods();
-    document.getElementById('periodList').innerHTML = ps.length
-      ? ps.map(p => `<div class="item">
-          <span class="mono" style="flex-shrink:0;width:110px">${Util.esc(p.start)}–${Util.esc(p.end)}</span>
-          <span class="grow">${Util.esc(p.name)}</span>
-          <button class="del" onclick="Schedule.delPeriod('${p.id}')" title="删除节次">✕</button>
-        </div>`).join('')
-      : '<div class="empty">还没配节次。把每天的上下课时间加进来，比如：早功 06:30–07:30、第1节 08:00–09:40、晚自习 19:00–21:30</div>';
   },
 
   /** 两张加课表单里的节次下拉，随作息时间自动刷新 */
@@ -6731,6 +6872,12 @@ const Schedule = {
     if (d) Store.set('_schDays', d);
     this.renderGrid();
   },
+  /** 大课表的班级块顺序：按课表里首次出现；没写班级的课进「未分班」块 */
+  gridBlocks(items){
+    const seen = [];
+    items.forEach(x => { const c = String(x.cls || '').trim(); if (c && seen.indexOf(c) < 0) seen.push(c); });
+    return seen;
+  },
   renderGrid(){
     const sEl = document.getElementById('gridStart');
     if (sEl) sEl.value = this.range().start;
@@ -6738,29 +6885,47 @@ const Schedule = {
     if (dEl) dEl.value = String(this.range().days);
     const wrap = document.getElementById('gridWrap');
     if (!wrap) return;
-    const cols = this.dateCols();
-    const ps = this.periods();
+    const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
-    let html = '<table class="sgrid"><thead><tr><th class="corner">节次 / 时间</th>';
+    const names = this.gridBlocks(items);
+    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级 / 时间</th>';
     cols.forEach(c => { html += `<th><div class="gd">${c.date.slice(5)}</div><div class="gw">周${c.wd}</div></th>`; });
     html += '</tr></thead><tbody>';
-    ps.forEach(p => {
-      html += `<tr><th class="phead">${Util.esc(p.name)}<br><span class="hint" style="display:inline;margin:0">${Util.esc(p.start)}–${Util.esc(p.end)}</span></th>`;
-      cols.forEach(c => {
-        const cell = items.filter(x => x.date === c.date && x.periodId === p.id);
-        html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
-      });
-      html += '</tr>';
-    });
-    const free = items.filter(x => !x.periodId);
-    if (free.length){
-      html += '<tr><th class="phead">其他时段</th>';
-      cols.forEach(c => {
-        const cell = free.filter(x => x.date === c.date);
-        html += `<td onclick="Schedule.cellOpen('${c.date}','')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
-      });
-      html += '</tr>';
-    }
+    /* 一个班一个块：行 = 节次（时间格与课程格逐行对齐），班级格 / 上午下午格纵向合并 */
+    const blockRows = (cls, its, emptyLabel) => {
+      for (let i = 0; i < ps.length; i++){
+        const p = ps[i];
+        const am = this._tmin(p.start) < 720;
+        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
+        html += '<tr>';
+        if (i === 0)
+          html += `<td class="ccls" rowspan="${ps.length}"><b>${Util.esc(cls || emptyLabel || '未分班')}</b></td>`;
+        if (am !== prevAm){
+          let run = 0;
+          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
+          html += `<td class="cslot" rowspan="${run}">${am ? '上午' : '下午'}</td>`;
+        }
+        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>第${i + 1}节</b><br><span class="hint" style="display:inline;margin:0">${Util.esc(p.start)}–${Util.esc(p.end)}</span></td>`;
+        cols.forEach(c => {
+          const cell = its.filter(x => x.date === c.date && x.periodId === p.id);
+          html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
+        });
+        html += '</tr>';
+      }
+      /* 节次被删掉的课 / 没挂节次的课：本班块末尾「其他」行兜住，不许静默消失 */
+      const lost = its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
+      if (lost.length){
+        html += '<tr><td class="ctime">其他</td>';
+        cols.forEach(c => {
+          const cell = lost.filter(x => x.date === c.date);
+          html += `<td onclick="Schedule.cellOpen('${c.date}','','')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
+        });
+        html += '</tr>';
+      }
+    };
+    names.forEach(cn => blockRows(cn, items.filter(x => String(x.cls || '').trim() === cn)));
+    const loose = items.filter(x => !String(x.cls || '').trim());
+    if (loose.length || (!items.length && !names.length)) blockRows('', loose, '未分班');
     html += '</tbody></table>';
     wrap.innerHTML = html;
   },
@@ -6771,7 +6936,7 @@ const Schedule = {
         <div class="sch">${x.cls ? Util.esc(x.cls)+' · ' : ''}${x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : '')}${x.room ? ' @'+Util.esc(x.room) : ''}</div>
       </div>`).join('');
   },
-  cellOpen(date, periodId, editId){
+  cellOpen(date, periodId, editId, preCls){
     if (!Staff.loaded) Staff.load();
     const exist = editId ? Store.list('schedule').find(x => x.id === editId) : null;
     const e = exist || {};
@@ -6782,7 +6947,7 @@ const Schedule = {
       <div class="page-title" style="font-size:18px">${date} 周${this.dayOfDate(date)}${pName ? ' · '+Util.esc(pName) : ''}</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
         <input type="text" id="cmTitle" placeholder="上课内容，如：即兴评述" value="${Util.esc(e.title||'')}">
-        <input type="text" id="cmCls" placeholder="班级 / 板块，如：BY05" value="${Util.esc(e.cls||'')}">
+        <input type="text" id="cmCls" placeholder="班级 / 板块，如：BY05" value="${Util.esc(e.cls || preCls || '')}">
         <select id="cmTeacher"><option value="">上课老师（可选）</option>${teach}</select>
         <input type="text" id="cmRoom" list="cmRooms" placeholder="教室，如：BY08" value="${Util.esc(e.room||'')}"><datalist id="cmRooms">${rooms}</datalist>
       </div>
@@ -7462,14 +7627,14 @@ const Schedule = {
 
   addMini(){
     const day    = document.getElementById('miniDay').value;
-    const period = document.getElementById('miniPeriod').value;
-    const time   = document.getElementById('miniTime').value;
+    const time   = document.getElementById('miniTime').value.trim();
     const stu    = document.getElementById('miniStu').value.trim();
     const title  = document.getElementById('miniTitle').value.trim();
-    if (!period && !time) return UI.toast('选个节次，或者单独填个时间');
+    /* v73 用户定：小课/加课不占全局节次，时间自由填——只进相关师生的课表，不同步全体作息 */
+    if (!time) return UI.toast('填一下时间，如 13:00-14:00（小课不占全局节次）');
     if (!title) return UI.toast('填一下上课内容');
     const teacherId = document.getElementById('miniTeacher').value;
-    Store.upsert('schedule', { day, periodId: period || '', time, stu, title, teacherId, kind: 'small' });
+    Store.upsert('schedule', { day, periodId: '', time, stu, title, teacherId, kind: 'small' });
     document.getElementById('miniTime').value = '';
     document.getElementById('miniStu').value = '';
     document.getElementById('miniTitle').value = '';
@@ -7527,46 +7692,87 @@ const Schedule = {
     if (!window.OffscreenCanvas && !document.createElement('canvas').getContext) return UI.toast('当前环境不支持生成图片');
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
-    const colW = 158, rowH = 70, hdH = 46, labW = 100;
-    const free = items.filter(x => !x.periodId);
-    const W = labW + cols.length * colW + 2;
-    const H = hdH + ps.length * rowH + (free.length ? rowH : 0) + 2;
+    const names = this.gridBlocks(items);
+    const blocks = names.map(cn => ({ cls: cn, its: items.filter(x => String(x.cls || '').trim() === cn) }));
+    const loose = items.filter(x => !String(x.cls || '').trim());
+    if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
+    const colW = 158, rowH = 54, hdH = 46, clsW = 76, slotW = 44, timW = 118;
+    const totalRows = blocks.reduce((n, b) => {
+      const lost = b.its.some(x => !x.periodId || !ps.some(p => p.id === x.periodId));
+      return n + Math.max(1, ps.length) + (lost ? 1 : 0);
+    }, 0);
+    const W = clsW + slotW + timW + cols.length * colW + 2;
+    const H = hdH + totalRows * rowH + 2;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d');
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#c9ab7c'; g.fillRect(0, 0, W, hdH);
     g.fillStyle = '#222'; g.textBaseline = 'middle';
-    g.font = 'bold 15px sans-serif'; g.fillText('博艺 · 课表', 8, hdH / 2);
+    g.font = 'bold 14px sans-serif'; g.fillText('班级 / 节次', 8, hdH / 2);
     cols.forEach((col, i) => {
-      const x = labW + i * colW;
-      g.fillStyle = '#f6f5f2'; g.fillRect(x, 0, colW, hdH);
-      g.fillStyle = '#222'; g.font = '13px sans-serif'; g.fillText(col.date.slice(5), x + 6, hdH / 2 - 8);
-      g.fillStyle = '#666'; g.font = '11px sans-serif'; g.fillText('周' + col.wd, x + 6, hdH / 2 + 9);
+      const x = clsW + slotW + timW + i * colW;
+      g.fillStyle = '#f6f5f2'; g.fillRect(x + 1, 1, colW - 2, hdH - 2);
+      g.fillStyle = '#222'; g.font = '13px sans-serif'; g.textAlign = 'center';
+      g.fillText(col.date.slice(5), x + colW / 2, hdH / 2 - 8);
+      g.fillStyle = '#5b4a2a'; g.font = '11px sans-serif';
+      g.fillText('周' + col.wd, x + colW / 2, hdH / 2 + 9);
+      g.textAlign = 'left';
     });
-    const drawCell = (x, y, cell, h) => {
-      g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, h);
-      let yy = y + 5;
+    g.textBaseline = 'alphabetic';
+    const drawCell = (x, y, cell) => {
+      g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, rowH);
+      let yy = y + 16;
       cell.forEach(it => {
-        g.fillStyle = '#1a4f7a'; g.font = '11px sans-serif';
-        const t = (it.cls ? it.cls + ' ' : '') + (it.title || '');
-        g.fillText(t.slice(0, 16), x + 4, yy); yy += 14;
+        g.fillStyle = '#1a4f7a'; g.font = 'bold 11px sans-serif';
+        g.fillText((it.title || '').slice(0, 14), x + 5, yy); yy += 14;
         g.fillStyle = '#888'; g.font = '10px sans-serif';
         const sub = (it.teacherId ? Staff.name(it.teacherId) : (it._tname || '')) + (it.room ? ' @' + it.room : '');
-        g.fillText(sub.slice(0, 16), x + 4, yy); yy += 14;
+        g.fillText(sub.slice(0, 18), x + 5, yy); yy += 13;
       });
     };
-    ps.forEach((p, ri) => {
-      const y = hdH + ri * rowH;
-      g.fillStyle = '#faf9f6'; g.fillRect(0, y, labW, rowH);
-      g.fillStyle = '#333'; g.font = '12px sans-serif'; g.fillText(p.name, 6, y + 14);
-      g.fillStyle = '#999'; g.font = '10px sans-serif'; g.fillText(p.start + '–' + p.end, 6, y + 32);
-      cols.forEach((col, i) => drawCell(labW + i * colW, y, items.filter(it => it.date === col.date && it.periodId === p.id), rowH));
+    let r = 0;
+    blocks.forEach(b => {
+      const blockStart = r;
+      for (let i = 0; i < ps.length; i++){
+        const p = ps[i];
+        const y = hdH + r * rowH;
+        const am = this._tmin(p.start) < 720;
+        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
+        if (am !== prevAm){
+          let run = 0;
+          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
+          g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, run * rowH);
+          g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, run * rowH);
+          g.fillStyle = '#6e685c'; g.font = '12px sans-serif'; g.textAlign = 'center';
+          g.fillText(am ? '上午' : '下午', clsW + slotW / 2, y + run * rowH / 2 + 4);
+          g.textAlign = 'left';
+        }
+        g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
+        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
+        g.fillStyle = '#333'; g.font = 'bold 11px sans-serif';
+        g.fillText('第' + (i + 1) + '节', clsW + slotW + 8, y + 20);
+        g.fillStyle = '#999'; g.font = '10px sans-serif';
+        g.fillText(p.start + '–' + p.end, clsW + slotW + 8, y + 37);
+        cols.forEach((col, ci) => drawCell(clsW + slotW + timW + ci * colW, y, b.its.filter(it => it.date === col.date && it.periodId === p.id)));
+        r++;
+      }
+      const lost = b.its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
+      if (lost.length){
+        const y = hdH + r * rowH;
+        g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
+        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
+        g.fillStyle = '#999'; g.font = '11px sans-serif'; g.fillText('其他', clsW + slotW + 8, y + rowH / 2 + 4);
+        cols.forEach((col, ci) => drawCell(clsW + slotW + timW + ci * colW, y, lost.filter(x => x.date === col.date)));
+        r++;
+      }
+      /* 班级格：整块一格，名字竖直居中 */
+      const by = hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
+      g.fillStyle = '#f3efe6'; g.fillRect(0, by, clsW, bh);
+      g.strokeStyle = '#e6e2d8'; g.strokeRect(0, by, clsW, bh);
+      g.fillStyle = '#8a6f45'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
+      g.fillText(b.cls || '未分班', clsW / 2, by + bh / 2 + 4);
+      g.textAlign = 'left';
     });
-    if (free.length){
-      const y = hdH + ps.length * rowH;
-      g.fillStyle = '#faf9f6'; g.fillRect(0, y, labW, rowH); g.fillStyle = '#333'; g.font = '12px sans-serif'; g.fillText('其他时段', 6, y + rowH / 2);
-      cols.forEach((col, i) => drawCell(labW + i * colW, y, free.filter(it => it.date === col.date), rowH));
-    }
     c.toBlob(b => {
       if (!b) return UI.toast('图片生成失败');
       const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '博艺课表.png'; a.click();
@@ -7574,33 +7780,49 @@ const Schedule = {
     });
   },
 
-  /* ── 导出：Word 文档（.doc，Word 可直接打开）── */
+  /* ── 导出：Word 文档（.doc，Word 可直接打开）——跟页面同一份班级分块版式 ── */
   exportWord(){
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
-    const cellInner = cell => cell.length
-      ? cell.map(it => `${Util.esc((it.cls || '') + ' ' + (it.title || ''))}<br><span style="color:#888">${(it.teacherId ? Staff.name(it.teacherId) : (it._tname || '')) + (it.room ? ' @' + Util.esc(it.room) : '')}</span>`).join('<hr>')
-      : '';
+    const names = this.gridBlocks(items);
+    const cellInner = cell => cell.map(it =>
+      `<div style="margin:2px 0"><b>${Util.esc(it.title || '')}</b><br><span style="color:#888">${Util.esc((it.teacherId ? Staff.name(it.teacherId) : (it._tname || '')) + (it.room ? ' @' + it.room : ''))}</span></div>`).join('');
     let rows = '';
-    ps.forEach(p => {
-      let tds = `<td style="background:#f6f5f2;white-space:nowrap"><b>${Util.esc(p.name)}</b><br>${Util.esc(p.start)}–${Util.esc(p.end)}</td>`;
-      cols.forEach(col => { tds += `<td style="vertical-align:top">${cellInner(items.filter(it => it.date === col.date && it.periodId === p.id))}</td>`; });
-      rows += `<tr>${tds}</tr>`;
-    });
-    const free = items.filter(x => !x.periodId);
-    if (free.length){
-      let tds = '<td style="background:#f6f5f2"><b>其他时段</b></td>';
-      cols.forEach(col => { tds += `<td style="vertical-align:top">${cellInner(free.filter(it => it.date === col.date))}</td>`; });
-      rows += `<tr>${tds}</tr>`;
-    }
+    const blockRows = (cls, its) => {
+      ps.forEach((p, i) => {
+        const am = this._tmin(p.start) < 720;
+        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
+        let tds = '';
+        if (i === 0)
+          tds += `<td rowspan="${ps.length}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(cls || '未分班')}</b></td>`;
+        if (am !== prevAm){
+          let run = 0;
+          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
+          tds += `<td rowspan="${run}" style="background:#f8f5ec;text-align:center;vertical-align:middle">${am ? '上午' : '下午'}</td>`;
+        }
+        tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666">第${i + 1}节<br>${Util.esc(p.start)}–${Util.esc(p.end)}</td>`;
+        cols.forEach(col => {
+          tds += `<td style="vertical-align:top">${cellInner(its.filter(it => it.date === col.date && it.periodId === p.id))}</td>`;
+        });
+        rows += `<tr>${tds}</tr>`;
+      });
+      const lost = its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
+      if (lost.length){
+        let tds = '<td style="background:#faf8f2;text-align:center;color:#999">其他</td>';
+        cols.forEach(col => { tds += `<td style="vertical-align:top">${cellInner(lost.filter(x => x.date === col.date))}</td>`; });
+        rows += `<tr>${tds}</tr>`;
+      }
+    };
+    names.forEach(cn => blockRows(cn, items.filter(x => String(x.cls || '').trim() === cn)));
+    const loose = items.filter(x => !String(x.cls || '').trim());
+    if (loose.length || !items.length) blockRows('', loose);
     const head = cols.map(c => `<th style="background:#c9ab7c">${c.date.slice(5)}<br>周${c.wd}</th>`).join('');
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>博艺课表</title></head><body><h2>博艺 · 课表</h2><table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-size:12px;font-family:微软雅黑, sans-serif">` +
-      `<thead><tr><th style="background:#c9ab7c">节次/时间</th>${head}</tr></thead><tbody>${rows}</tbody></table></body></html>`;
-    const blob = new Blob(['﻿' + html], { type: 'application/msword' });
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
+      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c"></th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '博艺课表.doc'; a.click();
     UI.toast('Word 已生成');
   },
-
   del(id){ Store.softDelete('schedule', id); this.render(); }
 };
 /* ==== 功能：课表 END ==== */

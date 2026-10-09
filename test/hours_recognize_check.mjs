@@ -1222,6 +1222,53 @@ try {
   })()`);
   ok(w === '950px', `列宽收紧后的表宽 950px（实测：${w || '表未渲染'}）`);
 
+  /* ── 3j. v73：班级分块大课表 + 统一时间轴 + 小课解耦 ── */
+  console.log('\n【5j】v73：班级分块网格 + 统一时间轴 …');
+  const v73 = await cdp.eval(`(() => {
+    // 现场隔离：前面的测试段往 periods/schedule 里塞过东西，先快照、清场，结束再恢复
+    const snapP = Store.list('periods').map(x => Object.assign({}, x));
+    const snapS = Store.list('schedule').map(x => Object.assign({}, x));
+    Store.list('periods').forEach(x => Store.softDelete('periods', x.id));
+    Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
+    // 造数据：两段作息 + 一个班两天的课
+    Store.upsert('periods', { name:'早功', start:'08:50', end:'09:10', dur:20, gap:50, auto:false });
+    Store.upsert('periods', { name:'第1节', start:'10:00', end:'10:40', dur:40, gap:10, auto:true });
+    const p1 = Store.list('periods').find(p => p.name === '早功');
+    const p2 = Store.list('periods').find(p => p.name === '第1节');
+    Store.upsert('schedule', { date:'2026-07-27', day:'周一', periodId:p1.id, time:'', title:'科学发声', cls:'BY05', room:'', kind:'big' });
+    Store.upsert('schedule', { date:'2026-07-27', day:'周一', periodId:p2.id, time:'', title:'考题解析拓展', cls:'BY05', room:'BY05', kind:'big' });
+    App.go('timetable');
+    Store.set('_schStart', '2026-07-27'); Store.set('_schDays', '3');   // 前面的测试段改过起始日，钉回本块用的日期
+    Schedule.renderGrid();
+    const tbl = document.querySelector('#gridWrap .sgclass');
+    const ccls = tbl ? tbl.querySelectorAll('td.ccls').length : 0;
+    const ctime = tbl ? [...tbl.querySelectorAll('td.ctime')].map(t => t.textContent.replace(/\s+/g, ' ').trim()) : [];
+    const row1 = tbl ? (tbl.querySelector('tbody tr').textContent.indexOf('科学发声') >= 0) : false;
+    // 统一时间轴：改早上时间 → 自动段顺延（09:20 + 课间50 = 10:10）
+    Store.upsert('periods', Object.assign({}, p1, { start:'09:00', end:'09:20' }));
+    Schedule.recalcPeriods();
+    const p2b = Store.list('periods').find(p => p.name === '第1节');
+    // 小课解耦：时间自由填、不占节次
+    Store.upsert('schedule', { day:'周一', periodId:'', time:'13:00-14:00', stu:'张三', title:'一对一发声', teacherId:'', kind:'small' });
+    const m = Store.list('schedule').filter(x => x.kind === 'small' && x.time === '13:00-14:00').pop();
+    // 恢复现场
+    Store.list('periods').forEach(x => Store.softDelete('periods', x.id));
+    Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
+    snapP.forEach(x => Store.upsert('periods', x));
+    snapS.forEach(x => Store.upsert('schedule', x));
+    return { hasTbl: !!tbl, blocks: ccls, timeRows: ctime, row1,
+             cascaded: p2b.start + '-' + p2b.end,
+             miniTime: m ? m.time : '', miniPid: m ? m.periodId : 'x' };
+  })()`);
+  ok(v73.hasTbl && v73.blocks >= 1, `班级分块大课表渲染出来（班级块 ${v73.blocks} 个）`);
+  ok(v73.row1, `时间格与课程格逐行对齐（第一行 = 早功 + 科学发声）`);
+  ok(v73.timeRows.length >= 2 && v73.timeRows.some(t => /第1节/.test(t)),
+    `节次数标注进时间格：${v73.timeRows.join(' | ')}`);
+  ok(v73.cascaded === '10:10-10:50',
+    `统一时间轴：早功 08:50→09:00 后，自动段从 10:00 顺延到 10:10（实测 ${v73.cascaded}）`);
+  ok(v73.miniTime === '13:00-14:00' && v73.miniPid === '',
+    `小课时间自由填、不占全局节次（time=${v73.miniTime} · periodId=${v73.miniPid}）`);
+
   /* ── 4. 图片通路（端到端 OCR）── */
   console.log('\n【6/9】图片通路（OCR + 坐标重建）…（这一步要跑真识别，耐心等）');
   const img = await cdp.eval(`(async () => {
