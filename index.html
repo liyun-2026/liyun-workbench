@@ -1083,6 +1083,8 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .sgrid td.slotv{width:26px;min-width:26px;padding:4px 2px;font-size:13px;color:#6e685c;background:#f8f5ec;white-space:nowrap}
 .sgrid td.allday{background:#eef2e4;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;font-size:13px}
 .sgrid td.allday.allbreak{background:#e3ecd6;color:#4d6b39}
+  .sgclass tbody tr.brow td{border-top:2px solid #b9a97f}
+  .sgrid td.allday .sc{background:#fff;border:1px solid #c9d4e4;margin:3px auto;max-width:92%}
 .sgrid td.allday.allexam{background:#f6dedb;color:#a04436}
 .sgrid .ln{font-size:12px;line-height:1.55;text-align:left;padding:2px 3px;border-radius:4px;cursor:pointer}
 .sgrid .ln:hover{background:rgba(201,171,124,.18)}
@@ -6894,6 +6896,15 @@ const Schedule = {
      班级格 / 时段格 / 时间格纵向合并，每节课独立一格，点时间格直接改时间；
      休息/考试等不占节次的课 = 整格合并色块（只跨当天没课的时段），「其他」行不存在。 */
   _slotOf(p){ return this._tmin(p.start) < 720 ? '上午' : '下午'; },
+  /** 节次容错解析：periodId 失效（作息改过/节次被删）时按 time 兜底匹配回节次，救回失联的课 */
+  _resolveP(x, ps){
+    if (x.periodId){ const p = ps.find(q => q.id === x.periodId); if (p) return p; }
+    const t = this._textTime(x.time || '');
+    if (t){ return ps.find(q => q.start === t.start && q.end === t.end) || ps.find(q => q.start === t.start) || null; }
+    return null;
+  },
+  /** 休息/考试这类「整格事」才配色块；普通课失联后按普通课样式显示，不许混进色块 */
+  _isRitual(x){ return /休息|考试|模拟|练声|结课|汇报|办公|例会|班会/.test(x.title || ''); },
   renderGrid(){
     const sEl = document.getElementById('gridStart');
     if (sEl) sEl.value = this.range().start;
@@ -6911,7 +6922,7 @@ const Schedule = {
       const P = id => ps.find(p => p.id === id) || null;
       const allday = {}, lessons = [];
       its.forEach(x => {
-        const p = x.periodId ? P(x.periodId) : null;
+        const p = this._resolveP(x, ps);
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
@@ -6921,7 +6932,7 @@ const Schedule = {
       const slotArr = used.map(p => this._slotOf(p));
       const nR = used.length;
       used.forEach((p, ri) => {
-        html += '<tr>';
+        html += ri === 0 ? '<tr class="brow">' : '<tr>';
         if (ri === 0)
           html += `<td class="ccls" rowspan="${nR}"><b>${Util.esc(cls || emptyLabel || '未分班')}</b></td>`;
         if (ri === 0 || slotArr[ri] !== slotArr[ri - 1]){
@@ -6929,25 +6940,33 @@ const Schedule = {
           for (let j = ri; j < nR && slotArr[j] === slotArr[ri]; j++) run++;
           html += `<td class="cslot" rowspan="${run}">${slotArr[ri]}</td>`;
         }
-        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(p.name || ('第' + (ps.indexOf(p) + 1) + '节'))}</b><br><span class="hint" style="display:inline;margin:0">${Util.esc(p.start)}–${Util.esc(p.end)}</span></td>`;
+        const nm = p.name || ('第' + (ps.indexOf(p) + 1) + '节');
+        const noRep = nm === p.start + '-' + p.end || nm === p.start + '\u2013' + p.end;
+        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(p.start) + '\u2013' + Util.esc(p.end) + '</span>'}</td>`;
         cols.forEach(c => {
-          const ad = allday[c.date] || [];
+          const adAll = allday[c.date] || [];
+          /* 失联的普通课若同班同日已有同名课 → 是重复记录，直接不显示（v75/v76 期间改作息产生的残留） */
+          const dup = x => !this._isRitual(x) && lessons.some(L => L.x.date === c.date && (L.x.title || '') === (x.title || ''));
+          const ad = adAll.filter(x => !dup(x));
+          const rits = ad.filter(x => this._isRitual(x));
+          const plains = ad.filter(x => !this._isRitual(x));
+          const plainBox = x => `<div class="sc noroom"><div class="sct">${Util.esc(x.title || '')}</div><div class="sch">未排节次</div></div>`;
           const dayL = lessons.filter(L => L.x.date === c.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
           const freeIdx = [];
           used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
             if (ri !== freeIdx[0]) return;   /* 合并色块只在首行发一次 */
-            const isBreak = ad.some(x => /休息/.test(x.title || ''));
-            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
-            const lines = ad.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('');
+            const isBreak = rits.some(x => /休息/.test(x.title || ''));
+            const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
+            const lines = rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
             html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
             return;
           }
           const cell = dayL.filter(L => L.p === p).map(L => L.x);
           let inner = this.cellInner(cell);
           if (ad.length && !freeIdx.length && ri === 0)     /* 两个时段都有课还塞了全天件：兜底塞首行，不许消失 */
-            inner += ad.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('');
+            inner += rits.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
           html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${inner}<div class="add">＋</div></td>`;
         });
         html += '</tr>';
@@ -7739,7 +7758,7 @@ const Schedule = {
       const P = id => ps.find(p => p.id === id) || null;
       const allday = {}, lessons = [];
       b.its.forEach(x => {
-        const p = x.periodId ? P(x.periodId) : null;
+        const p = this._resolveP(x, ps);
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
@@ -7803,24 +7822,29 @@ const Schedule = {
         g.fillText(p.start + '\u2013' + p.end, clsW + slotW + 8, y + 37);
         cols.forEach((col, ci) => {
           const x = clsW + slotW + timW + ci * colW;
-          const ad = b.allday[col.date] || [];
+          const adAll = b.allday[col.date] || [];
+          const dup = t => !this._isRitual(t) && b.lessons.some(L => L.x.date === col.date && (L.x.title || '') === (t.title || ''));
+          const ad = adAll.filter(t => !dup(t));
+          const rits = ad.filter(t => this._isRitual(t));
+          const plains = ad.filter(t => !this._isRitual(t));
           const dayL = b.lessons.filter(L => L.x.date === col.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
           const freeIdx = [];
           b.used.forEach((pp, j) => { if (!daySlots.includes(b.slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(b.slotArr[ri]) && freeIdx.length){
             if (ri !== freeIdx[0]) return;
-            const isBreak = ad.some(x => /休息/.test(x.title || ''));
-            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
+            const isBreak = rits.some(x => /休息/.test(x.title || ''));
+            const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
             const hh = freeIdx.length * rowH;
             g.fillStyle = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
             g.fillRect(x, y, colW, hh);
             g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, hh);
+            const entries = rits.map(t => ({ txt: String(t.title || '').slice(0, 16), c: isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26', b: 1 }))
+              .concat(plains.map(t => ({ txt: String(t.title || '').slice(0, 16) + '（未排节次）', c: '#1a4f7a', b: 0 })));
             g.textAlign = 'center';
-            ad.forEach((t, i) => {
-              g.fillStyle = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
-              g.font = 'bold 11px sans-serif';
-              g.fillText(String(t.title || '').slice(0, 16), x + colW / 2, y + hh / 2 - (ad.length - 1) * 7 + i * 14);
+            entries.forEach((e, i) => {
+              g.fillStyle = e.c; g.font = (e.b ? 'bold ' : '') + '11px sans-serif';
+              g.fillText(e.txt, x + colW / 2, y + hh / 2 - (entries.length - 1) * 7 + i * 14);
             });
             g.textAlign = 'left';
             return;
@@ -7832,6 +7856,9 @@ const Schedule = {
       const by = hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
       g.fillStyle = '#f3efe6'; g.fillRect(0, by, clsW, bh);
       g.strokeStyle = '#e6e2d8'; g.strokeRect(0, by, clsW, bh);
+      g.strokeStyle = '#b9a97f'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(0, by + 1); g.lineTo(W, by + 1); g.stroke();
+      g.lineWidth = 1;
       g.fillStyle = '#8a6f45'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
       g.fillText(b.cls || '未分班', clsW / 2, by + bh / 2 + 4);
       g.textAlign = 'left';
@@ -7862,7 +7889,7 @@ const Schedule = {
       const P = id => ps.find(p => p.id === id) || null;
       const allday = {}, lessons = [];
       b.its.forEach(x => {
-        const p = x.periodId ? P(x.periodId) : null;
+        const p = this._resolveP(x, ps);
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
@@ -7873,33 +7900,40 @@ const Schedule = {
       used.forEach((p, ri) => {
         let tds = '';
         if (ri === 0)
-          tds += `<td rowspan="${used.length}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(b.cls || '未分班')}</b></td>`;
+          tds += `<td rowspan="${used.length}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap;border-top:2pt solid #B9A97F"><b>${Util.esc(b.cls || '未分班')}</b></td>`;
         if (ri === 0 || slotArr[ri] !== slotArr[ri - 1]){
           let run = 0;
           for (let j = ri; j < used.length && slotArr[j] === slotArr[ri]; j++) run++;
-          tds += `<td rowspan="${run}" style="background:#f8f5ec;text-align:center;vertical-align:middle">${slotArr[ri]}</td>`;
+          tds += `<td rowspan="${run}" style="background:#f8f5ec;text-align:center;vertical-align:middle;border-top:2pt solid #B9A97F">${slotArr[ri]}</td>`;
         }
-        tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666"><b>${Util.esc(p.name || ('第' + (ps.indexOf(p) + 1) + '节'))}</b><br>${Util.esc(p.start)}–${Util.esc(p.end)}</td>`;
+        const nm = p.name || ('第' + (ps.indexOf(p) + 1) + '节');
+        const noRep = nm === p.start + '-' + p.end || nm === p.start + '–' + p.end;
+        tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666${ri === 0 ? ';border-top:2pt solid #B9A97F' : ''}"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br>' + Util.esc(p.start) + '–' + Util.esc(p.end)}</td>`;
         cols.forEach(col => {
-          const ad = allday[col.date] || [];
+          const adAll = allday[col.date] || [];
+          const dup = x => !this._isRitual(x) && lessons.some(L => L.x.date === col.date && (L.x.title || '') === (x.title || ''));
+          const ad = adAll.filter(x => !dup(x));
+          const rits = ad.filter(x => this._isRitual(x));
+          const plains = ad.filter(x => !this._isRitual(x));
+          const plainBox = x => `<div style="margin:2px 0;border:1px solid #c9d4e4;background:#f2f6fb;padding:2px 4px"><b>${Util.esc(x.title || '')}</b><br><span style="color:#888">未排节次</span></div>`;
           const dayL = lessons.filter(L => L.x.date === col.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
           const freeIdx = [];
           used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
             if (ri !== freeIdx[0]) return;
-            const isBreak = ad.some(x => /休息/.test(x.title || ''));
-            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
+            const isBreak = rits.some(x => /休息/.test(x.title || ''));
+            const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
             const bgc = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
             const ftc = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
-            const lines = ad.map(x => `<div style="margin:2px 0;font-weight:bold">${Util.esc(x.title || '')}</div>`).join('');
+            const lines = rits.map(x => `<div style="margin:2px 0;font-weight:bold">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
             tds += `<td rowspan="${freeIdx.length}" style="background:${bgc};color:${ftc};text-align:center;vertical-align:middle">${lines}</td>`;
             return;
           }
           let inner = cellInner(dayL.filter(L => L.p === p).map(L => L.x));
           if (ad.length && !freeIdx.length && ri === 0)
-            inner += ad.map(x => `<div style="margin:2px 0;color:#a04436">${Util.esc(x.title || '')}</div>`).join('');
-          tds += `<td style="vertical-align:top">${inner}</td>`;
+            inner += rits.map(x => `<div style="margin:2px 0;color:#a04436">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
+          tds += `<td style="vertical-align:top${ri === 0 ? ';border-top:2pt solid #B9A97F' : ''}">${inner}</td>`;
         });
         rows += `<tr>${tds}</tr>`;
       });

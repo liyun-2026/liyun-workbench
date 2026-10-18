@@ -291,6 +291,15 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+/* v77：**大课表班块分界 + 失联课治理**（用户 2026-10-18 晚截图点名）——
+   ① 班块之间画粗分界线（网页 tbody tr.brow 金棕上边框 / PNG 2px 横线 / Word 2pt 上边框），班级之间一眼分清；
+   ② 失联课治理：periodId 指向已删节次的课不再整团塞进全天色块 —— _resolveP 先按 time 兜底匹配回节次；
+     同班同日同名课已存在 → 判为改作息残留的重复记录，直接不显示；
+     真失联的普通课以「未排节次」白底盒显示，绝不混进考试/休息色块；
+   ③ 色块只画休息/考试/练声等「整格事」（_isRitual），第三次模拟考试里不再出现总结展望；
+   ④ 节次名=时间串时 ctime 不再重复第二行时间。
+   三份拷贝（renderGrid/exportPNG/exportWord）同步。
+   */
 /* v76：**大课表改回「方正格子版」**（用户 2026-10-18 拍板「格子要方方正正的」）——
    ① 行 = 该班用到的节次（按作息顺序，不铺空行），「节次/时间」独立成列，点时间可改作息；
    ② 每节课一个带框格子（标题 + 老师 @ 教室副行），时间不再挤进课程格；
@@ -330,7 +339,7 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v76'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const VERSION = 'v77'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
