@@ -291,6 +291,13 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+/* v79：**导出图片双版式 + 标题/周次**（用户 2026-10-19 凌晨点名）——
+   ① 导出图片分两版：学生版（只显课程+教室，不显老师名）/ 老师版（全显），工具栏两个按钮，文件名带版别；
+   ② 排版压紧：行高 56→46、时间列加宽到 112（时间串不再被截成 10:00-10）、节次名=时间串时只显一行；
+   ③ 顶部加标题条，与底部完全一致 =「课表标题（MM-DD ~ MM-DD）」，17px 大字；
+   ④ 新增「课表标题」输入框（大课表工具栏，存 _schTitle），第几周写在这里，两张图和 Word 页脚都自动带上；
+   ⑤ Word 页脚同标题、字号加大。
+   */
 /* v78：**绝不吃课**（用户 2026-10-18 深夜抓的：「9:10 那节课你给吃了吗？」）——
    ① 废除 v77 的「同班同日同名失联课隐藏」：它把 09:10-09:50 的考题解析拓展等真课吞掉了，失联的课一律显示；
    ② 失联课（periodId 指向已删节次、又无 time 可匹配）＝「未排节次」金框盒，绝不消失；
@@ -348,7 +355,7 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v78'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const VERSION = 'v79'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

@@ -2430,6 +2430,7 @@ try {
             <label class="hint" style="margin:0">起始日 <input type="date" id="gridStart" style="max-width:160px"></label>
             <label class="hint" style="margin:0">共
               <input type="number" id="gridDays" min="1" max="62" value="7" style="max-width:70px"> 天</label>
+            <label class="hint" style="margin:0">课表标题 <input type="text" id="gridTitle" placeholder="如：博艺2026暑期集训第三周课表" style="max-width:240px" oninput="Store.set('_schTitle', this.value)"></label>
             <button class="btn ghost" onclick="Schedule.applyRange()">刷新</button>
             <button class="btn ghost" onclick="Schedule.showWholeTerm()">看整期</button>
           </div>
@@ -2437,6 +2438,7 @@ try {
         <div class="row" style="margin:10px 0 0;gap:8px;flex-wrap:wrap">
           <button class="btn" onclick="Schedule.checkConflicts()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-search"></use></svg> 检查排课冲突</button>
           <button class="btn ghost" onclick="Schedule.exportPNG()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-image"></use></svg> 导出图片（发学生）</button>
+          <button class="btn ghost" onclick="Schedule.exportPNG(1)"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-image"></use></svg> 导出图片（发老师）</button>
           <button class="btn ghost" onclick="Schedule.exportWord()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 导出 Word（发学生）</button>
         </div>
         <div id="conflictBox" style="margin-top:10px"></div>
@@ -6912,6 +6914,8 @@ const Schedule = {
     if (sEl) sEl.value = this.range().start;
     const dEl = document.getElementById('gridDays');
     if (dEl) dEl.value = String(this.range().days);
+    const tEl = document.getElementById('gridTitle');
+    if (tEl && document.activeElement !== tEl) tEl.value = String(Store.get('_schTitle', '') || '');
     const wrap = document.getElementById('gridWrap');
     if (!wrap) return;
     const cols = this.dateCols(), ps = this.periods();
@@ -7761,7 +7765,8 @@ const Schedule = {
   },
 
   /* ── 导出：PNG 图片（发学生）── v76 版式 = 方正格子：行=该班用到的节次、时间格、全天色块、底部标题条 */
-  exportPNG(){
+  /* 导出 PNG（v79）：forTeacher=1 显老师，否则学生版只显课程+教室；顶部标题条+底部大字周次 */
+  exportPNG(forTeacher){
     if (!window.OffscreenCanvas && !document.createElement('canvas').getContext) return UI.toast('当前环境不支持生成图片');
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
@@ -7770,7 +7775,6 @@ const Schedule = {
     const loose = items.filter(x => !String(x.cls || '').trim());
     if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
     const blocks2 = blocks.map(b => {
-      const P = id => ps.find(p => p.id === id) || null;
       const allday = {}, lessons = [];
       b.its.forEach(x => {
         const p = this._resolveP(x, ps);
@@ -7782,59 +7786,78 @@ const Schedule = {
       if (!used.length) used.push(ps[0] || { id: '', name: '第1节', start: '--:--', end: '--:--' });
       return Object.assign({}, b, { allday, lessons, used, slotArr: used.map(p => this._slotOf(p)) });
     });
-    const clsW = 64, slotW = 30, timW = 96, colW = 150, rowH = 56, hdH = 46, footH = 32;
+    const title = String(Store.get('_schTitle', '') || '').trim() || '课表';
+    const range = '（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）';
+    const headTxt = title + range;
+    /* 压紧排版：行高 46、字不遮挡为准 */
+    const clsW = 60, slotW = 26, timW = 112, colW = 150, rowH = 46, hdT = 42, hdH = 40, footH = 48;
     const totalRows = blocks2.reduce((n, b) => n + b.used.length, 0);
     const W = clsW + slotW + timW + cols.length * colW + 2;
-    const H = hdH + totalRows * rowH + footH + 2;
+    const H = hdT + hdH + totalRows * rowH + footH + 2;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d');
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    /* 顶部标题条：与底部完全一致（标题含第几周 + 日期范围） */
+    g.fillStyle = '#8a6f45'; g.fillRect(0, 0, W, hdT);
+    g.fillStyle = '#ffffff'; g.textBaseline = 'middle'; g.textAlign = 'center';
+    g.font = 'bold 17px sans-serif';
+    g.fillText(headTxt, W / 2, hdT / 2 + 1);
+    g.textAlign = 'left';
     /* 表头 */
-    g.fillStyle = '#c9ab7c'; g.fillRect(0, 0, W, hdH);
+    g.fillStyle = '#c9ab7c'; g.fillRect(0, hdT, W, hdH);
     g.fillStyle = '#222'; g.textBaseline = 'middle';
-    g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
-    g.fillText('班级', clsW / 2, hdH / 2);
-    g.fillText('节次/时间', clsW + (slotW + timW) / 2, hdH / 2);
+    g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
+    g.fillText('班级', clsW / 2, hdT + hdH / 2);
+    g.fillText('节次/时间', clsW + (slotW + timW) / 2, hdT + hdH / 2);
     cols.forEach((col, i) => {
       const x = clsW + slotW + timW + i * colW;
-      g.fillStyle = '#f6f5f2'; g.fillRect(x + 1, 1, colW - 2, hdH - 2);
-      g.fillStyle = '#222'; g.font = '13px sans-serif';
-      g.fillText(col.date.slice(5), x + colW / 2, hdH / 2 - 8);
-      g.fillStyle = '#5b4a2a'; g.font = '11px sans-serif';
-      g.fillText('周' + col.wd, x + colW / 2, hdH / 2 + 9);
+      g.fillStyle = '#f6f5f2'; g.fillRect(x + 1, hdT + 1, colW - 2, hdH - 2);
+      g.fillStyle = '#222'; g.font = '12px sans-serif';
+      g.fillText(col.date.slice(5), x + colW / 2, hdT + hdH / 2 - 7);
+      g.fillStyle = '#5b4a2a'; g.font = '10.5px sans-serif';
+      g.fillText('周' + col.wd, x + colW / 2, hdT + hdH / 2 + 8);
     });
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
     const drawCell = (x, y, cell) => {
       g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, rowH);
-      let yy = y + 16;
+      let yy = y + 15;
       cell.forEach(it => {
         g.fillStyle = '#1a4f7a'; g.font = 'bold 11px sans-serif';
         g.fillText((it.title || '').slice(0, 14), x + 5, yy); yy += 14;
-        g.fillStyle = '#888'; g.font = '10px sans-serif';
-        const sub = [it.teacherId ? Staff.name(it.teacherId) : (it._tname || ''), it.room || ''].filter(Boolean).join(' @');
-        g.fillText(sub.slice(0, 18), x + 5, yy); yy += 13;
+        if (forTeacher){
+          g.fillStyle = '#888'; g.font = '10px sans-serif';
+          const sub = [it.teacherId ? Staff.name(it.teacherId) : (it._tname || ''), it.room || ''].filter(Boolean).join(' @');
+          g.fillText(sub.slice(0, 18), x + 5, yy); yy += 12;
+        } else if (it.room){
+          g.fillStyle = '#999'; g.font = '9.5px sans-serif';
+          g.fillText(String(it.room).slice(0, 10), x + 5, yy); yy += 11;
+        }
       });
     };
     let r = 0;
     blocks2.forEach(b => {
       const blockStart = r;
       b.used.forEach((p, ri) => {
-        const y = hdH + r * rowH;
+        const y = hdT + hdH + r * rowH;
         if (ri === 0 || b.slotArr[ri] !== b.slotArr[ri - 1]){
           let run = 0;
-          for (let j = ri; j < b.used.length && b.slotArr[j] === b.slotArr[ri]; j++) run++;
+          for (let k = ri; k < b.used.length && b.slotArr[k] === b.slotArr[ri]; k++) run++;
           g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, run * rowH);
           g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, run * rowH);
-          g.fillStyle = '#6e685c'; g.font = '12px sans-serif'; g.textAlign = 'center';
+          g.fillStyle = '#6e685c'; g.font = '11px sans-serif'; g.textAlign = 'center';
           g.fillText(b.slotArr[ri], clsW + slotW / 2, y + run * rowH / 2 + 4);
           g.textAlign = 'left';
         }
         g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
         g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
+        const nm = p.name || ('第' + (ps.indexOf(p) + 1) + '节');
+        const same = nm === p.start + '-' + p.end || nm === p.start + '\u2013' + p.end;
         g.fillStyle = '#333'; g.font = 'bold 11px sans-serif';
-        g.fillText((p.name || ('第' + (ps.indexOf(p) + 1) + '节')).slice(0, 8), clsW + slotW + 8, y + 20);
-        g.fillStyle = '#999'; g.font = '10px sans-serif';
-        g.fillText(p.start + '\u2013' + p.end, clsW + slotW + 8, y + 37);
+        g.fillText(nm.slice(0, 13), clsW + slotW + 8, y + (same ? rowH / 2 + 4 : 18));
+        if (!same){
+          g.fillStyle = '#999'; g.font = '10px sans-serif';
+          g.fillText(p.start + '\u2013' + p.end, clsW + slotW + 8, y + 34);
+        }
         cols.forEach((col, ci) => {
           const x = clsW + slotW + timW + ci * colW;
           /* v78：绝不吃课 */
@@ -7887,7 +7910,7 @@ const Schedule = {
               g.textAlign = 'left';
               return;
             }
-            if (fi !== 0) return;   /* 合并格只在第一个空闲行发一次（丢了这条会每行重复发、列错位） */
+            if (fi !== 0) return;   /* 合并格只在第一个空闲行发一次 */
             if (plains.length) drawPlain(y, freeIdx.length * rowH);
             else drawRit(y, freeIdx.length * rowH);
             return;
@@ -7896,28 +7919,31 @@ const Schedule = {
         });
         r++;
       });
-      const by = hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
+      const by = hdT + hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
       g.fillStyle = '#f3efe6'; g.fillRect(0, by, clsW, bh);
       g.strokeStyle = '#e6e2d8'; g.strokeRect(0, by, clsW, bh);
       g.strokeStyle = '#b9a97f'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(0, by + 1); g.lineTo(W, by + 1); g.stroke();
       g.lineWidth = 1;
-      g.fillStyle = '#8a6f45'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
+      g.fillStyle = '#8a6f45'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center';
       g.fillText(b.cls || '未分班', clsW / 2, by + bh / 2 + 4);
       g.textAlign = 'left';
     });
-    /* 底部标题条 */
-    g.fillStyle = '#8a6f45'; g.fillRect(0, hdH + totalRows * rowH + 2, W, footH - 2);
-    g.fillStyle = '#ffffff'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
-    g.fillText('博艺2026暑期集训课表（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）', W / 2, hdH + totalRows * rowH + 2 + (footH - 2) / 2 + 5);
+    /* 底部标题条：大字号，第几周一眼可见 */
+    const fy = hdT + hdH + totalRows * rowH + 2;
+    g.fillStyle = '#8a6f45'; g.fillRect(0, fy, W, footH - 2);
+    g.fillStyle = '#ffffff'; g.font = 'bold 17px sans-serif'; g.textAlign = 'center';
+    g.fillText(headTxt, W / 2, fy + (footH - 2) / 2 + 6);
     g.textAlign = 'left';
     c.toBlob(b => {
       if (!b) return UI.toast('图片生成失败');
-      const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '博艺课表.png'; a.click();
-      UI.toast('图片已生成，去发学生吧');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+      a.download = title + (forTeacher ? '-老师版.png' : '-学生版.png'); a.click();
+      UI.toast(forTeacher ? '老师版图片已生成（含老师名）' : '学生版图片已生成（不显示老师名）');
     });
   },
-  /* ── 导出：Word 文档（.doc，Word 可直接打开）── v76 版式 = 方正格子：行=该班用到的节次、时间格、全天色块 ── */
+  
+/* ── 导出：Word 文档（.doc，Word 可直接打开）── v76 版式 = 方正格子：行=该班用到的节次、时间格、全天色块 ── */
   exportWord(){
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
@@ -7995,7 +8021,8 @@ const Schedule = {
       });
     });
     const head = cols.map(c => `<th style="background:#c9ab7c">${c.date.slice(5)}<br>周${c.wd}</th>`).join('');
-    const foot = `<tr><td colspan="${3 + cols.length}" style="background:#8a6f45;color:#fff;text-align:center;font-weight:bold">博艺2026暑期集训课表（${cols[0].date.slice(5)} ~ ${cols[cols.length - 1].date.slice(5)}）</td></tr>`;
+    const footTxt = (String(Store.get('_schTitle', '') || '').trim() || '课表') + '（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）';
+    const foot = `<tr><td colspan="${3 + cols.length}" style="background:#8a6f45;color:#fff;text-align:center;font-weight:bold;font-size:15px">${Util.esc(footTxt)}</td></tr>`;
     const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
       '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时段</th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + foot + '</tbody></table></body></html>';
     const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
