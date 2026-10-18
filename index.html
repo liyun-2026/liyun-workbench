@@ -1079,6 +1079,16 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .sgrid td.ctime{background:#faf8f2;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;white-space:nowrap;font-size:12px;line-height:1.5}
 .sgrid td.ctime:hover{background:#f3efe6}
 .sgrid td.ctime .hint{font-size:11px}
+/* v75 大课表对齐用户标准表：行=班级×上午/下午；时间写进课程行首；全天休息/考试整格色块 */
+.sgrid td.slotv{width:26px;min-width:26px;padding:4px 2px;font-size:13px;color:#6e685c;background:#f8f5ec;white-space:nowrap}
+.sgrid td.allday{background:#eef2e4;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;font-size:13px}
+.sgrid td.allday.allbreak{background:#e3ecd6;color:#4d6b39}
+.sgrid td.allday.allexam{background:#f6dedb;color:#a04436}
+.sgrid .ln{font-size:12px;line-height:1.55;text-align:left;padding:2px 3px;border-radius:4px;cursor:pointer}
+.sgrid .ln:hover{background:rgba(201,171,124,.18)}
+.sgrid .ln.big{font-size:13px;font-weight:500}
+.sgrid .ln.all{color:#a04436;background:#f6dedb}
+.sgrid td:not(.allday):not(.ccls):not(.cslot):hover{background:rgba(201,171,124,.08)}
 .sgrid td{height:56px;cursor:pointer;min-width:124px;position:relative}
 .sgrid td:hover{background:#fbf7ee}
 .sgrid .add{position:absolute;right:4px;bottom:2px;color:#c9ab7c;font-size:15px;opacity:0;font-weight:700}
@@ -6879,6 +6889,16 @@ const Schedule = {
     items.forEach(x => { const c = String(x.cls || '').trim(); if (c && seen.indexOf(c) < 0) seen.push(c); });
     return seen;
   },
+  /* 大课表 v75：完全对齐用户的标准表（博艺暑期 docx）——
+     行 = 班级 × 上午/下午（该班没课的时段整行不出现，如 BY03 只有下午一行），
+     时间写在每条课的行首（08:50-09:10科学发声[BY05]，有老师 = 老师·课程名），
+     休息/考试等不占节次的课 = 整格合并色块（休息绿 / 考试红），
+     「其他」行废除——没挂节次/节次被删的课一律按全天格渲染，不许静默消失。 */
+  _slotOf(p){ return this._tmin(p.start) < 720 ? '上午' : '下午'; },
+  _lnText(x, p){
+    const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
+    return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
+  },
   renderGrid(){
     const sEl = document.getElementById('gridStart');
     if (sEl) sEl.value = this.range().start;
@@ -6889,40 +6909,50 @@ const Schedule = {
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
     const names = this.gridBlocks(items);
-    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时段</th><th class="corner">节次 / 时间</th>';
+    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时间</th>';
     cols.forEach(c => { html += `<th><div class="gd">${c.date.slice(5)}</div><div class="gw">周${c.wd}</div></th>`; });
     html += '</tr></thead><tbody>';
-    /* 一个班一个块：行 = 节次（时间格与课程格逐行对齐），班级格 / 上午下午格纵向合并 */
     const blockRows = (cls, its, emptyLabel) => {
-      for (let i = 0; i < ps.length; i++){
-        const p = ps[i];
-        const am = this._tmin(p.start) < 720;
-        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
+      const P = id => ps.find(p => p.id === id) || null;
+      const allday = {};                 /* 没挂节次 / 节次被删 → 全天件，class×date 分组 */
+      const lessons = [];
+      its.forEach(x => {
+        const p = x.periodId ? P(x.periodId) : null;
+        if (p) lessons.push({ x, p });
+        else (allday[x.date] = allday[x.date] || []).push(x);
+      });
+      const slots = [];
+      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
+      if (!slots.length) slots.push('下午');
+      const nR = slots.length;
+      slots.forEach((s, ri) => {
         html += '<tr>';
-        if (i === 0)
-          html += `<td class="ccls" rowspan="${ps.length}"><b>${Util.esc(cls || emptyLabel || '未分班')}</b></td>`;
-        if (am !== prevAm){
-          let run = 0;
-          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
-          html += `<td class="cslot" rowspan="${run}">${am ? '上午' : '下午'}</td>`;
-        }
-        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>第${i + 1}节</b><br><span class="hint" style="display:inline;margin:0">${Util.esc(p.start)}–${Util.esc(p.end)}</span></td>`;
+        if (ri === 0)
+          html += `<td class="ccls" rowspan="${nR}"><b>${Util.esc(cls || emptyLabel || '未分班')}</b></td>`;
+        html += `<td class="cslot slotv">${s}</td>`;
         cols.forEach(c => {
-          const cell = its.filter(x => x.date === c.date && x.periodId === p.id);
-          html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
+          const ad = allday[c.date] || [];
+          const dayL = lessons.filter(L => L.x.date === c.date);
+          const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
+          const free = slots.filter(x => !daySlots.includes(x));
+          if (ad.length && !daySlots.includes(s) && free.length){
+            if (ri !== slots.indexOf(free[0])) return;   /* 合并格只在本组首行发一次 */
+            /* 全天件只跨「当天没课的时段」：休息整天没课=整块合并；考试占下午=只合并下午行 */
+            const isBreak = ad.some(x => /休息/.test(x.title || ''));
+            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
+            const lines = ad.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('');
+            html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${free.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
+            return;
+          }
+          const day = dayL.filter(L => this._slotOf(L.p) === s)
+            .sort((a, b) => ps.indexOf(a.p) - ps.indexOf(b.p));
+          let lines = day.map(L => `<div class="ln" onclick="event.stopPropagation();Schedule.cellOpen('${c.date}','${L.p.id}','${L.x.id}')">${Util.esc(this._lnText(L.x, L.p))}</div>`).join('');
+          if (ad.length && !free.length && ri === 0)     /* 两个时段都有课还塞了全天件：兜底塞进首行，不许消失 */
+            lines += ad.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('');
+          html += `<td onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}','${s}')">${lines}</td>`;
         });
         html += '</tr>';
-      }
-      /* 节次被删掉的课 / 没挂节次的课：本班块末尾「其他」行兜住，不许静默消失 */
-      const lost = its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
-      if (lost.length){
-        html += '<tr><td class="ctime">其他</td>';
-        cols.forEach(c => {
-          const cell = lost.filter(x => x.date === c.date);
-          html += `<td onclick="Schedule.cellOpen('${c.date}','','')">${this.cellInner(cell)}<div class="add">＋</div></td>`;
-        });
-        html += '</tr>';
-      }
+      });
     };
     names.forEach(cn => blockRows(cn, items.filter(x => String(x.cls || '').trim() === cn)));
     const loose = items.filter(x => !String(x.cls || '').trim());
@@ -6930,25 +6960,23 @@ const Schedule = {
     html += '</tbody></table>';
     wrap.innerHTML = html;
   },
-  cellInner(cell){
-    if (!cell.length) return '';
-    return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
-        <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
-        <div class="sch">${[x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : ''), x.room ? Util.esc(x.room) : ''].filter(Boolean).join(' @')}</div>
-      </div>`).join('');
-  },
-  cellOpen(date, periodId, editId, preCls){
+  cellOpen(date, periodId, editId, preCls, slot){
     if (!Staff.loaded) Staff.load();
     const exist = editId ? Store.list('schedule').find(x => x.id === editId) : null;
     const e = exist || {};
     const rooms = this.rooms().map(r => `<option value="${Util.esc(r.name)}">`).join('');
     const teach = Staff.teachers().map(u => `<option value="${u.id}">${Util.esc(u.name)}</option>`).join('');
-    const pName = periodId ? ((this.periods().find(p => p.id === periodId) || {}).name || '') : '';
+    const ps = this.periods();
+    const pName = periodId ? ((ps.find(p => p.id === periodId) || {}).name || '') : '';
+    const perOpts = ['<option value="">全天 / 不占节次（休息·考试·仪式）</option>']
+      .concat(ps.map((p, i) => `<option value="${p.id}">${Util.esc(p.name || ('第' + (i + 1) + '节'))} ${Util.esc(p.start)}–${Util.esc(p.end)}</option>`)).join('');
+    const perSel = e.periodId || periodId || (slot ? ((ps.find(p => this._slotOf(p) === slot) || {}).id || '') : '');
     const html = `<div class="mask" onclick="Schedule.cellClose(event)"><div class="picker" style="max-width:360px" onclick="event.stopPropagation()">
       <div class="page-title" style="font-size:18px">${date} 周${this.dayOfDate(date)}${pName ? ' · '+Util.esc(pName) : ''}</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
         <input type="text" id="cmTitle" placeholder="上课内容，如：即兴评述" value="${Util.esc(e.title||'')}">
         <input type="text" id="cmCls" placeholder="班级 / 板块，如：BY05" value="${Util.esc(e.cls || preCls || '')}">
+        <select id="cmPeriod">${perOpts}</select>
         <select id="cmTeacher"><option value="">上课老师（可选）</option>${teach}</select>
         <input type="text" id="cmRoom" list="cmRooms" placeholder="教室，如：BY08" value="${Util.esc(e.room||'')}"><datalist id="cmRooms">${rooms}</datalist>
       </div>
@@ -6969,6 +6997,8 @@ const Schedule = {
     div.id = 'cellMask'; div.innerHTML = html;
     document.body.appendChild(div);
     if (e.teacherId){ const s = document.getElementById('cmTeacher'); if (s) s.value = e.teacherId; }
+    const perEl = document.getElementById('cmPeriod');
+    if (perEl) perEl.value = perSel || '';
   },
   cellClose(ev){
     if (ev && ev.target && ev.target.className !== 'mask') return;
@@ -6982,7 +7012,9 @@ const Schedule = {
     const teacherId = document.getElementById('cmTeacher').value;
     const room  = document.getElementById('cmRoom').value.trim();
     const merge = document.getElementById('cmMerge') ? document.getElementById('cmMerge').checked : false;
-    const obj = { date, day: this.dayOfDate(date), periodId: periodId || '', time: '', title, cls, teacherId, room, merge, kind: 'big' };
+    const perEl = document.getElementById('cmPeriod');
+    const pid = perEl ? perEl.value : (periodId || '');
+    const obj = { date, day: this.dayOfDate(date), periodId: pid, time: '', title, cls, teacherId, room, merge, kind: 'big' };
     if (editId) obj.id = editId;
     Store.upsert('schedule', obj);
     this.cellClose(); this.renderGrid(); UI.toast('已保存');
@@ -7688,7 +7720,7 @@ const Schedule = {
     box.innerHTML = '<div class="warn">⚠️ 查到 ' + r.length + ' 处需要注意：\n' + r.map(x => '· ' + Util.esc(x)).join('\n') + '</div>';
   },
 
-  /* ── 导出：PNG 图片（发学生）── */
+  /* ── 导出：PNG 图片（发学生）── v75 版式 = 用户标准表：班级×上午/下午、时间写行首、全天色块、底部标题条 */
   exportPNG(){
     if (!window.OffscreenCanvas && !document.createElement('canvas').getContext) return UI.toast('当前环境不支持生成图片');
     const cols = this.dateCols(), ps = this.periods();
@@ -7697,21 +7729,47 @@ const Schedule = {
     const blocks = names.map(cn => ({ cls: cn, its: items.filter(x => String(x.cls || '').trim() === cn) }));
     const loose = items.filter(x => !String(x.cls || '').trim());
     if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
-    const colW = 158, rowH = 54, hdH = 46, clsW = 76, slotW = 44, timW = 118;
-    const totalRows = blocks.reduce((n, b) => {
-      const lost = b.its.some(x => !x.periodId || !ps.some(p => p.id === x.periodId));
-      return n + Math.max(1, ps.length) + (lost ? 1 : 0);
-    }, 0);
-    const W = clsW + slotW + timW + cols.length * colW + 2;
-    const H = hdH + totalRows * rowH + 2;
+    const lnText = (x, p) => {
+      const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
+      return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
+    };
+    const blocks2 = blocks.map(b => {
+      const P = id => ps.find(p => p.id === id) || null;
+      const allday = {}, lessons = [];
+      b.its.forEach(x => {
+        const p = x.periodId ? P(x.periodId) : null;
+        if (p) lessons.push({ x, p });
+        else (allday[x.date] = allday[x.date] || []).push(x);
+      });
+      const slots = [];
+      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
+      if (!slots.length) slots.push('下午');
+      let maxLines = 1;
+      cols.forEach(c => {
+        slots.forEach(s => {
+          maxLines = Math.max(maxLines, lessons.filter(L => L.x.date === c.date && this._slotOf(L.p) === s).length);
+        });
+        const adCount = (allday[c.date] || []).length + lessons.filter(L => L.x.date === c.date).length;
+        maxLines = Math.max(maxLines, Math.ceil(adCount / slots.length));
+      });
+      return Object.assign({}, b, { allday, lessons, slots, rowH: Math.max(56, maxLines * 14 + 14) });
+    });
+    const clsW = 64, slotW = 30, colW = 168, hdH = 46, footH = 32;
+    const bodyH = blocks2.reduce((n, b) => n + b.slots.length * b.rowH, 0);
+    const W = clsW + slotW + cols.length * colW + 2;
+    const H = hdH + bodyH + footH + 2;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d');
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+    /* 表头 */
     g.fillStyle = '#c9ab7c'; g.fillRect(0, 0, W, hdH);
     g.fillStyle = '#222'; g.textBaseline = 'middle';
-    g.font = 'bold 14px sans-serif'; g.fillText('班级 / 节次', 8, hdH / 2);
+    g.font = 'bold 14px sans-serif';
+    g.fillText('班级', 10, hdH / 2);
+    g.font = 'bold 12px sans-serif';
+    g.fillText('时间', clsW + 4, hdH / 2);
     cols.forEach((col, i) => {
-      const x = clsW + slotW + timW + i * colW;
+      const x = clsW + slotW + i * colW;
       g.fillStyle = '#f6f5f2'; g.fillRect(x + 1, 1, colW - 2, hdH - 2);
       g.fillStyle = '#222'; g.font = '13px sans-serif'; g.textAlign = 'center';
       g.fillText(col.date.slice(5), x + colW / 2, hdH / 2 - 8);
@@ -7720,60 +7778,72 @@ const Schedule = {
       g.textAlign = 'left';
     });
     g.textBaseline = 'alphabetic';
-    const drawCell = (x, y, cell) => {
-      g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, rowH);
-      let yy = y + 16;
-      cell.forEach(it => {
-        g.fillStyle = '#1a4f7a'; g.font = 'bold 11px sans-serif';
-        g.fillText((it.title || '').slice(0, 14), x + 5, yy); yy += 14;
-        g.fillStyle = '#888'; g.font = '10px sans-serif';
-        const sub = (it.teacherId ? Staff.name(it.teacherId) : (it._tname || '')) + (it.room ? ' @' + it.room : '');
-        g.fillText(sub.slice(0, 18), x + 5, yy); yy += 13;
+    const drawLines = (x, y, w, lines, big) => {
+      lines.forEach((t, i) => {
+        g.fillStyle = big ? '#4d6b39' : '#2e2b26';
+        g.font = (big ? 'bold 11px' : '10px') + ' sans-serif';
+        g.fillText(String(t).slice(0, 18), x + 4, y + 15 + i * 13);
       });
     };
     let r = 0;
-    blocks.forEach(b => {
-      const blockStart = r;
-      for (let i = 0; i < ps.length; i++){
-        const p = ps[i];
-        const y = hdH + r * rowH;
-        const am = this._tmin(p.start) < 720;
-        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
-        if (am !== prevAm){
-          let run = 0;
-          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
-          g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, run * rowH);
-          g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, run * rowH);
-          g.fillStyle = '#6e685c'; g.font = '12px sans-serif'; g.textAlign = 'center';
-          g.fillText(am ? '上午' : '下午', clsW + slotW / 2, y + run * rowH / 2 + 4);
-          g.textAlign = 'left';
-        }
-        g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
-        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
-        g.fillStyle = '#333'; g.font = 'bold 11px sans-serif';
-        g.fillText('第' + (i + 1) + '节', clsW + slotW + 8, y + 20);
-        g.fillStyle = '#999'; g.font = '10px sans-serif';
-        g.fillText(p.start + '–' + p.end, clsW + slotW + 8, y + 37);
-        cols.forEach((col, ci) => drawCell(clsW + slotW + timW + ci * colW, y, b.its.filter(it => it.date === col.date && it.periodId === p.id)));
+    blocks2.forEach(b => {
+      const blockStart = r, bh = b.slots.length * b.rowH;
+      b.slots.forEach((s, ri) => {
+        const y = hdH + r * b.rowH;
+        /* 时段格 */
+        g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, b.rowH);
+        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, b.rowH);
+        g.fillStyle = '#6e685c'; g.font = '11px sans-serif'; g.textAlign = 'center';
+        g.fillText(s === '上午' ? '上' : '下', clsW + slotW / 2, y + b.rowH / 2 - 5);
+        g.fillText(s === '上午' ? '午' : '午', clsW + slotW / 2, y + b.rowH / 2 + 7);
+        g.textAlign = 'left';
+        /* 日期格 */
+        cols.forEach((col, ci) => {
+          const x = clsW + slotW + ci * colW;
+          const ad = b.allday[col.date] || [];
+          const dayL = b.lessons.filter(L => L.x.date === col.date);
+          const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
+          const free = b.slots.filter(x2 => !daySlots.includes(x2));
+          if (ad.length && !daySlots.includes(s) && free.length){
+            if (ri !== b.slots.indexOf(free[0])) return;   /* 合并格只画一次 */
+            const isBreak = ad.some(x => /休息/.test(x.title || ''));
+            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
+            const hh = free.length * b.rowH;
+            g.fillStyle = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
+            g.fillRect(x, y, colW, hh);
+            g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, hh);
+            g.textAlign = 'center';
+            ad.forEach((t, i) => {
+              g.fillStyle = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
+              g.font = 'bold 11px sans-serif';
+              g.fillText(String(t.title || '').slice(0, 16), x + colW / 2, y + hh / 2 - (ad.length - 1) * 7 + i * 14);
+            });
+            g.textAlign = 'left';
+            return;
+          }
+          g.fillStyle = '#ffffff'; g.fillRect(x, y, colW, b.rowH);
+          g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, b.rowH);
+          const day = dayL.filter(L => this._slotOf(L.p) === s)
+            .sort((a, b2) => ps.indexOf(a.p) - ps.indexOf(b2.p));
+          const lines = day.map(L => lnText(L.x, L.p));
+          if (ad.length && !free.length && ri === 0) lines.push(...ad.map(x => x.title || ''));
+          drawLines(x, y, colW, lines);
+        });
         r++;
-      }
-      const lost = b.its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
-      if (lost.length){
-        const y = hdH + r * rowH;
-        g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
-        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
-        g.fillStyle = '#999'; g.font = '11px sans-serif'; g.fillText('其他', clsW + slotW + 8, y + rowH / 2 + 4);
-        cols.forEach((col, ci) => drawCell(clsW + slotW + timW + ci * colW, y, lost.filter(x => x.date === col.date)));
-        r++;
-      }
-      /* 班级格：整块一格，名字竖直居中 */
-      const by = hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
+      });
+      /* 班级格 */
+      const by = hdH + blockStart * b.rowH;
       g.fillStyle = '#f3efe6'; g.fillRect(0, by, clsW, bh);
       g.strokeStyle = '#e6e2d8'; g.strokeRect(0, by, clsW, bh);
       g.fillStyle = '#8a6f45'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
       g.fillText(b.cls || '未分班', clsW / 2, by + bh / 2 + 4);
       g.textAlign = 'left';
     });
+    /* 底部标题条 */
+    g.fillStyle = '#8a6f45'; g.fillRect(0, hdH + bodyH + 2, W, footH - 2);
+    g.fillStyle = '#ffffff'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
+    g.fillText('博艺2026暑期集训课表（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）', W / 2, hdH + bodyH + 2 + (footH - 2) / 2 + 5);
+    g.textAlign = 'left';
     c.toBlob(b => {
       if (!b) return UI.toast('图片生成失败');
       const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '博艺课表.png'; a.click();
@@ -7781,45 +7851,65 @@ const Schedule = {
     });
   },
 
-  /* ── 导出：Word 文档（.doc，Word 可直接打开）——跟页面同一份班级分块版式 ── */
+  /* ── 导出：Word 文档（.doc，Word 可直接打开）── v75 版式 = 用户标准表：班级×上午/下午、时间行首、全天色块 ── */
   exportWord(){
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
     const names = this.gridBlocks(items);
-    const cellInner = cell => cell.map(it =>
-      `<div style="margin:2px 0"><b>${Util.esc(it.title || '')}</b><br><span style="color:#888">${Util.esc((it.teacherId ? Staff.name(it.teacherId) : (it._tname || '')) + (it.room ? ' @' + it.room : ''))}</span></div>`).join('');
+    const blocks = names.map(cn => ({ cls: cn, its: items.filter(x => String(x.cls || '').trim() === cn) }));
+    const loose = items.filter(x => !String(x.cls || '').trim());
+    if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
+    const lnText = (x, p) => {
+      const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
+      return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
+    };
     let rows = '';
-    const blockRows = (cls, its) => {
-      ps.forEach((p, i) => {
-        const am = this._tmin(p.start) < 720;
-        const prevAm = i > 0 ? (this._tmin(ps[i - 1].start) < 720) : null;
+    blocks.forEach(b => {
+      const P = id => ps.find(p => p.id === id) || null;
+      const allday = {}, lessons = [];
+      b.its.forEach(x => {
+        const p = x.periodId ? P(x.periodId) : null;
+        if (p) lessons.push({ x, p });
+        else (allday[x.date] = allday[x.date] || []).push(x);
+      });
+      const slots = [];
+      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
+      if (!slots.length) slots.push('下午');
+      const nR = slots.length;
+      slots.forEach((s, ri) => {
         let tds = '';
-        if (i === 0)
-          tds += `<td rowspan="${ps.length}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(cls || '未分班')}</b></td>`;
-        if (am !== prevAm){
-          let run = 0;
-          for (let j = i; j < ps.length && (this._tmin(ps[j].start) < 720) === am; j++) run++;
-          tds += `<td rowspan="${run}" style="background:#f8f5ec;text-align:center;vertical-align:middle">${am ? '上午' : '下午'}</td>`;
-        }
-        tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666">第${i + 1}节<br>${Util.esc(p.start)}–${Util.esc(p.end)}</td>`;
+        if (ri === 0)
+          tds += `<td rowspan="${nR}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(b.cls || '未分班')}</b></td>`;
+        tds += `<td style="background:#f8f5ec;text-align:center;vertical-align:middle;white-space:nowrap">${s}</td>`;
         cols.forEach(col => {
-          tds += `<td style="vertical-align:top">${cellInner(its.filter(it => it.date === col.date && it.periodId === p.id))}</td>`;
+          const ad = allday[col.date] || [];
+          const dayL = lessons.filter(L => L.x.date === col.date);
+          const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
+          const free = slots.filter(x2 => !daySlots.includes(x2));
+          if (ad.length && !daySlots.includes(s) && free.length){
+            if (ri !== slots.indexOf(free[0])) return;   /* 合并格只发一次 */
+            const isBreak = ad.some(x => /休息/.test(x.title || ''));
+            const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
+            const bgc = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
+            const ftc = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
+            const lines = ad.map(x => `<div style="margin:2px 0;font-weight:bold">${Util.esc(x.title || '')}</div>`).join('');
+            tds += `<td rowspan="${free.length}" style="background:${bgc};color:${ftc};text-align:center;vertical-align:middle">${lines}</td>`;
+            return;
+          }
+          const day = dayL.filter(L => this._slotOf(L.p) === s)
+            .sort((a, b2) => ps.indexOf(a.p) - ps.indexOf(b2.p));
+          let lines = day.map(L => `<div style="margin:2px 0">${Util.esc(lnText(L.x, L.p))}</div>`).join('');
+          if (ad.length && !free.length && ri === 0)
+            lines += ad.map(x => `<div style="margin:2px 0;color:#a04436">${Util.esc(x.title || '')}</div>`).join('');
+          tds += `<td style="vertical-align:top">${lines}</td>`;
         });
         rows += `<tr>${tds}</tr>`;
       });
-      const lost = its.filter(x => !x.periodId || !ps.some(p => p.id === x.periodId));
-      if (lost.length){
-        let tds = '<td style="background:#faf8f2;text-align:center;color:#999">其他</td>';
-        cols.forEach(col => { tds += `<td style="vertical-align:top">${cellInner(lost.filter(x => x.date === col.date))}</td>`; });
-        rows += `<tr>${tds}</tr>`;
-      }
-    };
-    names.forEach(cn => blockRows(cn, items.filter(x => String(x.cls || '').trim() === cn)));
-    const loose = items.filter(x => !String(x.cls || '').trim());
-    if (loose.length || !items.length) blockRows('', loose);
+    });
     const head = cols.map(c => `<th style="background:#c9ab7c">${c.date.slice(5)}<br>周${c.wd}</th>`).join('');
+    const foot = `<tr><td colspan="${2 + cols.length}" style="background:#8a6f45;color:#fff;text-align:center;font-weight:bold">博艺2026暑期集训课表（${cols[0].date.slice(5)} ~ ${cols[cols.length - 1].date.slice(5)}）</td></tr>`;
     const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
-      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时段</th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></body></html>';
+      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时间</th>' + head + '</tr></thead><tbody>' + rows + foot + '</tbody></table></body></html>';
     const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '博艺课表.doc'; a.click();
     UI.toast('Word 已生成');
