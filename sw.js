@@ -291,6 +291,13 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+/* v76：**大课表改回「方正格子版」**（用户 2026-10-18 拍板「格子要方方正正的」）——
+   ① 行 = 该班用到的节次（按作息顺序，不铺空行），「节次/时间」独立成列，点时间可改作息；
+   ② 每节课一个带框格子（标题 + 老师 @ 教室副行），时间不再挤进课程格；
+   ③ 时段格纵向合并（同段节次并成一格）；
+   ④ 全天休息/考试 = 色块合并，只跨当天没课的时段行（两个时段都有课则首行兜底红字）；
+   ⑤ renderGrid/exportPNG/exportWord 三份拷贝同步修复：课条取 L.x（v76 初稿把 {x,p} 包装对象当原始课条用导致格子空白）。
+   */
 /* v75：**大课表完全对齐用户标准表（博艺暑期 docx）**（用户 2026-10-18 定稿）——
    ① 行 = 班级 × 上午/下午：该班没课的时段整行不出现（BY03 只有下午一行），不再铺满全部节次；
    ② 「节次/时间」列废除：时间写在每条课的行首（08:50-09:10科学发声[BY05]，有老师 = 老师·课程名），
@@ -323,7 +330,7 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v75'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const VERSION = 'v76'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

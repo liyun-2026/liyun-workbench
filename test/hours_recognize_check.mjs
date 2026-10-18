@@ -1223,7 +1223,7 @@ try {
   ok(w === '950px', `列宽收紧后的表宽 950px（实测：${w || '表未渲染'}）`);
 
   /* ── 3j. v73：班级分块大课表 + 统一时间轴 + 小课解耦 ── */
-  console.log('\n【5j】v73：班级分块网格 + 统一时间轴 …');
+  console.log('\n【5j】v76：方正格子版（行=用到节次、时间独立成格、时段合并、全天色块跨空闲行）…');
   const v73 = await cdp.eval(`(() => {
     // 现场隔离：前面的测试段往 periods/schedule 里塞过东西，先快照、清场，结束再恢复
     const snapP = Store.list('periods').map(x => Object.assign({}, x));
@@ -1237,13 +1237,23 @@ try {
     const p2 = Store.list('periods').find(p => p.name === '第1节');
     Store.upsert('schedule', { date:'2026-07-27', day:'周一', periodId:p1.id, time:'', title:'科学发声', cls:'BY05', room:'', kind:'big' });
     Store.upsert('schedule', { date:'2026-07-27', day:'周一', periodId:p2.id, time:'', title:'考题解析拓展', cls:'BY05', room:'BY05', kind:'big' });
+    Store.upsert('schedule', { date:'2026-07-28', day:'周二', periodId:'', time:'', title:'休息', cls:'BY05', room:'', kind:'big' });
     App.go('timetable');
     Store.set('_schStart', '2026-07-27'); Store.set('_schDays', '3');   // 前面的测试段改过起始日，钉回本块用的日期
     Schedule.renderGrid();
     const tbl = document.querySelector('#gridWrap .sgclass');
     const ccls = tbl ? tbl.querySelectorAll('td.ccls').length : 0;
-    const ctime = tbl ? [...tbl.querySelectorAll('td.ctime')].map(t => t.textContent.replace(/\s+/g, ' ').trim()) : [];
+    const times = tbl ? [...tbl.querySelectorAll('td.ctime')].map(t => t.textContent.replace(/\s+/g, '')) : [];
     const row1 = tbl ? (tbl.querySelector('tbody tr').textContent.indexOf('科学发声') >= 0) : false;
+    const t1 = times.some(t => t.indexOf('早功') >= 0 && t.indexOf('08:50–09:10') >= 0);
+    const t2 = times.some(t => t.indexOf('第1节') >= 0 && t.indexOf('10:00–10:40') >= 0);
+    const cellT = tbl ? ((tbl.querySelector('.sct') || {}).textContent || '') : '';
+    const cellClean = cellT.indexOf('科学发声') >= 0 && cellT.indexOf('08:50') < 0;
+    const subs = tbl ? [...tbl.querySelectorAll('.sch')].map(t => t.textContent.trim()) : [];
+    const brkEl = tbl ? tbl.querySelector('td.allday.allbreak') : null;
+    const brkRow = brkEl ? brkEl.rowSpan : 0;
+    const noOther = tbl ? tbl.textContent.indexOf('其他') < 0 : true;
+    const slotCells = tbl ? tbl.querySelectorAll('td.cslot').length : 0;
     // 统一时间轴：改早上时间 → 自动段顺延（09:20 + 课间50 = 10:10）
     Store.upsert('periods', Object.assign({}, p1, { start:'09:00', end:'09:20' }));
     Schedule.recalcPeriods();
@@ -1256,14 +1266,18 @@ try {
     Store.list('schedule').forEach(x => Store.softDelete('schedule', x.id));
     snapP.forEach(x => Store.upsert('periods', x));
     snapS.forEach(x => Store.upsert('schedule', x));
-    return { hasTbl: !!tbl, blocks: ccls, timeRows: ctime, row1,
+    return { hasTbl: !!tbl, blocks: ccls, times: times.slice(0, 4), row1, t1, t2, cellT, cellClean, subs: subs.slice(0, 3), brkRow, noOther, slotCells,
              cascaded: p2b.start + '-' + p2b.end,
              miniTime: m ? m.time : '', miniPid: m ? m.periodId : 'x' };
   })()`);
   ok(v73.hasTbl && v73.blocks >= 1, `班级分块大课表渲染出来（班级块 ${v73.blocks} 个）`);
-  ok(v73.row1, `时间格与课程格逐行对齐（第一行 = 早功 + 科学发声）`);
-  ok(v73.timeRows.length >= 2 && v73.timeRows.some(t => /第1节/.test(t)),
-    `节次数标注进时间格：${v73.timeRows.join(' | ')}`);
+  ok(v73.row1, `班块首行 = 该班的课（科学发声在第一行）`);
+  ok(v73.t1 && v73.t2, `节次时间独立成格（实测：${(v73.times || []).join(' | ')}）`);
+  ok(v73.cellClean, `课程在自己带框的格子里、时间不挤进课程格（实测：${v73.cellT}）`);
+  ok(v73.subs.some(s => s.indexOf('BY05') >= 0), `课程格副行 = 老师 @ 教室（实测：${(v73.subs || []).join(' | ')}）`);
+  ok(v73.brkRow === 2, `休息 = 整格合并色块、跨该班用到的节次行（rowspan=${v73.brkRow}）`);
+  ok(v73.noOther, `「其他」行已废除（全页无「其他」字样）`);
+  ok(v73.slotCells === 1, `同段时段格纵向合并（早功/第1节都属上午 → 1 格，实测 ${v73.slotCells}）`);
   ok(v73.cascaded === '10:10-10:50',
     `统一时间轴：早功 08:50→09:00 后，自动段从 10:00 顺延到 10:10（实测 ${v73.cascaded}）`);
   ok(v73.miniTime === '13:00-14:00' && v73.miniPid === '',

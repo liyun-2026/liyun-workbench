@@ -6889,16 +6889,11 @@ const Schedule = {
     items.forEach(x => { const c = String(x.cls || '').trim(); if (c && seen.indexOf(c) < 0) seen.push(c); });
     return seen;
   },
-  /* 大课表 v75：完全对齐用户的标准表（博艺暑期 docx）——
-     行 = 班级 × 上午/下午（该班没课的时段整行不出现，如 BY03 只有下午一行），
-     时间写在每条课的行首（08:50-09:10科学发声[BY05]，有老师 = 老师·课程名），
-     休息/考试等不占节次的课 = 整格合并色块（休息绿 / 考试红），
-     「其他」行废除——没挂节次/节次被删的课一律按全天格渲染，不许静默消失。 */
+  /* 大课表 v76：方方正正的格子版（用户定稿：要 v74 的格子 + v75 的全天色块）——
+     行 = 该班用到的节次（按作息顺序，没用的节次不铺空行）；
+     班级格 / 时段格 / 时间格纵向合并，每节课独立一格，点时间格直接改时间；
+     休息/考试等不占节次的课 = 整格合并色块（只跨当天没课的时段），「其他」行不存在。 */
   _slotOf(p){ return this._tmin(p.start) < 720 ? '上午' : '下午'; },
-  _lnText(x, p){
-    const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
-    return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
-  },
   renderGrid(){
     const sEl = document.getElementById('gridStart');
     if (sEl) sEl.value = this.range().start;
@@ -6909,47 +6904,51 @@ const Schedule = {
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
     const names = this.gridBlocks(items);
-    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时间</th>';
+    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时段</th><th class="corner">节次 / 时间</th>';
     cols.forEach(c => { html += `<th><div class="gd">${c.date.slice(5)}</div><div class="gw">周${c.wd}</div></th>`; });
     html += '</tr></thead><tbody>';
     const blockRows = (cls, its, emptyLabel) => {
       const P = id => ps.find(p => p.id === id) || null;
-      const allday = {};                 /* 没挂节次 / 节次被删 → 全天件，class×date 分组 */
-      const lessons = [];
+      const allday = {}, lessons = [];
       its.forEach(x => {
         const p = x.periodId ? P(x.periodId) : null;
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
-      const slots = [];
-      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
-      if (!slots.length) slots.push('下午');
-      const nR = slots.length;
-      slots.forEach((s, ri) => {
+      const used = [];
+      ps.forEach(p => { if (lessons.some(L => L.p === p)) used.push(p); });
+      if (!used.length) used.push(ps[0] || { id: '', name: '第1节', start: '--:--', end: '--:--' });
+      const slotArr = used.map(p => this._slotOf(p));
+      const nR = used.length;
+      used.forEach((p, ri) => {
         html += '<tr>';
         if (ri === 0)
           html += `<td class="ccls" rowspan="${nR}"><b>${Util.esc(cls || emptyLabel || '未分班')}</b></td>`;
-        html += `<td class="cslot slotv">${s}</td>`;
+        if (ri === 0 || slotArr[ri] !== slotArr[ri - 1]){
+          let run = 0;
+          for (let j = ri; j < nR && slotArr[j] === slotArr[ri]; j++) run++;
+          html += `<td class="cslot" rowspan="${run}">${slotArr[ri]}</td>`;
+        }
+        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(p.name || ('第' + (ps.indexOf(p) + 1) + '节'))}</b><br><span class="hint" style="display:inline;margin:0">${Util.esc(p.start)}–${Util.esc(p.end)}</span></td>`;
         cols.forEach(c => {
           const ad = allday[c.date] || [];
           const dayL = lessons.filter(L => L.x.date === c.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
-          const free = slots.filter(x => !daySlots.includes(x));
-          if (ad.length && !daySlots.includes(s) && free.length){
-            if (ri !== slots.indexOf(free[0])) return;   /* 合并格只在本组首行发一次 */
-            /* 全天件只跨「当天没课的时段」：休息整天没课=整块合并；考试占下午=只合并下午行 */
+          const freeIdx = [];
+          used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
+          if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
+            if (ri !== freeIdx[0]) return;   /* 合并色块只在首行发一次 */
             const isBreak = ad.some(x => /休息/.test(x.title || ''));
             const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
             const lines = ad.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('');
-            html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${free.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
+            html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
             return;
           }
-          const day = dayL.filter(L => this._slotOf(L.p) === s)
-            .sort((a, b) => ps.indexOf(a.p) - ps.indexOf(b.p));
-          let lines = day.map(L => `<div class="ln" onclick="event.stopPropagation();Schedule.cellOpen('${c.date}','${L.p.id}','${L.x.id}')">${Util.esc(this._lnText(L.x, L.p))}</div>`).join('');
-          if (ad.length && !free.length && ri === 0)     /* 两个时段都有课还塞了全天件：兜底塞进首行，不许消失 */
-            lines += ad.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('');
-          html += `<td onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}','${s}')">${lines}</td>`;
+          const cell = dayL.filter(L => L.p === p).map(L => L.x);
+          let inner = this.cellInner(cell);
+          if (ad.length && !freeIdx.length && ri === 0)     /* 两个时段都有课还塞了全天件：兜底塞首行，不许消失 */
+            inner += ad.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('');
+          html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${inner}<div class="add">＋</div></td>`;
         });
         html += '</tr>';
       });
@@ -6959,6 +6958,13 @@ const Schedule = {
     if (loose.length || (!items.length && !names.length)) blockRows('', loose, '未分班');
     html += '</tbody></table>';
     wrap.innerHTML = html;
+  },
+  cellInner(cell){
+    if (!cell.length) return '';
+    return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
+        <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
+        <div class="sch">${[x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : ''), x.room ? Util.esc(x.room) : ''].filter(Boolean).join(' @')}</div>
+      </div>`).join('');
   },
   cellOpen(date, periodId, editId, preCls, slot){
     if (!Staff.loaded) Staff.load();
@@ -7720,7 +7726,7 @@ const Schedule = {
     box.innerHTML = '<div class="warn">⚠️ 查到 ' + r.length + ' 处需要注意：\n' + r.map(x => '· ' + Util.esc(x)).join('\n') + '</div>';
   },
 
-  /* ── 导出：PNG 图片（发学生）── v75 版式 = 用户标准表：班级×上午/下午、时间写行首、全天色块、底部标题条 */
+  /* ── 导出：PNG 图片（发学生）── v76 版式 = 方正格子：行=该班用到的节次、时间格、全天色块、底部标题条 */
   exportPNG(){
     if (!window.OffscreenCanvas && !document.createElement('canvas').getContext) return UI.toast('当前环境不支持生成图片');
     const cols = this.dateCols(), ps = this.periods();
@@ -7729,10 +7735,6 @@ const Schedule = {
     const blocks = names.map(cn => ({ cls: cn, its: items.filter(x => String(x.cls || '').trim() === cn) }));
     const loose = items.filter(x => !String(x.cls || '').trim());
     if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
-    const lnText = (x, p) => {
-      const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
-      return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
-    };
     const blocks2 = blocks.map(b => {
       const P = id => ps.find(p => p.id === id) || null;
       const allday = {}, lessons = [];
@@ -7741,74 +7743,76 @@ const Schedule = {
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
-      const slots = [];
-      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
-      if (!slots.length) slots.push('下午');
-      let maxLines = 1;
-      cols.forEach(c => {
-        slots.forEach(s => {
-          maxLines = Math.max(maxLines, lessons.filter(L => L.x.date === c.date && this._slotOf(L.p) === s).length);
-        });
-        const adCount = (allday[c.date] || []).length + lessons.filter(L => L.x.date === c.date).length;
-        maxLines = Math.max(maxLines, Math.ceil(adCount / slots.length));
-      });
-      return Object.assign({}, b, { allday, lessons, slots, rowH: Math.max(56, maxLines * 14 + 14) });
+      const used = [];
+      ps.forEach(p => { if (lessons.some(L => L.p === p)) used.push(p); });
+      if (!used.length) used.push(ps[0] || { id: '', name: '第1节', start: '--:--', end: '--:--' });
+      return Object.assign({}, b, { allday, lessons, used, slotArr: used.map(p => this._slotOf(p)) });
     });
-    const clsW = 64, slotW = 30, colW = 168, hdH = 46, footH = 32;
-    const bodyH = blocks2.reduce((n, b) => n + b.slots.length * b.rowH, 0);
-    const W = clsW + slotW + cols.length * colW + 2;
-    const H = hdH + bodyH + footH + 2;
+    const clsW = 64, slotW = 30, timW = 96, colW = 150, rowH = 56, hdH = 46, footH = 32;
+    const totalRows = blocks2.reduce((n, b) => n + b.used.length, 0);
+    const W = clsW + slotW + timW + cols.length * colW + 2;
+    const H = hdH + totalRows * rowH + footH + 2;
     const c = document.createElement('canvas'); c.width = W; c.height = H;
     const g = c.getContext('2d');
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
     /* 表头 */
     g.fillStyle = '#c9ab7c'; g.fillRect(0, 0, W, hdH);
     g.fillStyle = '#222'; g.textBaseline = 'middle';
-    g.font = 'bold 14px sans-serif';
-    g.fillText('班级', 10, hdH / 2);
-    g.font = 'bold 12px sans-serif';
-    g.fillText('时间', clsW + 4, hdH / 2);
+    g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
+    g.fillText('班级', clsW / 2, hdH / 2);
+    g.fillText('节次/时间', clsW + (slotW + timW) / 2, hdH / 2);
     cols.forEach((col, i) => {
-      const x = clsW + slotW + i * colW;
+      const x = clsW + slotW + timW + i * colW;
       g.fillStyle = '#f6f5f2'; g.fillRect(x + 1, 1, colW - 2, hdH - 2);
-      g.fillStyle = '#222'; g.font = '13px sans-serif'; g.textAlign = 'center';
+      g.fillStyle = '#222'; g.font = '13px sans-serif';
       g.fillText(col.date.slice(5), x + colW / 2, hdH / 2 - 8);
       g.fillStyle = '#5b4a2a'; g.font = '11px sans-serif';
       g.fillText('周' + col.wd, x + colW / 2, hdH / 2 + 9);
-      g.textAlign = 'left';
     });
-    g.textBaseline = 'alphabetic';
-    const drawLines = (x, y, w, lines, big) => {
-      lines.forEach((t, i) => {
-        g.fillStyle = big ? '#4d6b39' : '#2e2b26';
-        g.font = (big ? 'bold 11px' : '10px') + ' sans-serif';
-        g.fillText(String(t).slice(0, 18), x + 4, y + 15 + i * 13);
+    g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    const drawCell = (x, y, cell) => {
+      g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, rowH);
+      let yy = y + 16;
+      cell.forEach(it => {
+        g.fillStyle = '#1a4f7a'; g.font = 'bold 11px sans-serif';
+        g.fillText((it.title || '').slice(0, 14), x + 5, yy); yy += 14;
+        g.fillStyle = '#888'; g.font = '10px sans-serif';
+        const sub = [it.teacherId ? Staff.name(it.teacherId) : (it._tname || ''), it.room || ''].filter(Boolean).join(' @');
+        g.fillText(sub.slice(0, 18), x + 5, yy); yy += 13;
       });
     };
     let r = 0;
     blocks2.forEach(b => {
-      const blockStart = r, bh = b.slots.length * b.rowH;
-      b.slots.forEach((s, ri) => {
-        const y = hdH + r * b.rowH;
-        /* 时段格 */
-        g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, b.rowH);
-        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, b.rowH);
-        g.fillStyle = '#6e685c'; g.font = '11px sans-serif'; g.textAlign = 'center';
-        g.fillText(s === '上午' ? '上' : '下', clsW + slotW / 2, y + b.rowH / 2 - 5);
-        g.fillText(s === '上午' ? '午' : '午', clsW + slotW / 2, y + b.rowH / 2 + 7);
-        g.textAlign = 'left';
-        /* 日期格 */
+      const blockStart = r;
+      b.used.forEach((p, ri) => {
+        const y = hdH + r * rowH;
+        if (ri === 0 || b.slotArr[ri] !== b.slotArr[ri - 1]){
+          let run = 0;
+          for (let j = ri; j < b.used.length && b.slotArr[j] === b.slotArr[ri]; j++) run++;
+          g.fillStyle = '#f8f5ec'; g.fillRect(clsW, y, slotW, run * rowH);
+          g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW, y, slotW, run * rowH);
+          g.fillStyle = '#6e685c'; g.font = '12px sans-serif'; g.textAlign = 'center';
+          g.fillText(b.slotArr[ri], clsW + slotW / 2, y + run * rowH / 2 + 4);
+          g.textAlign = 'left';
+        }
+        g.fillStyle = '#faf8f2'; g.fillRect(clsW + slotW, y, timW, rowH);
+        g.strokeStyle = '#e6e2d8'; g.strokeRect(clsW + slotW, y, timW, rowH);
+        g.fillStyle = '#333'; g.font = 'bold 11px sans-serif';
+        g.fillText((p.name || ('第' + (ps.indexOf(p) + 1) + '节')).slice(0, 8), clsW + slotW + 8, y + 20);
+        g.fillStyle = '#999'; g.font = '10px sans-serif';
+        g.fillText(p.start + '\u2013' + p.end, clsW + slotW + 8, y + 37);
         cols.forEach((col, ci) => {
-          const x = clsW + slotW + ci * colW;
+          const x = clsW + slotW + timW + ci * colW;
           const ad = b.allday[col.date] || [];
           const dayL = b.lessons.filter(L => L.x.date === col.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
-          const free = b.slots.filter(x2 => !daySlots.includes(x2));
-          if (ad.length && !daySlots.includes(s) && free.length){
-            if (ri !== b.slots.indexOf(free[0])) return;   /* 合并格只画一次 */
+          const freeIdx = [];
+          b.used.forEach((pp, j) => { if (!daySlots.includes(b.slotArr[j])) freeIdx.push(j); });
+          if (ad.length && !daySlots.includes(b.slotArr[ri]) && freeIdx.length){
+            if (ri !== freeIdx[0]) return;
             const isBreak = ad.some(x => /休息/.test(x.title || ''));
             const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
-            const hh = free.length * b.rowH;
+            const hh = freeIdx.length * rowH;
             g.fillStyle = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
             g.fillRect(x, y, colW, hh);
             g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, hh);
@@ -7821,18 +7825,11 @@ const Schedule = {
             g.textAlign = 'left';
             return;
           }
-          g.fillStyle = '#ffffff'; g.fillRect(x, y, colW, b.rowH);
-          g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, b.rowH);
-          const day = dayL.filter(L => this._slotOf(L.p) === s)
-            .sort((a, b2) => ps.indexOf(a.p) - ps.indexOf(b2.p));
-          const lines = day.map(L => lnText(L.x, L.p));
-          if (ad.length && !free.length && ri === 0) lines.push(...ad.map(x => x.title || ''));
-          drawLines(x, y, colW, lines);
+          drawCell(x, y, dayL.filter(L => L.p === p).map(L => L.x));
         });
         r++;
       });
-      /* 班级格 */
-      const by = hdH + blockStart * b.rowH;
+      const by = hdH + blockStart * rowH, bh = (r - blockStart) * rowH;
       g.fillStyle = '#f3efe6'; g.fillRect(0, by, clsW, bh);
       g.strokeStyle = '#e6e2d8'; g.strokeRect(0, by, clsW, bh);
       g.fillStyle = '#8a6f45'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
@@ -7840,9 +7837,9 @@ const Schedule = {
       g.textAlign = 'left';
     });
     /* 底部标题条 */
-    g.fillStyle = '#8a6f45'; g.fillRect(0, hdH + bodyH + 2, W, footH - 2);
+    g.fillStyle = '#8a6f45'; g.fillRect(0, hdH + totalRows * rowH + 2, W, footH - 2);
     g.fillStyle = '#ffffff'; g.font = 'bold 13px sans-serif'; g.textAlign = 'center';
-    g.fillText('博艺2026暑期集训课表（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）', W / 2, hdH + bodyH + 2 + (footH - 2) / 2 + 5);
+    g.fillText('博艺2026暑期集训课表（' + cols[0].date.slice(5) + ' ~ ' + cols[cols.length - 1].date.slice(5) + '）', W / 2, hdH + totalRows * rowH + 2 + (footH - 2) / 2 + 5);
     g.textAlign = 'left';
     c.toBlob(b => {
       if (!b) return UI.toast('图片生成失败');
@@ -7850,8 +7847,7 @@ const Schedule = {
       UI.toast('图片已生成，去发学生吧');
     });
   },
-
-  /* ── 导出：Word 文档（.doc，Word 可直接打开）── v75 版式 = 用户标准表：班级×上午/下午、时间行首、全天色块 ── */
+  /* ── 导出：Word 文档（.doc，Word 可直接打开）── v76 版式 = 方正格子：行=该班用到的节次、时间格、全天色块 ── */
   exportWord(){
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
@@ -7859,10 +7855,8 @@ const Schedule = {
     const blocks = names.map(cn => ({ cls: cn, its: items.filter(x => String(x.cls || '').trim() === cn) }));
     const loose = items.filter(x => !String(x.cls || '').trim());
     if (loose.length || !items.length) blocks.push({ cls: '', its: loose });
-    const lnText = (x, p) => {
-      const t = x.teacherId ? Staff.name(x.teacherId) : (x._tname || '');
-      return (p ? p.start + '-' + p.end : '') + (t ? t + '·' : '') + (x.title || '') + (x.room ? '[' + x.room + ']' : '');
-    };
+    const cellInner = cell => cell.map(it =>
+      `<div style="margin:2px 0"><b>${Util.esc(it.title || '')}</b><br><span style="color:#888">${Util.esc([it.teacherId ? Staff.name(it.teacherId) : (it._tname || ''), it.room || ''].filter(Boolean).join(' @'))}</span></div>`).join('');
     let rows = '';
     blocks.forEach(b => {
       const P = id => ps.find(p => p.id === id) || null;
@@ -7872,44 +7866,48 @@ const Schedule = {
         if (p) lessons.push({ x, p });
         else (allday[x.date] = allday[x.date] || []).push(x);
       });
-      const slots = [];
-      ['上午', '下午'].forEach(s => { if (lessons.some(L => this._slotOf(L.p) === s)) slots.push(s); });
-      if (!slots.length) slots.push('下午');
-      const nR = slots.length;
-      slots.forEach((s, ri) => {
+      const used = [];
+      ps.forEach(p => { if (lessons.some(L => L.p === p)) used.push(p); });
+      if (!used.length) used.push(ps[0] || { id: '', name: '第1节', start: '--:--', end: '--:--' });
+      const slotArr = used.map(p => this._slotOf(p));
+      used.forEach((p, ri) => {
         let tds = '';
         if (ri === 0)
-          tds += `<td rowspan="${nR}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(b.cls || '未分班')}</b></td>`;
-        tds += `<td style="background:#f8f5ec;text-align:center;vertical-align:middle;white-space:nowrap">${s}</td>`;
+          tds += `<td rowspan="${used.length}" style="background:#f3efe6;text-align:center;vertical-align:middle;white-space:nowrap"><b>${Util.esc(b.cls || '未分班')}</b></td>`;
+        if (ri === 0 || slotArr[ri] !== slotArr[ri - 1]){
+          let run = 0;
+          for (let j = ri; j < used.length && slotArr[j] === slotArr[ri]; j++) run++;
+          tds += `<td rowspan="${run}" style="background:#f8f5ec;text-align:center;vertical-align:middle">${slotArr[ri]}</td>`;
+        }
+        tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666"><b>${Util.esc(p.name || ('第' + (ps.indexOf(p) + 1) + '节'))}</b><br>${Util.esc(p.start)}–${Util.esc(p.end)}</td>`;
         cols.forEach(col => {
           const ad = allday[col.date] || [];
           const dayL = lessons.filter(L => L.x.date === col.date);
           const daySlots = [...new Set(dayL.map(L => this._slotOf(L.p)))];
-          const free = slots.filter(x2 => !daySlots.includes(x2));
-          if (ad.length && !daySlots.includes(s) && free.length){
-            if (ri !== slots.indexOf(free[0])) return;   /* 合并格只发一次 */
+          const freeIdx = [];
+          used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
+          if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
+            if (ri !== freeIdx[0]) return;
             const isBreak = ad.some(x => /休息/.test(x.title || ''));
             const isExam = ad.some(x => /考试|模拟/.test(x.title || ''));
             const bgc = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
             const ftc = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
             const lines = ad.map(x => `<div style="margin:2px 0;font-weight:bold">${Util.esc(x.title || '')}</div>`).join('');
-            tds += `<td rowspan="${free.length}" style="background:${bgc};color:${ftc};text-align:center;vertical-align:middle">${lines}</td>`;
+            tds += `<td rowspan="${freeIdx.length}" style="background:${bgc};color:${ftc};text-align:center;vertical-align:middle">${lines}</td>`;
             return;
           }
-          const day = dayL.filter(L => this._slotOf(L.p) === s)
-            .sort((a, b2) => ps.indexOf(a.p) - ps.indexOf(b2.p));
-          let lines = day.map(L => `<div style="margin:2px 0">${Util.esc(lnText(L.x, L.p))}</div>`).join('');
-          if (ad.length && !free.length && ri === 0)
-            lines += ad.map(x => `<div style="margin:2px 0;color:#a04436">${Util.esc(x.title || '')}</div>`).join('');
-          tds += `<td style="vertical-align:top">${lines}</td>`;
+          let inner = cellInner(dayL.filter(L => L.p === p).map(L => L.x));
+          if (ad.length && !freeIdx.length && ri === 0)
+            inner += ad.map(x => `<div style="margin:2px 0;color:#a04436">${Util.esc(x.title || '')}</div>`).join('');
+          tds += `<td style="vertical-align:top">${inner}</td>`;
         });
         rows += `<tr>${tds}</tr>`;
       });
     });
     const head = cols.map(c => `<th style="background:#c9ab7c">${c.date.slice(5)}<br>周${c.wd}</th>`).join('');
-    const foot = `<tr><td colspan="${2 + cols.length}" style="background:#8a6f45;color:#fff;text-align:center;font-weight:bold">博艺2026暑期集训课表（${cols[0].date.slice(5)} ~ ${cols[cols.length - 1].date.slice(5)}）</td></tr>`;
+    const foot = `<tr><td colspan="${3 + cols.length}" style="background:#8a6f45;color:#fff;text-align:center;font-weight:bold">博艺2026暑期集训课表（${cols[0].date.slice(5)} ~ ${cols[cols.length - 1].date.slice(5)}）</td></tr>`;
     const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:sans-serif;font-size:12px">' +
-      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时间</th>' + head + '</tr></thead><tbody>' + rows + foot + '</tbody></table></body></html>';
+      '<thead><tr><th style="background:#c9ab7c">班级</th><th style="background:#c9ab7c">时段</th><th style="background:#c9ab7c">节次/时间</th>' + head + '</tr></thead><tbody>' + rows + foot + '</tbody></table></body></html>';
     const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '博艺课表.doc'; a.click();
     UI.toast('Word 已生成');
