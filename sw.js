@@ -291,6 +291,15 @@
    ③ 巡检「离线可开」一栏从「第 v71 版」改成显示代号版本。
    实测：hours_recognize_check 全绿（应用能正常启动渲染）；verCode 六例换算正确。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
+/* v78：**绝不吃课**（用户 2026-10-18 深夜抓的：「9:10 那节课你给吃了吗？」）——
+   ① 废除 v77 的「同班同日同名失联课隐藏」：它把 09:10-09:50 的考题解析拓展等真课吞掉了，失联的课一律显示；
+   ② 失联课（periodId 指向已删节次、又无 time 可匹配）＝「未排节次」金框盒，绝不消失；
+   ③ 空闲区拆行：普通失联课占第一空闲行（总结展望在考试上面），休息/考试色块占其余行；行不够才同格；
+   ④ 课表顶部加失联提示条：有失联课时提示去「课时统计」重新上传课表文件整表理顺；
+   ⑤ 🔴 修复 v78 初稿自身回归：合并色块丢了「只在第一个空闲行发一次」守卫 → 每行重复发 rowspan 格、整表阶梯错位
+     （诊断法：逐行 dump td 数与 rowspan，对照表头列数）。
+   三份拷贝同步。
+   */
 /* v77：**大课表班块分界 + 失联课治理**（用户 2026-10-18 晚截图点名）——
    ① 班块之间画粗分界线（网页 tbody tr.brow 金棕上边框 / PNG 2px 横线 / Word 2pt 上边框），班级之间一眼分清；
    ② 失联课治理：periodId 指向已删节次的课不再整团塞进全天色块 —— _resolveP 先按 time 兜底匹配回节次；
@@ -339,7 +348,7 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v77'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const VERSION = 'v78'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

@@ -1084,6 +1084,8 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .sgrid td.allday{background:#eef2e4;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;font-size:13px}
 .sgrid td.allday.allbreak{background:#e3ecd6;color:#4d6b39}
   .sgclass tbody tr.brow td{border-top:2px solid #b9a97f}
+  .orphan-hint{background:#fdf6e8;border:1px solid #e3d3ad;color:#7a5f2e;font-size:13px;padding:8px 12px;margin:0 0 10px}
+  .orphan-hint a{color:#8a6f45;font-weight:bold;text-decoration:underline}
   .sgrid td.allday .sc{background:#fff;border:1px solid #c9d4e4;margin:3px auto;max-width:92%}
 .sgrid td.allday.allexam{background:#f6dedb;color:#a04436}
 .sgrid .ln{font-size:12px;line-height:1.55;text-align:left;padding:2px 3px;border-radius:4px;cursor:pointer}
@@ -6915,7 +6917,9 @@ const Schedule = {
     const cols = this.dateCols(), ps = this.periods();
     const items = Store.list('schedule').filter(x => (x.kind || 'big') === 'big');
     const names = this.gridBlocks(items);
-    let html = '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时段</th><th class="corner">节次 / 时间</th>';
+    const orphN = items.filter(x => !this._resolveP(x, ps)).length;
+    let html = orphN ? `<div class="orphan-hint">⚠️ 有 ${orphN} 条课没挂上节次（改作息留下的失联课，下面用「未排节次」标出）。<a href="javascript:void(0)" onclick="App.go('hours')">去「课时统计」重新上传你的课表文件</a>可整表一次理顺。</div>` : '';
+    html += '<table class="sgrid sgclass"><thead><tr><th class="corner">班级</th><th class="corner">时段</th><th class="corner">节次 / 时间</th>';
     cols.forEach(c => { html += `<th><div class="gd">${c.date.slice(5)}</div><div class="gw">周${c.wd}</div></th>`; });
     html += '</tr></thead><tbody>';
     const blockRows = (cls, its, emptyLabel) => {
@@ -6944,10 +6948,8 @@ const Schedule = {
         const noRep = nm === p.start + '-' + p.end || nm === p.start + '\u2013' + p.end;
         html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(p.start) + '\u2013' + Util.esc(p.end) + '</span>'}</td>`;
         cols.forEach(c => {
-          const adAll = allday[c.date] || [];
-          /* 失联的普通课若同班同日已有同名课 → 是重复记录，直接不显示（v75/v76 期间改作息产生的残留） */
-          const dup = x => !this._isRitual(x) && lessons.some(L => L.x.date === c.date && (L.x.title || '') === (x.title || ''));
-          const ad = adAll.filter(x => !dup(x));
+          /* v78：绝不吃课——失联的课一律显示（未排节次盒），同名也不再隐藏 */
+          const ad = allday[c.date] || [];
           const rits = ad.filter(x => this._isRitual(x));
           const plains = ad.filter(x => !this._isRitual(x));
           const plainBox = x => `<div class="sc noroom"><div class="sct">${Util.esc(x.title || '')}</div><div class="sch">未排节次</div></div>`;
@@ -6956,7 +6958,20 @@ const Schedule = {
           const freeIdx = [];
           used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
-            if (ri !== freeIdx[0]) return;   /* 合并色块只在首行发一次 */
+            const fi = freeIdx.indexOf(ri);
+            if (fi < 0) return;
+            if (plains.length && rits.length && freeIdx.length >= 2){
+              /* 拆两格：普通失联课占第一空闲行（在考试/休息上面），整格事占其余行 */
+              if (fi === 0){
+                html += `<td rowspan="1" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${plains.map(plainBox).join('')}</td>`;
+              } else if (ri === freeIdx[1]){
+                const isBreak = rits.some(x => /休息/.test(x.title || ''));
+                const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
+                html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length - 1}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('')}</td>`;
+              }
+              return;
+            }
+            if (fi !== 0) return;   /* 合并格只在第一个空闲行发一次（丢了这条会每行重复发、列错位） */
             const isBreak = rits.some(x => /休息/.test(x.title || ''));
             const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
             const lines = rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
@@ -7822,9 +7837,8 @@ const Schedule = {
         g.fillText(p.start + '\u2013' + p.end, clsW + slotW + 8, y + 37);
         cols.forEach((col, ci) => {
           const x = clsW + slotW + timW + ci * colW;
-          const adAll = b.allday[col.date] || [];
-          const dup = t => !this._isRitual(t) && b.lessons.some(L => L.x.date === col.date && (L.x.title || '') === (t.title || ''));
-          const ad = adAll.filter(t => !dup(t));
+          /* v78：绝不吃课 */
+          const ad = b.allday[col.date] || [];
           const rits = ad.filter(t => this._isRitual(t));
           const plains = ad.filter(t => !this._isRitual(t));
           const dayL = b.lessons.filter(L => L.x.date === col.date);
@@ -7832,21 +7846,50 @@ const Schedule = {
           const freeIdx = [];
           b.used.forEach((pp, j) => { if (!daySlots.includes(b.slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(b.slotArr[ri]) && freeIdx.length){
-            if (ri !== freeIdx[0]) return;
-            const isBreak = rits.some(x => /休息/.test(x.title || ''));
-            const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
-            const hh = freeIdx.length * rowH;
-            g.fillStyle = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
-            g.fillRect(x, y, colW, hh);
-            g.strokeStyle = '#e6e2d8'; g.strokeRect(x, y, colW, hh);
-            const entries = rits.map(t => ({ txt: String(t.title || '').slice(0, 16), c: isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26', b: 1 }))
-              .concat(plains.map(t => ({ txt: String(t.title || '').slice(0, 16) + '（未排节次）', c: '#1a4f7a', b: 0 })));
-            g.textAlign = 'center';
-            entries.forEach((e, i) => {
-              g.fillStyle = e.c; g.font = (e.b ? 'bold ' : '') + '11px sans-serif';
-              g.fillText(e.txt, x + colW / 2, y + hh / 2 - (entries.length - 1) * 7 + i * 14);
-            });
-            g.textAlign = 'left';
+            const fi = freeIdx.indexOf(ri);
+            if (fi < 0) return;
+            const drawRit = (yy, hh2) => {
+              const isBreak = rits.some(x => /休息/.test(x.title || ''));
+              const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
+              g.fillStyle = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
+              g.fillRect(x, yy, colW, hh2);
+              g.strokeStyle = '#e6e2d8'; g.strokeRect(x, yy, colW, hh2);
+              g.textAlign = 'center';
+              rits.forEach((t, i) => {
+                g.fillStyle = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
+                g.font = 'bold 11px sans-serif';
+                g.fillText(String(t.title || '').slice(0, 16), x + colW / 2, yy + hh2 / 2 - (rits.length - 1) * 7 + i * 14);
+              });
+              g.textAlign = 'left';
+            };
+            const drawPlain = (yy, hh2) => {
+              g.fillStyle = '#ffffff'; g.fillRect(x, yy, colW, hh2);
+              g.strokeStyle = '#e6e2d8'; g.strokeRect(x, yy, colW, hh2);
+              g.textAlign = 'center';
+              plains.forEach((t, i) => {
+                g.fillStyle = '#1a4f7a'; g.font = 'bold 11px sans-serif';
+                g.fillText(String(t.title || '').slice(0, 12) + '（未排节次）', x + colW / 2, yy + hh2 / 2 - (plains.length - 1) * 7 + i * 14);
+              });
+              g.textAlign = 'left';
+            };
+            if (plains.length && rits.length && freeIdx.length >= 2){
+              if (fi === 0) drawPlain(y, rowH);                       /* 普通失联课在最上面一行 */
+              else if (ri === freeIdx[1]) drawRit(y, (freeIdx.length - 1) * rowH);
+              return;
+            }
+            if (plains.length && rits.length){                        /* 空闲行不够：色块打底、蓝字课压底 */
+              drawRit(y, freeIdx.length * rowH);
+              g.textAlign = 'center';
+              plains.forEach(t => {
+                g.fillStyle = '#1a4f7a'; g.font = 'bold 10px sans-serif';
+                g.fillText(String(t.title || '').slice(0, 12) + '·未排', x + colW / 2, y + freeIdx.length * rowH - 8);
+              });
+              g.textAlign = 'left';
+              return;
+            }
+            if (fi !== 0) return;   /* 合并格只在第一个空闲行发一次（丢了这条会每行重复发、列错位） */
+            if (plains.length) drawPlain(y, freeIdx.length * rowH);
+            else drawRit(y, freeIdx.length * rowH);
             return;
           }
           drawCell(x, y, dayL.filter(L => L.p === p).map(L => L.x));
@@ -7910,9 +7953,8 @@ const Schedule = {
         const noRep = nm === p.start + '-' + p.end || nm === p.start + '–' + p.end;
         tds += `<td style="background:#faf8f2;white-space:nowrap;text-align:center;color:#666${ri === 0 ? ';border-top:2pt solid #B9A97F' : ''}"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br>' + Util.esc(p.start) + '–' + Util.esc(p.end)}</td>`;
         cols.forEach(col => {
-          const adAll = allday[col.date] || [];
-          const dup = x => !this._isRitual(x) && lessons.some(L => L.x.date === col.date && (L.x.title || '') === (x.title || ''));
-          const ad = adAll.filter(x => !dup(x));
+          /* v78：绝不吃课 */
+          const ad = allday[col.date] || [];
           const rits = ad.filter(x => this._isRitual(x));
           const plains = ad.filter(x => !this._isRitual(x));
           const plainBox = x => `<div style="margin:2px 0;border:1px solid #c9d4e4;background:#f2f6fb;padding:2px 4px"><b>${Util.esc(x.title || '')}</b><br><span style="color:#888">未排节次</span></div>`;
@@ -7921,7 +7963,21 @@ const Schedule = {
           const freeIdx = [];
           used.forEach((pp, j) => { if (!daySlots.includes(slotArr[j])) freeIdx.push(j); });
           if (ad.length && !daySlots.includes(slotArr[ri]) && freeIdx.length){
-            if (ri !== freeIdx[0]) return;
+            const fi = freeIdx.indexOf(ri);
+            if (fi < 0) return;
+            if (plains.length && rits.length && freeIdx.length >= 2){
+              if (fi === 0){
+                tds += `<td rowspan="1" style="vertical-align:middle;background:#fff">${plains.map(plainBox).join('')}</td>`;
+              } else if (ri === freeIdx[1]){
+                const isBreak = rits.some(x => /休息/.test(x.title || ''));
+                const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
+                const bgc = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
+                const ftc = isBreak ? '#4d6b39' : isExam ? '#a04436' : '#2e2b26';
+                tds += `<td rowspan="${freeIdx.length - 1}" style="background:${bgc};color:${ftc};text-align:center;vertical-align:middle">${rits.map(x => `<div style="margin:2px 0;font-weight:bold">${Util.esc(x.title || '')}</div>`).join('')}</td>`;
+              }
+              return;
+            }
+            if (fi !== 0) return;   /* 合并格只在第一个空闲行发一次（丢了这条会每行重复发、列错位） */
             const isBreak = rits.some(x => /休息/.test(x.title || ''));
             const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
             const bgc = isBreak ? '#e3ecd6' : isExam ? '#f6dedb' : '#eef2e4';
