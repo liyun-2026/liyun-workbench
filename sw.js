@@ -355,7 +355,11 @@
    ④ exportPNG / exportWord 与页面同步改成班级分块版式（三份渲染拷贝一起动，漏一处就对不上）。
    实测：hours_recognize_check 全绿（页面启动渲染正常）；班级分块网格/规则链/导出见 daily log。
    ⚠️ 只动 index.html / sw.js，SHELL 清单不变 → 但 index.html 变了 → VERSION 加一。 */
-const VERSION = 'v79'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —— 桌面 ≥1100 换双栏影像版：
+   左演播室影像板（蓝章+校训+砺蕴金标水印）、右欢迎登录（教师/学生身份卡+金按钮）；
+   登录成功挂 .reveal 播印章过场约 2 秒再进门。<1100（含手机端）老版式一字不动。
+   新增静态文件 assets/banner-studio.jpg + seal-boyi.png + mark-liyun-gold.png 都进 SHELL → VERSION 加一。 */
+VERSION = 'v80'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
@@ -536,6 +540,10 @@ const SHELL = [
   './favicon.ico',
   './favicon-192.png',
   './assets/brand-lock.png',
+  /* v80 学府门户登录门（≥1100 桌面）：影像底片 / 蓝章 / 砺蕴金标水印，共约 140KB */
+  './assets/banner-studio.jpg',
+  './assets/seal-boyi.png',
+  './assets/mark-liyun-gold.png',
   './assets/brand-lock@sm.png',
   /* 看板顶带的品牌标：左＝博艺圆章裸摆、右＝砺蕴印 + 暖米黄圆底，**两枚等径**
      （v43 定色 / v44 改等大）。别再用 brand-lock-alpha.png —— 那是「给深色底做的

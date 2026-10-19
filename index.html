@@ -1265,6 +1265,96 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .gate .g-foot{position:static;margin-top:min(36px,3.2vh);padding-bottom:4px;font-size:12px;letter-spacing:5px;text-indent:5px}
 }
 
+/* ==SCHOOL-GATE-START== v80 学府门户登录门（≥1100 双栏影像版）──
+   <1100（含全部手机端）完全不走这段，老版式一字不动。
+   结构：左 .g-side 影像板（默认 display:none，只有这段里亮出来）+ 右 .g-main 表单。
+   登录成功后 Auth.submit 会给 .gate 挂 .reveal → 印章浮现过场约 2 秒再进门。
+   ⚠️ 防泄漏：.g-side / .g-roles 在基础层先按死 display:none，窄屏绝不露头。 */
+.gate .g-side{display:none}
+.gate .g-roles{display:none}
+@media (min-width:1100px){
+  .gate{--serif:"Noto Serif SC","Songti SC","STSong",serif;background:#f7f6f2}
+  .gate::after{content:none}                       /* 金晕退场，左影像自己有气氛 */
+  .gate.on{display:block}
+  .gate .g-top{display:none}
+  .gate .g-split{display:grid;grid-template-columns:1.15fr 1fr;min-height:100vh}
+
+  /* ── 左：品牌影像板 ── */
+  .gate .g-side{display:flex}   /* 基础层 .gate .g-side{display:none} 是 0,2,0，这里必须同权重才能翻面 */
+  .g-side{position:relative;overflow:hidden;background:#141d31;
+    display:flex;flex-direction:column;justify-content:space-between;padding:56px 62px}
+  .g-side .gs-bg{position:absolute;inset:0;
+    background:url(assets/banner-studio.jpg) center 42%/cover no-repeat;opacity:.5}
+  .g-side .gs-veil{position:absolute;inset:0;
+    background:linear-gradient(160deg,rgba(20,29,49,.90) 0%,rgba(20,29,49,.50) 45%,rgba(20,29,49,.88) 100%)}
+  .g-side .gs-mark{position:absolute;right:28px;bottom:-34px;width:400px;opacity:.075;pointer-events:none}
+  .g-side>*{position:relative;z-index:2}
+  .gs-brand{display:flex;align-items:center;gap:16px}
+  .gs-brand img{width:62px;height:62px}
+  .gs-brand b{display:block;font-family:var(--serif);font-size:29px;letter-spacing:7px;color:#f3efe6}
+  .gs-brand small{display:block;font-size:10px;letter-spacing:3.5px;color:#93a3c4;margin-top:6px}
+  .gs-mid .gs-motto{font-family:var(--serif);font-size:44px;letter-spacing:10px;color:#f3efe6;line-height:1.3}
+  .gs-mid .gs-motto span{color:var(--gold)}
+  .gs-mid .gs-rule{width:72px;height:2px;background:var(--gold);margin:26px 0 20px;position:relative}
+  .gs-mid .gs-rule::after{content:'';position:absolute;right:-13px;top:-3px;width:8px;height:8px;background:var(--gold);transform:rotate(45deg)}
+  .gs-mid .gs-sub{font-family:var(--serif);font-size:16px;letter-spacing:5px;color:#e8cd94}
+  .gs-foot{display:flex;justify-content:space-between;font-size:11.5px;letter-spacing:2px;color:#8fa0c0}
+
+  /* ── 右：表单板 ── */
+  .g-main{background:#fff;display:flex;align-items:center;justify-content:center;min-width:0}
+  .gate .g-brand{display:none}                     /* 右板用「欢迎登录」起头，品牌在左板 */
+  .gate .wrap{max-width:424px;margin:0;padding:40px 0;min-height:0}
+  .gate .g-welcome{
+    font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:5px;
+    color:var(--blue-ink,#2b3a5e);text-align:left;margin-top:10px;text-indent:0;
+  }
+  .gate .g-tagline{display:none}
+  .gate .g-sub{text-align:left;margin:8px 0 22px;min-height:0}
+  .gate .g-sub:empty{display:none;margin:0}
+  .gate .g-roles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .gate .g-roles button{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:#fcfcfa;border:1px solid var(--line);border-radius:9px;padding:12px 10px;
+    cursor:pointer;font-family:inherit;position:relative;transition:all .22s;
+  }
+  .gate .g-roles button:hover{border-color:#c8cfdd}
+  .gate .g-roles button.on{border-color:var(--gold);background:#fffcf5;box-shadow:0 6px 16px rgba(168,137,90,.14)}
+  .gate .g-roles button.on::after{
+    content:'✓';position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;
+    background:var(--gold);color:#fff;font-size:11px;line-height:18px;text-align:center;
+  }
+  .gate .g-roles .ric{width:30px;height:30px;border-radius:50%;background:rgba(74,92,140,.08);
+    display:grid;place-items:center;color:#4a5c8c;flex-shrink:0;transition:all .22s}
+  .gate .g-roles button.on .ric{background:#4a5c8c;color:#fff}
+  .gate .g-roles svg{width:16px;height:16px}
+  .gate .g-roles b{font-family:var(--serif);font-size:15.5px;letter-spacing:3px;color:#2b3a5e;font-weight:600}
+  .gate .g-form{max-width:none;margin:4px 0 0}
+  .gate .g-form input{border-left:none;border-radius:3px;background:#fcfcfa}
+  .gate .g-form .btn{
+    background:linear-gradient(120deg,#e8cd94,#c8a45f 55%,#e3c88f);color:#251b09;font-weight:600;
+    border-radius:3px;box-shadow:0 8px 20px rgba(168,137,90,.22);
+  }
+  .gate .g-err{max-width:none;text-align:left}
+  .gate .g-note{text-align:left}
+  .gate .g-foot{position:static;margin-top:30px;padding-bottom:2px}
+
+  /* ── 登录成功过场（Auth.submit 挂 .reveal 触发）── */
+  .gs-reveal{
+    position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(900px 600px at 50% 46%,rgba(20,29,49,.42),rgba(20,29,49,.92));
+    opacity:0;pointer-events:none;transition:opacity .8s ease .25s;
+  }
+  .gate.reveal .gs-reveal{opacity:1;pointer-events:auto}
+  .gs-reveal img{width:92px;height:92px;transform:scale(.6);opacity:0;transition:all .8s cubic-bezier(.2,1.4,.4,1) .45s}
+  .gate.reveal .gs-reveal img{transform:scale(1);opacity:1}
+  .gs-reveal .gr-t{font-family:var(--serif);font-size:30px;letter-spacing:10px;color:#f3efe6;margin-top:26px;opacity:0;transition:opacity .7s ease .7s}
+  .gate.reveal .gs-reveal .gr-t{opacity:1}
+  .gs-reveal .gr-bar{width:220px;height:2px;background:rgba(201,171,124,.22);margin-top:24px;overflow:hidden}
+  .gs-reveal .gr-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1.6s ease .6s}
+  .gate.reveal .gs-reveal .gr-bar i{width:100%}
+}
+/* ==SCHOOL-GATE-END== */
+
 /* 统一线性图标：替代跨平台不互通的 emoji，stroke 跟随文字色 */
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ic-inline{width:1.15em;height:1.15em;margin-right:.45em;vertical-align:-.2em}
@@ -3559,24 +3649,85 @@ try {
 <!-- ==== 学生换设备密钥门 END ==== -->
 
 <!-- ==== 登录 START ====
-     没登录之前只显示这一层。账号由教务创建，没有自助注册。 -->
+     没登录之前只显示这一层。账号由教务创建，没有自助注册。
+     v80：桌面 ≥1100 换「学府门户」双栏影像版（左影像右表单 + 教师/学生身份卡）；
+     <1100（含全部手机端）保持老版式一字不动 —— 新增的 .g-side 在窄屏下 display:none。 -->
 <div class="gate" id="gate">
   <div class="g-top"></div>
-  <div class="wrap">
-    <div class="g-brand" id="gBrand"></div>
-    <div class="g-welcome">欢迎回来</div>
-    <div class="g-tagline">博学宏才 · 艺德卓绝</div>
-    <div class="g-sub" id="gSub"></div>
-    <div class="g-form">
-      <input type="text" id="gUser" placeholder="用户名" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
-      <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
+  <div class="g-split">
+    <div class="g-side" aria-hidden="true">
+      <div class="gs-bg"></div>
+      <div class="gs-veil"></div>
+      <img class="gs-mark" src="assets/mark-liyun-gold.png" alt="">
+      <div class="gs-brand">
+        <img src="assets/seal-boyi.png" alt="">
+        <div><b>砺蕴教务系统</b><small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small></div>
+      </div>
+      <div class="gs-mid">
+        <div class="gs-motto">博学宏才 <span>·</span> 艺德卓绝</div>
+        <div class="gs-rule"></div>
+        <div class="gs-sub">南阳博艺教育 · 专注播音艺考 22 年</div>
+      </div>
+      <div class="gs-foot"><span>2026—2027 学年 · 秋季学期 · 第 9 教学周</span><span>博学宏才 艺德卓绝</span></div>
+      <div class="gs-reveal" id="gReveal">
+        <img src="assets/seal-boyi.png" alt="">
+        <div class="gr-t">正在进入教务系统…</div>
+        <div class="gr-bar"><i></i></div>
+      </div>
     </div>
-    <div class="g-err" id="gErr"></div>
-    <div class="g-note" id="gNote"></div>
-    <div class="g-foot" id="gFoot">LIYUN WORKBENCH</div>
+    <div class="g-main">
+      <div class="wrap">
+        <div class="g-brand" id="gBrand"></div>
+        <div class="g-welcome">欢迎登录</div>
+        <div class="g-tagline">博学宏才 · 艺德卓绝</div>
+        <div class="g-sub" id="gSub"></div>
+        <div class="g-roles" id="gRoles">
+          <button type="button" data-role="教师">
+            <span class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7" cy="4.6" r="2.1"/><path d="M3.2 13.2c.6-2.3 2-3.5 3.8-3.5s3.2 1.2 3.8 3.5"/><path d="M12.4 5.4v4.2M12.4 5.4l1.6.9"/></svg></span>
+            <b>教师</b>
+          </button>
+          <button type="button" class="on" data-role="学生">
+            <span class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3L14 5.6 8 8.2 2 5.6z"/><path d="M4.6 6.8v2.8c0 1.2 1.5 2.1 3.4 2.1s3.4-.9 3.4-2.1V6.8"/><path d="M13 6.2v3"/></svg></span>
+            <b>学生</b>
+          </button>
+        </div>
+        <div class="g-form">
+          <input type="text" id="gUser" placeholder="请输入账号" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
+          <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
+        </div>
+        <div class="g-err" id="gErr"></div>
+        <div class="g-note" id="gNote"></div>
+        <div class="g-foot" id="gFoot">LIYUN WORKBENCH</div>
+      </div>
+    </div>
   </div>
 </div>
+<script>
+  /* v80 登录身份卡：只做「选择」这一件事，真正的权限仍由账号决定。
+     选择结果挂在 window.__gRole 上：按钮文案跟着变，登录过场提示也用它。
+     手机端（<1100）身份卡整体隐藏，按钮保持「登 录」两个字 —— 手机端不动。 */
+  window.__gRole = '';
+  (function(){
+    const box = document.getElementById('gRoles');
+    if (!box) return;
+    box.addEventListener('click', e => {
+      const b = e.target.closest('button[data-role]');
+      if (!b) return;
+      box.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      window.__gRole = b.dataset.role;
+      const btn = document.getElementById('gBtn');
+      if (btn && !btn.disabled) btn.textContent = (b.dataset.role === '教师') ? '教 师 登 录' : '学 生 登 录';
+    });
+    /* 桌面默认选中「学生」，按钮文案同步；窄屏不动按钮文案 */
+    if (window.matchMedia && matchMedia('(min-width:1100px)').matches){
+      window.__gRole = '学生';
+      const btn = document.getElementById('gBtn');
+      if (btn) btn.textContent = '学 生 登 录';
+    }
+  })();
+</script>
 <!-- ==== 登录 END ==== -->
 
 <div class="toast" id="toast"></div>
@@ -13346,7 +13497,10 @@ const Auth = {
     const b = document.getElementById('gBtn');
     if (!b) return;
     b.disabled = !!on;
-    b.textContent = on ? '登录中…' : '登 录';
+    /* v80：按钮文案跟登录身份卡走（教师/学生）；没选过身份（手机端）保持「登 录」 */
+    b.textContent = on ? '登录中…'
+      : (window.__gRole === '教师' ? '教 师 登 录'
+        : window.__gRole === '学生' ? '学 生 登 录' : '登 录');
   },
 
   async submit(){
@@ -13368,6 +13522,16 @@ const Auth = {
       if (!local) Store.setSecret('me', j.profile);   // 断网时靠这份进得来
       this._me = j.profile;
       this.busy(false);
+      /* v80：桌面宽屏走「学府门户」过场 —— 左栏影像放大、印章浮现约 2 秒再进门；
+         窄屏（手机端）不加戏，和以前一样立即进入。 */
+      if (window.matchMedia && matchMedia('(min-width:1100px)').matches){
+        const g = document.getElementById('gate');
+        if (g && document.getElementById('gReveal')){
+          g.classList.add('reveal');
+          await new Promise(res => setTimeout(res, 2050));
+          g.classList.remove('reveal');
+        }
+      }
       this.hide();
       document.getElementById('gPass').value = '';
       UI.toast(j.created
