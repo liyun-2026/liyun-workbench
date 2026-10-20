@@ -361,7 +361,10 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    v83：手机端（<1100）登录门换新——上部影像轮播 + 白板登录板，桌面 ≥1100 一字不动。
    新增静态文件 assets/press-boyi_5A244503.jpg / press-boyi_E0B6CAF7.jpg / press-boyi_38DA048D.jpg
    （拍立得三图，JPEG q80）都进 SHELL → VERSION 加一。 */
-VERSION = 'v83'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v84：手机端三端 5-Tab 骨架（批次 2）—— <1100 显示固定底部 .mtabbar（样式/图标/文案
+   逐字复刻样张 m-home-*.html），Tab 点击 = App.go(现有页面 id)；旧手机底栏 .tabbar
+   在 <1100 退场；桌面 ≥1100 与看板端不渲染。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+VERSION = 'v84'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
