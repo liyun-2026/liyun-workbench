@@ -206,19 +206,15 @@
    有一瞬风格差，属已知可接受；要完全一致需重跑 test/make_splash_shots.py。 */
 #splash .s-stage2{position:relative;width:min(200px,46vw);aspect-ratio:1;
   display:flex;align-items:center;justify-content:center;margin-top:-8px}
-#splash .s-seal{position:relative;z-index:2;width:124px;height:auto;
+#splash .s-seal{position:relative;z-index:2;width:102px;height:auto;
   filter:drop-shadow(0 8px 20px rgba(120,90,40,.30));
   animation:s-stamp .6s cubic-bezier(.2,.9,.3,1.18) both}
-#splash .s-pulse{position:absolute;inset:0;margin:auto;width:124px;height:124px;
+#splash .s-pulse{position:absolute;inset:0;margin:auto;width:102px;height:102px;
   border-radius:50%;border:1.5px solid var(--gold);opacity:0;pointer-events:none}
 #splash .s-pulse.p1{animation:s-pulse 1s var(--ease) .16s both}
 #splash .s-pulse.p2{animation:s-pulse 1s var(--ease) .46s both}
-#splash .s-tag2{margin-top:30px;font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
-  font-size:clamp(17px,2.2vw,24px);letter-spacing:.4em;text-indent:.4em;
-  color:var(--gold-deep);animation:s-tag-in .9s var(--ease) .48s both}
 @keyframes s-stamp{0%{opacity:0;transform:scale(1.9) rotate(-8deg)}62%{opacity:1;transform:scale(.96) rotate(1deg)}100%{opacity:1;transform:none}}
 @keyframes s-pulse{0%{opacity:.55;transform:scale(.8)}100%{opacity:0;transform:scale(2.1)}}
-@keyframes s-tag-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 /* ⚠️ 2026-09-29 删掉 s-disc-in / s-wave-in / s-name-in 三条 keyframes：
    它们是「圆盘旋转进入 / 文字上浮」那套旧开屏留下的，元素早没了（上面注释里
    写明了那套已删），只剩三条死定义飘在这儿 —— test/font_embed_check.mjs 的
@@ -2175,7 +2171,6 @@ var Icon = {
     <span class="s-pulse p2"></span>
     <img class="s-seal" src="assets/seal-boyi.png" alt="博艺教育 · 砺蕴" draggable="false">
   </div>
-  <div class="s-tag2">声入人心 · 言传其志</div>
 </div>
 <script>/* 记下开屏出现的那一刻，_splashOff 靠它保证开屏至少完整显示一小段，不会一闪而过 */
 window.__splashT0 = performance.now();
