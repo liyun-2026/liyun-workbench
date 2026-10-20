@@ -1772,7 +1772,262 @@ body.board-mode .mtabbar{display:none!important}
     }
   }
 }
-/* ==STU-PAGES-MOBILE-END== */
+/* ==TA-PAGES-MOBILE-END== */
+
+/* ==TA-PAGES-MOBILE-START== v86 批次 3b 教师端 + 教务端各页重排（<1100）──
+   验收样张：docs/preview-mobile-2026-10/ m-home-teacher（教师今天）/
+   m-tattend（教师考勤只读观感：tag-ro 状态签 + ro-note）/ m-home-admin（教务首页）/
+   m-attend（教务考勤录入，直选药丸）/ m-table（课表时间线，教师「课表」Tab 借用观感）；
+   共享令牌 = assets/mobile.css，套路与令牌跟 3a（STU-PAGES 块）完全一致。
+   硬规矩：
+   · 业务逻辑零改动 —— att 直选药丸（.stamp 点选/再点撤销/一键全部正常/复制小结/
+     提交链路）、homework 布置与检查（Homework.add / hkBody 勾选）、today 页
+     Today.render* 数据渲染、tickets 收发（Ticket.send）、timetable
+     renderGrid/exportPNG/exportWord 三份拷贝全部原样，本块只做视觉重排；
+   · 教师独立只读考勤页（样张 m-tattend 是独立页）本批次不新建 —— today 页内
+     「今天谁到了」只读卡按 m-tattend 观感重排（tag-ro 状态签 + ro-note 说明条），
+     独立页仍欠，需用户点头再建（新功能，超出纯重排范围）；
+   · timetable 高危保守处理：只加顶部蓝头带 + 白卡观感 + 头带文字，
+     #gridWrap 横向滚动（overflow-x:auto）原样保留，格子布局零触碰；
+   · hero 浮雕只挂教师今天 / 教务首页两页（样张只有这两页有 .bg-logo）；
+   · 深色模式跟 3a：--paper 深 #18211E、--blue-ink/--gold-deep 深 #D9BE86，
+     蓝头带固定品牌面白字，深浅两套都可读；
+   · 桌面 ≥1100 零影响：全部规则包在 <1100 媒体查询里（.bg-logo 全局已有
+     display:none，本块不重复）。 */
+@media (max-width:1099.98px){
+  /* ── 七页公共底座：样张令牌 + 满幅纸底 + 顶部蓝渐变头带（与 3a 同一条配方）──
+     头带用一条页面背景画完（linear-gradient 限高 --hero-h），标题/副题透出蓝带。
+     att 页头带自画在 .chead 上（高度随筛选行内容涨落，不用固定 --hero-h）。 */
+  #page-today.on, #page-myclass.on, #page-tickets.on,
+  #page-home.on, #page-att.on, #page-homework.on, #page-timetable.on{
+    --serif:"Noto Serif SC","Songti SC","STSong",serif;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --paper:#f7f6f2;
+    background:var(--paper);
+    position:relative; overflow:hidden;
+    gap:0;                                     /* 版距改由卡片 margin 控制 */
+    margin:-14px -12px calc(-1 * (68px + env(safe-area-inset-bottom,0px)));
+    padding:0 16px calc(72px + env(safe-area-inset-bottom,0px));
+    min-height:100vh;
+  }
+  #page-today.on, #page-myclass.on, #page-tickets.on,
+  #page-home.on, #page-homework.on, #page-timetable.on{
+    --hero-h:132px;                            /* 各页单独覆盖 */
+    background:
+      linear-gradient(160deg,#50618f,var(--blue)) no-repeat 0 0 / 100% var(--hero-h),
+      var(--paper);
+  }
+  #page-today.on {--hero-h:150px}
+  #page-home.on  {--hero-h:150px}
+  #page-timetable.on {--hero-h:112px}
+
+  /* ── hero 浮雕（样张定案）：砺蕴编钟纹 logo，头带右下角，清晰线条 opacity .32 ──
+     只挂样张里有的两页（教师今天 / 教务首页）；pointer-events:none 不挡点击；
+     桌面 .bg-logo 默认 display:none 不渲染。 */
+  #page-today.on .bg-logo,
+  #page-home.on .bg-logo{
+    display:block; position:absolute; right:-6px; z-index:0;
+    animation:none;                              /* 摘掉 .page.on>* 的 rise：否则 fill 会把 opacity/transform 锁回 1/none */
+    bottom:calc(100% - var(--hero-h) + 10px);   /* 贴头带下沿（与 3a 同一算法） */
+    width:180px; transform:rotate(-8deg); opacity:.32; pointer-events:none;
+  }
+
+  /* ── 沉浸头文字：衬线白字 + 副题浅白 + 实时时钟收进头带（样张 .greet/.sub）── */
+  #page-today.on > .page-title, #page-myclass.on > .page-title,
+  #page-tickets.on > .page-title, #page-home.on > .page-title,
+  #page-homework.on > .page-title, #page-timetable.on > .page-title{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 0;
+    font-family:var(--serif); font-size:20px; font-weight:600;
+    letter-spacing:1px; color:#fff;
+  }
+  #page-today.on > .page-sub, #page-myclass.on > .page-sub,
+  #page-tickets.on > .page-sub, #page-home.on > .page-sub,
+  #page-homework.on > .page-sub{
+    margin:4px -16px 0; padding:0 20px;
+    font-size:12px; color:rgba(255,255,255,.72); letter-spacing:.5px;
+  }
+  #page-today.on > .page-title .clock,
+  #page-home.on > .page-title .clock{
+    display:block; margin:6px 0 0; font-size:12px; font-weight:400;
+    color:rgba(255,255,255,.72); letter-spacing:1px; vertical-align:0;
+  }
+  /* <699 隐藏顶栏，hero 直达屏幕顶（与 3a 同一手法；:has 不支持时顶栏自然保留，优雅降级） */
+  @media (max-width:699px){
+    body:has(#page-today.on) .topbar,
+    body:has(#page-myclass.on) .topbar,
+    body:has(#page-tickets.on) .topbar,
+    body:has(#page-home.on) .topbar,
+    body:has(#page-att.on) .topbar,
+    body:has(#page-homework.on) .topbar,
+    body:has(#page-timetable.on) .topbar{display:none}
+  }
+
+  /* ── 白卡：样张 .card（描边圆角 14，深色随 --card/--line 翻转）──
+     myclass 不进这份（外层卡要摊透明，见 ②）；att 的 .roster/.sumbox 单独卡化。 */
+  #page-today.on .card, #page-tickets.on .card, #page-home.on .card,
+  #page-homework.on .card, #page-timetable.on .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:4px 14px 10px; box-shadow:none; margin:16px 0 0;
+  }
+  #page-today.on .card h2, #page-tickets.on .card h2, #page-home.on .card h2,
+  #page-homework.on .card h2, #page-timetable.on .card h2,
+  #page-homework.on .hw-card .sec-h{
+    font-family:var(--serif); font-size:16px; font-weight:600;
+    color:var(--blue-ink); letter-spacing:1px;
+  }
+  #page-today.on .card h2 .ic, #page-tickets.on .card h2 .ic, #page-home.on .card h2 .ic,
+  #page-homework.on .card h2 .ic, #page-timetable.on .card h2 .ic,
+  #page-homework.on .hw-card .sec-h .ic{color:var(--blue)}
+  /* 旧卡饰（<699 .card::before 金线）与样张卡面不符，七页内退场 */
+  #page-today.on .card::before, #page-tickets.on .card::before, #page-home.on .card::before,
+  #page-home.on #tlWrap::before, #page-homework.on .card::before,
+  #page-homework.on .hw-card::before, #page-timetable.on .card::before,
+  #page-myclass.on .card::before, #page-att.on .roster::before,
+  #page-att.on .sumbox::before{content:none}
+
+  /* ── 胶囊 / 按钮：样张 .pill·.bigbtn 语汇（业务点击目标原样）── */
+  #page-today.on .chip, #page-tickets.on .chip, #page-home.on .chip,
+  #page-homework.on .chip, #page-timetable.on .chip,
+  #page-att.on .chip{
+    display:inline-flex; align-items:center; border-radius:11px;
+    padding:4px 10px; font-size:11px; line-height:1.2;
+  }
+  #page-today.on .chip-on, #page-tickets.on .chip-on, #page-home.on .chip-on,
+  #page-homework.on .chip-on, #page-timetable.on .chip-on, #page-att.on .chip-on{
+    background:rgba(201,171,124,.16); border-color:transparent; color:var(--gold-deep);
+  }
+  #page-today.on .chip-no, #page-tickets.on .chip-no, #page-home.on .chip-no,
+  #page-homework.on .chip-no, #page-timetable.on .chip-no, #page-att.on .chip-no{
+    background:rgba(196,74,58,.10); border-color:transparent; color:#c4544a;
+  }
+  #page-today.on .btn, #page-tickets.on .btn, #page-home.on .btn,
+  #page-homework.on .btn, #page-timetable.on .btn, #page-att.on .btn{
+    background:linear-gradient(120deg,var(--blue-deep),var(--blue)); color:#fff; border-radius:12px;
+  }
+  #page-today.on .btn.ghost, #page-tickets.on .btn.ghost, #page-home.on .btn.ghost,
+  #page-homework.on .btn.ghost, #page-timetable.on .btn.ghost{
+    background:transparent; color:var(--text); border:1px solid var(--line);
+  }
+
+  /* ── ① 教师今天（today）：样张 m-home-teacher 版式 + m-tattend 只读卡观感 ── */
+  /* 「今天谁到了」只读卡标题旁挂「教师端 · 只读」徽标（纯 CSS ::after，DOM 不动） */
+  #page-today.on .card:has(#tdAtt) h2::after{
+    content:"教师端 · 只读";
+    display:inline-flex; align-items:center; height:20px; padding:0 9px; margin-left:8px;
+    border-radius:10px; vertical-align:2px;
+    border:1px solid rgba(168,137,90,.55); color:var(--gold-deep);
+    font-family:var(--serif); font-size:10px; font-weight:400; letter-spacing:1px; text-indent:1px;
+  }
+  /* 生产 .card h2 是 flex：此卡统计 meta 文案长，窄屏会挤成竖排 ——
+     徽标跟标题同行，统计行独占一行（数据渲染原样，只调版） */
+  #page-today.on .card:has(#tdAtt) h2{flex-wrap:wrap; row-gap:2px}
+  #page-today.on .card:has(#tdAtt) h2 .hint{
+    flex:1 1 100%; order:5; font-weight:400; font-size:12px; letter-spacing:0;
+  }
+  /* tag-ro 状态签：名单 chip 换成样张 m-tattend 的描边圆签（只读，无点选） */
+  #page-today.on #tdAtt .chip{
+    border-radius:999px; padding:4px 12px; font-size:12px;
+    background:var(--card); border:1px solid var(--line); color:var(--text-dim);
+  }
+  #page-today.on #tdAtt .chip-no{
+    background:rgba(196,74,58,.10); border-color:rgba(196,74,58,.35); color:#c44a3a;
+  }
+  #page-today.on #tdAtt .chip-on{
+    background:rgba(201,171,124,.16); border-color:rgba(201,171,124,.45); color:var(--gold-deep);
+  }
+  /* ro-note：「考勤由教务录入」说明条 → 样张虚线框（虚线随 --line 翻转） */
+  #page-today.on .card:has(#tdAtt) > p.hint{
+    border:1px dashed var(--line); border-radius:12px; padding:10px 12px;
+    font-size:12px; line-height:1.8; color:var(--text-dim); margin:12px 0 2px;
+  }
+
+  /* ── ② 我的班级（myclass，Tab 名「课表」）：样张 m-table 时间线卡观感 ──
+     外层包裹卡摊透明，每个班一块、每个学员一行白卡（数据渲染 MyClass.render 原样）。 */
+  #page-myclass.on > .card{background:transparent; border-color:transparent; box-shadow:none; padding:0}
+  #page-myclass.on #mcBody > div > h2{
+    font-family:var(--serif); font-size:15px; font-weight:600;
+    color:var(--blue-ink); letter-spacing:1px;
+  }
+  /* 首个班头落在蓝头带内 → 转白保可读（与 3a 课表首个天头同一手法） */
+  #page-myclass.on #mcBody > div:first-child > h2{color:#fff}
+  #page-myclass.on #mcBody > div:first-child > h2 .hint{color:rgba(255,255,255,.72)}
+  #page-myclass.on #mcBody .item{
+    background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:12px 14px; margin:0 0 8px;
+  }
+
+  /* ── ⑤ 考勤录入（att）：样张 m-attend 观感（直选药丸交互零改动）── */
+  /* 章节头整条画成蓝头带（高度随筛选行涨落），筛选控件转白描边 */
+  #page-att.on .chead{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 18px;
+    background:linear-gradient(160deg,#50618f,var(--blue));
+    border-bottom:none;
+  }
+  #page-att.on .chead h2{color:#fff; font-weight:600; letter-spacing:2px; font-size:21px}
+  #page-att.on .chead h2 small{color:rgba(255,255,255,.72)}
+  #page-att.on .chead .fold{color:rgba(255,255,255,.88); border-bottom-color:rgba(255,255,255,.45)}
+  #page-att.on .chead .btn.ghost{
+    background:rgba(255,255,255,.14); border-color:transparent; color:#fff;
+  }
+  /* 花名册容器卡化 + 行分隔（样张白卡内逐行 .stu 语汇） */
+  #page-att.on .roster{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:2px 14px; margin:16px 0 0;
+  }
+  #page-att.on .rrow:last-child{border-bottom:none}
+  /* 直选药丸：样张 .seg 观感 —— 未选白底描边灰字、选中同色淡染加粗
+     （.stamp 的 data-s→--c 对色表原样沿用，点选/再点撤销/A pressed 语义一字未动） */
+  #page-att.on .stamp{
+    border-radius:999px; background:var(--card);
+    border:1px solid var(--line); color:var(--text-dim); font-weight:400;
+  }
+  #page-att.on .stamp[aria-pressed="true"]{
+    background:color-mix(in srgb, var(--c) 15%, transparent);
+    border-color:color-mix(in srgb, var(--c) 45%, transparent);
+    color:var(--c); font-weight:600;
+  }
+  #page-att.on .stamp[aria-pressed="true"]:hover{border-color:var(--c)}
+  /* 本节小结 / 待批请假：白卡圆角（<1099 吸顶汇总条为既有行为，不另动） */
+  #page-att.on .sumbox{
+    background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:none;
+  }
+  #page-att.on .sumbox h3{font-family:var(--serif); color:var(--blue-ink); letter-spacing:1px}
+
+  /* ── ⑥ 作业管理（homework）：蓝头 + 白卡两栏（<700 单栏为既有行为）── */
+  #page-homework.on .hw-card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px; margin:16px 0 0; box-shadow:none;
+  }
+  #page-homework.on .hw-card .sec-h{color:var(--blue-ink)}
+
+  /* ── ⑦ 大课表（timetable）高危保守处理：只加头带 + 白卡观感 ──
+     renderGrid/exportPNG/exportWord 三份拷贝零触碰；#gridWrap 横向滚动
+     （overflow-x:auto）原样保留，格子布局不做任何对齐干预。 */
+  #page-timetable.on .card{min-width:0}
+  #page-timetable.on .grid-hint{color:var(--text-dim)}
+  #page-homework.on .chapter h2, #page-home.on .chapter h2, #page-att.on .chapter h2{
+    font-family:var(--serif); color:var(--blue-ink); letter-spacing:1px;
+  }
+
+  /* ── ④ 教务首页（home）：样张 m-home-admin（蓝头 + 白卡章节）──
+     时间轴主轴 #tlWrap 卡化成样张「今日教务」白卡；轴内刻度/游标零触碰。 */
+  #page-home.on #tlWrap{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:14px; margin:16px 0 0;
+  }
+
+  /* ── 深色模式：纸底/墨色翻深，蓝头带与白字不动（固定品牌面，跟 3a 同一做法）── */
+  @media (prefers-color-scheme: dark){
+    #page-today.on, #page-myclass.on, #page-tickets.on,
+    #page-home.on, #page-att.on, #page-homework.on, #page-timetable.on{
+      --paper:#18211E;          /* 跟随学生端深色底 --bg，页缘无缝 */
+      --blue-ink:#D9BE86;       /* 章节/天头墨色 → 生产深色金（--brand-ink 同值） */
+      --gold-deep:#D9BE86;
+    }
+    #page-today.on #tdAtt .chip-no{color:#E89286}
+  }
+}
+/* ==TA-PAGES-MOBILE-END== */
 
 /* 统一线性图标：替代跨平台不互通的 emoji，stroke 跟随文字色 */
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -2636,6 +2891,8 @@ try {
 
     <!-- ==== 功能：今日 START ====（v57 · D 时序·时间轴） -->
     <section class="page" id="page-home">
+      <!-- v86 手机端 hero 浮雕（样张 m-home-admin .bg-logo）；桌面 .bg-logo 默认隐藏 -->
+      <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
       <div class="page-title">今日 <span class="clock" id="ckHome"></span></div>
       <div class="page-sub" id="homeSub"></div>
 
@@ -3688,6 +3945,8 @@ try {
 
     <!-- ==== 功能：老师今天 START ====（授课老师端首页） -->
     <section class="page" id="page-today">
+      <!-- v86 手机端 hero 浮雕（样张 m-home-teacher .bg-logo）；桌面 .bg-logo 默认隐藏 -->
+      <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
       <div class="page-title"><span id="tdHi">今天</span> <span class="clock" id="ckToday"></span></div>
       <div class="page-sub" id="tdSub"></div>
       <div class="card wide" id="tdNoticeCard" style="display:none">
