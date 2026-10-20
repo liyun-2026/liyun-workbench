@@ -199,6 +199,26 @@
   font-size:12px;color:var(--text-dim);opacity:.85;margin-top:14px;
   letter-spacing:.3em;text-indent:.3em;
 }
+/* ==SPLASH-V81== 新入场动画：金印落章 + 两圈金晕扩散 + 金句显影。
+   只在「已记住账号直接进系统」时出现（未登录时 DOM 已整体移除）。
+   旧的 s-ring/s-board/s-bar 结构与动画已从 DOM 摘除，相关规则留作历史不再命中。
+   ⚠️ 系统启动图（assets/splash/*，28 张）仍是旧版 t=0 帧渲染——PWA 装机首帧与新动画
+   有一瞬风格差，属已知可接受；要完全一致需重跑 test/make_splash_shots.py。 */
+#splash .s-stage2{position:relative;width:min(200px,46vw);aspect-ratio:1;
+  display:flex;align-items:center;justify-content:center;margin-top:-8px}
+#splash .s-seal{position:relative;z-index:2;width:124px;height:auto;
+  filter:drop-shadow(0 8px 20px rgba(120,90,40,.30));
+  animation:s-stamp .6s cubic-bezier(.2,.9,.3,1.18) both}
+#splash .s-pulse{position:absolute;inset:0;margin:auto;width:124px;height:124px;
+  border-radius:50%;border:1.5px solid var(--gold);opacity:0;pointer-events:none}
+#splash .s-pulse.p1{animation:s-pulse 1s var(--ease) .16s both}
+#splash .s-pulse.p2{animation:s-pulse 1s var(--ease) .46s both}
+#splash .s-tag2{margin-top:30px;font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
+  font-size:clamp(17px,2.2vw,24px);letter-spacing:.4em;text-indent:.4em;
+  color:var(--gold-deep);animation:s-tag-in .9s var(--ease) .48s both}
+@keyframes s-stamp{0%{opacity:0;transform:scale(1.9) rotate(-8deg)}62%{opacity:1;transform:scale(.96) rotate(1deg)}100%{opacity:1;transform:none}}
+@keyframes s-pulse{0%{opacity:.55;transform:scale(.8)}100%{opacity:0;transform:scale(2.1)}}
+@keyframes s-tag-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 /* ⚠️ 2026-09-29 删掉 s-disc-in / s-wave-in / s-name-in 三条 keyframes：
    它们是「圆盘旋转进入 / 文字上浮」那套旧开屏留下的，元素早没了（上面注释里
    写明了那套已删），只剩三条死定义飘在这儿 —— test/font_embed_check.mjs 的
@@ -2150,21 +2170,29 @@ var Icon = {
      那批图是 test/make_splash_shots.py 照这段结构渲染的，改这里就要重出图。 -->
 <div id="splash" aria-hidden="true">
   <div class="s-halo"></div>
-  <div class="s-stage">
-    <svg class="s-ring" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="92"/></svg>
-    <div class="s-board">
-      <img class="s-lock" src="assets/brand-lock.png" alt="博艺教育 · 砺蕴" draggable="false">
-    </div>
+  <div class="s-stage2">
+    <span class="s-pulse p1"></span>
+    <span class="s-pulse p2"></span>
+    <img class="s-seal" src="assets/seal-boyi.png" alt="博艺教育 · 砺蕴" draggable="false">
   </div>
-  <div class="s-bar"><i></i></div>
-  <div class="s-tag">博学宏才 艺德卓绝</div>
-  <div class="s-org">博艺教育 · 砺蕴工作系统</div>
+  <div class="s-tag2">声入人心 · 言传其志</div>
 </div>
 <script>/* 记下开屏出现的那一刻，_splashOff 靠它保证开屏至少完整显示一小段，不会一闪而过 */
 window.__splashT0 = performance.now();
 /* 这一趟是不是「系统自己在后台刷的」？是的话直接撤掉开屏层 —— 用户已经在看界面了，
    再放一遍入场动画就是「跳两次」。标记读后即清：之后用户自己按 F5，开屏照常出现。
    （下标记的两处：SW 换版重载、令牌失效重载，都在各自出事的地方写这个 key。） */
+/* v81：开屏只服务「已记住账号直接进系统」这一条路。
+   未登录（没有缓存档案）→ 开屏整个跳过，第一眼就是 v80 新登录门，不再重复演一遍品牌动画。
+   判断依据：Store 的机密档前缀 bysdash$secret: 下有没有 me（Store 此刻可能还没定义，直接摸 localStorage）。 */
+try {
+  window.__liyunAutoEnter = !!localStorage.getItem('bysdash$secret:me');
+  if (!window.__liyunAutoEnter) {
+    var _sp0 = document.getElementById('splash');
+    if (_sp0 && _sp0.parentNode) _sp0.parentNode.removeChild(_sp0);
+    window.__splashT0 = -1e9;      // 双保险：_splashOff 到了也立刻到期
+  }
+} catch(e) { window.__liyunAutoEnter = false; }
 try {
   if (sessionStorage.getItem('liyun_quiet_reload') === '1') {
     sessionStorage.removeItem('liyun_quiet_reload');
@@ -13474,7 +13502,9 @@ const Auth = {
   _splashOff(force){
     const sp = document.getElementById('splash');
     if (!sp || sp.classList.contains('off')) return;
-    const SPLASH_MIN = 2400, SPLASH_MAX = 4500, FADE_OUT = 700;
+    /* v81：未登录时开屏 DOM 已整体移除（见装载脚本），本函数自然空转；
+       已记住账号的入场动画总长 ~1.5s（落章 .6s + 双晕 1s + 金句 .9s，1.5s 收正好收在金句显影后）。 */
+    const SPLASH_MIN = window.__liyunAutoEnter ? 1500 : 0, SPLASH_MAX = 4500, FADE_OUT = 700;
     const t0 = window.__splashT0 || performance.now();
     const age = () => performance.now() - t0;
     const drop = () => {

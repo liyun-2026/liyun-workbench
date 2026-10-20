@@ -359,7 +359,7 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    左演播室影像板（蓝章+校训+砺蕴金标水印）、右欢迎登录（教师/学生身份卡+金按钮）；
    登录成功挂 .reveal 播印章过场约 2 秒再进门。<1100（含手机端）老版式一字不动。
    新增静态文件 assets/banner-studio.jpg + seal-boyi.png + mark-liyun-gold.png 都进 SHELL → VERSION 加一。 */
-VERSION = 'v80'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+VERSION = 'v81'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
