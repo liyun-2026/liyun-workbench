@@ -1554,6 +1554,226 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 body.board-mode .mtabbar{display:none!important}
 /* ==MTAB-MOBILE-END== */
 
+/* ==STU-PAGES-MOBILE-START== v85 批次 3a 学生端五页重排（<1100）── 今日/打卡/作业/课表/我的
+   验收样张：docs/preview-mobile-2026-10/ m-home-student / m-checkin / m-homework /
+   m-table / m-me（共享样式 assets/mobile.css，学府蓝 --blue 系 + 砺蕴金 + 衬线标题）。
+   硬规矩：
+   · 业务逻辑零改动 —— 打卡四态同心圆（打卡/已打卡/迟到/不用打卡）、圈内服务端时分秒、
+     扫码/手输/位置密钥/断网补传、作业登记（StuHw.mark）、课表渲染（StuTable/Stu.row）、
+     settings 功能全部原样，本块只做视觉重排（含 flex order 调整卡片版序）；
+   · 学生端水印铁律：#watermark（StuMark 整页斜铺 320×210 -32° opacity .085）一字不动，
+     本块不引入任何高于 z-index:3 的内容层；
+   · 深色模式：主题相关色一律走生产令牌（--card/--text/--text-dim/--line 随系统翻转），
+     样张蓝只作固定品牌面（hero 渐变深浅色同色，白字在蓝带上两种模式都可读），
+     纸底 --paper 与标题墨色 --blue-ink 在深色下单独适配；
+   · 桌面 ≥1100 零影响：全部规则包在 <1100 媒体查询里；唯一的全局新规则是
+     .bg-logo{display:none}（hero 浮雕图，桌面不渲染，<1100 五页 hero 才亮起）。 */
+.bg-logo{display:none}
+@media (max-width:1099.98px){
+  /* ── 五页公共底座：样张令牌 + 满幅纸底 + 顶部蓝渐变头带 ──
+     头带用一条页面背景画完（linear-gradient 限高 --hero-h），标题/副题透出蓝带，
+     首卡自然叠在带沿上 ≈ 样张 .sheet 白板叠头。 */
+  #page-stuHome.on,
+  #page-stuSign.on,
+  #page-stuHw.on,
+  #page-stuTable.on,
+  #page-settings.on{
+    --serif:"Noto Serif SC","Songti SC","STSong",serif;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --paper:#f7f6f2;
+    --hero-h:150px;                            /* 各页单独覆盖 */
+    background:
+      linear-gradient(160deg,#50618f,var(--blue)) no-repeat 0 0 / 100% var(--hero-h),
+      var(--paper);
+    position:relative; overflow:hidden;
+    gap:0;                                     /* 版距改由卡片 margin 控制 */
+    /* 吃掉 .main 的四周留白：满幅沉浸头 + 通栏内容；底部留足 .mtabbar 高度 */
+    margin:-14px -12px calc(-1 * (68px + env(safe-area-inset-bottom,0px)));
+    padding:0 16px calc(72px + env(safe-area-inset-bottom,0px));
+    min-height:100vh;
+  }
+  #page-stuHome.on  {--hero-h:186px}
+  #page-stuSign.on  {--hero-h:150px}
+  #page-stuHw.on    {--hero-h:132px}
+  #page-stuTable.on {--hero-h:132px}
+  #page-settings.on {--hero-h:150px}
+
+  /* ── hero 浮雕（样张定案）：砺蕴编钟纹 logo，右下角，清晰线条 opacity .32 ──
+     只挂样张里有 hero 浮雕的两页（学生首页 / 我的），打卡/作业/课表样张没有；
+     pointer-events:none 不挡点击；桌面 .bg-logo 默认 display:none 不渲染。 */
+  #page-stuHome.on .bg-logo,
+  #page-settings.on .bg-logo{
+    display:block; position:absolute; right:-6px; z-index:0;
+    animation:none;                              /* 摘掉 .page.on>* 的 rise：否则 fill 会把 opacity/transform 锁回 1/none */
+    bottom:calc(100% - var(--hero-h) + 10px);   /* 贴头带下沿（样张 bottom:18；图片 180×180，微调避免顶部入带被裁） */
+    width:180px; transform:rotate(-8deg); opacity:.32; pointer-events:none;
+  }
+
+  /* ── 沉浸头文字：衬线白字 + 副题浅白（样张 .greet/.sub）── */
+  #page-stuHome.on > .page-title, #page-stuSign.on > .page-title,
+  #page-stuHw.on > .page-title, #page-stuTable.on > .page-title,
+  #page-settings.on > .page-title{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 44px) 20px 0;
+    font-family:var(--serif); font-size:20px; font-weight:600;
+    letter-spacing:1px; color:#fff;
+  }
+  #page-stuHome.on > .page-sub, #page-stuSign.on > .page-sub,
+  #page-stuHw.on > .page-sub, #page-stuTable.on > .page-sub,
+  #page-settings.on > .page-sub{
+    margin:4px -16px 0; padding:0 20px;
+    font-size:12px; color:rgba(255,255,255,.72); letter-spacing:.5px;
+  }
+  /* 「今天」旁的实时时钟进头带：降成样张 .sub 的形态（业务取时逻辑不动） */
+  #page-stuHome.on > .page-title .clock{
+    display:block; margin:6px 0 0; font-size:12px; font-weight:400;
+    color:rgba(255,255,255,.72); letter-spacing:1px; vertical-align:0;
+  }
+  #page-settings.on #verLine{color:rgba(255,255,255,.6);margin:2px 0 0}
+  /* <699 隐藏顶栏，hero 直达屏幕顶（样张形态）；:has 不支持时顶栏自然保留，优雅降级 */
+  @media (max-width:699px){
+    body.stu:has(#page-stuHome.on) .topbar,
+    body.stu:has(#page-stuSign.on) .topbar,
+    body.stu:has(#page-stuHw.on) .topbar,
+    body.stu:has(#page-stuTable.on) .topbar,
+    body.stu:has(#page-settings.on) .topbar{display:none}
+  }
+
+  /* ── 白卡：样张 .card（描边圆角 14，深色随 --card/--line 翻转）── */
+  #page-stuHome.on .card, #page-stuSign.on .card, #page-stuHw.on .card,
+  #page-stuTable.on .card, #page-settings.on .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:4px 14px 10px; box-shadow:none; margin:16px 0 0;
+  }
+  #page-stuHome.on .card h2, #page-stuSign.on .card h2, #page-stuHw.on .card h2,
+  #page-stuTable.on .card h2, #page-settings.on .card h2{
+    font-family:var(--serif); font-size:16px; font-weight:600;
+    color:var(--blue-ink); letter-spacing:1px; margin:14px 0 8px;
+  }
+  #page-stuHome.on .card h2 .ic, #page-stuSign.on .card h2 .ic, #page-stuHw.on .card h2 .ic,
+  #page-stuTable.on .card h2 .ic, #page-settings.on .card h2 .ic{color:var(--blue)}
+  /* M1 雅金卡饰（<699 .card::before 金线）与样张卡面不符，五页内退场 */
+  #page-stuHome.on .card::before, #page-stuSign.on .card::before, #page-stuHw.on .card::before,
+  #page-stuTable.on .card::before, #page-settings.on .card::before{content:none}
+
+  /* ── 列表行 / 状态胶囊 / 主按钮：样张 .sched·.todo·.pill·.bigbtn 语汇 ── */
+  #page-stuHome.on .item, #page-stuSign.on .item, #page-stuHw.on .item,
+  #page-stuTable.on .item, #page-settings.on .item{
+    border-bottom:1px solid var(--line); padding:12px 0;
+  }
+  #page-stuHome.on .item:last-child, #page-stuSign.on .item:last-child,
+  #page-stuHw.on .item:last-child, #page-stuTable.on .item:last-child,
+  #page-settings.on .item:last-child{border-bottom:none}
+  #page-stuHome.on .chip, #page-stuSign.on .chip, #page-stuHw.on .chip,
+  #page-stuTable.on .chip, #page-settings.on .chip{
+    display:inline-flex; align-items:center; border-radius:11px;
+    padding:4px 10px; font-size:11px; line-height:1.2;
+  }
+  #page-stuHome.on .chip-on, #page-stuSign.on .chip-on, #page-stuHw.on .chip-on,
+  #page-stuTable.on .chip-on, #page-settings.on .chip-on{
+    background:rgba(201,171,124,.16); border-color:transparent; color:var(--gold-deep);
+  }
+  #page-stuHome.on .chip-no, #page-stuSign.on .chip-no, #page-stuHw.on .chip-no,
+  #page-stuTable.on .chip-no, #page-settings.on .chip-no{
+    background:rgba(196,74,58,.10); border-color:transparent; color:#c4544a;
+  }
+  #page-stuHome.on .btn, #page-stuSign.on .btn, #page-stuHw.on .btn,
+  #page-stuTable.on .btn, #page-settings.on .btn{
+    background:linear-gradient(120deg,var(--blue-deep),var(--blue)); color:#fff; border-radius:12px;
+  }
+  #page-stuHome.on .btn.ghost, #page-stuSign.on .btn.ghost, #page-stuHw.on .btn.ghost,
+  #page-stuTable.on .btn.ghost, #page-settings.on .btn.ghost{
+    background:transparent; color:var(--text); border:1px solid var(--line);
+  }
+
+  /* ── ① 今日（stuHome）：版序对齐样张 打卡→今天上课→今日作业→教务通知 ──
+     flex order 调序，DOM 一律不动（打卡卡里「去打卡/看记录」按钮原样）。 */
+  #page-stuHome.on > :nth-child(4){order:2}   /* 打卡卡 */
+  #page-stuHome.on > :nth-child(6){order:3}   /* 今天上什么课 */
+  #page-stuHome.on > :nth-child(7){order:4}   /* 今日作业 */
+  #page-stuHome.on > :nth-child(5){order:5}   /* 教务通知（样张「校园公告」位） */
+
+  /* ── ② 打卡（stuSign）：同心圆大盘换学府蓝（样张 m-checkin），四态色环原样 ── */
+  #page-stuSign.on .punch{padding:18px 0 6px}
+  #page-stuSign.on .punch .p-ring{
+    --r1:#50618f; --r2:#4a5c8c; --r3:#384a74; --rs:rgba(56,74,116,.35);
+    width:min(238px,64vw);
+  }
+  #page-stuSign.on .punch .p-ring::before{border-color:rgba(74,92,140,.28)}
+  #page-stuSign.on .punch .p-ring::after{inset:16px; border-color:rgba(255,255,255,.35)}
+  /* 四态业务色原样搬回（上面 ID 权重会盖掉旧的同名规则，这里逐态还回） */
+  #page-stuSign.on .punch .p-ring.done{--r1:#7fb894; --r2:#4c8f68; --r3:#3c7353; --rs:rgba(46,125,79,.28)}
+  #page-stuSign.on .punch .p-ring.done::before{border-color:rgba(46,125,79,.35)}
+  #page-stuSign.on .punch .p-ring.late{--r1:#e2ab7a; --r2:#c9834e; --r3:#a9673c; --rs:rgba(169,103,60,.28)}
+  #page-stuSign.on .punch .p-ring.late::before{border-color:rgba(169,103,60,.35)}
+  #page-stuSign.on .punch .p-ring.off{--r1:#cfcbc4; --r2:#b3aea6; --r3:#9a958d; --rs:rgba(0,0,0,.12)}
+  #page-stuSign.on .punch .p-ring.off::before{border-color:rgba(128,128,128,.3)}
+  #page-stuSign.on .punch .p-word{
+    font-family:var(--serif); font-size:25px; font-weight:600;
+    letter-spacing:7px; text-indent:7px; line-height:1.2;
+  }
+  #page-stuSign.on .punch .p-time{font-family:Georgia,var(--serif); font-size:17px; letter-spacing:1.5px}
+  #page-stuSign.on .punch .p-state{
+    margin-top:16px; font-size:11px; color:var(--text-dim);
+    text-align:center; letter-spacing:.5px;
+  }
+  /* 断网补传提示 → 样张黄底细条（:empty 时隐藏，不出空框） */
+  #page-stuSign.on #stuSignHint{
+    background:rgba(201,171,124,.14); border:1px solid rgba(201,171,124,.42);
+    border-radius:10px; padding:10px 12px; margin:0; color:#8a6d3f;
+  }
+  #page-stuSign.on #stuSignHint:empty{display:none}
+
+  /* ── ③ 作业（stuHw）：列表卡摊成样张的独立作业卡 ──
+     外层包裹卡变透明，每个 .item 自成一张白卡（日期墨绿列 + 作业名 + 状态胶囊）。 */
+  #page-stuHw.on > .card:not(#stuHwEntryCard){
+    background:transparent; border-color:transparent; box-shadow:none; padding:0;
+  }
+  #page-stuHw.on #stuHwList .item{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:12px 14px; margin:0 0 10px;
+  }
+  #page-stuHw.on #stuHwList .item .grow{font-size:15px; font-weight:600}
+
+  /* ── ④ 课表（stuTable）：按天分组的课目卡（样张时间线语汇，数据渲染零改动）── */
+  #page-stuTable.on > .card{
+    background:transparent; border-color:transparent; box-shadow:none; padding:0;
+  }
+  /* 天头：衬线墨蓝 + 右延细线（render 输出带内联 color，需 !important 掰回）；
+     首个天头落在蓝头带内 → 转白保可读（与样张「白字蓝底」的日期滑轨一致） */
+  #page-stuTable.on #stuWeek > p.hint{
+    color:var(--blue-ink) !important;
+    font-family:var(--serif); font-size:14px; font-weight:600; letter-spacing:1px;
+    display:flex; align-items:center; gap:10px; margin:18px 0 8px;
+  }
+  #page-stuTable.on #stuWeek > p.hint::after{content:""; flex:1; height:1px; background:var(--line)}
+  #page-stuTable.on #stuWeek > p.hint:first-child{color:#fff !important; margin-top:16px}
+  #page-stuTable.on #stuWeek > p.hint:first-child::after{background:rgba(255,255,255,.4)}
+  #page-stuTable.on #stuWeek .item{
+    background:var(--card); border:1px solid var(--line); border-radius:13px;
+    padding:10px 12px; margin:0 0 8px;
+  }
+
+  /* ── ⑤ 我的（settings）：蓝头 + 通栏卡片流，功能原样 ──
+     verLine 压进头带内（白字），锚点卡片区整体推到头带之下，段头不压蓝底 */
+  #page-settings.on .anchor-layout{margin-top:48px}
+  #page-settings.on .anchor-layout > div > .card{margin:14px 0 0}
+
+  /* ── 深色模式适配：纸底/墨色翻深，蓝头带与白字不动（固定品牌面）── */
+  @media (prefers-color-scheme: dark){
+    #page-stuHome.on, #page-stuSign.on, #page-stuHw.on, #page-stuTable.on, #page-settings.on{
+      --paper:#18211E;          /* 跟随学生端深色底 --bg，页缘无缝 */
+      --blue-ink:#D9BE86;       /* 章节/天头墨色 → 生产深色金（--brand-ink 同值） */
+      --gold-deep:#D9BE86;
+    }
+    #page-stuHome.on .chip-no, #page-stuSign.on .chip-no, #page-stuHw.on .chip-no,
+    #page-stuTable.on .chip-no, #page-settings.on .chip-no{color:#E89286}
+    #page-stuSign.on #stuSignHint{
+      color:#d9be86; background:rgba(201,171,124,.10); border-color:rgba(201,171,124,.35);
+    }
+  }
+}
+/* ==STU-PAGES-MOBILE-END== */
+
 /* 统一线性图标：替代跨平台不互通的 emoji，stroke 跟随文字色 */
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ic-inline{width:1.15em;height:1.15em;margin-right:.45em;vertical-align:-.2em}
@@ -3020,6 +3240,8 @@ try {
 
     <!-- ==== 功能：设置 START ==== -->
     <section class="page" id="page-settings">
+      <!-- v85 手机端 hero 浮雕（样张 m-me .bg-logo）；桌面 .bg-logo 默认隐藏 -->
+      <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
       <h1 class="page-title">设置</h1>
       <p class="page-sub"><span class="only-desk">常用 / 高级两段 · 左锚点快速跳 · 高级段可折叠</span><span class="only-mob">常用在最前 · 高级在下面 · 往下滑就能看完</span></p>
       <p class="hint" id="verLine" style="margin:2px 0 0">砺蕴教务 · VoxOS 4.12</p>
@@ -3574,6 +3796,8 @@ try {
 
     <!-- ==== 功能：学生今日 START ==== -->
     <section class="page" id="page-stuHome">
+      <!-- v85 手机端 hero 浮雕（样张 m-home-student .bg-logo）；桌面 .bg-logo 默认隐藏 -->
+      <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
       <div class="page-title">今天 <span class="clock" id="ckStu"></span></div>
       <div class="page-sub" id="stuSub"></div>
       <div class="card wide">

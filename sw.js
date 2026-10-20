@@ -364,7 +364,11 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
 /* v84：手机端三端 5-Tab 骨架（批次 2）—— <1100 显示固定底部 .mtabbar（样式/图标/文案
    逐字复刻样张 m-home-*.html），Tab 点击 = App.go(现有页面 id)；旧手机底栏 .tabbar
    在 <1100 退场；桌面 ≥1100 与看板端不渲染。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-VERSION = 'v84'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v85：手机端学生端五页重排（批次 3a）—— <1100 按验收样张重排 stuHome/stuSign/stuHw/
+   stuTable/settings（蓝渐变沉浸头 + 纸底白卡 + 衬线标题 + 打卡大盘学府蓝四态原色 +
+   作业/课表卡化）；业务逻辑、水印、MTab 零改动；桌面 ≥1100 不受影响。
+   无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+VERSION = 'v85'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
