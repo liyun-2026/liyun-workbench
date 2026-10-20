@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>考试与抽签 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .draw-no{font-family:Georgia,var(--serif);font-size:56px;color:var(--gold-deep);line-height:1;flex-shrink:0;width:110px;text-align:center}
+  .draw-it{display:flex;align-items:center;gap:24px;padding:20px 4px;border-bottom:1px dashed var(--line)}
+  .draw-it:last-child{border-bottom:none}
+  .draw-it h3{font-size:15px;font-weight:600;letter-spacing:.5px;margin-bottom:6px}
+  .draw-it p{font-size:12px;color:var(--ink-2)}
+  .score-it{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:16px 4px;border-bottom:1px dashed var(--line)}
+  .score-it:last-child{border-bottom:none}
+  .score-it h3{font-size:14.5px;font-weight:600;letter-spacing:.5px}
+  .score-it h3 small{font-size:11.5px;color:var(--ink-3);font-weight:400;margin-left:10px;letter-spacing:1px}
+  .score-it p{font-size:12.5px;color:var(--ink-2);margin-top:5px}
+  .score-it p b{color:var(--blue);font-weight:600}
+  .total{font-family:Georgia,var(--serif);font-size:26px;color:var(--blue);line-height:1;white-space:nowrap}
+  .total em{font-style:normal;font-size:12px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a href="page-stuTable.html">我的课表</a>
+    <a class="on" href="page-stuExam.html">考试与抽签</a>
+    <a href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>考试与抽签</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 我的出场序号（生产：StuExam / exam_draws，服务端按 seed 定序，学生只看得到自己的号） -->
+  <div class="au d2" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>我的出场序号<small>DRAW ORDER</small></h2>
+      <div class="crumb">考试与抽签 › <b>出场序号</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card" style="padding:8px 24px">
+      <div class="draw-it">
+        <div class="draw-no">07</div>
+        <div>
+          <h3>第三次模拟考试 · 出场序</h3>
+          <p>共 12 人 · 第 1 次抽签 · 沈老师 · 2026-10-19 14:50 开抽</p>
+        </div>
+        <span class="pill blue" style="margin-left:auto">待上场</span>
+      </div>
+      <div class="draw-it">
+        <div class="draw-no">04</div>
+        <div>
+          <h3>十月家长开放日 · 汇报展示出场序</h3>
+          <p>共 12 人 · 第 2 次抽签 · 沈老师 · 2026-10-17 16:20 开抽</p>
+        </div>
+        <span class="pill gray" style="margin-left:auto">已结束</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的模考成绩（生产：三科各 100 分、总分 300；单科按五等评定，总分按 3×单科带宽映射） -->
+  <div class="au d3">
+    <div class="sec">
+      <h2>我的模考成绩<small>MOCK EXAM SCORES · /300</small></h2>
+      <div class="crumb">考试与抽签 › <b>模考成绩</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card" style="padding:8px 24px">
+      <div class="score-it">
+        <div>
+          <h3>第三次模拟考试<small>2026-10-19 · 综合考场</small></h3>
+          <p>朗读 <b>86</b> · 播报 <b>82</b> · 评述 <b>78</b></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span class="pill blue">二等</span>
+          <div class="total">246<em> / 300</em></div>
+        </div>
+      </div>
+      <div class="score-it">
+        <div>
+          <h3>第二次模拟考试<small>2026-09-28 · 综合考场</small></h3>
+          <p>朗读 <b>92</b> · 播报 <b>85</b> · 评述 <b>80</b></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span class="pill blue">二等</span>
+          <div class="total">257<em> / 300</em></div>
+        </div>
+      </div>
+      <div class="score-it">
+        <div>
+          <h3>第一次模拟考试<small>2026-09-10 · 综合考场</small></h3>
+          <p>朗读 <b>78</b> · 播报 <b>72</b> · 评述 <b>70</b></p>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span class="pill gray">三等</span>
+          <div class="total">220<em> / 300</em></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);letter-spacing:.5px;margin-top:14px">
+      档位按五等评定：一等（优秀）· 二等（良好）· 三等（中等）· 四等（及格）· 五等（待提升）。
+      省统考专业合格线 200 分，本科段专业控制线 212 分。
+    </p>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

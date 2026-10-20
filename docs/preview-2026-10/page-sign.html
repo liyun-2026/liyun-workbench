@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>打卡管理 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .code-big{font-family:Georgia,var(--serif);font-size:46px;letter-spacing:10px;color:var(--blue-ink);line-height:1}
+  .cd-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:14px}
+  .cd-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-deep))}
+  .qr-ph{width:132px;height:132px;border:1.5px dashed var(--line);border-radius:6px;display:grid;place-items:center;font-size:11px;letter-spacing:2px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a class="on" href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>打卡</b></span></div>
+
+  <!-- 打卡设置 + 这个时段的打卡码（来源：生产 page-sign「打卡设置 / 这个时段的打卡码」） -->
+  <div class="au d2">
+    <div class="sec"><h2>打卡设置<small>SETTINGS</small></h2><span class="crumb">动态码 · 只读 · 60 秒一换</span></div>
+    <div class="rule"></div>
+    <div class="cols" style="grid-template-columns:1.2fr 1fr">
+      <div class="card">
+        <div class="grid2">
+          <div class="fld"><label>上课时间</label><input type="time" value="08:00"></div>
+          <div class="fld"><label>宽限（分钟）</label><input type="number" value="10"></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--ink-3);margin:-6px 0 14px">0 = 到点就迟到，一分钟都不给</p>
+        <div class="grid2">
+          <div class="fld"><label>打卡时段</label><select><option>第2节 · 10:00</option><option>第1节 · 08:00</option><option>第3节 · 13:30</option></select></div>
+          <div class="fld"><label>允许半径（米）</label><input type="number" value="500"></div>
+        </div>
+        <div class="grid2">
+          <div class="fld"><label>课前开放（分钟）</label><input type="number" value="30"></div>
+          <div class="fld"><label>课后关闭（分钟）</label><input type="number" value="20"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn sec sm">采集当前位置为校区</button>
+          <button class="btn danger sm">清除位置</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:6px">这个时段的打卡码</h3>
+        <p style="font-size:12.5px;color:var(--ink-2);margin-bottom:16px">6 位动态码，<b style="color:var(--gold-deep)">每 60 秒自动换一次</b>。学生要么当场扫二维码，要么当场抄这 6 位 —— 两样都过一分钟就作废。</p>
+        <div style="display:flex;gap:24px;align-items:flex-start">
+          <div class="qr-ph">二维码占位</div>
+          <div>
+            <div class="code-big">4 7 2 9 1 6</div>
+            <div class="cd-bar"><i style="width:62%"></i></div>
+            <p style="font-size:11.5px;color:var(--ink-3);margin-top:8px">本码还剩 37 秒</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 位置密钥（来源：生产 page-sign「位置密钥」） -->
+  <div class="au d3" style="margin-top:34px">
+    <div class="sec"><h2>位置密钥<small>LOCATION KEY</small></h2><span class="crumb">当天有效 · 只对选中的这个班生效</span></div>
+    <div class="rule"></div>
+    <div class="card">
+      <p style="font-size:13px;color:var(--ink-2);margin-bottom:16px">学生<b style="color:var(--blue-ink)">人就在教室</b>、只是手机定位飘了的时候，给他一枚 4 位数字的密钥 —— 输进去当场按正常算，不用等他事后核对。密钥<b>当天有效</b>，一枚放行几个人由教务定。</p>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fld" style="margin:0;width:180px"><label>班级</label><select><option>播音一班</option><option>播音二班</option><option>编导一班</option></select></div>
+        <div class="fld" style="margin:0;width:130px"><label>4 位数字</label><input value="8 2 4 7" style="letter-spacing:4px;font-family:Georgia,var(--serif);font-size:18px;color:var(--gold-deep)"></div>
+        <div class="fld" style="margin:0;width:150px"><label>名额</label><select><option>3 个名额</option><option selected>5 个名额</option><option>10 个名额</option></select></div>
+        <button class="btn pri">生成 / 更新</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 今日打卡（来源：生产 page-sign「今日打卡 · 导出这一天」） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>今日打卡<small>TODAY</small></h2><span class="crumb">2026-10-19 · 播音一班 · 28 人 · <b>导出这一天</b></span></div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <tr><th>学员</th><th>班级</th><th>打卡时间</th><th>方式</th><th>状态</th></tr>
+        <tr><td>陈同学</td><td>播音一班</td><td>07:58</td><td>扫码</td><td><span class="pill blue">正常</span></td></tr>
+        <tr><td>李同学</td><td>播音一班</td><td>08:02</td><td>扫码</td><td><span class="pill blue">正常</span></td></tr>
+        <tr><td>王同学</td><td>播音一班</td><td>08:21</td><td>输码</td><td><span class="pill gold">迟到</span></td></tr>
+        <tr><td>张同学</td><td>播音一班</td><td>07:55</td><td>扫码</td><td><span class="pill blue">正常</span></td></tr>
+        <tr><td>刘同学</td><td>播音一班</td><td>08:04</td><td>位置密钥 8247</td><td><span class="pill blue">正常</span></td></tr>
+        <tr><td>赵同学</td><td>播音一班</td><td>08:19</td><td>输码</td><td><span class="pill gold">迟到</span></td></tr>
+        <tr><td>孙同学</td><td>播音一班</td><td>08:00</td><td>扫码</td><td><span class="pill gray">待核</span></td></tr>
+        <tr><td>周同学</td><td>播音一班</td><td>—</td><td>—</td><td><span class="pill red">未打卡</span></td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

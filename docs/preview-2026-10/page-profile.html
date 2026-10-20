@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>学员档案 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:14px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .split2{display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start}
+  .pickstu{display:flex;justify-content:space-between;align-items:center;padding:11px 10px;border-bottom:1px dashed var(--line);font-size:13.5px;border-radius:4px}
+  .pickstu:last-child{border-bottom:none}
+  .pickstu.on{background:#f6f8fc;color:var(--blue)}
+  .pickstu .arr{color:var(--ink-3)}
+  .pickstu small{font-size:11.5px;color:var(--ink-3);margin-left:8px}
+  .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:8px}
+  .metric{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+  .metric .l{font-size:11.5px;color:var(--ink-2);letter-spacing:1px}
+  .metric .v{font-family:Georgia,var(--serif);font-size:21px;color:var(--blue);margin-top:4px;line-height:1}
+  .att-item{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .att-item:last-child{border-bottom:none}
+  .bars{display:grid;gap:12px;margin-top:8px}
+  .bar{display:grid;grid-template-columns:64px 1fr 90px;gap:14px;align-items:center;font-size:13px}
+  .bar .track{height:9px;background:var(--paper);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .bar .fill{display:block;height:100%}
+  .bar .lab{font-size:12px;color:var(--ink-2);text-align:right}
+  .hero-score{display:flex;align-items:baseline;gap:14px;margin-top:4px}
+  .hero-score b{font-family:Georgia,var(--serif);font-size:42px;color:var(--blue);font-weight:400;line-height:1}
+  .hero-score span{font-size:13px;letter-spacing:1px;color:var(--ink-2)}
+  .exrow{padding:12px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .exrow:last-child{border-bottom:none}
+  .exrow .top{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .exrow .top b{font-weight:500}
+  .exrow .top .num{font-family:Georgia,var(--serif);font-size:18px;color:var(--blue-ink);margin-left:auto}
+  .exrow .subs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:12px;color:var(--ink-2);text-align:center}
+  .tlrow{display:flex;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .tlrow:last-child{border-bottom:none}
+  .tlrow small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:3px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a class="on" href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>学员档案</b></span></div>
+
+  <div class="split2 au d3">
+    <!-- 左：选学员 -->
+    <div class="card">
+      <h3>选学员</h3>
+      <div class="fld">
+        <select><option>一班</option><option>二班</option><option>三班</option></select>
+      </div>
+      <div class="fld">
+        <input type="text" placeholder="搜名字">
+      </div>
+      <div>
+        <div class="pickstu on"><span>陈同学</span><span class="arr">›</span></div>
+        <div class="pickstu"><span>李同学</span><span class="arr">›</span></div>
+        <div class="pickstu"><span>王同学</span><span class="arr">›</span></div>
+        <div class="pickstu"><span>张同学</span><span class="arr">›</span></div>
+        <div class="pickstu"><span>刘同学</span><span class="arr">›</span></div>
+        <div class="pickstu"><span>赵同学</span><span class="arr">›</span></div>
+      </div>
+    </div>
+
+    <!-- 右：档案详情 -->
+    <div style="display:grid;gap:28px">
+      <!-- 总览 -->
+      <div class="card">
+        <h3>陈同学 <span class="hint" style="margin-left:8px">一班 · 2027 届播音方向</span></h3>
+        <div class="metrics">
+          <div class="metric"><div class="l">出勤率</div><div class="v">96%</div></div>
+          <div class="metric"><div class="l">考勤次数</div><div class="v">48</div></div>
+          <div class="metric"><div class="l">作业已交</div><div class="v">41</div></div>
+          <div class="metric"><div class="l">作业未交</div><div class="v">3</div></div>
+          <div class="metric"><div class="l">晚自习过关</div><div class="v">22/24</div></div>
+          <div class="metric"><div class="l">量化分</div><div class="v">108</div></div>
+        </div>
+      </div>
+
+      <!-- 考勤明细 -->
+      <div class="card">
+        <h3>考勤明细</h3>
+        <p class="hint" style="margin:0 0 8px">正常 46 · 迟到 1 · 病假 1 · 事假 0 · 未到 0</p>
+        <div class="att-item"><span>2026-10-19 上午</span><span class="pill blue">正常</span></div>
+        <div class="att-item"><span>2026-10-18 上午</span><span class="pill red">迟到</span></div>
+        <div class="att-item"><span>2026-10-17 上午</span><span class="pill blue">正常</span></div>
+        <div class="att-item"><span>2026-10-16 上午</span><span class="pill red">病假</span></div>
+        <div class="att-item"><span>2026-10-15 上午</span><span class="pill blue">正常</span></div>
+      </div>
+
+      <!-- 作业 -->
+      <div class="card">
+        <h3>作业</h3>
+        <div class="att-item"><span>今日作业检查<br><span class="hint">2026-10-19</span></span><span class="pill blue">已交</span></div>
+        <div class="att-item"><span>即兴评述：《碎片化阅读》<br><span class="hint">2026-10-18</span></span><span class="pill blue">已交</span></div>
+        <div class="att-item"><span>自备稿件录制 3 分钟<br><span class="hint">2026-10-16</span></span><span class="pill red">未交</span></div>
+        <div class="att-item"><span>今日作业检查<br><span class="hint">2026-10-15</span></span><span class="pill blue">已交</span></div>
+      </div>
+
+      <!-- 模考成绩 -->
+      <div class="card">
+        <h3>模考成绩</h3>
+        <div class="hero-score"><b>246</b><span>分 · 10月第2周模考</span></div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <span class="pill gold">二等 · 良好</span>
+          <span class="pill gray">已过合格线 200</span>
+          <span class="pill gray">达本科线 212</span>
+        </div>
+        <p class="hint" style="margin:16px 0 4px">三科强弱 · 河南省播音与主持类统考口径（三科各 100，总分 300）</p>
+        <div class="bars">
+          <div class="bar"><span>朗读</span><span class="track"><span class="fill" style="width:82%;background:var(--blue)"></span></span><span class="lab">82.0 · 二等</span></div>
+          <div class="bar"><span>播报</span><span class="track"><span class="fill" style="width:78%;background:var(--blue)"></span></span><span class="lab">78.5 · 二等</span></div>
+          <div class="bar"><span>评述</span><span class="track"><span class="fill" style="width:74%;background:var(--gold)"></span></span><span class="lab">73.8 · 三等 ⚠️</span></div>
+        </div>
+        <p class="hint" style="margin:12px 0 0">⚠️ 最薄弱板块：<b style="color:var(--ink)">评述</b>（平均 73.8 分，三等·中等）—— 后期可针对性加练。</p>
+        <div style="margin-top:14px">
+          <div class="exrow">
+            <div class="top"><b>10月第2周模考</b><span class="hint">2026-10-12</span><span class="num">246</span><span class="pill gold">二等</span></div>
+            <div class="subs"><span>朗读 82</span><span>播报 79</span><span>评述 85</span></div>
+          </div>
+          <div class="exrow">
+            <div class="top"><b>9月第4周模考</b><span class="hint">2026-09-28</span><span class="num">238</span><span class="pill gold">二等</span></div>
+            <div class="subs"><span>朗读 80</span><span>播报 76</span><span>评述 82</span></div>
+          </div>
+          <div class="exrow">
+            <div class="top"><b>9月第3周模考</b><span class="hint">2026-09-21</span><span class="num">241</span><span class="pill gold">二等</span></div>
+            <div class="subs"><span>朗读 83</span><span>播报 77</span><span>评述 81</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 体重与评语 -->
+      <div class="card">
+        <h3>体重与老师评语</h3>
+        <div class="tlrow"><span>体重 52.5 kg</span><span class="pill blue">2026-10-15 记录</span></div>
+        <div class="tlrow"><span>体重 52.1 kg</span><span class="pill gray">2026-09-30 记录</span></div>
+        <div class="tlrow"><span>即兴评述有明显进步，逻辑框架清晰了，注意收尾别赶。<small>顾老师 · 2026-10-18 录入今日</small></span></div>
+        <div class="tlrow"><span>早功迟到一次，已谈过，状态在回暖。<small>沈老师 · 2026-10-12 录入今日</small></span></div>
+        <div style="display:flex;gap:12px;margin-top:14px;align-items:center">
+          <input type="text" placeholder="记一笔评语，教务可见" style="flex:1;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13px;font-family:var(--sans)">
+          <button class="btn pri sm">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>考勤查看 <span style="font-size:11px;font-weight:400;color:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:2px">教师端 · 只读</span> · 教师端（样张）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  /* ---- 教师考勤录入（生产 v60：花名册直选）----
+     学生行右侧状态直选：已到/未到/请假 三段小药丸，
+     点选即变，默认已到，未到标红。教师端无水印。 */
+  .at-hero{
+    background:linear-gradient(160deg,#50618f,var(--blue));
+    color:#fff;
+    padding:calc(env(safe-area-inset-top) + 44px) 18px 40px;
+  }
+  .at-hero h1{
+    font-family:var(--serif);
+    font-size:21px;
+    font-weight:600;
+    letter-spacing:2px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .at-cls{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    height:28px;
+    padding:0 12px;
+    border-radius:14px;
+    background:rgba(255,255,255,.14);
+    font-size:12px;
+    font-family:var(--sans);
+    font-weight:400;
+    letter-spacing:0;
+    color:rgba(255,255,255,.92);
+  }
+  .at-hero .sub{
+    font-size:12px;
+    color:rgba(255,255,255,.72);
+    margin-top:6px;
+  }
+
+  /* 课程上下文卡 */
+  .ctx{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+  }
+  .ctx .ct{
+    font-family:var(--serif);
+    font-size:15.5px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .ctx .cm{font-size:12px;color:var(--ink-2);margin-top:3px}
+  .ctx .cnt{
+    flex:none;
+    margin-left:auto;
+    text-align:center;
+  }
+  .ctx .cnt .n{
+    font-family:Georgia,var(--serif);
+    font-size:22px;
+    color:var(--blue);
+    line-height:1.1;
+  }
+  .ctx .cnt .u{font-size:10px;color:var(--ink-3)}
+
+  /* 花名册 */
+  .stu{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    padding:11px 0;
+  }
+  .stu + .stu{border-top:1px solid var(--line)}
+  .stu .sava{
+    flex:none;
+    width:36px;
+    height:36px;
+    border-radius:50%;
+    background:rgba(74,92,140,.08);
+    color:var(--blue);
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .stu .snm{flex:1;font-size:14.5px;color:var(--ink)}
+
+  /* 三段状态药丸（直选） */
+  .seg{
+    flex:none;
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .seg span{
+    padding:5px 9px;
+    font-size:11px;
+    line-height:1;
+    color:var(--ink-3);
+    background:#fff;
+    white-space:nowrap;
+  }
+  .seg span + span{border-left:1px solid var(--line)}
+  .seg .yes.sel{background:rgba(74,92,140,.12);color:var(--blue);font-weight:600}
+  .seg .no.sel{background:rgba(196,74,58,.12);color:#c44a3a;font-weight:600}
+  .seg .lv.sel{background:rgba(201,171,124,.2);color:var(--gold-deep);font-weight:600}
+
+  /* 已提交态说明（样张注释） */
+  .note-dash{
+    border:1px dashed rgba(201,171,124,.75);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-top:16px;
+    font-size:11px;
+    line-height:1.7;
+    color:var(--gold-deep);
+  }
+
+  /* 吸底提交区（位于 Tab 之上） */
+  .submit-bar{
+    position:fixed;
+    bottom:calc(59px + env(safe-area-inset-bottom));
+    left:50%;
+    transform:translateX(-50%);
+    width:100%;
+    max-width:390px;
+    padding:10px 16px 6px;
+    background:linear-gradient(180deg,rgba(247,246,242,0),var(--paper) 40%);
+    z-index:60;
+  }
+  .submit-bar .bigbtn{width:100%}
+  .tag-ro{
+    flex:none;display:inline-flex;align-items:center;height:26px;padding:0 12px;
+    border-radius:999px;font-size:12px;border:1px solid transparent;
+  }
+  .tag-ro.yes{background:rgba(74,92,140,.10);color:var(--blue);border-color:rgba(74,92,140,.28)}
+  .tag-ro.no{background:#FCEBEB;color:#A32D2D;border-color:rgba(163,45,45,.35)}
+  .tag-ro.lv{background:rgba(201,171,124,.16);color:var(--gold-deep);border-color:rgba(201,171,124,.45)}
+  .ro-note{
+    margin:14px 16px calc(env(safe-area-inset-bottom) + 24px);
+    background:#fff;border:1px dashed var(--line);border-radius:12px;
+    padding:12px 14px;font-size:12px;line-height:1.8;color:var(--ink-2);
+  }
+  .ro-note b{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+
+  <!-- 深蓝头 + 班级切换胶囊 -->
+  <div class="at-hero">
+    <h1>考勤查看<span style="font-size:11px;font-weight:400;color:rgba(255,255,255,.78);border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:2px">教师端 · 只读</span><span class="at-cls">晚间班 · 一班
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></h1>
+    <div class="sub">2026 年 10 月 20 日 星期二 · 晚课</div>
+  </div>
+
+  <!-- 白板叠头 -->
+  <div class="sheet">
+
+    <!-- 课程上下文卡 -->
+    <div class="ctx">
+      <div>
+        <div class="ct">上镜实践 · 演播室实训</div>
+        <div class="cm">19:00 – 20:40 · BY08 演播室 · 齐老师</div>
+      </div>
+      <div class="cnt"><div class="n">12</div><div class="u">应到</div></div>
+    </div>
+
+    <!-- 花名册直选 -->
+    <div class="sec"><h2>花名册</h2><span class="more">显示 8 / 共 12 人 · 点状态即选</span></div>
+    <div class="card" style="padding:2px 14px">
+
+      <div class="stu">
+        <span class="sava">陈</span><span class="snm">陈同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">林</span><span class="snm">林同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">周</span><span class="snm">周同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">吴</span><span class="snm">吴同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">郑</span><span class="snm">郑同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">王</span><span class="snm">王同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">冯</span><span class="snm">冯同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+      <div class="stu">
+        <span class="sava">褚</span><span class="snm">褚同学</span>
+        <span class="tag-ro yes">已到</span></span>
+      </div>
+
+    </div>
+
+    <!-- 提交后变为已提交态的小说明 -->
+    </div>
+
+  <!-- 吸底提交 -->
+  <div class="ro-note">
+      <b>考勤由教务录入</b><br>教师端仅查看本班结果，如对记录有疑问请联系教务。
+    </div>
+<!-- 底部 5-Tab（教师端 · 考勤 active，只读查看） -->
+  <nav class="tabbar">
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今天
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span>
+      消息
+    </a>
+    <a class="on" href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12l2 2 4-4.5"/><path d="M9 16.5h6"/></svg></span>
+      考勤
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.4-3.6 4-5.2 7-5.2s5.6 1.6 7 5.2"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

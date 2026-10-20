@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>我的作业 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .hw-it{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;padding:13px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .hw-it:last-child{border-bottom:none}
+  .hw-it .d{font-family:Georgia,var(--serif);font-size:13px;color:var(--ink-2)}
+  .hw-tag{display:inline-block;font-size:10.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:2px;padding:1px 7px;letter-spacing:1px;margin-left:8px;vertical-align:1px}
+  .stu-row{padding:13px 2px;border-bottom:1px dashed var(--line)}
+  .stu-row:last-child{border-bottom:none}
+  .stu-row b{display:block;font-size:13.5px;font-weight:600;margin-bottom:8px}
+  .chipset{display:flex;gap:8px;flex-wrap:wrap}
+  .chip2{font-size:11.5px;letter-spacing:1px;border-radius:14px;padding:4px 12px;border:1px solid var(--line);color:var(--ink-3)}
+  .chip2.ok{background:var(--blue);border-color:var(--blue);color:#fff}
+  .chip2.no{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a href="page-stuTable.html">我的课表</a>
+    <a href="page-stuExam.html">考试与抽签</a>
+    <a href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a class="on" href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>我的作业</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 登记今晚作业（生产：StuHw.renderEntry —— 只有教务指定的班干部看得到这块，替全班登记谁交了） -->
+  <div class="au d2" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>登记今晚作业（班干部）<small>CLASS DUTY</small></h2>
+      <div class="crumb">我的作业 › <b>登记</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card">
+      <p style="font-size:12.5px;color:var(--ink-2);margin-bottom:14px">
+        你是<b style="color:var(--blue-ink)">学习委员</b> —— 登记今晚这 <b style="color:var(--blue)">3</b> 项作业谁交了。
+        点一下 = 交了，再点 = 没交，第三下 = 取消。谁录的由服务端盖章，教务在「作业」页能看到登记人。
+      </p>
+      <div class="stu-row">
+        <b>陈同学（我）</b>
+        <div class="chipset">
+          <span class="chip2 ok">新 ✓</span><span class="chip2 ok">影 ✓</span><span class="chip2 ok">台 ✓</span>
+        </div>
+      </div>
+      <div class="stu-row">
+        <b>李同学</b>
+        <div class="chipset">
+          <span class="chip2 ok">新 ✓</span><span class="chip2 no">影 ✗</span><span class="chip2 ok">台 ✓</span>
+        </div>
+      </div>
+      <div class="stu-row">
+        <b>王同学</b>
+        <div class="chipset">
+          <span class="chip2 no">新 ✗</span><span class="chip2 no">影 ✗</span><span class="chip2">台</span>
+        </div>
+      </div>
+      <div class="stu-row">
+        <b>赵同学</b>
+        <div class="chipset">
+          <span class="chip2">新</span><span class="chip2">影</span><span class="chip2">台</span>
+        </div>
+      </div>
+      <p style="font-size:11.5px;color:var(--ink-3);margin-top:12px;letter-spacing:.5px">今晚的三项：新闻播报 · 晨间选题稿件（新）／ 影片分析 · 《活着》观影笔记（影）／ 台词 · 自选独白背诵（台）</p>
+    </div>
+  </div>
+
+  <!-- 作业列表（生产：StuHw.render —— 按日期倒序，已交 / 未交） -->
+  <div class="au d3">
+    <div class="sec">
+      <h2>我的作业<small>HOMEWORK</small></h2>
+      <div class="crumb">我的作业 › <b>全部记录</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card" style="padding:8px 22px">
+      <div class="hw-it">
+        <span class="d">10-19</span>
+        <span>新闻播报 · 晨间选题稿件<span class="hw-tag">大课</span></span>
+        <span class="pill red">未交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-19</span>
+        <span>影片分析 · 《活着》观影笔记<span class="hw-tag">大课</span></span>
+        <span class="pill red">未交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-19</span>
+        <span>台词 · 自选独白背诵<span class="hw-tag">大课</span></span>
+        <span class="pill blue">已交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-18</span>
+        <span>播音 · 三分钟自备稿件录音<span class="hw-tag">大课</span></span>
+        <span class="pill blue">已交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-17</span>
+        <span>编导 · 分镜脚本改写（第 2 稿）<span class="hw-tag">大课</span></span>
+        <span class="pill blue">已交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-16</span>
+        <span>表演 · 无实物练习视频<span class="hw-tag">大课</span></span>
+        <span class="pill red">未交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-15</span>
+        <span>播音 · 即兴评述提纲（每日新闻选题）<span class="hw-tag">大课</span></span>
+        <span class="pill blue">已交</span>
+      </div>
+      <div class="hw-it">
+        <span class="d">10-14</span>
+        <span>编导 · 影评片段：声音与画面的关系<span class="hw-tag">大课</span></span>
+        <span class="pill blue">已交</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

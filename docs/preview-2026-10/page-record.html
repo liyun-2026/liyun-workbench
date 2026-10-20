@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>录入今日 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a class="on" href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>录入今日情况</b></span></div>
+
+  <!-- 录入筛选（来源：生产 page-record「班级 / 日期 / 全部保存」） -->
+  <div class="au d2">
+    <div class="sec"><h2>录入今日情况<small>RECORD</small></h2><span class="crumb">简化版：只点有情况的学生，没点到的按正常记</span></div>
+    <div class="rule"></div>
+    <div class="card" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div class="fld" style="margin:0;width:190px"><label>班级</label><select><option>播音一班</option><option>播音二班</option><option>编导一班</option><option>表演一班</option></select></div>
+      <div class="fld" style="margin:0;width:180px"><label>日期</label><input type="date" value="2026-10-19"></div>
+      <button class="btn pri">全部保存</button>
+      <span style="font-size:12px;color:var(--ink-3);margin-left:4px">已录入 10 / 28 人 · 保存后同步到教务考勤</span>
+    </div>
+  </div>
+
+  <!-- 学员名单（来源：生产 page-record rcBody · 点选有情况的学生） -->
+  <div class="au d3" style="margin-top:34px">
+    <div class="sec"><h2>播音一班 · 学员名单<small>ROSTER · 2026-10-19</small></h2><span class="crumb">点状态格即记一笔，再点一次撤销</span></div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <tr><th>学员</th><th>今日情况</th><th>备注</th></tr>
+        <tr><td>陈同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>李同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>王同学</td><td><span class="pill gold">迟到</span></td><td>08:21 到，早功后补签</td></tr>
+        <tr><td>张同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>刘同学</td><td><span class="pill gray">病假</span></td><td>上午去医院复查</td></tr>
+        <tr><td>赵同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>孙同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>周同学</td><td><span class="pill gray">事假</span></td><td>家中有事，明天到</td></tr>
+        <tr><td>吴同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        <tr><td>郑同学</td><td><span class="pill red">未到</span></td><td>已上报教务核实</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 录入提示（来源：生产 page-record rcStat 提示区） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <p style="font-size:13px;color:var(--ink-2);line-height:2">
+        <b style="color:var(--blue-ink)">怎么用：</b>选好班级和日期，名单里只点<b>有情况</b>的学生（迟到 / 病假 / 事假 / 未到），没点到的学员保存时一律按正常记。
+        有话要说就写在备注里。点<b>「全部保存」</b>一次收口，结果同步给教务，教务在「考勤」里看得到、也改得了。
+      </p>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

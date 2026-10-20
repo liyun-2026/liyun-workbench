@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>底部 Tab 骨架对比 · 砺蕴移动端</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  body{background:var(--paper);padding:28px 0 60px}
+  .ctwrap{width:390px;margin:0 auto}
+  .csec{margin-bottom:34px}
+  .csec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .csec-h .tag{font-family:var(--serif);font-size:19px;color:var(--ink);font-weight:600}
+  .csec-h .note{font-size:12px;color:var(--ink-2)}
+  .csec-h .pill{font-size:11px;padding:2px 10px;border-radius:999px;background:rgba(201,171,124,.18);color:var(--gold-deep);border:1px solid rgba(201,171,124,.4)}
+  .csec-h .pill.blue{background:rgba(74,92,140,.12);color:var(--blue);border-color:rgba(74,92,140,.35)}
+  .phone{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(43,52,70,.08)}
+  .phone .mini{padding:16px 18px 10px;color:#fff;background:linear-gradient(160deg,#50618f,var(--blue));position:relative;overflow:hidden}
+  .phone .mini .t{font-family:var(--serif);font-size:16px;font-weight:600;letter-spacing:.5px}
+  .phone .mini .s{font-size:11px;color:rgba(255,255,255,.72);margin-top:3px}
+  .phone .mini .bg-logo{position:absolute;right:-6px;bottom:-52px;width:150px;transform:rotate(-8deg);opacity:.32;pointer-events:none}
+  /* tabbar 在本页改为文档流内展示 */
+  .tabbar{position:static !important;transform:none !important;left:auto !important;border-top:1px solid var(--line);border-radius:0 0 18px 18px}
+  .why{margin-top:10px;font-size:12.5px;line-height:1.75;color:var(--ink-2);background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .why b{color:var(--ink)}
+  .why .gd{color:var(--gold-deep)}
+</style>
+</head>
+<body>
+<div class="ctwrap">
+
+  <div class="csec">
+    <div class="sec-h"><span class="tag">学生端 · 5-Tab</span><span class="pill">全部 8 页已统一 ✓</span></div>
+    <div class="phone">
+      <div class="mini"><img class="bg-logo" src="assets/mark-liyun-gold.png" alt=""><div class="t">砺蕴 · 学生端</div><div class="s">打卡是学生最高频动作，独立成 Tab</div></div>
+      <nav class="tabbar">
+        <a class="on" href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>今日</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>打卡</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>作业</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>课表</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.4-3.6 4-5.2 7-5.2s5.6 1.6 7 5.2"/></svg></span>我的</a>
+      </nav>
+    </div>
+    <div class="why">学生一天打开最多的是<b>打卡</b>和<b>看今天有什么课</b>，所以这两个占前两位；消息（通知）收进首页公告与「我的」，不占 Tab。</div>
+  </div>
+
+  <div class="csec">
+    <div class="sec-h"><span class="tag">教务端 · 5-Tab</span><span class="pill">全部页面已统一 ✓</span></div>
+    <div class="phone">
+      <div class="mini"><img class="bg-logo" src="assets/mark-liyun-gold.png" alt=""><div class="t">砺蕴 · 教务端</div><div class="s">管理视角：全局总览 + 处理待办</div></div>
+      <nav class="tabbar">
+        <a class="on" href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>首页</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12l2 2 4-4.5"/><path d="M9 16.5h6"/></svg></span>考勤</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>作业</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>课表</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.4-3.6 4-5.2 7-5.2s5.6 1.6 7 5.2"/></svg></span>我的</a>
+      </nav>
+    </div>
+    <div class="why">教务的核心是<b>全局视角</b>：首页看总览、考勤处理异常、课表管全校排期；排课/课时统计/学生管理等收进首页宫格二级。</div>
+  </div>
+
+  <div class="csec">
+    <div class="sec-h"><span class="tag">教师端 · 方案 A</span><span class="pill">规格终版（推荐）</span></div>
+    <div class="phone">
+      <div class="mini"><img class="bg-logo" src="assets/mark-liyun-gold.png" alt=""><div class="t">砺蕴 · 教师端</div><div class="s">教学视角：今天上课 → 随手录入</div></div>
+      <nav class="tabbar">
+        <a class="on" href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>今天</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12l2 2 4-4.5"/><path d="M9 16.5h6"/></svg></span>录入</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="2.8"/><circle cx="16.5" cy="10.5" r="2.2"/><path d="M3.5 19c1.2-3 3.2-4.4 5.5-4.4s4.3 1.4 5.5 4.4"/><path d="M14.5 18.6c.9-1.9 2.2-2.8 3.7-2.8 1 0 1.9.4 2.6 1.2"/></svg></span>我带的班</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5"/><path d="M21 3l-6.8 18-3.7-7.5L3 9.8z"/></svg></span>上报</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.4-3.6 4-5.2 7-5.2s5.6 1.6 7 5.2"/></svg></span>我的</a>
+      </nav>
+    </div>
+    <div class="why">按教师一天的真实动线排：<b>今天</b>（时间轴：下一节上什么）→ <b>录入</b>（考勤点名直选）→ <b>我带的班</b>（学生名册）→ <b>上报</b>（缺勤/量化提交）。课表并入「今天」，消息并入首页，都不占 Tab。</div>
+  </div>
+
+  <div class="csec">
+    <div class="sec-h"><span class="tag">教师端 · 方案 B</span><span class="pill blue">样张现状（旧）</span></div>
+    <div class="phone">
+      <div class="mini"><img class="bg-logo" src="assets/mark-liyun-gold.png" alt=""><div class="t">砺蕴 · 教师端</div><div class="s">第一轮样张的旧 Tab，尚未更新</div></div>
+      <nav class="tabbar">
+        <a class="on" href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>首页</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>课表</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12l2 2 4-4.5"/><path d="M9 16.5h6"/></svg></span>考勤</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg></span>消息</a>
+        <a href="#"><span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M5 20c1.4-3.6 4-5.2 7-5.2s5.6 1.6 7 5.2"/></svg></span>我的</a>
+      </nav>
+    </div>
+    <div class="why">旧方案的<b>「消息」Tab 使用频率很低</b>（通知本来就推到首页），占了黄金第 4 位；「课表」与「今天」功能重叠。这就是样张与规格打架的地方。</div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>名册 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .clsrow{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px dashed var(--line);font-size:13.5px;border-radius:4px;cursor:pointer}
+  .clsrow:hover{background:#f6f8fc}
+  .clsrow.on{background:var(--blue);color:#fff}
+  .clsrow.on small{color:#c9d2e6}
+  .clsrow small{font-size:11.5px;color:var(--ink-3);letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a class="on" href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>名册</b></span></div>
+
+  <!-- 左选班 → 右看人（来源：生产 page-roster「左选班 → 右看人；建号与周末班收进右栏『更多』」） -->
+  <div class="au d2">
+    <div class="sec"><h2>名册<small>ROSTER</small></h2><span class="crumb">左选班 → 右看人 · 选中一个班，右边看这个班的学员</span></div>
+    <div class="rule"></div>
+    <div class="cols" style="grid-template-columns:1fr 1.6fr">
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:12px">班级</h3>
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <input type="text" placeholder="班级名，如：播音一班" style="flex:1;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:var(--sans)">
+          <button class="btn pri sm">建班</button>
+        </div>
+        <div class="clsrow on"><span>播音一班</span><small>18 人</small></div>
+        <div class="clsrow"><span>播音二班</span><small>16 人</small></div>
+        <div class="clsrow"><span>播音三班</span><small>15 人</small></div>
+        <div class="clsrow"><span>编导一班</span><small>14 人</small></div>
+        <div class="clsrow"><span>编导二班</span><small>12 人</small></div>
+        <div class="clsrow" style="border-bottom:none"><span>表演一班</span><small>11 人</small></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink)">播音一班 · 学员</h3>
+          <button class="btn sec sm">班干部</button>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <input type="text" placeholder="学员姓名" style="flex:1;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:var(--sans)">
+          <button class="btn pri sm">加入</button>
+        </div>
+        <div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0">
+          <table class="tbl">
+            <tr><th>学员</th><th>职务</th><th>账号</th><th>操作</th></tr>
+            <tr><td>陈同学</td><td><span class="pill gold">班长</span></td><td style="color:var(--ink-3)">@chen2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>李同学</td><td><span class="pill gray">学习委员</span></td><td style="color:var(--ink-3)">@li2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>王同学</td><td>—</td><td style="color:var(--ink-3)">@wang2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>张同学</td><td>—</td><td style="color:var(--ink-3)">还没建号</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>刘同学</td><td>—</td><td style="color:var(--ink-3)">@liu2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>赵同学</td><td><span class="pill gray">纪律委员</span></td><td style="color:var(--ink-3)">@zhao2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>孙同学</td><td>—</td><td style="color:var(--ink-3)">@sun2026</td><td><button class="btn sec sm">档案</button></td></tr>
+            <tr><td>周同学</td><td>—</td><td style="color:var(--ink-3)">还没建号</td><td><button class="btn sec sm">档案</button></td></tr>
+          </table>
+        </div>
+        <p style="font-size:12px;color:var(--ink-2);margin-top:12px">点「班干部」可以加好几位职务。定完以后，学员用学生账号登录就能看到全班的量化加扣分。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 更多：建号 / 周末班 / 批量添加（来源：生产 page-roster「更多」折叠区四张卡） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>更多 · 建号 / 周末班 / 批量添加<small>MORE</small></h2><span class="crumb">生产系统里收在「更多」折叠内</span></div>
+    <div class="rule"></div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">单独建号</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input type="text" placeholder="学员姓名" style="width:140px;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px">
+          <select style="width:160px;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;background:#fff"><option>播音一班</option><option>播音二班</option></select>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <input type="text" placeholder="初始密码（留空用 liyun2026）" style="flex:1;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;min-width:200px">
+          <button class="btn pri sm">建这一个</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">批量建号</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select style="width:160px;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;background:#fff"><option>播音一班</option><option>播音二班</option></select>
+          <input type="text" placeholder="初始密码（留空用 liyun2026）" style="flex:1;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;min-width:180px">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn pri sm">给全班建号</button>
+          <button class="btn sec sm">查看学生账号</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">周末班</h3>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="date" value="2026-10-24" style="border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:13px">
+          <span style="font-size:12px;color:var(--ink-3)">已参加 21 人</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn sec sm">本期全部参加</button>
+          <button class="btn sec sm">本期全部取消</button>
+          <button class="btn sec sm">复制本期名单</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">批量添加学员</h3>
+        <button class="btn sec sm">传名单识别</button>
+        <p style="font-size:11.5px;color:var(--ink-3);margin-top:8px">支持图片 / 文本 / Word 名单，识别后逐个确认。</p>
+        <textarea placeholder="每行一个名字，或用空格、逗号隔开，例如：&#10;张三&#10;李四，王五&#10;赵六 刘七" style="width:100%;margin-top:10px;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13px;font-family:var(--sans);min-height:76px"></textarea>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn pri sm">批量加入</button>
+          <button class="btn sec sm">清空</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

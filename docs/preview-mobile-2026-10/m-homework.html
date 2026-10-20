@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的作业 · 学生端（样张）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  /* ---- 学生作业页（生产逻辑：教师布置 / 学生完成与查看）----
+     本轮只画学生端列表形态，点开形态不做，教师端形态不做 */
+  .hw-hero{
+    background:linear-gradient(160deg,#50618f,var(--blue));
+    color:#fff;
+    padding:calc(env(safe-area-inset-top) + 54px) 20px 40px;
+  }
+  .hw-hero h1{
+    font-family:var(--serif);
+    font-size:22px;
+    font-weight:600;
+    letter-spacing:3px;
+  }
+  .hw-hero .sub{
+    font-size:12px;
+    color:rgba(255,255,255,.72);
+    margin-top:4px;
+  }
+
+  /* 统计小条 */
+  .hw-stats{
+    display:flex;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 0;
+  }
+  .hw-stats .st{flex:1;text-align:center}
+  .hw-stats .st + .st{border-left:1px solid var(--line)}
+  .hw-stats .n{
+    font-family:Georgia,var(--serif);
+    font-size:24px;
+    line-height:1.2;
+    color:var(--blue);
+  }
+  .hw-stats .u{font-size:11px;color:var(--ink-3);margin-top:1px}
+  .hw-stats .st.warn .n{color:var(--gold-deep)}
+  .hw-stats .st.over .n{color:#c44a3a}
+
+  /* 作业卡 */
+  .hw-card{
+    position:relative;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .hw-card .course{
+    font-size:11px;
+    color:var(--blue);
+    letter-spacing:1px;
+  }
+  .hw-card .title{
+    font-size:15px;
+    font-weight:600;
+    color:var(--ink);
+    margin-top:3px;
+    padding-right:86px;
+  }
+  .hw-card .meta{
+    font-size:12px;
+    color:var(--ink-2);
+    margin-top:5px;
+  }
+  .hw-card .flag{
+    position:absolute;
+    top:12px;
+    right:12px;
+  }
+  /* 已批改分数徽标 */
+  .hw-card .score{
+    position:absolute;
+    top:9px;
+    right:14px;
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:rgba(201,171,124,.16);
+    color:var(--gold-deep);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .hw-card .score .sv{
+    font-family:Georgia,var(--serif);
+    font-size:16px;
+    line-height:1;
+    font-weight:600;
+  }
+  .hw-card .score .su{font-size:8px;margin-top:1px}
+  .hw-card .flag.below-score{top:56px;right:13px}
+</style>
+</head>
+<body>
+
+  <!-- 学生端整页水印（生产逻辑：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 深蓝沉浸头 -->
+  <div class="hw-hero">
+    <h1>我的作业</h1>
+    <div class="sub">2026 年 10 月 20 日 星期二 · 全部课程</div>
+  </div>
+
+  <!-- 白板叠头 -->
+  <div class="sheet">
+
+    <!-- 统计小条 -->
+    <div class="hw-stats">
+      <div class="st"><div class="n">2</div><div class="u">进行中</div></div>
+      <div class="st warn"><div class="n">1</div><div class="u">待批改</div></div>
+      <div class="st"><div class="n">5</div><div class="u">已完成</div></div>
+    </div>
+
+    <!-- 作业卡列表 -->
+    <div class="sec"><h2>进行中</h2><span class="more">按截止时间排序</span></div>
+
+    <div class="hw-card">
+      <span class="flag"><span class="pill gold">剩 1 天</span></span>
+      <div class="course">播音</div>
+      <div class="title">self-introduction 录音</div>
+      <div class="meta">余老师布置 · 60 秒以内 · MP3/M4A · 截止 10-21 20:00</div>
+    </div>
+
+    <div class="hw-card">
+      <span class="flag"><span class="pill blue">进行中</span></span>
+      <div class="course">表演</div>
+      <div class="title">台词片段脱稿练习</div>
+      <div class="meta">沈老师布置 · 自选片段 3 分钟 · 截止 10-24 20:00</div>
+    </div>
+
+    <div class="sec"><h2>待批改</h2></div>
+
+    <div class="hw-card">
+      <span class="flag"><span class="pill red">已逾期 2 天</span></span>
+      <div class="course">编导</div>
+      <div class="title">影片分析随笔 ·《活着》</div>
+      <div class="meta">顾老师布置 · 任选一场戏 · 800 字以上 · 已提交，待顾老师批改</div>
+    </div>
+
+    <div class="sec"><h2>已完成</h2><span class="more">全部 5 份 ›</span></div>
+
+    <div class="hw-card">
+      <span class="score"><span class="sv">92</span><span class="su">分</span></span>
+      <span class="flag below-score"><span class="pill gold">已批改</span></span>
+      <div class="course">播音</div>
+      <div class="title">新闻口播练习 3 则</div>
+      <div class="meta">王老师布置 · 10-14 提交 · 10-17 批改 · 评语已出</div>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（学生端 · 作业 active） -->
+  <nav class="tabbar">
+    <a href="m-home-student.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="m-checkin.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a class="on" href="m-homework.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a href="m-table.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="m-me.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

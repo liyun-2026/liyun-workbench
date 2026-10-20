@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的课表 · 学生端（样张）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  /* ---- 课表 v2：当天时间线 + 日期滑轨 ---- */
+
+  /* 沉浸蓝头 */
+  .tb-hero{
+    background:linear-gradient(160deg,#50618f,var(--blue));
+    color:#fff;
+    padding:calc(env(safe-area-inset-top) + 44px) 18px 16px;
+  }
+  .tb-hero h1{
+    font-family:var(--serif);
+    font-size:21px;
+    font-weight:600;
+    letter-spacing:2px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .tb-hero h1 .cnt{font-size:11px;font-family:var(--sans);font-weight:400;color:rgba(255,255,255,.72);letter-spacing:0}
+  .tb-hero .wk{
+    font-size:12px;
+    color:rgba(255,255,255,.72);
+    margin-top:4px;
+  }
+
+  /* 日期滑轨：横向滚动胶囊条 */
+  .rail{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding:14px 18px 16px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .rc{
+    flex:none;
+    width:44px;
+    padding:7px 0 9px;
+    border-radius:12px;
+    text-align:center;
+    background:rgba(255,255,255,.12);
+    color:rgba(255,255,255,.78);
+    position:relative;
+  }
+  .rc .dw{font-size:10px;letter-spacing:1px}
+  .rc .dn{
+    font-family:Georgia,var(--serif);
+    font-size:16px;
+    font-weight:600;
+    margin-top:2px;
+    line-height:1.2;
+  }
+  .rc .mo{font-size:9px;color:rgba(255,255,255,.5);margin-top:1px}
+  .rc.weaken{opacity:.5}
+  .rc.today{
+    background:var(--blue-ink);
+    border:1px solid rgba(255,255,255,.3);
+    color:#fff;
+    box-shadow:0 3px 10px rgba(0,0,0,.22);
+  }
+  .rc.today .mo{color:rgba(232,205,148,.9)}
+  .rc.today::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:3px;
+    transform:translateX(-50%);
+    width:3px;height:3px;
+    border-radius:50%;
+    background:var(--gold);
+  }
+
+  /* 时间线主体 */
+  .tl{
+    padding:20px 16px calc(80px + env(safe-area-inset-bottom));
+  }
+  .tl-row{
+    display:grid;
+    grid-template-columns:60px 20px 1fr;
+    column-gap:8px;
+  }
+  .tl-time{
+    text-align:right;
+    padding-top:13px;
+  }
+  .tl-time .tm{
+    font-family:Georgia,var(--serif);
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.2;
+  }
+  .tl-time .no{
+    font-size:10px;
+    color:var(--ink-3);
+    margin-top:2px;
+    letter-spacing:1px;
+  }
+  /* 中缝：竖线 + 节点 */
+  .tl-node{
+    position:relative;
+  }
+  .tl-node::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:0;bottom:0;
+    width:1px;
+    background:var(--line);
+    transform:translateX(-.5px);
+  }
+  .tl-row:first-child .tl-node::before{top:18px}
+  .tl-row:last-child .tl-node::before{bottom:auto;height:18px}
+  .tl-node .nd{
+    position:absolute;
+    left:50%;
+    top:17px;
+    transform:translateX(-50%);
+    width:7px;height:7px;
+    border-radius:50%;
+    background:var(--ink-3);
+    box-shadow:0 0 0 3px var(--paper);
+  }
+  .tl-row.live .tl-node .nd{
+    background:var(--gold);
+    width:9px;height:9px;
+    box-shadow:0 0 0 3px rgba(201,171,124,.25);
+  }
+  .tl-card{
+    margin-bottom:14px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:12px 14px;
+    position:relative;
+  }
+  .tl-card .cn{
+    font-family:var(--serif);
+    font-size:15.5px;
+    font-weight:600;
+    color:var(--ink);
+    letter-spacing:.5px;
+  }
+  .tl-card .cm{
+    font-size:12px;
+    color:var(--ink-2);
+    margin-top:4px;
+  }
+  .tl-card .cs{
+    font-size:11px;
+    color:var(--ink-3);
+    margin-top:2px;
+  }
+  /* 三态：已结束 */
+  .tl-row.done .tl-card{opacity:.45}
+  .tl-row.done .tl-card .cn{color:var(--ink-2)}
+  .tl-row.done .tl-node .nd{background:var(--line)}
+  /* 三态：进行中 */
+  .tl-row.live .tl-card{
+    border:1.5px solid var(--gold);
+    box-shadow:0 4px 14px rgba(201,171,124,.22);
+  }
+  .tl-row.live .tl-card .cn{color:var(--blue-ink)}
+  .tl-badge{
+    position:absolute;
+    top:-9px;
+    right:12px;
+    height:20px;
+    padding:0 10px;
+    border-radius:10px;
+    background:var(--gold);
+    color:#fff;
+    font-size:10px;
+    line-height:20px;
+    letter-spacing:1px;
+  }
+  /* 未来课正常，仅金点前缀 */
+  .tl-row.next .tl-card .cn::before{
+    content:"";
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold);
+    margin-right:7px;
+    vertical-align:2px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 学生端整页水印（生产逻辑：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 顶部沉浸蓝头 + 日期滑轨 -->
+  <div class="tb-hero">
+    <h1>我的课表<span class="cnt">今日 6 节 · 剩 3 节</span></h1>
+    <div class="wk">2026 年 10 月 20 日 星期二 · 第 9 教学周</div>
+  </div>
+  <div style="background:linear-gradient(160deg,#50618f,var(--blue))">
+    <div class="rail">
+      <div class="rc today"><div class="dw">周二</div><div class="dn">20</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周三</div><div class="dn">21</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周四</div><div class="dn">22</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周五</div><div class="dn">23</div><div class="mo">10月</div></div>
+      <div class="rc weaken"><div class="dw">周六</div><div class="dn">24</div><div class="mo">10月</div></div>
+      <div class="rc weaken"><div class="dw">周日</div><div class="dn">25</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周一</div><div class="dn">26</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周二</div><div class="dn">27</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周三</div><div class="dn">28</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周四</div><div class="dn">29</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周五</div><div class="dn">30</div><div class="mo">10月</div></div>
+      <div class="rc weaken"><div class="dw">周六</div><div class="dn">31</div><div class="mo">10月</div></div>
+      <div class="rc weaken"><div class="dw">周日</div><div class="dn">1</div><div class="mo">11月</div></div>
+      <div class="rc"><div class="dw">周一</div><div class="dn">2</div><div class="mo">11月</div></div>
+    </div>
+  </div>
+
+  <!-- 当天时间线 -->
+  <div class="tl">
+
+    <div class="tl-row done">
+      <div class="tl-time"><div class="tm">08:00</div><div class="no">早功</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <div class="cn">早功 · 开声晨练</div>
+        <div class="cm">08:00 – 08:40 · 带教 周老师</div>
+        <div class="cs">BY01 晨功房 · 第1节</div>
+      </div>
+    </div>
+
+    <div class="tl-row done">
+      <div class="tl-time"><div class="tm">09:10</div><div class="no">第1节</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <div class="cn">播音 · 气息与发声</div>
+        <div class="cm">09:10 – 10:50 · 王老师</div>
+        <div class="cs">BY08 演播室 · 第1–2节连堂</div>
+      </div>
+    </div>
+
+    <div class="tl-row done">
+      <div class="tl-time"><div class="tm">11:00</div><div class="no">第3节</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <div class="cn">即兴评述</div>
+        <div class="cm">11:00 – 11:40 · 顾老师</div>
+        <div class="cs">BY05 评述教室 · 第3节</div>
+      </div>
+    </div>
+
+    <div class="tl-row live">
+      <div class="tl-time"><div class="tm">13:30</div><div class="no">第5节</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <span class="tl-badge">进行中</span>
+        <div class="cn">稿件朗读 · 文学作品</div>
+        <div class="cm">13:30 – 15:10 · 沈老师</div>
+        <div class="cs">BY03 朗读教室 · 第5–6节连堂</div>
+      </div>
+    </div>
+
+    <div class="tl-row next">
+      <div class="tl-time"><div class="tm">15:30</div><div class="no">第7节</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <div class="cn">形体 · 体态与仪态</div>
+        <div class="cm">15:30 – 16:10 · 林老师</div>
+        <div class="cs">形体房 · 第7节</div>
+      </div>
+    </div>
+
+    <div class="tl-row next">
+      <div class="tl-time"><div class="tm">19:00</div><div class="no">晚课</div></div>
+      <div class="tl-node"><span class="nd"></span></div>
+      <div class="tl-card">
+        <div class="cn">上镜实践 · 演播室实训</div>
+        <div class="cm">19:00 – 20:40 · 齐老师</div>
+        <div class="cs">BY08 演播室 · 晚1–2节连堂</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（学生端 · 课表 active） -->
+  <nav class="tabbar">
+    <a href="m-home-student.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="m-checkin.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a href="m-homework.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a class="on" href="m-table.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="m-me.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>线条浮雕方案对照 · 砺蕴教务系统（样张 · 第三轮）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  body{background:#fff;padding-bottom:48px}
+  .page-head{padding:34px 22px 6px}
+  .page-head h1{
+    font-family:var(--serif);
+    font-size:22px;
+    color:var(--blue-ink);
+    letter-spacing:2px;
+  }
+  .page-head p{font-size:12px;color:var(--ink-2);margin-top:5px;line-height:1.7}
+
+  .demo{padding:22px 0 4px}
+  .demo-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin:0 22px 8px;
+    height:22px;
+    padding:0 11px;
+    border-radius:11px;
+    background:rgba(201,171,124,.16);
+    color:var(--gold-deep);
+    font-size:11px;
+    letter-spacing:2px;
+  }
+  .demo-tag b{font-family:var(--serif);font-size:12px;letter-spacing:0}
+
+  /* 演示卡：390×230 深色头部 · 一整幅雕版线稿画 */
+  .rf-head{
+    position:relative;
+    height:230px;
+    margin:0 22px;
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 8px 22px rgba(43,58,94,.18);
+  }
+  .rf-head.c1{background:linear-gradient(165deg,#4a5c8c 0%,var(--blue-ink) 62%,#22304f 100%)}
+  .rf-head.c2{background:linear-gradient(165deg,#4a4034,#3d3630 55%,#2c2620)}
+  .rf-head.c3{background:linear-gradient(170deg,#2b3a5e 0%,#1d2a47 60%,#16203a 100%)}
+  .pat{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+  /* 金色端名签 */
+  .rf-corner{
+    position:absolute;
+    top:14px;
+    right:16px;
+    z-index:2;
+    font-family:var(--serif);
+    font-size:11px;
+    letter-spacing:3px;
+    text-indent:3px;
+    color:#e8cd94;
+    border:1px solid rgba(201,171,124,.55);
+    border-radius:3px;
+    padding:4px 9px;
+    background:rgba(20,28,46,.30);
+  }
+  .rf-fg{
+    position:absolute;
+    left:18px;right:18px;bottom:18px;
+    z-index:2;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .rf-fg .avatar{
+    flex:none;
+    width:54px;height:54px;
+    border-radius:50%;
+    background:rgba(255,255,255,.16);
+    border:1px solid rgba(255,255,255,.38);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);
+    font-size:21px;
+    color:#fff;
+  }
+  .rf-fg .info{flex:1;min-width:0}
+  .rf-fg .nm{font-size:17px;font-weight:600;color:#fff;letter-spacing:1px;text-shadow:0 1px 6px rgba(0,0,0,.25)}
+  .rf-fg .cl{font-size:11px;color:rgba(255,255,255,.68);margin-top:3px;letter-spacing:1px}
+  .rf-fg img.seal{
+    flex:none;
+    width:38px;height:38px;
+    opacity:.92;
+  }
+  .demo .cap{
+    margin:10px 22px 0;
+    font-size:11.5px;
+    color:var(--ink-2);
+    line-height:1.7;
+  }
+  .demo .cap b{color:var(--blue-ink)}
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <h1>线条浮雕方案对照</h1>
+    <p>第三轮 · 参照南师大「建筑浮雕」思路：不做散落图案拼贴，改为 <b>一整幅有真实所指的画</b> —— 建筑与教具线稿 + 天空留白 + 顺形体排线明暗 + 底部渐隐 + 扉页角饰；学生端取传媒学府建筑意象（蓝）、教师端取讲席教具（赭）、通用端取山海编钟纹拆组（金蓝）。</p>
+  </div>
+
+  <!-- ============ 卡 1 · 学生端 · 学府之路 ============ -->
+  <section class="demo">
+    <span class="demo-tag"><b>壹</b>学生端 · 学府之路</span>
+    <div class="rf-head c1">
+      <svg class="pat" viewBox="0 0 390 230" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="fade1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff"/>
+            <stop offset=".6" stop-color="#fff"/>
+            <stop offset="1" stop-color="#fff" stop-opacity=".3"/>
+          </linearGradient>
+          <mask id="mask1"><rect width="390" height="230" fill="url(#fade1)"/></mask>
+        </defs>
+
+        <g mask="url(#mask1)">
+          <!-- ① 底层：地面透视 + 天际气线（1px / .05） -->
+          <g stroke="#fff" stroke-width="1" opacity=".05">
+            <path d="M206 168L0 230M206 168L70 230M206 168L150 230M206 168L262 230M206 168L330 230M206 168L390 230"/>
+            <path d="M0 178h390M0 190h390M0 204h390M0 218h390"/>
+            <path d="M36 30q64-8 128 0M232 20q72-6 132 2"/>
+          </g>
+
+          <!-- ② 中层：学府建筑群主线稿（1.5px / .10） -->
+          <g stroke="#fff" stroke-width="1.5" opacity=".1">
+            <!-- 左后：穹顶礼堂 -->
+            <path d="M40 140c0-18 11-28 24-28s24 10 24 28"/>
+            <path d="M40 140h48M40 168h48"/>
+            <path d="M59 112v-8h10v8"/>
+            <path d="M57 104q7-5 14 0"/>
+            <path d="M34 168v6h60v-6"/>
+            <!-- 中央：钟楼教学主楼 -->
+            <path d="M186 92L206 42l20 50"/>
+            <path d="M206 42v-7"/>
+            <circle cx="206" cy="32" r="2"/>
+            <path d="M196 92v-11a10 10 0 0120 0v11"/>
+            <path d="M184 92h44M184 97h44"/>
+            <path d="M188 97v71M224 97v71"/>
+            <path d="M197 168v-18a9 9 0 0118 0v18"/>
+            <!-- 主楼横翼：拱窗连排 -->
+            <path d="M118 128h176M118 133h176"/>
+            <path d="M118 128v40M294 128v40"/>
+            <path d="M128 160v-16a6 6 0 0112 0v16M150 160v-16a6 6 0 0112 0v16M172 160v-16a6 6 0 0112 0v16"/>
+            <path d="M232 160v-16a6 6 0 0112 0v16M254 160v-16a6 6 0 0112 0v16M276 160v-16a6 6 0 0112 0v16"/>
+            <!-- 右后：广电发射塔（格构） -->
+            <path d="M322 168L334 58M350 168L342 58"/>
+            <path d="M338 58V36"/>
+            <path d="M334 48h8M335 42h6"/>
+            <path d="M324 140h24M327 112h18M330 84h12"/>
+            <path d="M322 168l28-28M350 168l-28-28M325 140l22-28M347 140l-22-28M327 112l16-28M343 112l-16-28"/>
+            <!-- 前景：两侧低层拱廊 -->
+            <path d="M0 150h88M0 190h88"/>
+            <path d="M8 190v-20a11 11 0 0122 0v20M34 190v-20a11 11 0 0122 0v20M60 190v-20a11 11 0 0122 0v20"/>
+            <path d="M302 150h88M302 190h88"/>
+            <path d="M310 190v-20a11 11 0 0122 0v20M336 190v-20a11 11 0 0122 0v20M362 190v-20a11 11 0 0122 0v20"/>
+            <!-- 天空：细云纹 + 飞鸟 -->
+            <path d="M118 46q6-10 18-8q11 2 11 10"/>
+            <path d="M258 36q5-8 15-7q9 1 9 8"/>
+            <path d="M148 62q4-5 9-1M161 55q4-5 9-1"/>
+          </g>
+
+          <!-- ②+ 细部：顺形体排线 + 柱窗细线（1px / .085） -->
+          <g stroke="#fff" stroke-width="1" opacity=".085">
+            <!-- 穹顶鼓座柱廊 + 右侧受背光排线 -->
+            <path d="M48 140v28M56 140v28M64 140v28M72 140v28M80 140v28"/>
+            <path d="M76 122l10 6M72 132l12 6M68 142l13 5"/>
+            <!-- 钟楼左壁排线 + 翼楼檐下斜纹 -->
+            <path d="M192 102v64M197 102v64M202 102v64"/>
+            <path d="M124 136l7 7M142 136l7 7M160 136l7 7M238 136l7 7M256 136l7 7M274 136l7 7"/>
+            <!-- 拱窗中梃 -->
+            <path d="M134 144v16M156 144v16M178 144v16M238 144v16M260 144v16M282 144v16"/>
+            <!-- 塔基座线 -->
+            <path d="M184 168h44"/>
+            <!-- 路灯 ×4：灯杆 + 悬臂 + 灯头 -->
+            <path d="M46 222v-44M46 178q9 1 9 9M55 190v3M42 222h8"/>
+            <path d="M150 222v-44M150 178q9 1 9 9M159 190v3M146 222h8"/>
+            <path d="M262 222v-44M262 178q9 1 9 9M271 190v3M258 222h8"/>
+            <path d="M366 222v-44M366 178q9 1 9 9M375 190v3M362 222h8"/>
+            <!-- 梧桐树干 ×3：双线干 + 折枝 -->
+            <path d="M98 222v-40M102 222v-40M100 196l-8-10M100 188l9-11"/>
+            <path d="M208 222v-40M212 222v-40M210 194l-8-9M210 186l9-10"/>
+            <path d="M314 222v-40M318 222v-40M316 196l-8-10M316 188l9-11"/>
+            <!-- 地面短排线 -->
+            <path d="M38 214h16M142 214h16M254 214h16M358 214h16M90 218h20M204 218h20M310 218h20"/>
+          </g>
+
+          <!-- ③ 前景强调：主轮廓（2px / .15） -->
+          <g stroke="#fff" stroke-width="2" opacity=".15">
+            <path d="M40 140c0-18 11-28 24-28s24 10 24 28"/>
+            <path d="M186 92L206 42l20 50M188 97v71M224 97v71"/>
+            <path d="M118 128h176"/>
+            <path d="M322 168L334 58M350 168L342 58"/>
+            <path d="M0 168h390"/>
+          </g>
+
+          <!-- 金线提亮：钟面 + 地平线（#c9ab7c） -->
+          <g stroke="#c9ab7c" stroke-width="1.2">
+            <circle cx="206" cy="112" r="10" opacity=".25"/>
+            <path d="M206 112v-6M206 112l4 3" opacity=".22"/>
+            <path d="M0 168h390" opacity=".14"/>
+          </g>
+        </g>
+
+        <!-- 扉页角饰（不参与渐隐） -->
+        <g stroke="#fff" stroke-width="1" opacity=".09">
+          <path d="M2 24Q2 2 24 2M2 15Q2 2 15 2M7 7l6 6"/>
+          <path d="M388 206q0 22-22 22M388 215q0 13-13 13M383 221l-6-6"/>
+        </g>
+      </svg>
+      <span class="rf-corner">学生端</span>
+      <div class="rf-fg">
+        <div class="avatar">陈</div>
+        <div class="info">
+          <div class="nm">陈同学</div>
+          <div class="cl">一班 · 第 9 教学周</div>
+        </div>
+        <img class="seal" src="assets/seal-boyi.png" alt="播字金印">
+      </div>
+    </div>
+    <p class="cap"><b>学生端 · 学府之路</b> —— 取传媒学府建筑意象 · 蓝为学子：尖顶钟楼主楼、穹顶礼堂、广电发射塔与两侧拱廊连排，低地平线上留出天空云鸟，路灯梧桐收边，一幅完整的学府之路。</p>
+  </section>
+
+  <!-- ============ 卡 2 · 教师端 · 讲席春秋 ============ -->
+  <section class="demo">
+    <span class="demo-tag"><b>贰</b>教师端 · 讲席春秋</span>
+    <div class="rf-head c2">
+      <svg class="pat" viewBox="0 0 390 230" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="fade2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff"/>
+            <stop offset=".6" stop-color="#fff"/>
+            <stop offset="1" stop-color="#fff" stop-opacity=".3"/>
+          </linearGradient>
+          <mask id="mask2"><rect width="390" height="230" fill="url(#fade2)"/></mask>
+        </defs>
+
+        <g mask="url(#mask2)">
+          <!-- ① 底层：桌面透视排线 + 地平横线（1px / .045） -->
+          <g stroke="#fff" stroke-width="1" opacity=".045">
+            <path d="M195 206L0 230M195 206L128 230M195 206L262 230M195 206L390 230"/>
+            <path d="M0 214h390M0 222h390M0 196h390"/>
+          </g>
+
+          <!-- ② 中层：讲席主线稿（1.5px / .10） -->
+          <g stroke="#fff" stroke-width="1.5" opacity=".1">
+            <!-- 板书黑板：双层框 -->
+            <path d="M138 48h114v62h-114zM144 54h102v50h-102z"/>
+            <!-- 粉笔槽 + 粉笔 -->
+            <path d="M146 114h100M170 111h12M200 111h9"/>
+            <!-- 讲台：斜面台顶 + 立面 -->
+            <path d="M150 150h90l12 12h-114z"/>
+            <path d="M138 162h114v34h-114z"/>
+            <path d="M148 170h94v18h-94z"/>
+            <!-- 摊开的教案 -->
+            <path d="M172 146c8-5 15-5 23 0c8-5 15-5 23 0"/>
+            <path d="M172 152c8-5 15-5 23 0c8-5 15-5 23 0"/>
+            <path d="M195 146v6"/>
+            <!-- 左：书卷一摞 -->
+            <path d="M50 186h64v10H50zM56 176h56v10H56zM62 166h46v10H62z"/>
+            <!-- 地球仪剪影 -->
+            <circle cx="85" cy="140" r="16"/>
+            <ellipse cx="85" cy="140" rx="7" ry="16"/>
+            <path d="M71 134q14-4 28 0M71 146q14 4 28 0"/>
+            <path d="M85 122v-6M79 158h12"/>
+            <!-- 右：立式话筒 -->
+            <ellipse cx="310" cy="206" rx="15" ry="3.5"/>
+            <path d="M310 206V130M310 130l12-16"/>
+            <circle cx="326" cy="107" r="6"/>
+            <path d="M310 206q-7 8-15 8"/>
+            <!-- 右：谱架 -->
+            <path d="M244 128l36-6l4 22l-36 6z"/>
+            <path d="M263 150v56M263 206l-13 12M263 206l14 12"/>
+            <!-- 右：窗棂格 + 窗外远山一笔 -->
+            <path d="M312 44h64v70h-64zM318 50h52v58h-52z"/>
+            <path d="M344 50v58M318 79h52"/>
+            <path d="M320 100c10-12 18-18 26-18s16 6 24 16"/>
+          </g>
+
+          <!-- ②+ 细部：木纹 / 棂格 / 排线（1px / .085） -->
+          <g stroke="#fff" stroke-width="1" opacity=".085">
+            <!-- 黑板左内壁排线 -->
+            <path d="M148 58v40M152 58v40M156 58v40"/>
+            <!-- 台面斜排线 -->
+            <path d="M154 152l-8 6M170 152l-8 6M186 152l-8 6M202 152l-8 6M218 152l-8 6M234 152l-8 6"/>
+            <!-- 讲台立面木纹 -->
+            <path d="M160 164c2 8-2 16 1 30M184 164c-2 9 2 18-1 30M210 164c2 8-2 17 1 30M232 164c-2 8 2 16-1 30"/>
+            <!-- 教案页线 -->
+            <path d="M178 149h10M202 149h10"/>
+            <!-- 书脊线 -->
+            <path d="M60 186v10M70 176v10M78 166v10M96 176v10M100 186v10"/>
+            <!-- 地球仪经纬补线 -->
+            <path d="M75 128q10-2 20 0M75 152q10 2 20 0"/>
+            <!-- 话筒网罩十字 -->
+            <path d="M321 105h10M322 101l8 12"/>
+            <!-- 谱架谱线 -->
+            <path d="M250 133l26-4M251 138l26-4M252 143l26-4"/>
+            <!-- 窗棂斜格（四扇各一撇一捺） -->
+            <path d="M318 50l26 29M344 50l-26 29M344 50l26 29M370 50l-26 29M318 108l26-29M344 108l-26-29M344 108l26-29M370 108l-26-29"/>
+            <!-- 地面短排线 -->
+            <path d="M40 210h18M150 212h20M280 210h18M330 214h20"/>
+          </g>
+
+          <!-- 板书文字：声入人心（小楷感细线双钩，焦点层） -->
+          <text x="195" y="87" text-anchor="middle" font-family="Songti SC,STSong,serif" font-size="20" letter-spacing="5" fill="none" stroke="#fff" stroke-width=".8" opacity=".3">声入人心</text>
+
+          <!-- ③ 前景强调：黑板 / 讲台 / 地球仪主轮廓（2px / .15） -->
+          <g stroke="#fff" stroke-width="2" opacity=".15">
+            <path d="M138 48h114v62h-114z"/>
+            <path d="M138 162h114v34h-114z"/>
+            <circle cx="85" cy="140" r="16"/>
+          </g>
+
+          <!-- 金线提亮：匾额横批 + 垂穗锚点（#c9ab7c） -->
+          <g stroke="#c9ab7c" stroke-width="1.2">
+            <path d="M40 22h310M40 30h310" opacity=".22"/>
+            <path d="M40 22v8M350 22v8" opacity=".22"/>
+            <circle cx="40" cy="36" r="1.2" opacity=".26"/>
+            <circle cx="350" cy="36" r="1.2" opacity=".26"/>
+          </g>
+          <!-- 白穗：两端垂下 -->
+          <g stroke="#fff" stroke-width="1" opacity=".08">
+            <path d="M40 38v6M40 44l-4 8M40 44l4 8M350 38v6M350 44l-4 8M350 44l4 8"/>
+            <circle cx="36" cy="54" r="1"/><circle cx="44" cy="54" r="1"/>
+            <circle cx="346" cy="54" r="1"/><circle cx="354" cy="54" r="1"/>
+          </g>
+        </g>
+
+        <!-- 扉页角饰（不参与渐隐） -->
+        <g stroke="#fff" stroke-width="1" opacity=".09">
+          <path d="M2 24Q2 2 24 2M2 15Q2 2 15 2M7 7l6 6"/>
+          <path d="M388 206q0 22-22 22M388 215q0 13-13 13M383 221l-6-6"/>
+        </g>
+      </svg>
+      <span class="rf-corner">教师端</span>
+      <div class="rf-fg">
+        <div class="avatar">李</div>
+        <div class="info">
+          <div class="nm">李老师</div>
+          <div class="cl">播音教研室 · 第 9 教学周</div>
+        </div>
+        <img class="seal" src="assets/seal-boyi.png" alt="播字金印">
+      </div>
+    </div>
+    <p class="cap"><b>教师端 · 讲席春秋</b> —— 讲席教具入画 · 赭为师者：板书黑板「声入人心」、讲台教案与木纹、话筒谱架、书卷地球仪、窗棂外远山一笔，顶部匾额横批垂穗，一幅完整的讲席画。</p>
+  </section>
+
+  <!-- ============ 卡 3 · 通用 · 山海编钟纹拆组 ============ -->
+  <section class="demo">
+    <span class="demo-tag"><b>叁</b>通用 · 山海编钟纹拆组</span>
+    <div class="rf-head c3">
+      <svg class="pat" viewBox="0 0 390 230" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="fade3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff"/>
+            <stop offset=".58" stop-color="#fff"/>
+            <stop offset="1" stop-color="#fff" stop-opacity=".3"/>
+          </linearGradient>
+          <mask id="mask3"><rect width="390" height="230" fill="url(#fade3)"/></mask>
+          <!-- 山形浪单元 · 前层 -->
+          <pattern id="wvF" width="62" height="30" patternUnits="userSpaceOnUse">
+            <path d="M0 24Q10 2 26 8Q42 14 46 24" stroke="#fff" stroke-width="1.3" fill="none"/>
+            <path d="M28 14a5.5 5.5 0 11-5 8" stroke="#fff" stroke-width="1" fill="none"/>
+            <path d="M0 27q31 5 62 0" stroke="#fff" stroke-width="1" fill="none"/>
+          </pattern>
+          <!-- 山形浪单元 · 后层 -->
+          <pattern id="wvB" width="78" height="22" patternUnits="userSpaceOnUse">
+            <path d="M0 18Q16 0 34 6Q52 12 56 18" stroke="#fff" stroke-width="1.1" fill="none"/>
+            <path d="M0 21q39 4 78 0" stroke="#fff" stroke-width=".9" fill="none"/>
+          </pattern>
+        </defs>
+
+        <g mask="url(#mask3)">
+          <!-- ① 底层：海浪纹整幅横铺（拆自 logo 的山形浪，三层） -->
+          <rect x="0" y="172" width="390" height="46" fill="url(#wvB)" stroke="none" opacity=".05"/>
+          <rect x="0" y="186" width="390" height="40" fill="url(#wvB)" stroke="none" opacity=".07"/>
+          <rect x="0" y="198" width="390" height="32" fill="url(#wvF)" stroke="none" opacity=".1"/>
+          <!-- 金线浪尖一线 -->
+          <path d="M0 202q32-16 65-6t65 2t65-12t65 12t65-8t65 6" stroke="#c9ab7c" stroke-width="1.2" opacity=".28"/>
+
+          <!-- ② 中层：流云自两角向中央散开（拆自 logo 云纹，1.5px / .10） -->
+          <g stroke="#fff" stroke-width="1.5" opacity=".1">
+            <path d="M22 44q2-12 16-12q13 0 14 10q1 9-10 10"/>
+            <path d="M52 50q22 4 40 14"/>
+            <path d="M368 40q-2-12-16-12q-13 0-14 10q-1 9 10 10"/>
+            <path d="M338 46q-22 4-40 14"/>
+          </g>
+          <!-- 云尾细线流云（1px / .07） -->
+          <g stroke="#fff" stroke-width="1" opacity=".07">
+            <path d="M32 38a4.5 4.5 0 11-4 7"/>
+            <path d="M356 34a4.5 4.5 0 104 7"/>
+            <path d="M96 36q52-12 99-2M294 32q-40-8-78-2"/>
+          </g>
+
+          <!-- ③ 主角：编钟放大居中（拆自 logo 主体） -->
+          <!-- 内层细节：篆饰带 + 枚乳 + 钲带 -->
+          <g stroke="#fff" stroke-width="1.2" opacity=".12">
+            <path d="M181 95h28"/>
+            <path d="M170 102q25-7 50 0M170 108q25-7 50 0"/>
+            <path d="M166 136q29-9 58 0M166 142q29-9 58 0"/>
+            <path d="M187 108v28M203 108v28M187 142v26M203 142v26"/>
+          </g>
+          <g stroke="#fff" stroke-width="1" opacity=".14">
+            <circle cx="178" cy="116" r="2.4"/><circle cx="195" cy="116" r="2.4"/><circle cx="212" cy="116" r="2.4"/>
+            <circle cx="178" cy="128" r="2.4"/><circle cx="195" cy="128" r="2.4"/><circle cx="212" cy="128" r="2.4"/>
+            <circle cx="177" cy="150" r="2.4"/><circle cx="195" cy="150" r="2.4"/><circle cx="213" cy="150" r="2.4"/>
+            <circle cx="177" cy="162" r="2.4"/><circle cx="195" cy="162" r="2.4"/><circle cx="213" cy="162" r="2.4"/>
+          </g>
+          <!-- 钟腔内极淡排线（左腔背光） -->
+          <g stroke="#fff" stroke-width="1" opacity=".06">
+            <path d="M160 112l-6 56M168 108l-8 62M176 104l-9 66"/>
+          </g>
+
+          <!-- 印章式小方块：篆书「砺」「蕴」双钩（印框金线） -->
+          <g stroke="#c9ab7c" stroke-width="1.2">
+            <rect x="26" y="30" width="38" height="38" opacity=".35"/>
+            <rect x="31" y="35" width="28" height="28" opacity=".25"/>
+            <rect x="326" y="30" width="38" height="38" opacity=".35"/>
+            <rect x="331" y="35" width="28" height="28" opacity=".25"/>
+          </g>
+          <g fill="none" stroke="#fff" stroke-width=".8" opacity=".22" font-family="Songti SC,STSong,serif" font-size="21" text-anchor="middle">
+            <text x="45" y="56">砺</text>
+            <text x="345" y="56">蕴</text>
+          </g>
+
+          <!-- ④ 金线主轮廓：编钟外轮廓（#c9ab7c / 2px / .40） -->
+          <g stroke="#c9ab7c" stroke-width="2" opacity=".4">
+            <path d="M183 78c0-14 24-14 24 0"/>
+            <path d="M173 88q22-9 44 0"/>
+            <path d="M173 88c-9 30-17 58-24 88"/>
+            <path d="M217 88c9 30 17 58 24 88"/>
+            <path d="M149 176q23-11 46-11t46 11"/>
+          </g>
+          <!-- 白线副轮廓：钟钮内环 + 钟肩衬托（1.5px / .12） -->
+          <g stroke="#fff" stroke-width="1.5" opacity=".12">
+            <path d="M187 78c0-9 16-9 16 0"/>
+            <path d="M190 78v5M200 78v5"/>
+          </g>
+        </g>
+
+        <!-- 扉页角饰（不参与渐隐） -->
+        <g stroke="#fff" stroke-width="1" opacity=".09">
+          <path d="M2 24Q2 2 24 2M2 15Q2 2 15 2M7 7l6 6"/>
+          <path d="M388 206q0 22-22 22M388 215q0 13-13 13M383 221l-6-6"/>
+        </g>
+      </svg>
+      <span class="rf-corner">通用</span>
+      <div class="rf-fg">
+        <div class="avatar">陈</div>
+        <div class="info">
+          <div class="nm">陈同学</div>
+          <div class="cl">一班 · 第 9 教学周</div>
+        </div>
+        <img class="seal" src="assets/seal-boyi.png" alt="播字金印">
+      </div>
+    </div>
+    <p class="cap"><b>通用 · 山海编钟纹拆组</b> —— 山海编钟纹拆组 · 金蓝通用：编钟放大居中（钟钮 / 枚乳 / 篆饰带全细线），海浪拆出三层横铺作波涛底纹，云纹聚于两角散向中央，「砺蕴」篆书拆作双钩印框。</p>
+  </section>
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>每周模考 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .tier{display:inline-block;border-radius:4px;padding:6px 14px;font-size:12.5px;letter-spacing:1px;margin:0 8px 8px 0;border:1px solid var(--line);color:var(--ink-2)}
+  .tier.t1{background:var(--blue);border-color:var(--blue);color:#fff}
+  .tier.t2{border-color:var(--blue);color:var(--blue)}
+  .tier.t3{border-color:var(--gold);color:var(--gold-deep)}
+  .tier.t4{background:#fff;color:var(--ink-2)}
+  .tier.t5{border-color:var(--red);color:var(--red)}
+  .drawno{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--gold-deep);color:var(--gold-deep);font-family:Georgia,var(--serif);font-size:14px;margin-right:10px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a class="on" href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>每周模考</b></span></div>
+
+  <!-- 评分标准（来源：生产 page-exam「评分标准 · 河南省播音与主持类统考」五个等第） -->
+  <div class="au d2">
+    <div class="sec"><h2>评分标准<small>RUBRIC · 河南省播音与主持类统考</small></h2><span class="crumb">等第只看分数段，与统考一致</span></div>
+    <div class="rule"></div>
+    <div class="card">
+      <span class="tier t1">一等 90–100 优秀</span>
+      <span class="tier t2">二等 80–89 良好</span>
+      <span class="tier t3">三等 70–79 中等</span>
+      <span class="tier t4">四等 60–69 及格</span>
+      <span class="tier t5">五等 0–59 待提升</span>
+    </div>
+  </div>
+
+  <!-- AI 出题 / 手动出题（来源：生产 page-exam 两张出题卡） -->
+  <div class="au d3" style="margin-top:34px">
+    <div class="sec"><h2>出题<small>TOPICS</small></h2><span class="crumb">AI 基于最近一周的热点新闻出 5 道即兴评述题，出来后可以直接改再存</span></div>
+    <div class="rule"></div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:12px">AI 出题</h3>
+        <textarea style="width:100%;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13px;font-family:var(--sans);min-height:170px;line-height:1.9">1. 神舟二十号成功对接：中国航天的「接力棒」精神（角度：传承与协作）
+2. 秋粮丰收背后的科技力量（角度：科技赋能传统产业）
+3. AI 助教进课堂：老师会被取代吗（角度：技术与人的边界）
+4. 文旅融合带火「县城游」（角度：家乡巨变的观察）
+5. 全民健身条例修订：从「有场地」到「用得好」（角度：公共服务的温度）</textarea>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn pri sm">存入题库</button>
+          <button class="btn sec sm">再出一组</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:12px">手动出题</h3>
+        <textarea placeholder="自己粘贴或编写题目，每题一行" style="width:100%;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13px;font-family:var(--sans);min-height:170px"></textarea>
+        <div style="margin-top:12px">
+          <button class="btn sec sm">存入题库</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 成绩录入（来源：生产 page-exam「成绩录入 · 新场次名 · 新建这一场」） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>成绩录入<small>SCORES · 9月第4周模考 · 播音一班</small></h2><span class="crumb"><b>新建这一场</b> · 场次名如「9月第3周模考」</span></div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <tr><th>学员</th><th>指定稿件</th><th>即兴评述</th><th>总分</th><th>等第</th></tr>
+        <tr><td>陈同学</td><td>92</td><td>90</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">91</b></td><td><span class="pill blue">一等 · 优秀</span></td></tr>
+        <tr><td>李同学</td><td>85</td><td>88</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">86</b></td><td><span class="pill blue">二等 · 良好</span></td></tr>
+        <tr><td>王同学</td><td>82</td><td>78</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">80</b></td><td><span class="pill blue">二等 · 良好</span></td></tr>
+        <tr><td>张同学</td><td>76</td><td>74</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">75</b></td><td><span class="pill gold">三等 · 中等</span></td></tr>
+        <tr><td>刘同学</td><td>70</td><td>68</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">69</b></td><td><span class="pill gray">四等 · 及格</span></td></tr>
+        <tr><td>赵同学</td><td>88</td><td>84</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">86</b></td><td><span class="pill blue">二等 · 良好</span></td></tr>
+        <tr><td>孙同学</td><td>64</td><td>58</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">61</b></td><td><span class="pill red">五等 · 待提升</span></td></tr>
+        <tr><td>周同学</td><td>79</td><td>81</td><td><b style="font-family:Georgia,var(--serif);color:var(--blue)">80</b></td><td><span class="pill blue">二等 · 良好</span></td></tr>
+      </table>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn pri sm">导出这一场</button>
+      <button class="btn sec sm">导出该班历次成绩</button>
+      <button class="btn sec sm">复制排名文案</button>
+    </div>
+  </div>
+
+  <!-- 抽签（来源：生产 page-exam「抽签 · 开抽 / 重新抽 · 复制名单」） -->
+  <div class="au d5" style="margin-top:34px">
+    <div class="sec"><h2>抽签<small>DRAW</small></h2><span class="crumb">种子存在服务端 · 80 人同时点也不会撞号 · 学生不能重抽</span></div>
+    <div class="rule"></div>
+    <div class="cols" style="grid-template-columns:1fr 1.4fr">
+      <div class="card">
+        <div class="fld"><label>这次抽签的名字</label><input value="9月第4周模考"></div>
+        <div style="display:flex;gap:10px">
+          <button class="btn pri">开抽 / 重新抽</button>
+          <button class="btn sec">复制名单</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-3);margin-top:12px">9月第4周模考 · 28 人 · 第 1 次抽签 · 齐活林</p>
+      </div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 24px">
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">1</span>陈同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">2</span>赵同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">3</span>李同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">4</span>周同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">5</span>王同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">6</span>张同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">7</span>孙同学</div>
+          <div style="padding:8px 0;border-bottom:1px dashed var(--line)"><span class="drawno">8</span>刘同学</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 题库记录（来源：生产 page-exam「题库记录」） -->
+  <div class="au d5" style="margin-top:34px">
+    <div class="sec"><h2>题库记录<small>ARCHIVE</small></h2><span class="crumb">AI 出题与手动出题都存这里</span></div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <tr><th>日期</th><th>题目内容</th><th>来源</th></tr>
+        <tr><td>2026-10-19</td><td style="color:var(--ink-2)">5 道 · 神舟对接 / 秋粮丰收 / AI 助教 / 县城游 / 全民健身</td><td><span class="pill blue">AI</span></td></tr>
+        <tr><td>2026-10-12</td><td style="color:var(--ink-2)">5 道 · 研学旅行 / 老字号焕新 / 城市漫步 / 非遗进校园 / 体育强基</td><td><span class="pill blue">AI</span></td></tr>
+        <tr><td>2026-10-08</td><td style="color:var(--ink-2)">3 道 · 「短视频与深度阅读」「网红城市之后」「我的十八岁」</td><td><span class="pill gold">手动</span></td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

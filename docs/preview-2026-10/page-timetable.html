@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>课表 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  /* 节次时间格（大作息 chips） */
+  .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .pcell{border:1px solid var(--line);border-radius:5px;padding:9px 12px;background:#fff}
+  .pcell b{display:block;font-size:12.5px;color:var(--blue-ink);letter-spacing:1px}
+  .pcell span{font-size:11px;color:var(--ink-3);font-family:Georgia,var(--serif)}
+  .pcell.on{border-color:var(--gold);background:linear-gradient(180deg,#fdfaf3,#fff);box-shadow:inset 0 0 0 1px var(--gold)}
+  /* 大课表格子 */
+  .tt{width:100%;border-collapse:collapse;table-layout:fixed}
+  .tt th{background:var(--blue);color:#eef1f8;font-size:12.5px;letter-spacing:3px;font-weight:500;padding:11px 8px;border:1px solid #43557f}
+  .tt th:first-child{width:92px;background:var(--blue-deep)}
+  .tt td{border:1px solid var(--line);background:#fff;vertical-align:top;padding:7px 8px;height:64px}
+  .tt td.pname{background:#f2f1ec;font-family:var(--serif);font-size:12px;color:var(--blue-ink);text-align:center;vertical-align:middle;padding:4px}
+  .tt td.pname span{display:block;font-family:Georgia,var(--serif);font-size:10px;color:var(--ink-3);margin-top:3px}
+  .ls b{display:block;font-size:12px;font-weight:600;color:var(--ink);line-height:1.45}
+  .ls span{display:block;font-size:10.5px;color:var(--ink-3);margin-top:2px}
+  .ls.prac b{color:var(--gold-deep)}
+  .ls.exam b{color:var(--red)}
+  .tt td.now{box-shadow:inset 0 0 0 2px var(--gold-deep);background:linear-gradient(180deg,#fdfaf3,#fff)}
+  .tt td.now b{color:var(--blue)}
+  .chipday{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--ink-2);margin-right:6px}
+  .chipday.on{border-color:var(--blue);color:var(--blue);background:#f6f8fc}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a class="on" href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>课表</b></span></div>
+
+  <!-- 大作息 / 小课加课（来源：生产 page-timetable 两卡并排） -->
+  <div class="au d2">
+    <div class="sec"><h2>作息与排课<small>PERIODS</small></h2><span class="crumb">大作息已定死 · 全体同步 · 小课时间自由填</span></div>
+    <div class="rule"></div>
+    <div class="cols" style="grid-template-columns:1.25fr 1fr">
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:4px">大作息 · 大班课表用</h3>
+        <p style="font-size:11.5px;color:var(--ink-3);letter-spacing:1px;margin-bottom:14px">已定死 · 全体同步 · 改早上时间，后面各节自动顺延</p>
+        <div class="pgrid">
+          <div class="pcell on"><b>早功</b><span>06:30 – 07:10</span></div>
+          <div class="pcell"><b>第1节</b><span>08:00 – 08:40</span></div>
+          <div class="pcell on"><b>第2节</b><span>10:00 – 10:40</span></div>
+          <div class="pcell"><b>第3节</b><span>13:30 – 14:10</span></div>
+          <div class="pcell"><b>第4节</b><span>14:20 – 15:00</span></div>
+          <div class="pcell"><b>午功</b><span>12:00 – 12:40</span></div>
+          <div class="pcell"><b>晚自习</b><span>18:30 – 19:10</span></div>
+          <div class="pcell"><b>熄灯查寝</b><span>22:30</span></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+          <button class="btn sec sm">编辑 / 统一时间轴</button>
+          <span style="font-size:11.5px;color:var(--ink-3)">「自动顺延」的段：开始 = 上一节结束 + 课间</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:4px">小课 / 加课</h3>
+        <p style="font-size:11.5px;color:var(--ink-3);letter-spacing:1px;margin-bottom:14px">只进相关师生课表 · 时间自由填 · 不占全局节次</p>
+        <div class="grid2">
+          <div class="fld"><label>周几</label><select><option>周三</option><option>周一</option><option>周五</option></select></div>
+          <div class="fld"><label>时间</label><input value="13:00-14:00"></div>
+        </div>
+        <div class="grid2">
+          <div class="fld"><label>学员</label><input value="陈同学"></div>
+          <div class="fld"><label>内容</label><input value="一对一·自备稿件"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="fld" style="margin:0;flex:1"><label>老师</label><select><option>沈老师</option><option>余老师</option><option>顾老师</option></select></div>
+          <button class="btn pri" style="margin-top:16px">加入小课/加课</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教室（来源：生产 page-timetable「教室」卡） -->
+  <div class="au d3" style="margin-top:34px">
+    <div class="sec"><h2>教室<small>ROOMS</small></h2><span class="crumb">排课台与课表格子里用的都是这份名单</span></div>
+    <div class="rule"></div>
+    <div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="pill blue" style="font-size:12.5px;padding:6px 16px">BY03</span>
+      <span class="pill blue" style="font-size:12.5px;padding:6px 16px">BY05</span>
+      <span class="pill gray" style="font-size:12.5px;padding:6px 16px">BY06</span>
+      <span class="pill blue" style="font-size:12.5px;padding:6px 16px">BY08</span>
+      <span class="pill gray" style="font-size:12.5px;padding:6px 16px">综合考场</span>
+      <input type="text" placeholder="教室名，如：BY08" style="width:170px;border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;margin-left:8px">
+      <button class="btn pri sm">加入教室</button>
+    </div>
+  </div>
+
+  <!-- 大课表（来源：生产 page-timetable「大课表」· 新令牌重绘：蓝头 / 白格 / 金强调当前节次） -->
+  <div class="au d3" style="margin-top:34px">
+    <div class="sec">
+      <h2>大课表<small>WEEKLY GRID · 博艺2026秋季集训第九周课表</small></h2>
+      <span class="crumb"><b>检查排课冲突</b> · 导出图片（发学生）· 导出图片（发老师）· 导出 Word（发学生）</span>
+    </div>
+    <div class="rule"></div>
+    <div class="tblwrap" style="padding:0">
+      <table class="tt">
+        <tr><th>节次</th><th>周一</th><th>周二</th><th>周三</th><th>周四</th><th>周五</th><th>周六</th><th>周日</th></tr>
+        <tr>
+          <td class="pname">早功<span>06:30</span></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+          <td><div class="ls prac"><b>练声</b><span>全体 · 自习</span></div></td>
+        </tr>
+        <tr>
+          <td class="pname">第1节<span>08:00</span></td>
+          <td><div class="ls"><b>播音 · 上镜实训</b><span>三班 · BY08 · 余老师</span></div></td>
+          <td><div class="ls"><b>编导 · 影片分析</b><span>二班 · BY03 · 沈老师</span></div></td>
+          <td><div class="ls"><b>表演 · 台词基础</b><span>二班 · BY05 · 顾老师</span></div></td>
+          <td><div class="ls"><b>播音 · 指定稿件</b><span>一班 · BY03 · 沈老师</span></div></td>
+          <td><div class="ls"><b>编导 · 故事编写</b><span>一班 · BY05 · 白老师</span></div></td>
+          <td><div class="ls"><b>周末班 · 语音基础</b><span>周末班 · BY03</span></div></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="pname">第2节<span>10:00</span></td>
+          <td class="now"><div class="ls"><b>编导 · 影片分析</b><span>一班 · BY03 · 沈老师</span></div></td>
+          <td><div class="ls"><b>播音 · 上镜实训</b><span>一班 · BY08 · 余老师</span></div></td>
+          <td><div class="ls"><b>表演 · 即兴表演</b><span>一班 · BY05 · 顾老师</span></div></td>
+          <td><div class="ls"><b>编导 · 影评写作</b><span>二班 · BY03 · 白老师</span></div></td>
+          <td><div class="ls"><b>播音 · 模拟主持</b><span>三班 · BY08 · 余老师</span></div></td>
+          <td><div class="ls"><b>周末班 · 即兴评述</b><span>周末班 · BY05</span></div></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="pname">第3节<span>13:30</span></td>
+          <td><div class="ls"><b>表演 · 台词基础</b><span>二班 · BY06 · 顾老师</span></div></td>
+          <td><div class="ls"><b>小课 · 一对一</b><span>陈同学 · BY03</span></div></td>
+          <td><div class="ls"><b>编导 · 即兴评述</b><span>一班 · BY03 · 沈老师</span></div></td>
+          <td><div class="ls"><b>播音 · 自备稿件</b><span>二班 · BY08 · 余老师</span></div></td>
+          <td><div class="ls"><b>表演 · 小品练习</b><span>一班 · BY05 · 顾老师</span></div></td>
+          <td><div class="ls"><b>小课 · 一对一</b><span>李同学 · BY08</span></div></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td class="pname">第4节<span>15:30</span></td>
+          <td><div class="ls exam"><b>第三次模拟考试</b><span>全体 · 综合考场</span></div></td>
+          <td><div class="ls"><b>晚自习 · 过关</b><span>全体 · BY03</span></div></td>
+          <td><div class="ls"><b>晚自习 · 过关</b><span>全体 · BY05</span></div></td>
+          <td><div class="ls"><b>晚自习 · 过关</b><span>全体 · BY08</span></div></td>
+          <td><div class="ls exam"><b>每周模考讲评</b><span>全体 · 综合考场</span></div></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-top:10px">← 左右滑动看完整一周 → · 金框为当前节次 · 蓝头白格沿用「节次时间格」概念</p>
+  </div>
+
+  <!-- 排课台（来源：生产 page-timetable「排课台」） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>排课台<small>PLANNER</small></h2><span class="crumb">按区间 + 上课日 + 节次批量生成整期课表</span></div>
+    <div class="rule"></div>
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="fld" style="margin:0;width:160px"><label>开始</label><input type="date" value="2026-10-19"></div>
+        <div class="fld" style="margin:0;width:160px"><label>结束</label><input type="date" value="2026-11-01"></div>
+        <button class="btn sec sm">两周</button>
+        <button class="btn sec sm">一个月</button>
+      </div>
+      <div style="margin-top:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--ink-2)">上课日</span>
+        <span class="chipday on">周一</span><span class="chipday on">周二</span><span class="chipday on">周三</span><span class="chipday on">周四</span><span class="chipday on">周五</span><span class="chipday on">周六</span><span class="chipday">周日</span>
+        <button class="btn sec sm">全选</button>
+        <button class="btn sec sm">清空</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn sec sm">＋ 加一行</button>
+        <button class="btn sec sm">按节次铺满</button>
+        <button class="btn sec sm">清空</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn sec">预览会排出什么</button>
+        <button class="btn pri">生成整期课表</button>
+        <button class="btn sec">清空该区间后重排</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导入课表 + 往期课表（来源：生产 page-timetable 末两卡） -->
+  <div class="au d5" style="margin-top:34px">
+    <div class="sec"><h2>导入与往期<small>IMPORT & ARCHIVE</small></h2><span class="crumb">上传入口已合并到「课时统计」</span></div>
+    <div class="rule"></div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:16px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:10px">导入课表（已合并到「课时统计」）</h3>
+        <p style="font-size:12.5px;color:var(--ink-2);line-height:1.9">上传课表的入口合并到了侧栏的<b style="color:var(--blue-ink)">「课时统计」</b>：那边能认 Word（.doc / .docx）、Excel、CSV 和图片，识别完逐格核对、自动分好「授课 / 练声 / 考试 / 休息」，确认后一键写进这里的课表。</p>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn pri sm">去「课时统计」上传</button>
+          <button class="btn sec sm">看往期课表</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:16px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:10px">往期课表</h3>
+        <div style="padding:10px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:13.5px">博艺2026暑期集训 · 第八周课表</b>
+          <span style="font-size:11.5px;color:var(--ink-3)">2026-08-23 存档</span>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:13.5px">博艺2026暑期集训 · 第七周课表</b>
+          <span style="font-size:11.5px;color:var(--ink-3)">2026-08-16 存档</span>
+        </div>
+        <div style="padding:10px 0 2px;display:flex;justify-content:space-between;align-items:center">
+          <b style="font-size:13.5px">博艺2026秋季集训 · 第八周课表</b>
+          <span style="font-size:11.5px;color:var(--ink-3)">2026-10-12 存档</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

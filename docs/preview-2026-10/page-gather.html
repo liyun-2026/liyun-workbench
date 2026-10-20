@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>限时征集 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:16px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .fld .rowline{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
+  .fld .rowline input{flex:1}
+  .gridstats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a class="on" href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>限时征集</b></span></div>
+
+  <!-- 速览 -->
+  <div class="gridstats au d2">
+    <div class="stat"><div class="n"><span class="cnt" data-to="2">2</span><em>场</em></div><div class="l">进行中</div></div>
+    <div class="stat hot"><div class="n"><span class="cnt" data-to="188">188</span><em>人</em></div><div class="l">本期已回</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="87">87</span><em>%</em></div><div class="l">平均回收率</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="2">2</span><em>场</em></div><div class="l">已结束</div></div>
+  </div>
+
+  <!-- 发起一次征集 -->
+  <div class="au d3" style="margin-bottom:28px">
+    <div class="card" style="max-width:860px">
+      <h3>发起一次征集</h3>
+      <div class="fld">
+        <label>标题</label>
+        <input type="text" placeholder="标题，如：艺考服装定制登记">
+      </div>
+      <div class="fld">
+        <label>说明（学生端会看到）</label>
+        <textarea rows="3" placeholder="说明（学生端会看到）"></textarea>
+      </div>
+      <div class="fld">
+        <label>截止时间</label>
+        <div class="rowline">截止时间<input type="text" value="2026-10-23 18:00" style="max-width:220px"></div>
+      </div>
+      <div class="fld">
+        <label>要学生填的问题（每行一个，选填）</label>
+        <textarea rows="3" placeholder="要学生填的问题，每行一个（选填；不填则只收「已完成」）"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+        <button class="btn pri">发起</button>
+        <span class="hint">发起后立即出现在学生端，过期自动收口</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 进行中 / 已结束 -->
+  <div class="au d4">
+    <div class="sec">
+      <h2>进行中 / 已结束<small>GATHERINGS</small></h2>
+      <span class="crumb">过期即收 · 学生端同步消失</span>
+    </div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>征集</th><th>状态</th><th>截止时间</th><th>已回</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b style="font-weight:600">艺考服装定制登记</b><br><span class="hint" style="font-size:12px">需填：身高 / 体重 / 服装尺码</span></td>
+            <td><span class="pill blue">进行中</span></td>
+            <td>2026-10-23 18:00</td>
+            <td>26 人</td>
+            <td><button class="btn sec sm">提前结束</button></td>
+          </tr>
+          <tr>
+            <td><b style="font-weight:600">下周三外景实拍报名</b><br><span class="hint" style="font-size:12px">只收「已完成」，不另收答案</span></td>
+            <td><span class="pill blue">进行中</span></td>
+            <td>2026-10-21 12:00</td>
+            <td>41 人</td>
+            <td><button class="btn sec sm">提前结束</button></td>
+          </tr>
+          <tr>
+            <td><b style="font-weight:600">十月家长开放日回执</b></td>
+            <td><span class="pill gray">已结束</span></td>
+            <td>2026-10-17 20:00</td>
+            <td>63 人</td>
+            <td><button class="btn danger sm">删除</button></td>
+          </tr>
+          <tr>
+            <td><b style="font-weight:600">校服尺码统计</b></td>
+            <td><span class="pill gray">已结束</span></td>
+            <td>2026-10-12 18:00</td>
+            <td>58 人</td>
+            <td><button class="btn danger sm">删除</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>首页 · 教务端（样张）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+<style>
+  /* 教务端首页：头部带角色徽标 */
+  .hero .greet-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .role-badge{
+    flex:none;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    height:20px;
+    padding:0 9px;
+    border-radius:10px;
+    border:1px solid rgba(232,205,148,.65);
+    color:#e8cd94;
+    font-size:10px;
+    letter-spacing:2px;
+    text-indent:2px;
+  }
+  .role-badge svg{flex:none}
+
+  /* 全局数据条 4 格：衬线大数字 */
+  .stats .stat .num{font-size:26px}
+  .stats .stat .num small{
+    font-size:12px;
+    font-family:var(--sans);
+    color:var(--ink-3);
+    margin-left:1px;
+  }
+  .stats .stat.hot .num{color:var(--gold-deep)}
+
+  /* 异常考勤红点 */
+  .reddot{
+    position:relative;
+  }
+  .reddot::before{
+    content:"";
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:#c44a3a;
+    margin-right:6px;
+    vertical-align:2px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 沉浸蓝头 -->
+  <div class="hero">
+    <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="">
+    <div class="greet-row">
+      <span class="greet">下午好，李主任</span>
+      <span class="role-badge">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1.5l4 1.8v3c0 2.6-1.7 4-4 4.7-2.3-.7-4-2.1-4-4.7v-3L6 1.5z"/></svg>
+        教务
+      </span>
+    </div>
+    <div class="sub">10 月 20 日 星期二 · 第 9 教学周 · 全校运转正常</div>
+  </div>
+
+  <!-- 白板叠头 -->
+  <div class="sheet">
+
+    <!-- ① 全局数据条 -->
+    <div class="sec"><h2>今日全校概览</h2><span class="more">10 月 20 日</span></div>
+    <div class="stats">
+      <div class="stat"><div class="num">96.4<small>%</small></div><div class="unit">今日出勤率</div></div>
+      <div class="stat"><div class="num">187</div><div class="unit">在读学员</div></div>
+      <div class="stat"><div class="num">42</div><div class="unit">本周课时</div></div>
+      <div class="stat hot"><div class="num">3</div><div class="unit">待处理</div></div>
+    </div>
+
+    <!-- ② 今日课程 / 异常考勤 -->
+    <div class="sec"><h2>今日教务</h2><span class="more">全部 ›</span></div>
+    <div class="card">
+      <div class="sched">
+        <span class="dot"></span>
+        <div class="info">
+          <div class="name">今日全校课程</div>
+          <div class="meta">28 节 · 6 个班在授 · 晚课 4 节</div>
+        </div>
+        <span class="pill blue">进行 5 节</span>
+      </div>
+      <div class="sched">
+        <span class="dot" style="background:#c44a3a"></span>
+        <div class="info">
+          <div class="name reddot">异常考勤提醒</div>
+          <div class="meta">二班上午缺勤 2 人 · 待班主任确认</div>
+        </div>
+        <span class="pill red">2 人</span>
+      </div>
+    </div>
+
+    <!-- ③ 待办 -->
+    <div class="sec"><h2>待办事项</h2><span class="more">全部 ›</span></div>
+    <div class="card">
+      <div class="todo">
+        <div class="info">
+          <div class="name">缺勤上报 · 2 条待审</div>
+          <div class="due">一班刘同学 / 三班陈同学 · 今天 13:40 提交</div>
+        </div>
+        <span class="pill red">待审</span>
+      </div>
+      <div class="todo">
+        <div class="info">
+          <div class="name">排课冲突 · 1 条</div>
+          <div class="due">周三第 3 节 · BY08 演播室双班撞场</div>
+        </div>
+        <span class="pill gold">待调整</span>
+      </div>
+      <div class="todo">
+        <div class="info">
+          <div class="name">教师课时确认 · 截止周五</div>
+          <div class="due">第 9 教学周 · 尚余 5 位教师未确认</div>
+        </div>
+        <span class="pill gold">5 人</span>
+      </div>
+    </div>
+
+    <!-- ④ 快捷宫格 8 项（4 列 2 行） -->
+    <div class="sec"><h2>教务工作台</h2><span class="more">全部 ›</span></div>
+    <div class="grid4">
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/><path d="M8 14h3M13 14h3M8 17.5h3"/></svg></span><span class="lb">排课</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12.5l2 2 4-4.5"/><path d="M9 17h6"/></svg></span><span class="lb">考勤总览</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/></svg></span><span class="lb">课时统计</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l11 4V6L4 10z"/><path d="M15 8.5c2.5 0 4 1.5 4 3.5s-1.5 3.5-4 3.5"/><path d="M6.5 14.5l1 4.5h2.5l-.8-4"/></svg></span><span class="lb">通知发布</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M16 14.5c2.6 0 4.5 1.7 4.5 4"/></svg></span><span class="lb">学生管理</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-5h6v5"/><path d="M9 10h.01M15 10h.01M12 10h.01"/></svg></span><span class="lb">班级管理</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.5"/><path d="M9.5 13.5L8 21l4-2.2L16 21l-1.5-7.5"/><path d="M10 9l1.5 1.5L14.5 7"/></svg></span><span class="lb">成绩</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.6M12 17.9v2.6M3.5 12h2.6M17.9 12h2.6M6 6l1.8 1.8M16.2 16.2L18 18M18 6l-1.8 1.8M7.8 16.2L6 18"/></svg></span><span class="lb">系统设置</span></a>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（教务端） -->
+  <nav class="tabbar">
+    <a class="on" href="m-home-admin.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      首页
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12l2 2 4-4.5"/><path d="M9 16.5h6"/></svg></span>
+      考勤
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a href="m-table.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="m-me.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

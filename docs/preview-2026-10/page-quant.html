@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>量化 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:16px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .toolbar{display:flex;gap:14px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+  .toolbar select,.toolbar input{border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:var(--sans);background:#fff;color:var(--ink)}
+  .hero-score{display:flex;align-items:baseline;gap:16px}
+  .hero-score b{font-family:Georgia,var(--serif);font-size:52px;color:var(--blue);font-weight:400;line-height:1}
+  .hero-score .unit{font-size:13px;letter-spacing:2px;color:var(--ink-2)}
+  .hero-score .delta{font-size:13px;color:var(--gold-deep);letter-spacing:1px}
+  .qbtns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+  .qb{border-radius:4px;padding:8px 18px;font-size:13px;letter-spacing:1px;border:1px solid var(--blue);background:var(--blue);color:#fff}
+  .qb.minus{background:#fff;color:var(--ink-2);border-color:var(--line)}
+  .custom{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .custom input{border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13.5px;font-family:var(--sans)}
+  .custom .lbl{flex:1.4;min-width:260px}
+  .custom .val{max-width:90px}
+  .twocol{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a class="on" href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>量化</b></span></div>
+
+  <div class="toolbar au d2">
+    <select><option>一班</option><option>二班</option><option>三班</option></select>
+    <span class="hint" style="white-space:nowrap">统计区间</span>
+    <input type="text" value="2026-10-13" style="max-width:140px" readonly>
+    <span class="hint" style="margin:0">到</span>
+    <input type="text" value="2026-10-19" style="max-width:140px" readonly>
+  </div>
+
+  <!-- 总分卡 -->
+  <div class="au d3" style="margin-bottom:28px">
+    <div class="card">
+      <div class="hero-score">
+        <b><span class="cnt" data-to="108">108</span></b>
+        <span class="unit">一班 · 总分</span>
+        <span class="delta">本期 +8 分</span>
+      </div>
+      <p class="hint" style="margin:10px 0 8px">起始 100 分 · 2026-10-13 ~ 2026-10-19 这段变化 <b style="color:var(--gold-deep)">+8</b> 分</p>
+      <p style="margin:0;font-size:13.5px;line-height:1.9"><b style="font-weight:500">加扣分原因：</b>即兴评述集体通关 +15 · 课堂互动突出 +5 · 迟到 6 分钟 −12</p>
+    </div>
+  </div>
+
+  <div class="twocol au d4" style="margin-bottom:28px">
+    <!-- 快捷加减分 -->
+    <div class="card">
+      <h3>快捷加减分</h3>
+      <div class="qbtns">
+        <span class="qb">课堂互动突出 +5</span>
+        <span class="qb">即兴评述集体通关 +15</span>
+        <span class="qb">清理公共区域卫生 +2</span>
+        <span class="qb minus">迟到 −2</span>
+        <span class="qb minus">评述消极对待 −15</span>
+        <span class="qb minus">模考缺考 −20</span>
+        <span class="qb minus">损坏设备、公物 −20</span>
+      </div>
+      <div class="custom">
+        <input class="lbl" type="text" placeholder="名目，如：清理公共区域卫生">
+        <input class="val" type="text" placeholder="分值">
+        <button class="btn pri">记一笔</button>
+      </div>
+      <p class="hint" style="margin-top:12px">考勤里标了 <b>迟到 / 病假 / 事假</b>，会按「量化细则」里的考勤分值自动记进下面的记录，不用再来这里点一遍。</p>
+      <button class="btn sec sm" style="margin-top:10px">按考勤重算本班（补历史 / 改了细则后）</button>
+    </div>
+
+    <!-- 公示文案 + 本期小结 -->
+    <div style="display:grid;gap:28px">
+      <div class="card">
+        <h3>公示文案</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+          <button class="btn pri">复制本班公示</button>
+          <button class="btn sec">全部班级各一份（一次复制）</button>
+        </div>
+        <p class="hint" style="margin-top:12px">公示时只公布班级总分和原因，不落到具体学生头上。</p>
+      </div>
+      <div class="card">
+        <h3>本期小结</h3>
+        <p class="hint" style="margin:0 0 12px">本周一班共加 22 分、扣 14 分，主因：即兴评述集体通关，迟到 6 分钟。建议下周重点盯早功到课。</p>
+        <button class="btn gold">生成图卡</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 加扣分记录 -->
+  <div class="au d5">
+    <div class="sec">
+      <h2>加扣分记录<small>QUANT LOG</small></h2>
+      <span class="crumb">2026-10-13 ~ 2026-10-19 · 共 6 笔</span>
+    </div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>日期</th><th>名目</th><th>分值</th><th>来源</th></tr></thead>
+        <tbody>
+          <tr><td>2026-10-19</td><td>课堂互动突出</td><td><b style="color:var(--blue)">+5</b></td><td><span class="pill blue">手动</span></td></tr>
+          <tr><td>2026-10-18</td><td>迟到 6 分钟</td><td><b style="color:var(--red)">−12</b></td><td><span class="pill gray">考勤同步</span></td></tr>
+          <tr><td>2026-10-17</td><td>即兴评述集体通关</td><td><b style="color:var(--blue)">+15</b></td><td><span class="pill blue">手动</span></td></tr>
+          <tr><td>2026-10-16</td><td>作业未交 1 人</td><td><b style="color:var(--red)">−2</b></td><td><span class="pill gray">自动</span></td></tr>
+          <tr><td>2026-10-15</td><td>病假 1 人</td><td><b style="color:var(--red)">−1</b></td><td><span class="pill gray">考勤同步</span></td></tr>
+          <tr><td>2026-10-14</td><td>晚自习未过 2 人</td><td><b style="color:var(--red)">−4</b></td><td><span class="pill gray">自动</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>入场动画四方案对比 · 砺蕴</title>
+<style>
+  @font-face{font-family:'LiYunXingShu';src:url('../../assets/liyun-xingshu.woff2') format('woff2')}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#efece5;padding:30px 0 50px;font-family:"PingFang SC",sans-serif}
+  .ctwrap{width:920px;margin:0 auto}
+  h1{font-size:15px;font-weight:500;color:#2b3446;text-align:center;margin-bottom:6px}
+  .sub{font-size:12px;color:#6b7284;text-align:center;margin-bottom:24px}
+  .row{display:flex;gap:20px;margin-bottom:26px}
+  .cell{flex:1}
+  .cap{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .cap .no{background:#4a5c8c;color:#fff;font-size:13px;padding:3px 12px;border-radius:4px;white-space:nowrap}
+  .cap .nm{font-size:13px;color:#2b3446;font-weight:500;white-space:nowrap}
+  .cap .ds{font-size:11px;color:#9aa0ad;white-space:nowrap}
+  .frame{position:relative;width:100%;aspect-ratio:16/10;border-radius:10px;overflow:hidden;border:1px solid #e4e2da;background:#f7f6f2}
+  /* A 落章版 */
+  .a .glow{position:absolute;left:50%;top:50%;width:230px;height:230px;transform:translate(-50%,-50%);border-radius:50%;
+    background:radial-gradient(circle,rgba(201,171,124,.28),rgba(201,171,124,0) 68%)}
+  .a .ring1,.a .ring2{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid #c9ab7c}
+  .a .ring1{width:124px;height:124px;opacity:.55}
+  .a .ring2{width:200px;height:200px;opacity:.28}
+  .a img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:104px}
+  .a .line{position:absolute;left:0;right:0;bottom:26px;text-align:center;font-family:'LiYunXingShu','Kaiti SC',serif;
+    font-size:17px;letter-spacing:.4em;text-indent:.4em;color:#a8895a}
+  /* B 影像版 */
+  .b .img{position:absolute;inset:0;background:url('../../assets/banner-studio.jpg') center/cover}
+  .b .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,58,94,.18),rgba(43,58,94,.62))}
+  .b .bx{position:absolute;left:0;right:0;bottom:34px;text-align:center}
+  .b .bx .t{color:#fff;font-size:19px;letter-spacing:.3em;text-indent:.3em;font-family:"Songti SC","STSong",serif;font-weight:500}
+  .b .bx .s{color:rgba(240,217,166,.9);font-size:11px;letter-spacing:.34em;text-indent:.34em;margin-top:8px}
+  .b .bar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:120px;height:2px;background:rgba(255,255,255,.25);border-radius:1px;overflow:hidden}
+  .b .bar i{display:block;height:100%;width:46%;background:#c9ab7c;border-radius:1px}
+  /* C 水墨大字版 */
+  .c .zi{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-family:'LiYunXingShu','Kaiti SC',serif;
+    font-size:92px;color:#2b3a5e;letter-spacing:.18em;text-indent:.18em}
+  .c .zi span{opacity:.55}
+  .c .rule{position:absolute;left:50%;top:66%;transform:translateX(-50%);width:180px;height:1px;background:linear-gradient(90deg,transparent,#c9ab7c,transparent)}
+  .c .sub2{position:absolute;left:0;right:0;top:71%;text-align:center;font-size:11px;letter-spacing:.5em;text-indent:.5em;color:#9aa0ad}
+  /* D 秒进版 */
+  .d .mock{position:absolute;inset:0;display:flex}
+  .d .side{width:22%;background:#2b3a5e;display:flex;flex-direction:column;gap:8px;padding:14px 10px}
+  .d .side i{display:block;height:8px;border-radius:3px;background:rgba(255,255,255,.28)}
+  .d .side i:first-child{height:20px;background:#c9ab7c;width:70%}
+  .d .main{flex:1;background:#f7f6f2;padding:16px}
+  .d .main .tt{font-size:12px;color:#2b3446;font-weight:500;margin-bottom:10px}
+  .d .cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .d .cards i{display:block;height:34px;border-radius:6px;background:#fff;border:1px solid #e4e2da}
+  .d .label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(43,52,70,.82);color:#fff;
+    font-size:13px;padding:8px 18px;border-radius:8px;letter-spacing:.1em;white-space:nowrap}
+  .why{margin-top:20px;background:#fff;border:1px solid #e4e2da;border-radius:10px;padding:14px 18px;font-size:12.5px;line-height:2;color:#6b7284}
+  .why b{color:#2b3446;font-weight:500}
+</style>
+</head>
+<body>
+<div class="ctwrap">
+  <h1>「已记住账号 · 直接进系统」入场动画 · 四方案</h1>
+  <div class="sub">以下为动画中段的样子（每个方案总时长都控制在 1.5 秒内；未登录时一律直接进登录页，无开屏）</div>
+
+  <div class="row">
+    <div class="cell">
+      <div class="cap"><span class="no">方案 A</span><span class="nm">金印落章版</span><span class="ds">现线上版</span></div>
+      <div class="frame a">
+        <div class="glow"></div><div class="ring1"></div><div class="ring2"></div>
+        <img src="../../assets/seal-boyi.png" alt="">
+        <div class="line">声入人心 · 言传其志</div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="cap"><span class="no">方案 B</span><span class="nm">播音棚影像版</span><span class="ds">与登录门左栏同语言</span></div>
+      <div class="frame b">
+        <div class="img"></div><div class="veil"></div>
+        <div class="bx"><div class="t">博学宏才 · 艺德卓绝</div><div class="s">砺蕴教务 · 播音与主持艺考基地</div></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell">
+      <div class="cap"><span class="no">方案 C</span><span class="nm">水墨大字版</span><span class="ds">最学术 · 无图无印</span></div>
+      <div class="frame c">
+        <div class="zi">砺<span>蕴</span></div>
+        <div class="rule"></div>
+        <div class="sub2">博学宏才 · 艺德卓绝</div>
+      </div>
+    </div>
+    <div class="cell">
+      <div class="cap"><span class="no">方案 D</span><span class="nm">无动画秒进版</span><span class="ds">最快 · 打开即工作台</span></div>
+      <div class="frame d">
+        <div class="mock">
+          <div class="side"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="main"><div class="tt">今日 · 周二</div>
+            <div class="cards"><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="label">打开即见工作台，零动画</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="why">
+    <b>四个方案共同点：</b>未登录时都直接进登录页（旧开屏已取消）；都只服务「已记住账号」这条路。<br>
+    <b>差异：</b>A 有印章仪式感，跟登录门左栏影像的金印呼应；B 用播音棚实拍，最有机构气质；C 最素最学术，只有字；D 完全不播动画，打开就干活。
+  </div>
+</div>
+</body>
+</html>

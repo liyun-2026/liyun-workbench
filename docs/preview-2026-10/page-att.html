@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>考勤 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .sumrow{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--line);font-size:13px;color:var(--ink-2)}
+  .sumrow b{font-family:Georgia,var(--serif);font-size:22px;color:var(--blue)}
+  .sumrow.bad b{color:var(--red)}
+  .ratio{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:14px 0 10px;background:var(--line)}
+  .ratio i{display:block;height:100%}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-2)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a class="on" href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>考勤</b></span></div>
+
+  <!-- 考勤登记（来源：生产 page-att「考勤登记 + 日期/班级/时段筛选 + 一键全部正常 / 复制小结」） -->
+  <div class="au d2">
+    <div class="sec">
+      <h2>考勤登记<small>REGISTRY · 2026-10-19 · 播音一班 · 第2节</small></h2>
+      <span class="crumb"><b>一键全部正常</b> · 复制小结</span>
+    </div>
+    <div class="rule"></div>
+    <div class="grid4" style="margin-bottom:24px">
+      <div class="stat"><div class="n"><span class="cnt" data-to="28">28</span><em>人</em></div><div class="l">应到</div></div>
+      <div class="stat"><div class="n"><span class="cnt" data-to="24">24</span><em>人</em></div><div class="l">正常</div></div>
+      <div class="stat hot"><div class="n"><span class="cnt" data-to="4">4</span><em>人</em></div><div class="l">异常</div></div>
+      <div class="stat"><div class="n"><span class="cnt" data-to="0">0</span><em>人</em></div><div class="l">未登记</div></div>
+    </div>
+    <div class="cols" style="grid-template-columns:1.6fr 1fr">
+      <div class="tblwrap">
+        <table class="tbl">
+          <tr><th>学员</th><th>状态</th><th>备注</th></tr>
+          <tr><td>陈同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+          <tr><td>李同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+          <tr><td>王同学</td><td><span class="pill gold">迟到</span></td><td>08:21 到</td></tr>
+          <tr><td>张同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+          <tr><td>刘同学</td><td><span class="pill gray">病假</span></td><td>家长已请假</td></tr>
+          <tr><td>赵同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+          <tr><td>孙同学</td><td><span class="pill red">未到</span></td><td>待核实</td></tr>
+          <tr><td>周同学</td><td><span class="pill gray">事假</span></td><td>家中有事</td></tr>
+          <tr><td>吴同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+          <tr><td>郑同学</td><td><span class="pill blue">正常</span></td><td>—</td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="card">
+          <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:12px">本节小结</h3>
+          <div class="sumrow"><span>应到</span><b>28</b></div>
+          <div class="sumrow"><span>正常</span><b>24</b></div>
+          <div class="sumrow bad"><span>异常</span><b>4</b></div>
+          <div class="sumrow" style="border-bottom:none"><span>未登记</span><b>0</b></div>
+          <div class="ratio">
+            <i style="width:85.7%;background:var(--blue)"></i>
+            <i style="width:3.6%;background:var(--gold)"></i>
+            <i style="width:3.6%;background:var(--ink-3)"></i>
+            <i style="width:3.6%;background:var(--ink-2)"></i>
+            <i style="width:3.5%;background:var(--red)"></i>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--blue)"></i>正常 24</span>
+            <span><i style="background:var(--gold)"></i>迟到 1</span>
+            <span><i style="background:var(--ink-3)"></i>病假 1</span>
+            <span><i style="background:var(--ink-2)"></i>事假 1</span>
+            <span><i style="background:var(--red)"></i>未到 1</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:12px">待批请假</h3>
+          <div style="padding:12px 0;border-bottom:1px dashed var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13.5px">孙同学 · 病假</b><span class="pill gold">待批</span></div>
+            <p style="font-size:12px;color:var(--ink-2);margin-top:5px">上午去医院复查，下午回校。</p>
+          </div>
+          <div style="padding:12px 0 4px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13.5px">钱同学 · 事假</b><span class="pill gold">待批</span></div>
+            <p style="font-size:12px;color:var(--ink-2);margin-top:5px">家中有事，明天正常到课。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 附 · 导出考勤（来源：生产 page-att「附 · 导出考勤」章节） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>附 · 导出考勤<small>EXPORT</small></h2><span class="crumb">导出的表格一行一个学员，可直接用 Excel / WPS 打开，也能发给教务存档</span></div>
+    <div class="rule"></div>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">导出与小结</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn pri sm">导出当天（当前时段）</button>
+          <button class="btn sec sm">导出整月（当前班级）</button>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+          <input type="month" value="2026-10" style="border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;font-family:var(--sans)">
+          <button class="btn sec sm">导出某月全部班级</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:13.5px;letter-spacing:2px;color:var(--ink);margin-bottom:14px">按日期区间导出</h3>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="date" value="2026-10-01" style="border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;font-family:var(--sans)">
+          <span style="font-size:12px;color:var(--ink-3)">至</span>
+          <input type="date" value="2026-10-19" style="border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;font-family:var(--sans)">
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+          <select style="border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;font-family:var(--sans);background:#fff"><option>播音一班</option><option>全部班级</option></select>
+          <select style="border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;font-family:var(--sans);background:#fff"><option>第2节</option><option>全部时段</option></select>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn pri sm">导出区间明细</button>
+          <button class="btn sec sm">导出区间汇总（一人一行）</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

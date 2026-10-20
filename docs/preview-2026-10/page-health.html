@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>巡检 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:16px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .toolbar{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .toolbar select{border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13px;font-family:var(--sans);background:#fff;color:var(--ink);max-width:140px}
+  .grid2c{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:28px}
+  .gridstats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a class="on" href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>巡检</b></span></div>
+
+  <div class="gridstats au d2">
+    <div class="stat"><div class="n"><span class="cnt" data-to="186">186</span><em>ms</em></div><div class="l">打开页面的速度</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="240">240</span><em>ms</em></div><div class="l">后台接口</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="2412">2412</span><em>KB</em></div><div class="l">数据占用</div></div>
+    <div class="stat hot"><div class="n"><span class="cnt" data-to="58">58</span><em>天</em></div><div class="l">SSL 证书剩余</div></div>
+  </div>
+
+  <!-- 体检 -->
+  <div class="au d3" style="margin-bottom:28px">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+        <h3 style="margin-bottom:0">体检</h3>
+        <span class="pill blue">全部正常</span>
+      </div>
+      <p class="hint" style="margin-top:12px">上次巡检：10月19日 08:42 · 12 秒前 · 11 项全部通过，无需要注意的地方。</p>
+      <div class="toolbar">
+        <button class="btn pri">立即巡检</button>
+        <button class="btn sec">清理旧缓存</button>
+        <select><option>每次打开查</option><option>每 2 小时</option><option selected>每 4 小时</option><option>每 8 小时</option><option>不自动查</option></select>
+        <span class="hint">打开系统时会自动查一遍，不用记着点。</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2c au d4">
+    <!-- 通道 -->
+    <div class="card">
+      <h3>通道</h3>
+      <div class="tblwrap" style="border:none">
+        <table class="tbl">
+          <thead><tr><th>项目</th><th>结果</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>打开页面的速度</td><td>186 ms</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>后台接口</td><td>240 ms</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>这台设备的网络</td><td>已连接</td><td><span class="pill blue">正常</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px">点图标到看见东西、签到同步都走这两条路，超过 3 秒会提醒。</p>
+    </div>
+
+    <!-- 服务与资源 -->
+    <div class="card">
+      <h3>服务与资源</h3>
+      <div class="tblwrap" style="border:none">
+        <table class="tbl">
+          <thead><tr><th>项目</th><th>结果</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>离线可开</td><td>VoxOS 4.12</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>图片识别引擎</td><td>412 ms</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>旧版本缓存</td><td>1 份</td><td><span class="pill gold">建议清理</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px">App Shell 已存到本机，断网冷启动也只要约一秒。</p>
+    </div>
+  </div>
+
+  <div class="grid2c au d5">
+    <!-- 这台设备 -->
+    <div class="card">
+      <h3>这台设备</h3>
+      <div class="tblwrap" style="border:none">
+        <table class="tbl">
+          <thead><tr><th>项目</th><th>结果</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td>本机存储</td><td>能长期保存</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>数据占用</td><td>2,412 KB · 638 项</td><td><span class="pill blue">正常</span></td></tr>
+            <tr><td>上次同步</td><td>8 分钟前</td><td><span class="pill blue">正常</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 到期提醒 -->
+    <div class="card">
+      <h3>到期提醒</h3>
+      <div class="tblwrap" style="border:none">
+        <table class="tbl">
+          <thead><tr><th>项目</th><th>到期日</th><th>剩余</th><th>去哪儿续</th></tr></thead>
+          <tbody>
+            <tr><td>SSL 证书</td><td>2026-12-16</td><td><span class="pill gold">58 天</span></td><td style="font-size:12px;color:var(--ink-2)">腾讯云 EdgeOne 控制台 · 域名管理 → 证书</td></tr>
+            <tr><td>域名 liyun2026.top</td><td>2027-09-18</td><td><span class="pill gray">334 天</span></td><td style="font-size:12px;color:var(--ink-2)">域名注册商后台 → 续费</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:10px">这两样得您本人登录腾讯云 / 域名后台续，系统只负责提前把天数算出来提醒您。</p>
+    </div>
+  </div>
+
+  <!-- 最近记录 -->
+  <div class="au d5" style="margin-top:28px">
+    <div class="sec">
+      <h2>最近记录<small>HISTORY</small></h2>
+      <span class="crumb">最近 5 轮</span>
+    </div>
+    <div class="rule"></div>
+    <div class="card">
+      <div class="tl">
+        <div class="evt now"><span class="t">10月19日 08:42</span><span class="c"><b>全部正常</b><span>页面 186 ms · 接口 240 ms</span></span><span class="pill blue">正常</span></div>
+        <div class="evt"><span class="t">10月19日 06:12</span><span class="c"><b>全部正常</b><span>页面 202 ms · 接口 255 ms</span></span><span class="pill blue">正常</span></div>
+        <div class="evt"><span class="t">10月18日 22:30</span><span class="c"><b>需要注意</b><span>旧版本缓存 2 份，清理后恢复</span></span><span class="pill gold">注意</span></div>
+        <div class="evt"><span class="t">10月18日 14:05</span><span class="c"><b>全部正常</b><span>页面 178 ms · 接口 236 ms</span></span><span class="pill blue">正常</span></div>
+        <div class="evt"><span class="t">10月17日 20:18</span><span class="c"><b>全部正常</b><span>页面 191 ms · 接口 248 ms</span></span><span class="pill blue">正常</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

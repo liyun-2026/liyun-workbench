@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>今日 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  /* 本页专属（值全部来自规格令牌） */
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .sign-hero{display:flex;align-items:center;justify-content:center;gap:48px;padding:30px 24px}
+  .ring{width:188px;height:188px;border-radius:50%;border:3px solid var(--blue);display:grid;place-items:center;position:relative;flex-shrink:0}
+  .ring::before{content:"";position:absolute;inset:12px;border-radius:50%;border:1px solid var(--line)}
+  .ring .w{font-family:var(--serif);font-size:27px;letter-spacing:6px;color:var(--blue-ink);text-indent:6px}
+  .ring .t{font-family:Georgia,var(--serif);font-size:15px;letter-spacing:2px;color:var(--ink-2);margin-top:9px}
+  .sign-state{font-size:15px;letter-spacing:1px;color:var(--ink)}
+  .sign-state b{color:var(--blue)}
+  .sign-state small{display:block;margin-top:8px;font-size:12px;color:var(--ink-3);letter-spacing:.5px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a class="on" href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a href="page-stuTable.html">我的课表</a>
+    <a href="page-stuExam.html">考试与抽签</a>
+    <a href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<!-- 大横幅轮播（学府门户 · 全校共用 · 四帧各带文案） -->
+<section class="banner au d2">
+  <div class="slides">
+    <div class="slide tone-dark on" data-idx="0">
+      <div class="bg bgstudio"></div>
+      <div class="stx">
+        <h1>博学宏才 <span>·</span> 艺德卓绝</h1>
+        <div class="ssub">南阳博艺教育 · 专注播音艺考 22 年</div>
+      </div>
+    </div>
+    <div class="slide tone-light" data-idx="1">
+      <div class="bg bgart"></div>
+      <div class="stx">
+        <h1>治学有序 <span>·</span> 教务有光</h1>
+        <div class="ssub">砺蕴教务系统 · 二〇二六秋季学期 · 第九教学周</div>
+      </div>
+    </div>
+    <div class="slide tone-light" data-idx="2">
+      <div class="bg bgcollage"></div>
+      <div class="polaroid p1"><img src="assets/press-boyi_5A244503.png" alt="博艺教育教学楼"><span class="cap2">博艺教育 · 教学楼</span></div>
+      <div class="polaroid p2"><img src="assets/press-boyi_E0B6CAF7.png" alt="校内演播室课堂"><span class="cap2">校内演播室 · 播音课堂</span></div>
+      <div class="polaroid p3"><img src="assets/press-boyi_38DA048D.png" alt="学员登上央视"><span class="cap2">博艺学子 · 登上央视</span></div>
+      <div class="stx">
+        <h1>从博艺，走向央视大舞台</h1>
+        <div class="ssub">央视主播陈怡博 · 学子遍布中传、中戏、北电等名校</div>
+      </div>
+    </div>
+    <div class="slide tone-light" data-idx="3">
+      <div class="bg bgcampus"></div>
+      <div class="stx">
+        <h1>博艺，梦开始的地方</h1>
+        <div class="ssub">白河之滨 · 向阳荷花广场 · 播音与主持艺考基地</div>
+      </div>
+    </div>
+  </div>
+  <div class="cap au d4">今日 · 十月十九日 星期一 · 教学日</div>
+  <div class="dots au d4" id="bdots"><span class="on"></span><span></span><span></span><span></span></div>
+</section>
+
+<div class="quick au d3"><div class="quick-in"><a class="qitem" href="page-stuTable.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.4h12M5.4 1.6v2.8M10.6 1.6v2.8"/></svg><span>我的课表</span></a><a class="qitem" href="page-stuSign.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.6l5.4 2.2v3.3c0 2.9-2.2 4.8-5.4 5.6-3.2-.8-5.4-2.7-5.4-5.6V4.8L8 2.6z"/><path d="M5.9 8l1.5 1.5L10.4 6.4"/></svg><span>签到打卡</span></a><a class="qitem" href="page-stuHw.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 4.5h10v9H3z"/><path d="M5.4 7h5.2M5.4 9.4h5.2M5.4 11.8h3"/></svg><span>我的作业</span></a><a class="qitem" href="page-stuQuant.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.6 13.4V7.6M6.2 13.4V4M9.8 13.4V8.8M13.4 13.4V2.8"/></svg><span>我的量化</span></a><a class="qitem" href="page-stuNews.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.6 5h10.8v6.6H2.6z"/><path d="M2.6 5.4L8 9.4l5.4-4"/></svg><span>校园公告</span></a><a class="qitem" href="page-stuExam.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13l.8-3L11 2.8l2.2 2.2L6 12.2 3 13z"/><path d="M9.8 4l2.2 2.2"/></svg><span>考试安排</span></a><a class="qitem" href="page-stuMsg.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.6 3.6h10.8v7.2H6.6l-3.2 2.8v-2.8H2.6z"/><path d="M5.4 6.6h5.2M5.4 8.6h3.4"/></svg><span>给老师发消息</span></a><a class="qitem" href="page-stuProfile.html"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="5.6" r="2.5"/><path d="M2.9 13.4c.7-2.5 2.7-3.9 5.1-3.9s4.4 1.4 5.1 3.9"/></svg><span>我的档案</span></a></div></div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>今日</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 打卡（生产：StuHome 卡「打卡」，今日卡里只放状态与入口） -->
+  <div class="au d2" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>打卡<small>ATTENDANCE</small></h2>
+      <div class="crumb">今日 › <b>打卡</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card sign-hero">
+      <div class="ring">
+        <div style="text-align:center">
+          <div class="w">已打卡</div>
+          <div class="t">08:26:34</div>
+        </div>
+      </div>
+      <div>
+        <div class="sign-state"><b>正常</b> · 方式：动态码 · 距校区 42 米
+          <small>打卡时间 08:26:34（以服务端时间为准，本机改时间无效）</small>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <a class="btn sec" href="page-stuSign.html">看这个月的记录</a>
+          <a class="btn pri" href="page-stuSign.html">去打卡页</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="au d3" style="display:grid;grid-template-columns:1.5fr 1fr;gap:28px">
+    <!-- 左：教务通知 -->
+    <div>
+      <div class="sec">
+        <h2>教务通知<small>NOTICES</small></h2>
+        <div class="crumb">今日 › <b>教务通知</b></div>
+      </div>
+      <div class="rule"></div>
+      <div class="card" style="padding:8px 20px">
+        <div class="notice">
+          <div class="date"><b>19</b><small>2026.10</small></div>
+          <div><h3>第三次模拟考试考场安排公布</h3><p>10 月 19 日 15:30 开考 · 沈老师</p></div>
+        </div>
+        <div class="notice">
+          <div class="date"><b>17</b><small>2026.10</small></div>
+          <div><h3>下周三外景实拍报名截止</h3><p>参加学员请于本周五前完成报名确认 · 沈老师</p></div>
+        </div>
+        <div class="notice">
+          <div class="date"><b>15</b><small>2026.10</small></div>
+          <div><h3>十月家长开放日安排</h3><p>本月最后一个周六，课表提前两日同步至家长端 · 沈老师</p></div>
+        </div>
+        <div class="notice">
+          <div class="date"><b>12</b><small>2026.10</small></div>
+          <div><h3>关于调整表演课教室的通知</h3><p>自本周起表演课由 BY05 调整至 BY06 教室 · 顾老师</p></div>
+        </div>
+        <div class="notice" style="border-bottom:none">
+          <div class="date"><b>09</b><small>2026.10</small></div>
+          <div><h3>九月全勤学员公示</h3><p>九月全勤学员 41 名，名单见附件 · 教务办公室</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右：今天上什么课 + 今日作业 -->
+    <div>
+      <div class="sec">
+        <h2>今天上什么课<small>TODAY</small></h2>
+      </div>
+      <div class="rule"></div>
+      <div class="card" style="margin-bottom:24px">
+        <div class="tl">
+          <div class="evt now">
+            <div class="t">08:30–10:10</div>
+            <div class="c"><b>播音 · 上镜实训</b><span>一班 · BY08 演播室</span></div>
+            <span class="pill blue">大课</span>
+          </div>
+          <div class="evt">
+            <div class="t">10:20–12:00</div>
+            <div class="c"><b>编导 · 影片分析</b><span>一班 · BY03</span></div>
+            <span class="pill gray">大课</span>
+          </div>
+          <div class="evt">
+            <div class="t">13:30–15:10</div>
+            <div class="c"><b>表演 · 台词基础</b><span>一班 · BY06</span></div>
+            <span class="pill gray">大课</span>
+          </div>
+          <div class="evt">
+            <div class="t">15:30–17:00</div>
+            <div class="c"><b>第三次模拟考试</b><span>全体 · 综合考场</span></div>
+            <span class="pill gold">大课</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>今日作业<small>HOMEWORK</small></h2>
+      </div>
+      <div class="rule"></div>
+      <div class="card" style="padding:10px 20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px dashed var(--line)">
+          <span style="font-size:13.5px">新闻播报 · 晨间选题稿件</span><span class="pill red">未交</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px dashed var(--line)">
+          <span style="font-size:13.5px">影片分析 · 《活着》观影笔记</span><span class="pill red">未交</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 2px">
+          <span style="font-size:13.5px">台词 · 自选独白背诵</span><span class="pill blue">已交</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+<script>
+  (function(){
+    const banner = document.querySelector('.banner');
+    const slides = [...document.querySelectorAll('.slide')];
+    const dots = [...document.querySelectorAll('#bdots span')];
+    let cur = 0, timer = null;
+    function go(i){
+      cur = i;
+      slides.forEach((sl,j)=>sl.classList.toggle('on', j===i));
+      dots.forEach((dt,j)=>dt.classList.toggle('on', j===i));
+      banner.classList.toggle('is-dark', slides[i].classList.contains('tone-dark'));
+    }
+    if (location.hash.startsWith('#static')) {
+      const st = document.createElement('style');
+      st.textContent = '*{animation:none !important;transition:none !important}';
+      document.head.appendChild(st);
+      go(parseInt(location.hash.slice(7)) || 0);
+    } else {
+      timer = setInterval(()=>go((cur+1)%slides.length), 6000);
+      dots.forEach((dt,j)=>dt.addEventListener('click', ()=>{clearInterval(timer);go(j);timer=setInterval(()=>go((cur+1)%slides.length),6000)}));
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>我带的班 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:14px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .cls-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+  .cls-head b{font-family:var(--serif);font-size:18px;letter-spacing:2px;color:var(--blue-ink);font-weight:700}
+  .cls-head span{font-size:12px;color:var(--ink-3);letter-spacing:1px}
+  .stu{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 4px;border-bottom:1px dashed var(--line);font-size:13.5px;transition:background .2s}
+  .stu:last-child{border-bottom:none}
+  .stu:hover{background:#f6f8fc}
+  .stu .arr{color:var(--ink-3)}
+  .stu small{font-size:11.5px;color:var(--ink-3);margin-left:10px}
+  .gridstats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+  .clsgrid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a class="on" href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>我带的班</b></span></div>
+
+  <div class="gridstats au d2">
+    <div class="stat"><div class="n"><span class="cnt" data-to="2">2</span><em>个</em></div><div class="l">我带的班</div></div>
+    <div class="stat hot"><div class="n"><span class="cnt" data-to="21">21</span><em>人</em></div><div class="l">在册学员</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="18">18</span><em>时</em></div><div class="l">本周课时</div></div>
+    <div class="stat"><div class="n"><span class="cnt" data-to="1">1</span><em>项</em></div><div class="l">待录入今日</div></div>
+  </div>
+
+  <div class="au d3">
+    <div class="sec">
+      <h2>班级与学员<small>MY CLASSES</small></h2>
+      <span class="crumb">点学员名字进「学员档案」看他的全部记录</span>
+    </div>
+    <div class="rule"></div>
+
+    <div class="clsgrid">
+      <div class="card">
+        <div class="cls-head"><b>一班</b><span>12 人 · 播音方向</span></div>
+        <div class="stu"><span>陈同学<small>出勤率 96%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>李同学<small>出勤率 92%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>王同学<small>出勤率 100%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>张同学<small>出勤率 88%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>刘同学<small>出勤率 96%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>赵同学<small>出勤率 94%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>周同学<small>出勤率 90%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>吴同学<small>出勤率 98%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>郑同学<small>出勤率 85%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>孙同学<small>出勤率 100%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>钱同学<small>出勤率 93%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>许同学<small>出勤率 97%</small></span><span class="arr">›</span></div>
+      </div>
+
+      <div class="card">
+        <div class="cls-head"><b>二班</b><span>9 人 · 编导方向</span></div>
+        <div class="stu"><span>冯同学<small>出勤率 95%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>蒋同学<small>出勤率 91%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>韩同学<small>出勤率 100%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>杨同学<small>出勤率 89%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>朱同学<small>出勤率 96%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>秦同学<small>出勤率 93%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>何同学<small>出勤率 98%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>吕同学<small>出勤率 90%</small></span><span class="arr">›</span></div>
+        <div class="stu"><span>施同学<small>出勤率 94%</small></span><span class="arr">›</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

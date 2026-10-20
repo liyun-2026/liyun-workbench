@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录 · 终版 影像分栏 × 先选身份</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .wrap{display:grid;grid-template-columns:1.15fr 1fr;min-height:100vh;
+    transition:grid-template-columns .95s cubic-bezier(.75,0,.25,1)}
+  .wrap.go{grid-template-columns:1fr 0fr}
+  /* ═══ 左：品牌影像（新生成 · 播音麦克风） ═══ */
+  .lpanel{position:relative;overflow:hidden;background:#141d31;display:flex;flex-direction:column;justify-content:space-between;padding:58px 64px;min-width:0}
+  .lpanel .bgimg{position:absolute;inset:0;background:url(assets/banner-studio.png) center 42%/cover no-repeat;opacity:.46;transform:scale(1.03);transition:transform 6s ease, opacity 1s ease}
+  .wrap.go .bgimg{transform:scale(1.14);opacity:.42}
+  .lpanel .veil{position:absolute;inset:0;background:linear-gradient(160deg,rgba(20,29,49,.90) 0%,rgba(20,29,49,.50) 45%,rgba(20,29,49,.88) 100%);transition:background 1s ease}
+  .wrap.go .veil{background:linear-gradient(160deg,rgba(20,29,49,.94) 0%,rgba(20,29,49,.80) 45%,rgba(20,29,49,.94) 100%)}
+  /* 砺蕴金标：隐性花纹，隐隐约约 */
+  .lpanel .mark-wm{position:absolute;right:28px;bottom:-34px;width:400px;opacity:.075;pointer-events:none;transition:opacity 1s ease}
+  .wrap.go .mark-wm{opacity:.04}
+  .lbrand,.lmid,.lfoot{transition:opacity .7s ease}
+  .wrap.go .lbrand,.wrap.go .lmid,.wrap.go .lfoot{opacity:0;pointer-events:none}
+  .lpanel>*{position:relative;z-index:2}
+  .lbrand{display:flex;align-items:center;gap:16px}
+  .lbrand img.seal{width:62px;height:62px}
+  .lbrand b{font-family:var(--serif);font-size:30px;letter-spacing:7px;color:#f3efe6;display:block}
+  .lbrand small{font-size:10px;letter-spacing:3.5px;color:#93a3c4;display:block;margin-top:6px}
+  .lmid .motto{font-family:var(--serif);font-size:46px;letter-spacing:11px;color:#f3efe6;line-height:1.3;text-shadow:0 2px 24px rgba(10,16,30,.45)}
+  .lmid .motto span{color:var(--gold)}
+  .lmid .mrule{width:76px;height:2px;background:var(--gold);margin:28px 0 22px;position:relative}
+  .lmid .mrule::after{content:"";position:absolute;right:-13px;top:-3px;width:8px;height:8px;background:var(--gold);transform:rotate(45deg)}
+  .lmid .msub{font-family:var(--serif);font-size:16px;letter-spacing:5px;color:#e8cd94}
+  .lfoot{display:flex;justify-content:space-between;align-items:flex-end}
+  .lfoot .term{font-size:11.5px;letter-spacing:2px;color:#8fa0c0}
+  .lfoot .seal2{border:1px solid rgba(201,171,124,.45);color:#e8cd94;font-family:var(--serif);font-size:12px;letter-spacing:4px;padding:7px 14px 7px 18px}
+
+  /* ═══ 登录过渡动画（点「登录」后左侧放大全屏） ═══ */
+  .reveal{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(900px 600px at 50% 46%,rgba(20,29,49,.42),rgba(20,29,49,.88));opacity:0;pointer-events:none;transition:opacity .9s ease .35s}
+  .wrap.go .reveal{opacity:1;pointer-events:auto}
+  .reveal .rs{width:92px;height:92px;position:relative;margin-bottom:26px}
+  .reveal .rs img{width:92px;height:92px;transform:scale(.6);opacity:0;transition:all .8s cubic-bezier(.2,1.4,.4,1) .55s}
+  .wrap.go .reveal .rs img{transform:scale(1);opacity:1}
+  .reveal .rs::before{content:"";position:absolute;inset:-11px;border-radius:50%;border:1px solid rgba(201,171,124,.0);transition:all 1s ease .6s}
+  .wrap.go .reveal .rs::before{border-color:rgba(201,171,124,.55)}
+  .reveal .rs::after{content:"";position:absolute;inset:-22px;border-radius:50%;border:1px dashed rgba(201,171,124,.28)}
+  .reveal .rt{font-family:var(--serif);font-size:40px;letter-spacing:12px;color:#f3efe6;text-indent:12px}
+  .reveal .rt span{display:inline-block;opacity:0;transform:translateY(18px);transition:all .7s ease}
+  .wrap.go .reveal .rt span{opacity:1;transform:none}
+  .wrap.go .reveal .rt span:nth-child(1){transition-delay:.85s}.wrap.go .reveal .rt span:nth-child(2){transition-delay:.97s}
+  .wrap.go .reveal .rt span:nth-child(3){transition-delay:1.09s}.wrap.go .reveal .rt span:nth-child(4){transition-delay:1.21s}
+  .wrap.go .reveal .rt span:nth-child(5){transition-delay:1.33s}.wrap.go .reveal .rt span:nth-child(6){transition-delay:1.45s}
+  .wrap.go .reveal .rt span:nth-child(7){transition-delay:1.57s}.wrap.go .reveal .rt span:nth-child(8){transition-delay:1.69s}
+  .wrap.go .reveal .rt span:nth-child(9){transition-delay:1.81s}.wrap.go .reveal .rt span:nth-child(10){transition-delay:1.93s}
+  .reveal .rr{width:240px;height:2px;background:rgba(201,171,124,.22);margin:30px 0 18px;position:relative;overflow:hidden;border-radius:2px}
+  .reveal .rr i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);transition:width 1.7s ease 1s}
+  .wrap.go .reveal .rr i{width:100%}
+  .reveal .rw{font-size:12.5px;letter-spacing:4px;color:#c9d2e6;opacity:0;transition:opacity .8s ease 1.5s}
+  .wrap.go .reveal .rw{opacity:1}
+  .reveal .rw b{color:var(--gold);font-weight:500}
+
+  /* ═══ 右：C 简化版（身份卡 + 表单） ═══ */
+  .rpanel{background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0}
+  .fbox{width:416px;flex-shrink:0}
+  .fbox h1{font-family:var(--serif);font-size:27px;letter-spacing:5px;color:var(--blue-ink);font-weight:700}
+  .fbox .fen{font-size:10px;letter-spacing:3px;color:var(--ink-3);margin-top:8px}
+  .frule{height:1px;background:var(--line);position:relative;margin:20px 0 26px}
+  .frule::before{content:"";position:absolute;left:0;top:-1px;height:3px;width:56px;background:var(--blue)}
+  .frule::after{content:"";position:absolute;left:60px;top:-3px;width:7px;height:7px;background:var(--gold);transform:rotate(45deg)}
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+  .role{display:flex;align-items:center;justify-content:center;gap:10px;background:#fcfcfa;border:1px solid var(--line);
+    border-radius:9px;padding:12px 10px;cursor:pointer;position:relative;transition:all .22s}
+  .role:hover{border-color:#c8cfdd}
+  .role.on{border-color:var(--gold);background:#fffcf5;box-shadow:0 6px 16px rgba(168,137,90,.14)}
+  .role.on::after{content:"✓";position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;
+    background:var(--gold);color:#fff;font-size:11px;line-height:18px;text-align:center}
+  .role .ric{width:30px;height:30px;border-radius:50%;background:rgba(74,92,140,.08);color:var(--blue);display:grid;place-items:center;transition:all .22s;flex-shrink:0}
+  .role.on .ric{background:var(--blue);color:#fff}
+  .role svg{width:16px;height:16px}
+  .role b{font-family:var(--serif);font-size:15.5px;letter-spacing:3px;color:var(--blue-ink);font-weight:600}
+  .fld{position:relative;margin-bottom:18px}
+  .fld label{display:block;font-size:12px;color:var(--ink-2);letter-spacing:2px;margin-bottom:8px}
+  .fld .ic{position:absolute;left:13px;bottom:12px;width:17px;height:17px;color:var(--ink-3);pointer-events:none}
+  .fld input{width:100%;border:1px solid var(--line);border-radius:3px;padding:12px 14px 12px 40px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:#fcfcfa;transition:all .25s}
+  .fld input:focus{outline:none;border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(74,92,140,.10)}
+  .frow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-3);margin:2px 0 24px}
+  .frow a{color:var(--gold-deep)}
+  .btn-login{width:100%;border:none;border-radius:3px;background:linear-gradient(120deg,#e8cd94,#c8a45f 55%,#e3c88f);color:#251b09;
+    font-family:var(--serif);font-size:16.5px;letter-spacing:5px;text-indent:5px;padding:14px 0;cursor:pointer;font-weight:600;transition:all .25s;box-shadow:0 8px 20px rgba(168,137,90,.22)}
+  .btn-login:hover{opacity:.92;transform:translateY(-1px)}
+  .fnote{margin-top:24px;font-size:11.5px;letter-spacing:2px;color:var(--ink-3);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+
+  <div class="lpanel au">
+    <div class="bgimg"></div><div class="veil"></div><img class="mark-wm" src="assets/mark-liyun-gold.png" alt="">
+    <div class="lbrand">
+      <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+      <div><b>砺蕴教务系统</b><small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small></div>
+    </div>
+    <div class="lmid">
+      <div class="motto">博学宏才 <span>·</span> 艺德卓绝</div>
+      <div class="mrule"></div>
+      <div class="msub">南阳博艺教育 · 专注播音艺考 22 年</div>
+    </div>
+    <div class="lfoot">
+      <span class="ft">2026—2027 学年 · 秋季学期 · 第 9 教学周</span>
+      <span class="ft">博学宏才 艺德卓绝</span>
+    </div>
+
+    <!-- 登录过渡：影像放大全屏 + 印章浮显 -->
+    <div class="reveal">
+      <div class="rs"><img src="assets/seal-boyi.png" alt=""></div>
+      <div class="rt"><span>正</span><span>在</span><span>进</span><span>入</span><span>教</span><span>务</span><span>系</span><span>统</span><span style="color:var(--gold)">…</span></div>
+      <div class="rr"><i></i></div>
+      <div class="rw" id="rw">学生身份验证通过 · 正在前往 <b>学生首页</b></div>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="fbox au d2">
+      <h1>欢迎登录</h1>
+      <div class="fen">WELCOME · SIGN IN</div>
+      <div class="frule"></div>
+      <div class="roles" id="roles">
+        <div class="role" data-tip="请输入账号" data-name="教师">
+          <div class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7" cy="4.6" r="2.1"/><path d="M3.2 13.2c.6-2.3 2-3.5 3.8-3.5s3.2 1.2 3.8 3.5"/><path d="M12.4 5.4v4.2M12.4 5.4l1.6.9"/></svg></div>
+          <b>教师</b>
+        </div>
+        <div class="role on" data-tip="请输入账号" data-name="学生">
+          <div class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3L14 5.6 8 8.2 2 5.6z"/><path d="M4.6 6.8v2.8c0 1.2 1.5 2.1 3.4 2.1s3.4-.9 3.4-2.1V6.8"/><path d="M13 6.2v3"/></svg></div>
+          <b>学生</b>
+        </div>
+      </div>
+      <div class="fld">
+        <label>账 号</label>
+        <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5.4" r="2.6"/><path d="M2.8 13.6c.7-2.6 2.7-4 5.2-4s4.5 1.4 5.2 4"/></svg>
+        <input id="acc" placeholder="请输入账号">
+      </div>
+      <div class="fld">
+        <label>密 码</label>
+        <svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3.2" y="7" width="9.6" height="6.4" rx="1.2"/><path d="M5.4 7V5.2a2.6 2.6 0 015.2 0V7"/></svg>
+        <input type="password" id="pwd" placeholder="请输入密码">
+      </div>
+      <div class="frow"><span><input type="checkbox" id="remember" checked style="vertical-align:-2px"> 记住账号</span><a href="#">忘记密码</a></div>
+      <button class="btn-login" id="goBtn">学 生 登 录</button>
+      <div class="fnote">博艺教育 · 砺蕴教务系统 © 2026</div>
+    </div>
+  </div>
+
+</div>
+<script>
+  let role = '学生';
+  document.querySelectorAll('#roles .role').forEach(r=>{
+    r.addEventListener('click',()=>{
+      document.querySelectorAll('#roles .role').forEach(x=>x.classList.remove('on'));
+      r.classList.add('on');
+      role = r.dataset.name;
+      document.getElementById('acc').placeholder = r.dataset.tip;
+      document.getElementById('goBtn').textContent = role + ' 登 录';
+      document.getElementById('rw').innerHTML = role + '身份验证通过 · 正在前往 <b>' + (role==='学生'?'学生首页':'教务首页') + '</b>';
+    });
+  });
+  function enter(){
+    document.getElementById('wrap').classList.add('go');
+    setTimeout(()=>{
+      location = (role === '学生') ? 'page-stuHome.html' : 'page-home.html';
+    }, 3200);
+  }
+  document.getElementById('goBtn').addEventListener('click', enter);
+  /* 截图支持：#go 冻结在过渡动画完成态 */
+  if (location.hash === '#go') {
+    const st = document.createElement('style');
+    st.textContent = '*{animation:none !important;transition:none !important}';
+    document.head.appendChild(st);
+    document.getElementById('wrap').classList.add('go');
+  }
+</script>
+</body>
+</html>

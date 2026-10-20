@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>看板端 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:14px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .bdnote{background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:12px 20px;font-size:13px;color:var(--ink-2);margin-bottom:26px}
+  .bd-top{display:flex;align-items:baseline;gap:22px;margin-bottom:26px}
+  .bd-brand{font-family:var(--serif);font-size:24px;letter-spacing:5px;color:var(--blue-ink);font-weight:700}
+  .bd-date{font-size:13px;letter-spacing:2px;color:var(--ink-2)}
+  .bd-clock{font-family:Georgia,var(--serif);font-size:26px;color:var(--blue);margin-left:auto;letter-spacing:2px}
+  .bd-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px;align-items:start}
+  .les{display:grid;grid-template-columns:10px 96px 1fr;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px dashed var(--line);font-size:13px}
+  .les:last-child{border-bottom:none}
+  .les .nd{width:8px;height:8px;border-radius:50%;background:#d8d4c8}
+  .les .t{font-size:12px;color:var(--ink-2);letter-spacing:.5px}
+  .les .c b{display:block;font-weight:600;font-size:13.5px;margin-bottom:2px}
+  .les .c span{font-size:11.5px;color:var(--ink-3)}
+  .les.now .nd{background:var(--gold);box-shadow:0 0 0 3px rgba(201,171,124,.25)}
+  .les.now .c b{color:var(--blue)}
+  .qr{width:190px;height:190px;border:1.5px dashed var(--line);border-radius:8px;margin:0 auto;display:grid;place-items:center;font-size:11px;letter-spacing:2px;color:var(--ink-3);background:
+    repeating-linear-gradient(0deg,var(--paper) 0 10px,#fff 10px 20px)}
+  .bd-code{font-family:Georgia,var(--serif);font-size:38px;color:var(--blue-ink);letter-spacing:14px;text-align:center;margin:14px 0 6px}
+  .bd-bar{height:6px;background:var(--paper);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .bd-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-deep))}
+  .bd-cd{text-align:center;font-size:12px;color:var(--ink-2);margin-top:8px}
+  .bd-cd b{font-family:Georgia,var(--serif);font-size:16px;color:var(--gold-deep)}
+  .bd-count{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:16px}
+  .bd-count>div{background:#fff;text-align:center;padding:14px 0}
+  .bd-count b{display:block;font-family:Georgia,var(--serif);font-size:30px;color:var(--blue);line-height:1}
+  .bd-count span{font-size:11px;letter-spacing:3px;color:var(--ink-2)}
+  .bd-count .ok b{color:var(--gold-deep)}
+  .bd-mini{display:flex;justify-content:center;gap:18px;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+  .qrow{display:grid;grid-template-columns:56px 1fr 56px;gap:12px;align-items:center;padding:10px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .qrow:last-child{border-bottom:none}
+  .qrow .track{height:9px;background:var(--paper);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+  .qrow .fill{display:block;height:100%;background:var(--blue)}
+  .qrow b{font-family:Georgia,var(--serif);font-size:18px;color:var(--blue);font-weight:400;text-align:right}
+  .miss{padding:10px 2px;border-bottom:1px dashed var(--line);font-size:13.5px;display:flex;justify-content:space-between}
+  .miss:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>看板端</b></span></div>
+
+  <div class="bdnote au d2">本页<b>不进导航</b>：入口在「设置 → 看板端」，或网址带 <b>?board=1</b>（办公室那台电脑的桌面快捷方式写死这个参数）。只读屏 —— 屏幕上只剩数字，点到也改不了任何数据。</div>
+
+  <!-- 看板顶带 -->
+  <div class="bd-top au d3">
+    <span class="bd-brand">博艺教育 · 砺蕴</span>
+    <span class="bd-date">2026年10月19日 星期一 · 第 9 教学周</span>
+    <span class="bd-clock">08:42:36</span>
+  </div>
+
+  <div class="bd-grid au d4">
+    <!-- 左栏：今日课表 -->
+    <div class="card">
+      <h3>今日课表</h3>
+      <div class="les now"><div class="nd"></div><div class="t">09:10–09:50</div><div class="c"><b>播音 · 上镜实训</b><span>三班 · BY08 · 余老师</span></div></div>
+      <div class="les"><div class="nd"></div><div class="t">10:00–11:40</div><div class="c"><b>编导 · 影片分析</b><span>一班 · BY03 · 沈老师</span></div></div>
+      <div class="les"><div class="nd"></div><div class="t">13:30–15:10</div><div class="c"><b>表演 · 台词基础</b><span>二班 · BY05 · 顾老师</span></div></div>
+      <div class="les"><div class="nd"></div><div class="t">15:30–17:00</div><div class="c"><b>第三次模拟考试</b><span>全体 · 综合考场</span></div></div>
+      <div class="les"><div class="nd"></div><div class="t">18:30–20:30</div><div class="c"><b>晚自习</b><span>全体 · 各班教室</span></div></div>
+      <p class="hint" style="margin-top:12px">下一节 10:00 编导 · 影片分析</p>
+    </div>
+
+    <!-- 中栏：打卡码 -->
+    <div class="card">
+      <h3>今日打卡码</h3>
+      <div class="qr">打卡二维码</div>
+      <div class="bd-code">4729</div>
+      <div class="bd-bar"><i style="width:72%"></i></div>
+      <div class="bd-cd"><b>86</b> 秒后换码</div>
+      <div class="bd-count">
+        <div><b><span class="cnt" data-to="86">86</span></b><span>应到</span></div>
+        <div class="ok"><b><span class="cnt" data-to="79">79</span></b><span>实到</span></div>
+      </div>
+      <div class="bd-mini">
+        <span>迟到 <b style="color:var(--gold-deep)">4</b></span>
+        <span>请假 <b style="color:var(--blue)">3</b></span>
+        <span>未到 <b style="color:var(--red)">0</b></span>
+      </div>
+    </div>
+
+    <!-- 右栏：班级量化 + 还没到 -->
+    <div style="display:grid;gap:28px">
+      <div class="card">
+        <h3>班级量化</h3>
+        <div class="qrow"><span>一班</span><span class="track"><span class="fill" style="width:90%"></span></span><b>108</b></div>
+        <div class="qrow"><span>三班</span><span class="track"><span class="fill" style="width:87%"></span></span><b>104</b></div>
+        <div class="qrow"><span>二班</span><span class="track"><span class="fill" style="width:81%;background:var(--gold)"></span></span><b>97</b></div>
+        <p class="hint" style="margin-top:10px">每班起始 100 分 · 公示只公布总分和原因</p>
+      </div>
+
+      <div class="card">
+        <h3>还没到 <span class="hint" style="margin-left:6px">7 人</span></h3>
+        <div class="miss"><span>陈同学 · 一班</span><span class="pill gold">未打卡</span></div>
+        <div class="miss"><span>李同学 · 一班</span><span class="pill gold">未打卡</span></div>
+        <div class="miss"><span>周同学 · 一班</span><span class="pill red">迟到</span></div>
+        <div class="miss"><span>冯同学 · 二班</span><span class="pill gold">未打卡</span></div>
+        <div class="miss"><span>杨同学 · 二班</span><span class="pill gold">未打卡</span></div>
+        <div class="miss"><span>蒋同学 · 二班</span><span class="pill red">迟到</span></div>
+        <div class="miss"><span>郑同学 · 三班</span><span class="pill gold">未打卡</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

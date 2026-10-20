@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>设置 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:14px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .verline{font-size:12px;color:var(--ink-3);letter-spacing:1px;margin-bottom:22px}
+  .anchor2{display:grid;grid-template-columns:180px 1fr;gap:32px;align-items:start}
+  .anchornav{position:sticky;top:20px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:14px 0}
+  .anchornav a{display:block;padding:9px 20px;font-size:13px;color:var(--ink-2);letter-spacing:1px;border-left:3px solid transparent}
+  .anchornav a:hover{color:var(--blue);border-left-color:var(--gold)}
+  .segh{font-family:var(--serif);font-size:19px;letter-spacing:3px;color:var(--blue-ink);margin:0 0 4px}
+  .segwrap{margin-bottom:34px}
+  .segwrap .card{margin-bottom:20px}
+  .btnrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .slotrow{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .slotrow:last-child{border-bottom:none}
+  .keys{display:flex;gap:10px;align-items:center;margin-top:12px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:4px;font-size:13px}
+  .modal-mask{position:fixed;inset:0;background:rgba(43,58,94,.45);z-index:60;display:grid;place-items:center}
+  .modal{background:#fff;border-radius:8px;width:400px;padding:26px 28px;box-shadow:0 24px 60px rgba(31,42,66,.28)}
+  .modal h4{font-family:var(--serif);font-size:18px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:16px}
+  .modal .acts{display:flex;justify-content:flex-end;gap:12px;margin-top:18px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a class="on" href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>设置</b></span></div>
+  <div class="verline au d2">砺蕴教务 · VoxOS 4.12 · 常用 / 高级两段，高级段可折叠</div>
+
+  <div class="anchor2 au d3">
+    <!-- 锚点导航 -->
+    <nav class="anchornav">
+      <a href="#segCommon">常用</a>
+      <a href="#backupCard">数据备份</a>
+      <a href="#syncCard">账号与同步</a>
+      <a href="#segAdvanced">高级</a>
+      <a href="#devKeyCard">换设备密钥</a>
+      <a href="#demoCard">演示账号</a>
+      <a href="#healthCard">系统健康</a>
+      <a href="#rulesCard">量化细则</a>
+      <a href="#boardCard">看板入口</a>
+    </nav>
+
+    <div>
+      <!-- 常用段 -->
+      <div class="segwrap" id="segCommon">
+        <div class="segh">常用</div>
+        <p class="hint" style="margin-bottom:16px">每天可能用到的两件事，放在最前</p>
+
+        <div class="card" id="backupCard">
+          <h3>数据备份</h3>
+          <p class="hint" style="margin:0 0 14px">你的所有数据都存在这台设备的浏览器里，同时会同步到你自己开启的云端。<br>
+          换手机、清理浏览器数据前，记得先导出备份。<br>
+          <b>备份 = 导出</b>：把数据存成一个文件（存到「文件」或发微信）；<b>恢复</b>：换设备或数据丢了后，选中之前导出的那个文件。</p>
+          <div class="btnrow">
+            <button class="btn pri">导出备份</button>
+            <button class="btn sec">恢复备份</button>
+          </div>
+        </div>
+
+        <div class="card" id="syncCard">
+          <h3>我的账号 <span class="hint" style="margin-left:8px">同步正常 · 刚刚</span></h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 12px;font-size:14px">
+            <span><b style="font-weight:600">齐活林</b><br><span class="hint">交付总监 · 全部权限</span></span>
+            <span class="pill blue">教务兼授课</span>
+          </div>
+          <div class="btnrow">
+            <button class="btn pri">立即同步</button>
+            <button class="btn sec">改密码</button>
+            <button class="btn sec">切换账号</button>
+            <button class="btn sec">退出登录</button>
+          </div>
+          <p class="hint" style="margin:12px 0 0">打开时自动拉一次、切回前台再拉一次，不用手动点。<br>退出登录后这台设备上的数据也看不到了。</p>
+        </div>
+      </div>
+
+      <!-- 高级段 -->
+      <div class="segwrap" id="segAdvanced">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="segh">高级</div>
+          <span style="flex:1"></span>
+          <button class="btn sec sm">收起 ▾</button>
+        </div>
+        <p class="hint" style="margin:4px 0 16px">密钥 / 演示账号 / 系统健康 / 考勤时段 / 接口配置 / 量化细则 / 看板入口</p>
+
+        <div class="card" id="devKeyCard">
+          <h3>学生换设备密钥</h3>
+          <p class="hint" style="margin:0 0 12px">学生换手机、或者要在第三台设备上登录，得输你给的一次性密钥。<b>每个密钥只能用一次</b>，用完就作废。</p>
+          <div class="btnrow" style="align-items:center">
+            <input type="text" placeholder="自己想一个，如 8866-A" style="border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13px;width:220px;font-family:var(--sans)">
+            <button class="btn pri sm">生成</button>
+            <button class="btn sec sm">随机一个</button>
+          </div>
+          <div class="keys"><span style="font-weight:600">7702-B</span><span class="hint">未使用 · 生成于 2026-10-18</span><span style="flex:1"></span><button class="btn danger sm">删除</button></div>
+        </div>
+
+        <div class="card" id="demoCard">
+          <h3>演示账号</h3>
+          <p class="hint" style="margin:0 0 12px">这四个账号是给你自己排查用的（看看老师/学生/教务各自看到什么），跟你的主账号分开，学生和老师都看不到它们。点了就切过去；要回来就用主账号重新登录。</p>
+          <div class="btnrow">
+            <span class="pill gray">演示教务</span><span class="pill gray">演示老师</span><span class="pill gray">演示学生</span>
+          </div>
+        </div>
+
+        <div class="card" id="healthCard">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h3 style="margin-bottom:0">系统健康</h3>
+            <span class="pill blue">全部正常</span>
+          </div>
+          <p class="hint" style="margin:12px 0 0">上次巡检：10月19日 08:42 · 11 项全部通过。</p>
+          <div class="btnrow" style="margin-top:12px">
+            <a class="btn pri" href="page-health.html">打开巡检</a>
+            <button class="btn sec">立即巡检</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>考勤时段</h3>
+          <p class="hint" style="margin:0 0 8px">一天点几次名，这里就配几个。配好之后，「考勤」页上方能切换这次记的是哪一次，导出也可以只出某一个时段的。</p>
+          <div class="slotrow"><span>早功 <span class="hint">06:40</span></span><button class="btn danger sm">删除</button></div>
+          <div class="slotrow"><span>上午 <span class="hint">09:10</span></span><button class="btn danger sm">删除</button></div>
+          <div class="slotrow"><span>下午 <span class="hint">14:00</span></span><button class="btn danger sm">删除</button></div>
+          <div class="slotrow"><span>晚自习 <span class="hint">18:30</span></span><button class="btn danger sm">删除</button></div>
+          <div class="btnrow" style="margin-top:14px;align-items:center">
+            <input type="text" placeholder="新时段名，如 早功" style="border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13px;width:170px;font-family:var(--sans)">
+            <button class="btn pri sm">添加时段</button>
+          </div>
+          <p class="hint" style="margin:12px 0 0">删掉一个时段不会删已登记的考勤；改名字只影响之后新登记的记录。</p>
+        </div>
+
+        <div class="card">
+          <h3>接口配置</h3>
+          <p class="hint" style="margin:0 0 12px">填在这里的 key 只保存在你自己的设备上，不会上传，也<b>不会被导出到备份文件里</b>。</p>
+          <div class="fld">
+            <label>DeepSeek（每周模考 AI 出题）</label>
+            <input type="password" value="sk-****" style="border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13.5px;width:100%;font-family:var(--sans)">
+            <p class="hint" style="margin-top:8px">在 platform.deepseek.com 注册并实名后，进「API Keys」创建。key 只显示一次，先粘到备忘录再回来。</p>
+          </div>
+          <button class="btn pri">保存</button>
+        </div>
+
+        <div class="card" id="rulesCard">
+          <h3>量化细则</h3>
+          <p class="hint" style="margin:0 0 12px">共 13 条 · 上次修改 2026-10-12</p>
+          <a class="btn pri" href="page-rules.html">打开量化细则</a>
+        </div>
+
+        <div class="card" id="boardCard">
+          <h3>看板端</h3>
+          <p class="hint" style="margin:0 0 12px">给办公室那台电脑挂的一块只读屏：当前时间、今日打卡码、来了多少人、谁还没到、今天上什么课。进去之后导航和按钮全部收起，屏幕上只剩数字 —— 它跟您的工作台是同一个系统，只是多了一个「只看不碰」的视图。</p>
+          <div class="btnrow">
+            <a class="btn pri" href="page-board.html">打开看板端</a>
+            <button class="btn sec">复制看板网址</button>
+            <button class="btn sec">新建看板专用账号</button>
+            <button class="btn sec">释放看板设备</button>
+          </div>
+          <p class="hint" style="margin:12px 0 0">看板端有<b>自己一个号</b>（用户名 <b>办公室看板</b>，口令见使用手册），别拿自己常用的号去登 —— 每个账号只有 2 台设备额度，会把您手机挤下线。</p>
+        </div>
+
+        <div class="card">
+          <h3>危险操作</h3>
+          <button class="btn danger">清空所有数据</button>
+          <p class="hint" style="margin:12px 0 0">清空前请确认已经导出过备份，这个操作无法撤销。</p>
+        </div>
+
+        <div class="card">
+          <p class="hint" style="margin:0;text-align:center">博艺教育 · liyun2026.top</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 静态示例弹窗：改密码 -->
+<div class="modal-mask">
+  <div class="modal">
+    <h4>改密码</h4>
+    <div class="fld">
+      <label>原密码</label>
+      <input type="password" placeholder="输入现在的密码">
+    </div>
+    <div class="fld">
+      <label>新密码（至少 8 位）</label>
+      <input type="password" placeholder="输入新密码">
+    </div>
+    <div class="fld">
+      <label>再输一遍新密码</label>
+      <input type="password" placeholder="两次要一样">
+    </div>
+    <div class="acts">
+      <button class="btn sec">取消</button>
+      <button class="btn pri">确定</button>
+    </div>
+  </div>
+</div>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

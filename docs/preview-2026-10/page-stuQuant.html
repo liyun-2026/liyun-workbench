@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>本班量化 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .qhero{display:flex;align-items:baseline;gap:14px;padding:8px 0 4px}
+  .qhero .n{font-family:Georgia,var(--serif);font-size:56px;color:var(--blue);line-height:1}
+  .qhero .n em{font-style:normal;font-size:16px;color:var(--ink-3);margin-left:4px}
+  .qhero .l{font-size:13px;color:var(--ink-2);letter-spacing:1px}
+  .qrecent{font-size:12.5px;color:var(--ink-2);margin-top:12px;letter-spacing:.5px}
+  .qrecent b{color:var(--gold-deep);font-weight:500}
+  .q-it{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:14px 2px;border-bottom:1px dashed var(--line)}
+  .q-it:last-child{border-bottom:none}
+  .q-it .rk{font-family:Georgia,var(--serif);font-size:18px;color:var(--ink-3);text-align:center}
+  .q-it h4{font-size:14px;font-weight:600;margin-bottom:4px}
+  .q-it h4.me{color:var(--blue)}
+  .q-it p{font-size:12px;color:var(--ink-2);line-height:1.8}
+  .q-it .sc{font-family:Georgia,var(--serif);font-size:24px;line-height:1;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a href="page-stuTable.html">我的课表</a>
+    <a href="page-stuExam.html">考试与抽签</a>
+    <a class="on" href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>本班量化</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 班级总分（生产：StuQuant head —— 总分 + 起始 100 + 最近三条） -->
+  <div class="au d2" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>一班 · 班级总分<small>CLASS SCORE</small></h2>
+      <div class="crumb">本班量化 › <b>班级总分</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card">
+      <div class="qhero">
+        <div class="n"><span class="cnt" data-to="138">138</span><em>分</em></div>
+        <div class="l">一班（起始 100 分）</div>
+      </div>
+      <p class="qrecent">最近：10.18 <b>作业全部按时交齐 +20</b> · 10.16 <b>课堂互动突出 +5</b> · 10.15 迟到 -2</p>
+    </div>
+  </div>
+
+  <!-- 我的加扣分 —— 班干部视角（生产：StuQuant.isOfficer 时列出全班，从高到低；
+       普通学生只看得到自己那一条。此处示例陈同学为学习委员） -->
+  <div class="au d3">
+    <div class="sec">
+      <h2>我的加扣分<small>SCORE DETAILS</small></h2>
+      <div class="crumb">本班量化 › <b>加扣分明细</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card" style="padding:16px 24px 10px">
+      <p style="font-size:12.5px;color:var(--ink-2);margin-bottom:6px">你是<b style="color:var(--blue-ink)">学习委员</b> —— 下面是全班每位同学的加扣分（从高到低）。</p>
+
+      <div class="q-it">
+        <div class="rk">1</div>
+        <div>
+          <h4>李同学</h4>
+          <p>出勤正常×14（+14） · 作业按时提交×8（+8） · 晚自习过关×4（+4） · 卫生合格×2（+20）</p>
+        </div>
+        <div class="sc" style="color:var(--blue)">+46</div>
+      </div>
+      <div class="q-it">
+        <div class="rk">2</div>
+        <div>
+          <h4 class="me">陈同学（我）</h4>
+          <p>出勤正常×14（+14） · 作业按时提交×8（+8） · 晚自习过关×3（+3） · 迟到×2（-4） · 作业未交×1（-2）</p>
+        </div>
+        <div class="sc" style="color:var(--blue)">+19</div>
+      </div>
+      <div class="q-it">
+        <div class="rk">3</div>
+        <div>
+          <h4>王同学</h4>
+          <p>出勤正常×12（+12） · 作业按时提交×6（+6） · 评述消极对待×1（-15） · 专业时间说方言×2（-10）</p>
+        </div>
+        <div class="sc" style="color:var(--red)">-7</div>
+      </div>
+      <div class="q-it">
+        <div class="rk">4</div>
+        <div>
+          <h4>赵同学</h4>
+          <p>出勤正常×10（+10） · 迟到×4（-8） · 上课玩手机×1（-20） · 作业迟交/敷衍×1（-10）</p>
+        </div>
+        <div class="sc" style="color:var(--red)">-28</div>
+      </div>
+    </div>
+    <p style="font-size:11.5px;color:var(--ink-3);letter-spacing:.5px;margin-top:14px">
+      计分名目由教务在「量化细则」里维护（出勤正常 +1 · 迟到 -2 · 作业按时提交 +1 · 作业未交 -2 · 晚自习过关 +1 …），
+      本页不出排名、不比较他人总分，只列明细供班干部管班。
+    </p>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

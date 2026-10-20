@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>我的课表 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .day{margin-bottom:26px}
+  .day:last-child{margin-bottom:0}
+  .day h3{font-family:var(--serif);font-size:17px;letter-spacing:4px;color:var(--blue-ink);margin-bottom:4px}
+  .day h3 small{font-family:var(--sans);font-size:10px;letter-spacing:2px;color:var(--ink-3);margin-left:10px}
+  .les{display:grid;grid-template-columns:110px 1fr auto;gap:16px;align-items:center;padding:13px 2px;border-bottom:1px dashed var(--line);font-size:13px}
+  .les:last-child{border-bottom:none}
+  .les .t{font-family:Georgia,var(--serif);font-size:13px;color:var(--ink-2);letter-spacing:.5px}
+  .les .t small{display:block;font-family:var(--sans);font-size:11px;color:var(--ink-3);margin-top:3px}
+  .les .c b{display:block;font-weight:600;font-size:14px;margin-bottom:3px}
+  .les .c span{font-size:12px;color:var(--ink-2)}
+  .les.now{background:#f6f8fc;margin:0 -12px;padding-left:12px;padding-right:12px;border-radius:4px}
+  .les.now .c b{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a class="on" href="page-stuTable.html">我的课表</a>
+    <a href="page-stuExam.html">考试与抽签</a>
+    <a href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>我的课表</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 生产：StuTable —— 按天列出我这个班的课（周一→周日，没排课的天不出现） -->
+  <div class="au d2">
+    <div class="sec">
+      <h2>我的课表<small>MY TIMETABLE · WEEK 9</small></h2>
+      <div class="crumb">我的课表 › <b>第 9 教学周</b></div>
+    </div>
+    <div class="rule"></div>
+
+    <div class="card" style="padding:26px 30px">
+      <div class="day">
+        <h3>周一<small>MON · 10-19</small></h3>
+        <div class="les now">
+          <div class="t">08:30–10:10<small>上午第 1 节</small></div>
+          <div class="c"><b>播音 · 上镜实训</b><span>一班 · BY08 演播室</span></div>
+          <span class="pill blue">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">10:20–12:00<small>上午第 2 节</small></div>
+          <div class="c"><b>编导 · 影片分析</b><span>一班 · BY03</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">15:30–17:00<small>下午第 2 节</small></div>
+          <div class="c"><b>第三次模拟考试</b><span>全体 · 综合考场</span></div>
+          <span class="pill gold">大课</span>
+        </div>
+      </div>
+
+      <div class="day">
+        <h3>周二<small>TUE · 10-20</small></h3>
+        <div class="les">
+          <div class="t">08:30–10:10<small>上午第 1 节</small></div>
+          <div class="c"><b>表演 · 台词基础</b><span>一班 · BY06</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">14:00–15:40<small>下午第 1 节</small></div>
+          <div class="c"><b>播音 · 上镜实训（小课）</b><span>陈同学 · BY08 演播室</span></div>
+          <span class="pill gold">小课</span>
+        </div>
+      </div>
+
+      <div class="day">
+        <h3>周三<small>WED · 10-21</small></h3>
+        <div class="les">
+          <div class="t">10:20–12:00<small>上午第 2 节</small></div>
+          <div class="c"><b>编导 · 影片分析</b><span>一班 · BY03</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">13:30–15:10<small>下午第 1 节</small></div>
+          <div class="c"><b>播音 · 即兴评述</b><span>一班 · BY08 演播室</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+      </div>
+
+      <div class="day">
+        <h3>周四<small>THU · 10-22</small></h3>
+        <div class="les">
+          <div class="t">08:30–10:10<small>上午第 1 节</small></div>
+          <div class="c"><b>表演 · 台词基础</b><span>一班 · BY06</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+      </div>
+
+      <div class="day">
+        <h3>周五<small>FRI · 10-23</small></h3>
+        <div class="les">
+          <div class="t">08:30–10:10<small>上午第 1 节</small></div>
+          <div class="c"><b>播音 · 上镜实训</b><span>一班 · BY08 演播室</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">10:20–12:00<small>上午第 2 节</small></div>
+          <div class="c"><b>编导 · 影片分析</b><span>一班 · BY03</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">14:00–15:40<small>下午第 1 节</small></div>
+          <div class="c"><b>播音 · 上镜实训（小课）</b><span>李同学 · BY08 演播室</span></div>
+          <span class="pill gold">小课</span>
+        </div>
+      </div>
+
+      <div class="day">
+        <h3>周六<small>SAT · 10-24</small></h3>
+        <div class="les">
+          <div class="t">09:00–11:40<small>上午连堂</small></div>
+          <div class="c"><b>表演 · 台词基础</b><span>一班 · BY06</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+        <div class="les">
+          <div class="t">13:30–15:10<small>下午第 1 节</small></div>
+          <div class="c"><b>播音 · 即兴评述</b><span>一班 · BY08 演播室</span></div>
+          <span class="pill gray">大课</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

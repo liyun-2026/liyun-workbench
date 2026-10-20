@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录 · 方案 A 双栏分角色</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .wrap{display:grid;grid-template-columns:1.15fr 1fr;min-height:100vh}
+  /* 左：品牌影像面板 */
+  .lpanel{position:relative;overflow:hidden;background:#1d2942;display:flex;flex-direction:column;justify-content:space-between;padding:56px 60px}
+  .lpanel .bgimg{position:absolute;inset:0;background:url(assets/banner-studio.png) center 42%/cover no-repeat;opacity:.42}
+  .lpanel .veil{position:absolute;inset:0;background:linear-gradient(160deg,rgba(29,41,66,.88) 0%,rgba(29,41,66,.55) 45%,rgba(29,41,66,.85) 100%)}
+  .lpanel>*{position:relative;z-index:2}
+  .lbrand{display:flex;align-items:center;gap:18px}
+  .lbrand img{width:64px;height:64px}
+  .lbrand b{font-family:var(--serif);font-size:30px;letter-spacing:7px;color:#f3efe6;display:block}
+  .lbrand small{font-size:10px;letter-spacing:3.5px;color:#93a3c4;display:block;margin-top:6px}
+  .lmid .motto{font-family:var(--serif);font-size:44px;letter-spacing:10px;color:#f3efe6;line-height:1.3}
+  .lmid .motto span{color:var(--gold)}
+  .lmid .mrule{width:72px;height:2px;background:var(--gold);margin:26px 0 20px}
+  .lmid .msub{font-family:var(--serif);font-size:16px;letter-spacing:5px;color:#e8cd94}
+  .lfoot{display:flex;justify-content:space-between;align-items:flex-end;font-size:11.5px;letter-spacing:2px;color:#8fa0c0}
+  /* 右：登录表单 */
+  .rpanel{background:#fff;display:flex;align-items:center;justify-content:center}
+  .fbox{width:400px}
+  .fbox h1{font-family:var(--serif);font-size:27px;letter-spacing:5px;color:var(--blue-ink);font-weight:700}
+  .fbox .fen{font-size:10px;letter-spacing:3px;color:var(--ink-3);margin-top:8px}
+  .frule{height:1px;background:var(--line);position:relative;margin:20px 0 30px}
+  .frule::before{content:"";position:absolute;left:0;top:-1px;height:3px;width:56px;background:var(--blue)}
+  .frule::after{content:"";position:absolute;left:60px;top:-3px;width:7px;height:7px;background:var(--gold);transform:rotate(45deg)}
+  .roletoggle{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-bottom:26px}
+  .roletoggle button{border:none;background:#fff;font-family:var(--serif);font-size:15px;letter-spacing:4px;color:var(--ink-2);padding:13px 0;cursor:pointer;transition:all .2s}
+  .roletoggle button.on{background:var(--blue);color:#fff;box-shadow:inset 0 -3px 0 var(--gold)}
+  .fld{margin-bottom:18px}
+  .fld label{display:block;font-size:12.5px;color:var(--ink-2);letter-spacing:2px;margin-bottom:8px}
+  .fld input{width:100%;border:1px solid var(--line);border-radius:3px;padding:12px 14px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:#fff;transition:border .2s}
+  .fld input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(74,92,140,.10)}
+  .frow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-3);margin:4px 0 24px}
+  .frow a{color:var(--gold-deep)}
+  .btn-login{width:100%;border:none;border-radius:3px;background:linear-gradient(120deg,#50618f,var(--blue));color:#fff;font-family:var(--serif);font-size:17px;letter-spacing:8px;text-indent:8px;padding:14px 0;cursor:pointer;transition:opacity .2s;box-shadow:0 8px 20px rgba(43,58,94,.22)}
+  .btn-login:hover{opacity:.92}
+  .fnote{margin-top:26px;font-size:11.5px;letter-spacing:2px;color:var(--ink-3);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="lpanel au">
+    <div class="bgimg"></div><div class="veil"></div>
+    <div class="lbrand">
+      <img src="assets/seal-boyi.png" alt="博艺教育校徽">
+      <div><b>砺蕴教务系统</b><small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small></div>
+    </div>
+    <div class="lmid">
+      <div class="motto">博学宏才 <span>·</span> 艺德卓绝</div>
+      <div class="mrule"></div>
+      <div class="msub">南阳博艺教育 · 专注播音艺考 22 年</div>
+    </div>
+    <div class="lfoot"><span>2026—2027 学年 · 秋季学期 · 第 9 教学周</span><span>博学宏才 艺德卓绝</span></div>
+  </div>
+
+  <div class="rpanel">
+    <div class="fbox au d2">
+      <h1>欢迎登录</h1>
+      <div class="fen">WELCOME · SIGN IN</div>
+      <div class="frule"></div>
+      <div class="roletoggle" id="roles">
+        <button class="on" data-tip="请输入工号或手机号">教职工</button>
+        <button data-tip="请输入学号或手机号">学生</button>
+      </div>
+      <div class="fld"><label>账 号</label><input id="acc" placeholder="请输入工号或手机号"></div>
+      <div class="fld"><label>密 码</label><input type="password" placeholder="请输入密码"></div>
+      <div class="frow"><span><input type="checkbox" checked style="vertical-align:-2px"> 记住账号</span><a href="#">忘记密码</a></div>
+      <button class="btn-login">登 录</button>
+      <div class="fnote">博艺教育 · 砺蕴教务系统 © 2026</div>
+    </div>
+  </div>
+
+</div>
+<script>
+  document.querySelectorAll('#roles button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#roles button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById('acc').placeholder = b.dataset.tip;
+    });
+  });
+</script>
+</body>
+</html>

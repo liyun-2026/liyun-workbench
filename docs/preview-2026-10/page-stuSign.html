@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>打卡 / 请假 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .util a.cur{color:#fff;font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:2px}
+  .sign-hero{display:flex;align-items:center;justify-content:center;gap:48px;padding:30px 24px}
+  .ring{width:188px;height:188px;border-radius:50%;border:3px solid var(--blue);display:grid;place-items:center;position:relative;flex-shrink:0}
+  .ring::before{content:"";position:absolute;inset:12px;border-radius:50%;border:1px solid var(--line)}
+  .ring .w{font-family:var(--serif);font-size:27px;letter-spacing:6px;color:var(--blue-ink);text-indent:6px}
+  .ring .t{font-family:Georgia,var(--serif);font-size:15px;letter-spacing:2px;color:var(--ink-2);margin-top:9px}
+  .sign-state{font-size:15px;letter-spacing:1px;color:var(--ink)}
+  .sign-state b{color:var(--blue)}
+  .sign-state small{display:block;margin-top:8px;font-size:12px;color:var(--ink-3);letter-spacing:.5px}
+  .bigcode{font-family:Georgia,var(--serif);font-size:72px;letter-spacing:18px;color:var(--blue-ink);text-align:center;text-indent:18px;line-height:1.15}
+  .code-meta{text-align:center;font-size:12px;color:var(--ink-2);letter-spacing:2px;margin-top:6px}
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+  .flow .stp{border:1px solid var(--line);border-radius:6px;padding:16px 18px;position:relative}
+  .flow .stp i{position:absolute;top:-11px;left:14px;font-style:normal;font-family:var(--serif);font-size:13px;letter-spacing:2px;background:var(--blue);color:#fff;border-radius:2px;padding:2px 10px}
+  .flow .stp p{font-size:12.5px;color:var(--ink-2);line-height:1.9;margin-top:8px}
+  .flow .stp b{display:block;font-size:14px;color:var(--blue-ink);letter-spacing:1px;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">陈</div>
+      <div><b>陈同学</b><small>一班 · 第 9 教学周</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+    <a href="page-stuHome.html">今日</a>
+    <a href="page-stuGather.html">限时征集</a>
+    <a class="on" href="page-stuSign.html">打卡</a>
+    <a href="page-stuNews.html">每日新闻</a>
+    <a href="page-stuTable.html">我的课表</a>
+    <a href="page-stuExam.html">考试与抽签</a>
+    <a href="page-stuQuant.html">本班量化</a>
+    <a href="page-stuProfile.html">我的档案</a>
+    <a href="page-stuHw.html">我的作业</a>
+    <a href="page-stuMsg.html">给老师发消息</a>
+    <a href="#">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>打卡 / 请假</b></span></div>
+  <div class="ctxbar au d2">我的班级 <b>一班</b> · 第 <b>9</b> 教学周 · 班主任 沈老师</div>
+
+  <!-- 打卡圈（生产：StuSign ring，状态圈只显示、不给「再打一次」） -->
+  <div class="au d2" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>打卡<small>SIGN IN</small></h2>
+      <div class="crumb">打卡 / 请假 › <b>打卡</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card sign-hero">
+      <div class="ring">
+        <div style="text-align:center">
+          <div class="w">已打卡</div>
+          <div class="t">08:26:34</div>
+        </div>
+      </div>
+      <div>
+        <div class="sign-state"><b>正常</b> · 方式：动态码 · 距校区 42 米
+          <small>打卡只打一次 —— 打错了、打歪了，由教务在后台改；学生这边不留「再打一次」的口子。</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 动态码 · 先码后定位（生产 v51：先取码、取到码那一刻即打卡时刻，定位在后跑） -->
+  <div class="au d3" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>第一步 · 取码<small>DYNAMIC CODE</small></h2>
+      <div class="crumb">打卡 / 请假 › <b>取码</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card">
+      <div class="bigcode">483 216</div>
+      <div class="code-meta">教室看板上的动态码 · 每 <b style="color:var(--gold-deep)">60 秒</b> 更换一次 · 由服务端密钥派生，学生算不出下一分钟的码</div>
+      <div style="text-align:center;margin-top:18px;display:flex;gap:10px;justify-content:center">
+        <span class="btn pri">扫面前的二维码</span>
+        <span class="btn sec">手输动态码</span>
+      </div>
+      <div class="flow">
+        <div class="stp">
+          <i>第 1 步 · 取码</i>
+          <p>对着面前屏幕上的二维码<b style="display:inline;color:var(--blue)">扫一下</b>，或点「手输动态码」照抄那 6 位数字。扫码和手输是二选一。</p>
+          <b>取到码那一刻 = 打卡时刻</b>
+        </div>
+        <div class="stp">
+          <i>第 2 步 · 定位</i>
+          <p>码收到了就自动开始定位，定完自动提交，不用再按。定位慢几秒、飘一下，都不影响打卡时刻。</p>
+          <b>定位是证据，不是关卡</b>
+        </div>
+        <div class="stp">
+          <i>第 3 步 · 出结果</i>
+          <p>正常 / 迟到当场出；取不到位置或坐标压不进校区半径，照样打上 —— 记「待核」交教务核对。</p>
+          <b>待核不算缺卡</b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 待核 · 位置密钥更正（生产：StuSign.fixBox） -->
+  <div class="au d4" style="margin-bottom:28px">
+    <div class="sec">
+      <h2>定位没对上时 · 密钥更正<small>VERIFY KEY</small></h2>
+      <div class="crumb">打卡 / 请假 › <b>待核更正</b></div>
+    </div>
+    <div class="rule"></div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span class="pill red">待核（教务会核对）</span>
+        <span style="font-size:12.5px;color:var(--ink-3)">定位存疑（待核） · 08:27:02</span>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2);line-height:2;margin-bottom:12px">
+        这条已经记上了（<b>待核</b>，教务会核对 —— 不算缺卡）。<br>
+        人就在教室里、只是手机定位飘？找教务老师要一枚 <b style="color:var(--gold-deep)">4 位位置密钥</b>填进来，当场就能算正常。
+      </p>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="text" placeholder="4 位数字" maxlength="4" style="width:150px;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13.5px">
+        <span class="btn pri">用密钥更正</span>
+      </div>
+      <p style="font-size:11.5px;color:var(--ink-3);margin-top:12px;letter-spacing:.5px">密钥只替代「定位」这一环 —— 码照旧要重新扫一次，那是「这次打卡属于这节课」的证据。</p>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:28px">
+    <!-- 我这个月的打卡 + 请假记录 -->
+    <div class="au d4">
+      <div class="sec">
+        <h2>我这个月的打卡<small>MY RECORD</small></h2>
+      </div>
+      <div class="rule"></div>
+      <div class="tblwrap" style="margin-bottom:28px">
+        <table class="tbl">
+          <tr><th>日期</th><th>状态</th><th>方式</th><th>时间</th></tr>
+          <tr><td>10-19</td><td><span class="pill blue">正常</span></td><td>动态码</td><td>08:26:34</td></tr>
+          <tr><td>10-16</td><td><span class="pill blue">正常</span></td><td>动态码</td><td>08:21:07</td></tr>
+          <tr><td>10-15</td><td><span class="pill red">迟到 3 分钟</span></td><td>动态码</td><td>08:33:41</td></tr>
+          <tr><td>10-14</td><td><span class="pill gold">待核（教务会核对）</span></td><td>定位存疑（待核）</td><td>08:27:02</td></tr>
+          <tr><td>10-13</td><td><span class="pill gray">已批准 · 病假</span></td><td>—</td><td>—</td></tr>
+          <tr><td>10-12</td><td><span class="pill blue">正常</span></td><td>位置密钥</td><td>08:24:55</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>我请过的假<small>MY LEAVES</small></h2>
+      </div>
+      <div class="rule"></div>
+      <div class="card" style="padding:10px 20px">
+        <div style="padding:13px 2px;border-bottom:1px dashed var(--line)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:13.5px;font-weight:500">10-13 · 病假</b><span class="pill blue">已批准</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin-top:5px">上午去医院复查，下午回校上课</p>
+        </div>
+        <div style="padding:13px 2px;border-bottom:1px dashed var(--line)">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:13.5px;font-weight:500">10-08 · 事假</b><span class="pill blue">已批准</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin-top:5px">家中事务，需请假半天，作业当晚补齐</p>
+        </div>
+        <div style="padding:13px 2px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b style="font-size:13.5px;font-weight:500">09-26 · 事假</b><span class="pill red">已驳回</span>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin-top:5px">当天有模考，驳回后正常参加考试</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 请假表单 -->
+    <div class="au d5">
+      <div class="sec">
+        <h2>请假<small>ASK FOR LEAVE</small></h2>
+      </div>
+      <div class="rule"></div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 130px;gap:12px">
+          <div class="fld"><label>请假日期</label><input type="text" value="2026-10-19"></div>
+          <div class="fld"><label>类型</label><select><option>病假</option><option>事假</option></select></div>
+        </div>
+        <div class="fld"><label>原因</label><textarea rows="4" placeholder="说清楚原因，例如：上午去医院复查，下午回校">明天上午去市医院复查牙齿，预计 11:30 到校，下午的课正常上。</textarea></div>
+        <span class="btn pri">提交请假</span>
+        <p style="font-size:11.5px;color:var(--ink-3);margin-top:12px;letter-spacing:.5px">已提交，教务批准后会自动写进考勤。</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-stuHome.html">今日</a></li><li><a href="page-stuSign.html">打卡</a></li><li><a href="page-stuTable.html">我的课表</a></li><li><a href="page-stuGather.html">限时征集</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

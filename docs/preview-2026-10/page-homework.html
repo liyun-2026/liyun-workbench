@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>作业 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin:16px 0 10px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--gold));border-radius:5px}
+  .clschip{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:6px 12px;font-size:12.5px;color:var(--ink-2);margin:0 6px 6px 0;cursor:pointer}
+  .clschip.on{border-color:var(--blue);color:#fff;background:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a><a href="page-today.html">今天</a><a href="page-att.html">考勤</a><a href="page-sign.html">打卡管理</a><a class="on" href="page-homework.html">作业</a><a href="page-roster.html">名册</a><a href="page-students.html">学生账号</a><a href="page-profile.html">学员档案</a><a href="page-timetable.html">课表</a><a href="index.html">课时统计</a><a href="page-night.html">晚自习</a><a href="page-quant.html">量化</a><a href="page-exam.html">模考</a><a href="page-coop.html">协作</a><a href="page-gather.html">限时征集</a><a href="page-teachers.html">老师管理</a><a href="page-record.html">录入今日</a><a href="page-health.html">巡检</a><a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>作业</b></span></div>
+
+  <!-- 左「今日检查」逐人勾选 · 右「布置作业」发给多个班（来源：生产 page-homework hw-grid） -->
+  <div class="au d2">
+    <div class="sec"><h2>今日检查 · 布置作业<small>HOMEWORK</small></h2><span class="crumb">左「今日检查」逐人勾选 · 右「布置作业」发给多个班</span></div>
+    <div class="rule"></div>
+    <div class="cols" style="grid-template-columns:1.5fr 1fr">
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:6px">
+          <div class="fld" style="margin:0;width:170px"><label>班级</label><select><option>播音一班</option><option>播音二班</option><option>编导一班</option></select></div>
+          <div class="fld" style="margin:0;width:170px"><label>日期</label><input type="date" value="2026-10-19"></div>
+        </div>
+        <div class="bar"><i style="width:72%"></i></div>
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <b style="font-family:Georgia,var(--serif);font-size:26px;color:var(--blue)">72%</b>
+          <span style="font-size:12.5px;color:var(--ink-2)">已交 <b style="color:var(--blue)">18</b> / <b>25</b> 人</span>
+        </div>
+        <div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0;margin-top:14px">
+          <table class="tbl">
+            <tr><th>学员</th><th>作业</th><th>状态</th></tr>
+            <tr><td>陈同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill blue">已交</span></td></tr>
+            <tr><td>李同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill blue">已交</span></td></tr>
+            <tr><td>王同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill gold">补交</span></td></tr>
+            <tr><td>张同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill blue">已交</span></td></tr>
+            <tr><td>刘同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill red">未交</span></td></tr>
+            <tr><td>赵同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill blue">已交</span></td></tr>
+            <tr><td>孙同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill blue">已交</span></td></tr>
+            <tr><td>周同学</td><td style="color:var(--ink-2)">即兴评述《AI 会取代主持人吗》</td><td><span class="pill red">未交</span></td></tr>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--serif);font-size:17px;letter-spacing:3px;color:var(--blue-ink);margin-bottom:14px">布置作业</h3>
+        <div class="fld">
+          <label>发给哪些班（可多选，点「全部」一次选上所有班）</label>
+          <div>
+            <span class="clschip on">播音一班</span><span class="clschip on">播音二班</span><span class="clschip">播音三班</span><span class="clschip">编导一班</span><span class="clschip">全部</span>
+          </div>
+        </div>
+        <div class="fld"><label>截止日期</label><input type="date" value="2026-10-20"></div>
+        <div class="fld"><label>作业内容</label><textarea placeholder="作业内容，如：即兴评述《AI 会取代主持人吗》，明早功检查" style="min-height:96px"></textarea></div>
+        <button class="btn pri">布置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 已布置（来源：生产 page-homework「已布置 · 今日发给各班的作业」） -->
+  <div class="au d4" style="margin-top:34px">
+    <div class="sec"><h2>已布置<small>ASSIGNED · 今日发给各班的作业</small></h2><span class="crumb">按布置时间倒序</span></div>
+    <div class="rule"></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <tr><th>班级</th><th>作业内容</th><th>截止日期</th><th>布置时间</th><th>状态</th></tr>
+        <tr><td>播音一班</td><td>即兴评述《AI 会取代主持人吗》</td><td>2026-10-20</td><td>今天 08:15</td><td><span class="pill blue">进行中</span></td></tr>
+        <tr><td>播音二班</td><td>即兴评述《AI 会取代主持人吗》</td><td>2026-10-20</td><td>今天 08:15</td><td><span class="pill blue">进行中</span></td></tr>
+        <tr><td>编导一班</td><td>《国庆档影片》影评写作，不少于 800 字</td><td>2026-10-21</td><td>今天 09:02</td><td><span class="pill blue">进行中</span></td></tr>
+        <tr><td>播音三班</td><td>自备稿件《岳阳楼记》脱稿录制一遍</td><td>2026-10-19</td><td>昨天 17:40</td><td><span class="pill gray">已截止</span></td></tr>
+        <tr><td>表演一班</td><td>双人小品《候车室》结构梳理</td><td>2026-10-19</td><td>昨天 16:20</td><td><span class="pill gray">已截止</span></td></tr>
+        <tr><td>周末班</td><td>新闻标题口播练习 10 条</td><td>2026-10-24</td><td>10-17 11:30</td><td><span class="pill blue">进行中</span></td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>

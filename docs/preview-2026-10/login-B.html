@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>登录 · 方案 B 居中典仪卡</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  body{background:
+    radial-gradient(1200px 500px at 20% -10%,rgba(74,92,140,.07),transparent 60%),
+    radial-gradient(900px 420px at 85% 110%,rgba(201,171,124,.10),transparent 60%),
+    var(--paper)}
+  .stage{min-height:100vh;display:flex;flex-direction:column}
+  .top{display:flex;justify-content:space-between;align-items:center;max-width:1280px;width:100%;margin:0 auto;padding:22px 40px 0;font-size:12px;letter-spacing:2px;color:var(--ink-3)}
+  .top b{font-family:var(--serif);font-size:14px;letter-spacing:3px;color:var(--blue-ink)}
+  .mid{flex:1;display:flex;align-items:center;justify-content:center;padding:20px 0}
+  .card{width:460px;background:#fff;border:1px solid var(--line);border-top:3px solid var(--blue-ink);position:relative;
+    box-shadow:0 24px 60px rgba(43,58,94,.12);padding:44px 52px 36px;text-align:center}
+  .card::after{content:"";position:absolute;left:0;right:0;top:3px;height:1px;background:var(--gold)}
+  .card .seal{width:66px;height:66px;margin:0 auto 14px}
+  .card h1{font-family:var(--serif);font-size:24px;letter-spacing:6px;color:var(--blue-ink);font-weight:700}
+  .card .en{font-size:9.5px;letter-spacing:3px;color:var(--ink-3);margin-top:7px}
+  .mrule{width:56px;height:2px;background:var(--gold);margin:18px auto 22px}
+  .roletabs{display:flex;justify-content:center;gap:44px;margin-bottom:24px}
+  .roletabs button{border:none;background:none;font-family:var(--serif);font-size:16px;letter-spacing:4px;color:var(--ink-3);
+    padding:6px 2px 10px;cursor:pointer;position:relative;transition:color .2s}
+  .roletabs button.on{color:var(--blue-ink)}
+  .roletabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--gold)}
+  .fld{text-align:left;margin-bottom:16px}
+  .fld label{display:block;font-size:12px;color:var(--ink-2);letter-spacing:2px;margin-bottom:7px}
+  .fld input{width:100%;border:1px solid var(--line);border-radius:3px;padding:12px 14px;font-size:14.5px;font-family:var(--sans);color:var(--ink);background:#fcfcfa;transition:border .2s}
+  .fld input:focus{outline:none;border-color:var(--blue);background:#fff}
+  .btn-login{width:100%;border:none;border-radius:3px;background:var(--blue);color:#fff;font-family:var(--serif);font-size:16px;letter-spacing:8px;text-indent:8px;padding:13px 0;margin-top:8px;cursor:pointer;transition:background .2s}
+  .btn-login:hover{background:var(--blue-deep)}
+  .fnote{margin-top:22px;font-size:11px;letter-spacing:2px;color:var(--ink-3)}
+  .bot{max-width:1280px;width:100%;margin:0 auto;padding:0 40px 22px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:2px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="top au"><b>砺蕴教务系统</b><span>南阳博艺教育 · 专注播音艺考 22 年</span></div>
+
+  <div class="mid">
+    <div class="card au d1">
+      <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+      <h1>砺蕴教务系统</h1>
+      <div class="en">ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</div>
+      <div class="mrule"></div>
+      <div class="roletabs" id="roles">
+        <button data-tip="请输入工号或手机号">教职工</button>
+        <button class="on" data-tip="请输入学号或手机号">学生</button>
+      </div>
+      <div class="fld"><label>账 号</label><input id="acc" placeholder="请输入学号或手机号"></div>
+      <div class="fld"><label>密 码</label><input type="password" placeholder="请输入密码"></div>
+      <button class="btn-login">登 录</button>
+      <div class="fnote">博学宏才 · 艺德卓绝</div>
+    </div>
+  </div>
+
+  <div class="bot au d2"><span>2026—2027 学年 · 秋季学期 · 第 9 教学周</span><span>砺蕴教务系统 © 2026</span></div>
+
+</div>
+<script>
+  document.querySelectorAll('#roles button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('#roles button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      document.getElementById('acc').placeholder = b.dataset.tip;
+    });
+  });
+</script>
+</body>
+</html>

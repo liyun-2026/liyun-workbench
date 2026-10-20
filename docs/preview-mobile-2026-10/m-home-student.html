@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>首页 · 学生端（样张）</title>
+<link rel="stylesheet" href="assets/mobile.css">
+</head>
+<body>
+
+  <!-- 学生端整页水印（生产逻辑：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 沉浸头 -->
+  <div class="hero">
+    <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="">
+    <div class="greet">晚上好，陈同学</div>
+    <div class="sub">一班 · 10 月 20 日 星期二 · 第 9 教学周</div>
+    <div class="search-pill">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      搜索服务/待办/资讯
+    </div>
+  </div>
+
+  <!-- 白板叠头 -->
+  <div class="sheet">
+
+    <!-- ① 今日打卡 -->
+    <div class="sec"><h2>今日打卡</h2><span class="more">打卡窗口 08:00–20:30</span></div>
+    <a class="bigbtn" href="m-checkin.html">
+      <div>
+        <div class="bt">进入打卡 →</div>
+        <div class="bs">打卡窗口 08:00–20:30</div>
+      </div>
+      <span class="go">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg>
+      </span>
+    </a>
+
+    <!-- ② 今天上课 -->
+    <div class="sec"><h2>今天上课</h2><span class="more">2 节</span></div>
+    <div class="card">
+      <div class="sched">
+        <span class="dot"></span>
+        <div class="info">
+          <div class="name">播音 · 上镜实训</div>
+          <div class="meta">09:10–09:50 · BY08 · 余老师</div>
+        </div>
+        <span class="pill gold">今天</span>
+      </div>
+      <div class="sched">
+        <span class="dot"></span>
+        <div class="info">
+          <div class="name">表演 · 台词基础</div>
+          <div class="meta">13:30–15:10 · BY05 · 顾老师</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 我的作业 -->
+    <div class="sec"><h2>我的作业</h2><a class="more" href="m-homework.html">全部 ›</a></div>
+    <div class="card">
+      <div class="todo">
+        <div class="info">
+          <div class="name">播音：self-introduction 录音</div>
+          <div class="due">余老师布置 · 60 秒以内 · MP3/M4A</div>
+        </div>
+        <span class="pill red">明天截止</span>
+      </div>
+      <div class="todo">
+        <div class="info">
+          <div class="name">编导：影片分析随笔</div>
+          <div class="due">《活着》任选一场戏 · 800 字以上</div>
+        </div>
+        <span class="pill gold">已提交</span>
+      </div>
+    </div>
+
+    <!-- ④ 校园公告 -->
+    <div class="sec"><h2>校园公告</h2><span class="more">更多 ›</span></div>
+    <div>
+      <div class="notice">
+        <div class="date"><div class="d">24</div><div class="ym">2026.10</div></div>
+        <div>
+          <div class="t">十月家长开放日安排</div>
+          <div class="s">本周六 14:00 开放上镜实训观摩，欢迎家长到 BY08 教室旁听，凭邀请短信入校。</div>
+        </div>
+      </div>
+      <div class="notice">
+        <div class="date"><div class="d">26</div><div class="ym">2026.10</div></div>
+        <div>
+          <div class="t">下周三外拍报名截止</div>
+          <div class="s">滨江实景外拍名额剩 6 个，请在本周三 20:00 前在「限时征集」里完成报名。</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（学生端 · 今日 active） -->
+  <nav class="tabbar">
+    <a class="on" href="m-home-student.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="m-checkin.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a href="m-homework.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a href="m-table.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="m-me.html">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

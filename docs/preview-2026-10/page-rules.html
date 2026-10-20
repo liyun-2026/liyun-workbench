@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>量化细则 · 砺蕴教务系统预览</title>
+<link rel="stylesheet" href="assets/preview.css">
+<style>
+  .card h3{font-family:var(--serif);font-size:17px;letter-spacing:2.5px;color:var(--blue-ink);padding-bottom:10px;border-bottom:2px solid var(--gold);display:inline-block;margin-bottom:16px}
+  .hint{font-size:12px;color:var(--ink-2);line-height:1.9}
+  .ctxbar2{background:#fff;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:6px;padding:12px 20px;font-size:13px;color:var(--ink-2);margin-bottom:24px}
+  .rulegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px 40px;margin-bottom:16px}
+  .rrow{display:grid;grid-template-columns:70px 1fr 90px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .rrow .src{font-size:11px;color:var(--ink-3);letter-spacing:1px}
+  .rrow input{border:1px solid var(--line);border-radius:4px;padding:8px 11px;font-size:13px;font-family:var(--sans);color:var(--ink);width:100%}
+  .rrow input:focus{outline:none;border-color:var(--blue)}
+  .rrow .delta{text-align:right}
+  .addrule{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .addrule select,.addrule input{border:1px solid var(--line);border-radius:4px;padding:9px 12px;font-size:13px;font-family:var(--sans);background:#fff;color:var(--ink)}
+  .addrule select{max-width:150px}
+  .addrule .nm{max-width:170px}
+  .addrule .dv{max-width:95px}
+  textarea{width:100%;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:13px;font-family:var(--sans);color:var(--ink);margin-top:12px;min-height:110px;line-height:1.9}
+  textarea:focus{outline:none;border-color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="util au">
+  <div class="util-in">
+    <div></div>
+    <div><a href="index.html">返回总览</a></div>
+  </div>
+</div>
+
+<header class="head au d1">
+  <div class="head-in">
+    <img class="seal" src="assets/seal-boyi.png" alt="博艺教育校徽">
+    <div class="brand">
+      <b>砺蕴教务系统</b>
+      <small>ERUDITART EDUCATION · ACADEMIC ADMINISTRATION</small>
+    </div>
+    <div class="sp"></div>
+    <div class="search-ic"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.6"/><path d="M10.6 10.6L14.2 14.2"/></svg></div>
+    <div class="who">
+      <div class="av">齐</div>
+      <div><b>齐活林</b><small>交付总监 · 全部权限</small></div>
+    </div>
+  </div>
+</header>
+
+<nav class="navstrip au d1">
+  <div class="navstrip-in">
+<a href="page-home.html">今日</a>
+<a href="page-att.html">考勤</a>
+<a href="page-sign.html">打卡管理</a>
+<a href="page-homework.html">作业</a>
+<a href="page-roster.html">名册</a>
+<a href="page-profile.html">学员档案</a>
+<a href="page-students.html">学生账号</a>
+<a href="page-timetable.html">课表</a>
+<a href="page-hours.html">课时统计</a>
+<a href="page-night.html">晚自习</a>
+<a href="page-quant.html">量化</a>
+<a href="page-exam.html">模考</a>
+<a href="page-coop.html">协作</a>
+<a href="page-gather.html">限时征集</a>
+<a href="page-news.html">每日新闻</a>
+<a href="page-record.html">录入今日</a>
+<a href="page-myclass.html">我带的班</a>
+<a href="page-tickets.html">上报与申请</a>
+<a href="page-health.html">巡检</a>
+<a href="page-settings.html">设置</a>
+  </div>
+</nav>
+
+<div class="term au d1">
+  <div class="term-in">
+    <span class="yr">2026—2027 学年 · 秋季学期</span>
+    <span class="sep"></span><span>第 9 教学周</span>
+    <span class="sep"></span><span>南阳博艺教育</span>
+  </div>
+</div>
+
+<main>
+  <div class="au d2" style="margin-bottom:6px"><span class="crumb">砺蕴教务系统 › <b>量化细则</b></span></div>
+
+  <div class="ctxbar2 au d2">本页<b>不进导航</b>：入口在「设置 → 量化细则」那张卡。共 <b>13</b> 条细则 · 上次修改 2026-10-12。</div>
+
+  <!-- 计分项与分值 -->
+  <div class="au d3" style="margin-bottom:28px">
+    <div class="card">
+      <h3>计分项与分值</h3>
+      <p class="hint" style="margin:0 0 16px">每条 = 计分项 + 分值，扣分用负数。「班级名目」会变成量化页的快捷加减分按钮；「自动计分」按考勤 / 作业 / 晚自习的登记记录自动算，不用手动点。</p>
+
+      <div class="rulegrid">
+        <div class="rrow"><span class="src">考勤状态</span><input type="text" value="迟到"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-2"></div>
+        <div class="rrow"><span class="src">考勤状态</span><input type="text" value="病假"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-1"></div>
+        <div class="rrow"><span class="src">考勤状态</span><input type="text" value="事假"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-1"></div>
+        <div class="rrow"><span class="src">作业已交</span><input type="text" value="作业按时上交"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="+1"></div>
+        <div class="rrow"><span class="src">作业未交</span><input type="text" value="作业未交"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-2"></div>
+        <div class="rrow"><span class="src">晚自习过关</span><input type="text" value="晚自习过关"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="+1"></div>
+        <div class="rrow"><span class="src">晚自习未过</span><input type="text" value="晚自习未过"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-2"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="课堂互动突出"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="+5"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="即兴评述集体通关"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="+15"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="评述消极对待"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-15"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="模考缺考"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-20"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="损坏设备、公物"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="-20"></div>
+        <div class="rrow"><span class="src">班级名目</span><input type="text" value="清理公共区域卫生"></div>
+        <div class="rrow"><span class="src"></span><input class="delta" type="text" value="+2"></div>
+      </div>
+
+      <div class="addrule">
+        <select><option>班级名目</option><option>考勤状态</option><option>作业已交</option><option>作业未交</option><option>晚自习过关</option><option>晚自习未过</option></select>
+        <input class="nm" type="text" placeholder="名目，如：早退">
+        <input class="dv" type="text" placeholder="分值">
+        <button class="btn sec sm">加一条</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:16px">
+        <button class="btn pri">保存细则</button>
+        <span class="hint">改完名称或分值记得点「保存细则」，不然量化统计还是按老规则算。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 照细则图片识别 -->
+  <div class="au d4">
+    <div class="card" style="max-width:860px">
+      <h3>照细则图片识别</h3>
+      <p class="hint" style="margin:0">开会定的细则拍了照？传上来识别，自动拆成规则。</p>
+      <div style="margin-top:14px"><button class="btn sec sm">传细则识别</button></div>
+      <textarea>迟到 扣2分
+病假 −1
+作业按时上交 +1</textarea>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <button class="btn pri">导入这些规则</button>
+        <button class="btn sec">清空</button>
+      </div>
+    </div>
+    <div style="margin-top:22px"><a class="btn sec" href="page-settings.html">← 返回设置</a></div>
+  </div>
+</main>
+
+<footer class="au d5">
+  <div class="foot-in">
+    <div class="foot-brand">
+      <img src="assets/seal-boyi.png" alt="">
+      <div>
+        <b>砺蕴教务系统</b>
+        <p>博艺教育旗下教务管理平台<br>博学宏才 · 艺德卓绝 · 服务每一位师生</p>
+      </div>
+    </div>
+    <div>
+      <h4>快捷入口</h4>
+      <ul><li><a href="page-home.html">教务工作台</a></li><li><a href="page-timetable.html">课程表</a></li><li><a href="page-att.html">考勤管理</a></li><li><a href="page-quant.html">报表中心</a></li></ul>
+    </div>
+    <div>
+      <h4>服务支持</h4>
+      <ul><li><a href="#">使用手册</a></li><li><a href="#">常见问题</a></li><li><a href="#">联系管理员</a></li><li><a href="index.html">返回总览</a></li></ul>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div><span>博艺教育 ERUDITART EDUCATION</span><span>砺蕴教务系统 © 2026 · 博学宏才 艺德卓绝</span></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.cnt').forEach(el=>{
+    const to = +el.dataset.to, t0 = performance.now(), dur = 1400, delay = 450;
+    (function tick(t){
+      const p = Math.min(Math.max((t - t0 - delay)/dur, 0), 1);
+      el.textContent = Math.round(to * (1 - Math.pow(1-p, 3)));
+      if(p < 1) requestAnimationFrame(tick);
+    })(t0);
+  });
+</script>
+</body>
+</html>
