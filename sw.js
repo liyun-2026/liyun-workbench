@@ -358,8 +358,10 @@
 const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —— 桌面 ≥1100 换双栏影像版：
    左演播室影像板（蓝章+校训+砺蕴金标水印）、右欢迎登录（教师/学生身份卡+金按钮）；
    登录成功挂 .reveal 播印章过场约 2 秒再进门。<1100（含手机端）老版式一字不动。
-   新增静态文件 assets/banner-studio.jpg + seal-boyi.png + mark-liyun-gold.png 都进 SHELL → VERSION 加一。 */
-VERSION = 'v82'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+   v83：手机端（<1100）登录门换新——上部影像轮播 + 白板登录板，桌面 ≥1100 一字不动。
+   新增静态文件 assets/press-boyi_5A244503.jpg / press-boyi_E0B6CAF7.jpg / press-boyi_38DA048D.jpg
+   （拍立得三图，JPEG q80）都进 SHELL → VERSION 加一。 */
+VERSION = 'v83'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
@@ -544,6 +546,10 @@ const SHELL = [
   './assets/banner-studio.jpg',
   './assets/seal-boyi.png',
   './assets/mark-liyun-gold.png',
+  /* v83 手机端登录门（<1100）：影像轮播第 3 屏的三张拍立得（PNG 转 JPEG q80，共约 165KB） */
+  './assets/press-boyi_5A244503.jpg',
+  './assets/press-boyi_E0B6CAF7.jpg',
+  './assets/press-boyi_38DA048D.jpg',
   './assets/brand-lock@sm.png',
   /* 看板顶带的品牌标：左＝博艺圆章裸摆、右＝砺蕴印 + 暖米黄圆底，**两枚等径**
      （v43 定色 / v44 改等大）。别再用 brand-lock-alpha.png —— 那是「给深色底做的
