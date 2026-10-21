@@ -5681,11 +5681,15 @@ const UI = {
     clearTimeout(this._t);
     this._t = setTimeout(() => t.classList.remove('on'), 2200);
   },
-  banner(html, pageId = null){
+  banner(html, pageId = null, sig = null){
     const box = document.createElement('div');
     box.className = 'banner';
-    box.innerHTML = html;
     const target = pageId ? document.getElementById(pageId) : document.querySelector('.page.on');
+    if (sig) {                                            /* 同签名横幅去重：回页面多少次也只留一条 */
+      box.dataset.sig = sig;
+      target?.querySelectorAll(`.banner[data-sig="${sig}"]`).forEach(el => el.remove());
+    }
+    box.innerHTML = html;
     target?.prepend(box);
     return box;
   }
@@ -6540,7 +6544,7 @@ const App = {
     if (days < 7) return;
     const b = UI.banner(
       `<span>${last ? '已经 ' + Math.floor(days) + ' 天没备份了' : '记得备份一下，数据只在这台设备上'}</span>
-       <button onclick="App.go('settings')">去备份</button>`);
+       <button onclick="App.go('settings')">去备份</button>`, null, 'backup');
   }
 };
 
