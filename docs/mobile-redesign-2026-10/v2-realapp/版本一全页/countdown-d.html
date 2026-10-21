@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>统考倒计时轮播卡 · 方案 D 倒计时进度条</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#1c1c1e;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.cap{padding:10px 20px 0;display:flex;align-items:baseline}
+.cap .k{font-size:17px;font-weight:700;color:#1c1c1e;letter-spacing:.5px}
+.cap .v{margin-left:auto;font-size:12px;font-weight:700;color:#a98a55;background:rgba(201,171,124,.16);border-radius:999px;padding:4px 12px}
+.hint{padding:6px 20px 0;font-size:12px;color:#85858b;line-height:1.6}
+.stage{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 0 60px}
+/* —— 方案 D 卡本体：数字 + 已过/剩余进度条 —— */
+.cardD{margin:0 24px;background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(28,28,30,.06);padding:20px 22px 18px;position:relative}
+.cardD .lab{display:flex;align-items:center;gap:8px}
+.cardD .lab .k{font-size:12px;font-weight:600;color:#a98a55;letter-spacing:2px}
+.cardD .lab .sub{margin-left:auto;font-size:11px;color:#a3a3aa}
+.cardD .mid{display:flex;align-items:baseline;gap:8px;margin-top:12px}
+.cardD .n{font-size:64px;font-weight:900;color:#1c1c1e;font-family:'Songti SC','STSong','SimSun',serif;line-height:.9}
+.cardD .u{font-size:22px;font-weight:700;color:#a98a55}
+.cardD .e{margin-left:auto;text-align:right;font-size:13px;font-weight:600;color:#1c1c1e;line-height:1.5}
+.cardD .e small{display:block;font-size:11px;color:#85858b;font-weight:400;margin-top:3px}
+.cardD .pwrap{margin-top:18px}
+.cardD .plab{display:flex;justify-content:space-between;font-size:11px;color:#85858b}
+.cardD .plab b{color:#1c1c1e;font-weight:600}
+.cardD .plab .rest{color:#a98a55;font-weight:700}
+.cardD .track{margin-top:7px;height:10px;border-radius:999px;background:#f2f1ed;overflow:hidden}
+.cardD .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#d3b98c,#b99a63);position:relative}
+.cardD .fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:10px;background:rgba(255,255,255,.45)}
+.cardD .scale{margin-top:6px;display:flex;justify-content:space-between;font-size:10.5px;color:#a3a3aa}
+.cardD .ft{margin-top:16px;padding-top:12px;border-top:1px solid #eceae4;display:flex;justify-content:space-between;font-size:11px;color:#a3a3aa}
+.cardD .ft b{color:#a98a55;font-weight:700}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:22px}
+.dots i{width:6px;height:6px;border-radius:50%;background:#d8d5cd}
+.dots i.on{background:#c9ab7c;width:16px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span class="t">9:41</span>
+    <svg width="64" height="12" viewBox="0 0 64 12" fill="#1c1c1e"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#1c1c1e" stroke-opacity=".5"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+  </div>
+
+  <div class="cap"><span class="k">统考倒计时轮播卡 · 方案 D</span><span class="v">倒计时进度条</span></div>
+  <p class="hint">浅底卡，数字下方一条「已过 / 剩余」金色进度条——把时间推移画出来，越接近考试金色越长。</p>
+
+  <div class="stage">
+    <div class="cardD">
+      <div class="lab"><span class="k">统考倒计时</span><span class="sub">第 2 / 3 张 · 左右滑动</span></div>
+      <div class="mid">
+        <span class="n">41</span><span class="u">天</span>
+        <span class="e">播音与主持类 · 省统考<small>笔试 2027.01.09（周六）09:00</small></span>
+      </div>
+      <div class="pwrap">
+        <div class="plab"><span>备考周期 92 天 · 已过 <b>51</b></span><span class="rest">剩余 41 天</span></div>
+        <div class="track"><div class="fill" style="width:55%"></div></div>
+        <div class="scale"><span>11.09 开始备考</span><span>今天 11.29</span><span>01.09 统考</span></div>
+      </div>
+      <div class="ft"><span>报名已确认</span><span>进度过半 · <b>冲刺阶段</b></span></div>
+    </div>
+    <div class="dots"><i></i><i class="on"></i><i></i></div>
+  </div>
+</div>
+</body>
+</html>

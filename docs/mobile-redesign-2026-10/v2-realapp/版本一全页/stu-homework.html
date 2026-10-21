@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>③ 学生·作业</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#1c1c1e;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.status svg{display:block}
+.pt{padding:4px 16px 0;flex-shrink:0;display:flex;align-items:baseline}
+.pt .tt{font-size:24px;font-weight:800;color:#1c1c1e;letter-spacing:.5px}
+.pt .sb{margin-left:auto;font-size:12px;color:#85858b}
+.tabs-card{background:#fff;border-radius:12px;margin:14px 12px 0;padding:11px 12px;display:flex;gap:8px;position:relative;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.chip{font-size:13px;color:#85858b;background:#f2f1ed;border-radius:999px;padding:6px 15px;font-weight:500}
+.chip.on{background:rgba(74,92,140,.10);color:#4a5c8c;font-weight:600}
+.list{margin:12px 12px 0;display:flex;flex-direction:column;gap:10px}
+.hw{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(28,28,30,.04);padding:13px 14px}
+.hw .top{display:flex;align-items:center;gap:8px}
+.ctag{font-size:11px;color:#4a5c8c;background:rgba(74,92,140,.10);border-radius:6px;padding:3px 8px;font-weight:500}
+.hw .st{margin-left:auto;font-size:11px;border-radius:999px;padding:4px 10px;font-weight:500}
+.st-v{color:#34a36b;background:rgba(52,163,107,.10)}
+.st-b{color:#4a5c8c;background:rgba(74,92,140,.10)}
+.hw .tt{font-size:16px;font-weight:600;color:#1c1c1e;margin-top:9px}
+.hw .req{font-size:13px;color:#85858b;line-height:1.5;margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hw .meta{font-size:12px;color:#a3a3aa;margin-top:8px;display:flex;align-items:center;gap:6px}
+.wm{position:absolute;left:-30%;top:110px;width:160%;height:800px;transform:rotate(-32deg);pointer-events:none;opacity:.08;z-index:5;overflow:hidden}
+.wm div{font-size:15px;color:#4a5c8c;font-weight:600;letter-spacing:2px;white-space:nowrap;line-height:110px}
+.tabbar{height:84px;background:#fff;border-top:1px solid #eceae4;display:flex;padding:6px 8px 0;flex-shrink:0;position:relative;z-index:9;margin-top:auto}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:5px}
+.tb .lb{font-size:10px;color:#9a9aa1}
+.tb.on .lb{color:#4a5c8c;font-weight:600}
+.tb.on svg{color:#4a5c8c}
+.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1c1c1e;opacity:.9}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span class="t">9:41</span>
+    <svg width="64" height="12" viewBox="0 0 64 12" fill="#1c1c1e"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#1c1c1e" stroke-opacity=".5"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+  </div>
+  <div class="pt"><span class="tt">我的作业</span><span class="sb">进行中 1 · 已交 2</span></div>
+
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div class="wm">
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+    </div>
+
+    <div class="tabs-card">
+      <span class="chip on">全部</span><span class="chip">进行中</span><span class="chip">已交</span>
+    </div>
+
+    <div class="list">
+      <div class="hw">
+        <div class="top"><span class="ctag">新闻播报实训</span><span class="st st-v">已提交</span></div>
+        <div class="tt">新闻播报口语录音</div>
+        <div class="req">录制 1 分钟新闻口播，注意停连与重音处理，提交音频后等待沈老师点评。</div>
+        <div class="meta">截止 今晚 20:00 · 提交于 19:02</div>
+      </div>
+      <div class="hw">
+        <div class="top"><span class="ctag">文学作品朗读</span><span class="st st-b">进行中</span></div>
+        <div class="tt">《背影》朗读练习</div>
+        <div class="req">通读全文并标注停连、重音，重点练习第六段情感递进，录制完整音频上传。</div>
+        <div class="meta">截止 10.24 20:00</div>
+      </div>
+      <div class="hw">
+        <div class="top"><span class="ctag">普通话语音基础</span><span class="st st-v">已交</span></div>
+        <div class="tt">声母辨音打卡</div>
+        <div class="req">完成平翘舌声母辨音练习 20 组，纠错音频发到班级作业区。</div>
+        <div class="meta">截止 10.20 20:00 · 提交于 10.19</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.8 19.5 11v7.5a1.5 1.5 0 0 1-1.5 1.5h-3.8v-5h-4.4v5H6a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span class="lb">今日</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></svg><span class="lb">打卡</span></div>
+    <div class="tb on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg><span class="lb">作业</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg><span class="lb">课表</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.6"/><path d="M5.2 19.6c1.2-3.3 3.7-5 6.8-5s5.6 1.7 6.8 5"/></svg><span class="lb">我的</span></div>
+    <div class="hi"></div>
+  </div>
+</div>
+</body>
+</html>

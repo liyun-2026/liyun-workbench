@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>版本一 · 教务首页</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#fff;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.status svg{display:block}
+.hd{background:linear-gradient(180deg,#384a74 0%,#4a5c8c 100%);padding:6px 16px 34px;flex-shrink:0}
+.hd-row{display:flex;align-items:center;height:40px}
+.hd-row .greet{font-size:19px;font-weight:700;color:#fff}
+.badge{margin-left:auto;font-size:11px;color:#384a74;background:#c9ab7c;border-radius:999px;padding:3px 10px;font-weight:600;letter-spacing:1px}
+.search{margin-top:8px;height:38px;background:#fff;border-radius:999px;display:flex;align-items:center;padding:0 14px;gap:7px;color:#a3a3aa;font-size:14px}
+.grid-card{background:#fff;border-radius:12px;margin:-22px 12px 0;padding:18px 6px 16px;position:relative;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:20px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cell .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.cell .lb{font-size:11.5px;color:#1c1c1e;line-height:1.25}
+.ic-b{background:rgba(74,92,140,.10);color:#4a5c8c}
+.ic-g{background:rgba(201,171,124,.16);color:#a98a55}
+.ic-v{background:rgba(52,163,107,.10);color:#34a36b}
+.ic-r{background:rgba(224,86,74,.10);color:#e0564a}
+.ic-n{background:#f2f1ed;color:#85858b}
+/* 数据横条 */
+.stats{margin:10px 12px 0;background:#fff;border-radius:12px;display:flex;padding:14px 0;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.st{flex:1;text-align:center}
+.st+.st{border-left:1px solid #eceae4}
+.st .num{font-size:22px;font-weight:700}
+.st .num small{font-size:13px;font-weight:600}
+.st .lb{font-size:12px;color:#85858b;margin-top:3px}
+/* 待办 */
+.todo{margin:18px 12px 0}
+.sec-hd{display:flex;align-items:baseline;justify-content:space-between;height:32px}
+.sec-hd .big{font-size:17px;font-weight:700;color:#1c1c1e}
+.sec-hd .more{font-size:12px;color:#85858b}
+.todo-card{margin-top:6px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.trow{display:flex;align-items:center;gap:12px;padding:14px 14px}
+.trow+.trow{border-top:1px solid #eceae4}
+.trow .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.trow .bd{flex:1;min-width:0}
+.trow .tt{font-size:15px;color:#1c1c1e;font-weight:500}
+.trow .sb{font-size:12px;color:#85858b;margin-top:3px}
+.tag{font-size:11px;border-radius:999px;padding:4px 10px;flex-shrink:0;font-weight:500}
+.tag-gold{color:#a98a55;background:rgba(201,171,124,.16)}
+.tag-red{color:#e0564a;background:rgba(224,86,74,.10)}
+.tabbar{height:84px;background:#fff;border-top:1px solid #eceae4;display:flex;padding:6px 8px 0;flex-shrink:0;position:relative}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:5px}
+.tb .lb{font-size:10px;color:#9a9aa1}
+.tb.on .lb{color:#4a5c8c;font-weight:600}
+.tb.on svg{color:#4a5c8c}
+.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1c1c1e;opacity:.9}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div style="background:linear-gradient(180deg,#384a74 0%,#4a5c8c 100%);flex-shrink:0">
+    <div class="status">
+      <span class="t">9:41</span>
+      <svg width="64" height="12" viewBox="0 0 64 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+    </div>
+    <div class="hd" style="padding-top:0">
+      <div class="hd-row">
+        <span class="greet">上午好，李老师</span>
+        <span class="badge">教务</span>
+      </div>
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3aa" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        搜索学员/班级/待办
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:1;position:relative;overflow:hidden">
+    <!-- 教务宫格 4×2 -->
+    <div class="grid-card">
+      <div class="grid">
+        <div class="cell"><div class="ic ic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3.5" width="6" height="3" rx="1"/><path d="M9.5 13.5l2 2 3.5-4"/></svg></div><span class="lb">考勤录入</span></div>
+        <div class="cell"><div class="ic ic-g"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg></div><span class="lb">作业管理</span></div>
+        <div class="cell"><div class="ic ic-v"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg></div><span class="lb">课表</span></div>
+        <div class="cell"><div class="ic ic-r"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4M12 13v4M10 15h4"/></svg></div><span class="lb">排课</span></div>
+        <div class="cell"><div class="ic ic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.8" r="3.2"/><path d="M3.5 19.4c1-2.9 3.1-4.4 5.5-4.4s4.5 1.5 5.5 4.4"/><path d="M15.5 6.2a3.2 3.2 0 0 1 0 5.2M17.5 15.3c1.6.7 2.7 2.1 3.3 4.1"/></svg></div><span class="lb">学员管理</span></div>
+        <div class="cell"><div class="ic ic-g"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a2.5 2.5 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6.5v11" stroke-dasharray="2.5 2.5"/></svg></div><span class="lb">工单</span></div>
+        <div class="cell"><div class="ic ic-v"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg></div><span class="lb">量化</span></div>
+        <div class="cell"><div class="ic ic-n"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="4.5" y="4.5" width="6.5" height="6.5" rx="2"/><rect x="13" y="4.5" width="6.5" height="6.5" rx="2"/><rect x="4.5" y="13" width="6.5" height="6.5" rx="2"/><rect x="13" y="13" width="6.5" height="6.5" rx="2"/></svg></div><span class="lb">更多</span></div>
+      </div>
+    </div>
+
+    <!-- 数据横条 -->
+    <div class="stats">
+      <div class="st"><div class="num" style="color:#4a5c8c">38<small>%</small></div><div class="lb">今日出勤</div></div>
+      <div class="st"><div class="num" style="color:#e0564a">6</div><div class="lb">异常考勤</div></div>
+      <div class="st"><div class="num" style="color:#a98a55">2</div><div class="lb">待办</div></div>
+    </div>
+
+    <!-- 待办事项 -->
+    <div class="todo">
+      <div class="sec-hd"><span class="big">待办事项</span><span class="more">更多 ›</span></div>
+      <div class="todo-card">
+        <div class="trow">
+          <div class="ic" style="background:rgba(201,171,124,.16);color:#a98a55"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3.5" width="6" height="3" rx="1"/><path d="M9.5 13.5l2 2 3.5-4"/></svg></div>
+          <div class="bd"><div class="tt">待批请假 · 赵一诺（病假）</div><div class="sb">今天 09:20 提交 · 请于 24 小时内处理</div></div>
+          <span class="tag tag-gold">待审批</span>
+        </div>
+        <div class="trow">
+          <div class="ic" style="background:rgba(224,86,74,.10);color:#e0564a"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a6 6 0 0 1 6 6v3.2l1.5 2.8H4.5L6 13.2V10a6 6 0 0 1 6-6z"/><path d="M10 19.5a2 2 0 0 0 4 0"/></svg></div>
+          <div class="bd"><div class="tt">缺勤上报 · 1 条待处理</div><div class="sb">砺蕴一班 · 今早第 1 节未到</div></div>
+          <span class="tag tag-red">待处理</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tb on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.8 19.5 11v7.5a1.5 1.5 0 0 1-1.5 1.5h-3.8v-5h-4.4v5H6a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span class="lb">首页</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3.5" width="6" height="3" rx="1"/><path d="M9.5 13.5l2 2 3.5-4"/></svg><span class="lb">考勤</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg><span class="lb">作业</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg><span class="lb">课表</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.6"/><path d="M5.2 19.6c1.2-3.3 3.7-5 6.8-5s5.6 1.7 6.8 5"/></svg><span class="lb">我的</span></div>
+    <div class="hi"></div>
+  </div>
+</div>
+</body>
+</html>

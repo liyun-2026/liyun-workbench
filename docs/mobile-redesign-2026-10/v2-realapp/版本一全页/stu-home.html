@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>① 学生·今日</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#1c1c1e;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.status svg{display:block}
+/* 顶部：浅底头部 + 轮播 */
+.top{display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;flex-shrink:0}
+.top .lg{height:30px;width:auto;display:block}
+.top .greet{font-size:19px;font-weight:700;color:#1c1c1e;letter-spacing:.5px}
+.top .srch{margin-left:auto;color:#85858b}
+.car{display:flex;gap:10px;padding:2px 0 0 12px;overflow:hidden}
+.ccard{flex:0 0 330px;background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(28,28,30,.04);padding:14px 16px 13px;flex-shrink:0}
+.ccap{display:flex;align-items:center;gap:8px}
+.ccap .k{font-size:12px;font-weight:600;color:#a98a55;letter-spacing:1px}
+.ccap .d{font-size:11px;color:#85858b;margin-left:auto}
+.cnum{display:flex;align-items:baseline;gap:6px;margin-top:7px}
+.cnum .n{font-size:42px;font-weight:800;color:#1c1c1e;font-family:'Songti SC','STSong','SimSun',serif;line-height:1}
+.cnum .u{font-size:14px;font-weight:700;color:#a98a55}
+.cnum .e{margin-left:auto;font-size:11.5px;color:#85858b}
+/* 方案 C · 暖金渐变倒计时卡（已选定） */
+.ccard.cd{background:linear-gradient(135deg,#dcc59a 0%,#c9ab7c 55%,#b99a63 100%);position:relative;overflow:hidden;box-shadow:0 6px 18px rgba(185,154,99,.35)}
+.cd .glow{position:absolute;right:-30px;top:-36px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.16)}
+.cd .glow2{position:absolute;left:-24px;bottom:-40px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.10)}
+.cd .flag{position:absolute;right:14px;top:14px;font-size:10px;font-weight:700;color:#7c5b0d;background:rgba(255,255,255,.72);border-radius:999px;padding:3px 9px;letter-spacing:1px;z-index:1}
+.cd .lab{font-size:11.5px;font-weight:600;color:#6b5322;letter-spacing:1.5px;position:relative;z-index:1}
+.cd .mid{display:flex;align-items:baseline;gap:7px;margin-top:8px;position:relative;z-index:1}
+.cd .n{font-size:46px;font-weight:900;color:#fff;line-height:.9;font-family:'Songti SC','STSong','SimSun',serif;text-shadow:0 2px 8px rgba(124,91,13,.28)}
+.cd .u{font-size:17px;font-weight:700;color:#fff;font-family:'Songti SC','STSong','SimSun',serif}
+.cd .e{margin-left:auto;text-align:right;font-size:11px;color:#4a3a15;font-weight:700;line-height:1.45}
+.cd .ft{margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.34);display:flex;justify-content:space-between;font-size:10px;color:#6b5322;position:relative;z-index:1}
+.cd .ft b{color:#4a3a15;font-weight:700}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:11px;flex-shrink:0}
+.dots i{width:6px;height:6px;border-radius:50%;background:#d8d5cd;transition:all .2s}
+.dots i.on{background:#c9ab7c;width:16px;border-radius:3px}
+.grid-card{background:#fff;border-radius:12px;margin:12px 12px 0;padding:13px 6px 11px;position:relative;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);row-gap:14px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cell .ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.cell .lb{font-size:11.5px;color:#1c1c1e;line-height:1.25;text-align:center;max-width:64px}
+.ic-b{background:rgba(74,92,140,.10);color:#4a5c8c}
+.ic-g{background:rgba(201,171,124,.16);color:#a98a55}
+.ic-v{background:rgba(52,163,107,.10);color:#34a36b}
+.ic-r{background:rgba(224,86,74,.10);color:#e0564a}
+.ic-n{background:#f2f1ed;color:#85858b}
+.notice{margin:8px 12px 0;height:42px;background:#fff;border-radius:999px;display:flex;align-items:center;padding:0 14px;gap:10px}
+.notice .sp{width:26px;height:26px;border-radius:50%;background:rgba(201,171,124,.16);color:#a98a55;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.notice .tx{font-size:13px;color:#1c1c1e;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sec{margin:9px 12px 0}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;height:26px;margin-bottom:5px}
+.sec-hd .cap{font-size:13px;color:#85858b}
+.sec-hd .more{font-size:12px;color:#85858b}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(28,28,30,.04)}
+.lrow{display:flex;align-items:center;padding:10px 14px;gap:11px}
+.lrow+.lrow{border-top:1px solid #eceae4}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.lrow .bd{flex:1;min-width:0}
+.lrow .tt{font-size:15px;color:#1c1c1e;font-weight:500}
+.lrow .sb{font-size:12px;color:#85858b;margin-top:2px}
+.lrow .rt{font-size:12px;color:#85858b;flex-shrink:0}
+.tag{font-size:11px;border-radius:999px;padding:4px 10px;flex-shrink:0;font-weight:500}
+.tag-gold{color:#a98a55;background:rgba(201,171,124,.16)}
+.tag-red{color:#e0564a;background:rgba(224,86,74,.10)}
+.wm{position:absolute;left:-30%;top:110px;width:160%;height:800px;transform:rotate(-32deg);pointer-events:none;opacity:.08;z-index:5;overflow:hidden}
+.wm div{font-size:15px;color:#4a5c8c;font-weight:600;letter-spacing:2px;white-space:nowrap;line-height:110px}
+.tabbar{height:84px;background:#fff;border-top:1px solid #eceae4;display:flex;padding:6px 8px 0;flex-shrink:0;position:relative;z-index:9}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:5px}
+.tb .lb{font-size:10px;color:#9a9aa1}
+.tb.on .lb{color:#4a5c8c;font-weight:600}
+.tb.on svg{color:#4a5c8c}
+.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1c1c1e;opacity:.9}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span class="t">9:41</span>
+    <svg width="64" height="12" viewBox="0 0 64 12" fill="#1c1c1e"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#1c1c1e" stroke-opacity=".5"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+  </div>
+
+  <div class="top">
+    <img class="lg" src="logo-combo.png" alt="博艺 · 砺蕴">
+    <span class="greet">早上好</span>
+    <svg class="srch" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#85858b" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+  </div>
+
+  <div class="car">
+    <div class="ccard cd">
+      <span class="glow"></span><span class="glow2"></span>
+      <span class="flag">冲 刺</span>
+      <div class="lab">统考倒计时 · 第 1 / 3 张</div>
+      <div class="mid"><span class="n">41</span><span class="u">天</span><span class="e">播音与主持类 · 省统考<br>笔试 2027.01.09</span></div>
+      <div class="ft"><span>报名已确认</span><span><b>每周模考 1 次 · 已参加 4 次</b></span></div>
+    </div>
+    <div class="ccard" style="background:#fbfaf7">
+      <div class="ccap"><span class="k" style="color:#4a5c8c">今日课程</span><span class="d">3 节</span></div>
+      <div class="cnum"><span class="n" style="font-size:20px;font-family:inherit">下一节</span><span class="e">08:30 · 普通话语音基础</span></div>
+    </div>
+  </div>
+  <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div class="wm">
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+    </div>
+
+    <div class="grid-card">
+      <div class="grid">
+        <div class="cell"><div class="ic ic-v"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></svg></div><span class="lb">今日打卡</span></div>
+        <div class="cell"><div class="ic ic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg></div><span class="lb">我的作业</span></div>
+        <div class="cell"><div class="ic ic-g"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg></div><span class="lb">我的课表</span></div>
+        <div class="cell"><div class="ic ic-r"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 5.5 8 8.8H5.5a2 2 0 0 0-2 2v2.4a2 2 0 0 0 2 2h1.2l1.5 4.5 2.3-.8-1.2-3.6 9.7 3.2z"/></svg></div><span class="lb">校园公告</span></div>
+        <div class="cell"><div class="ic ic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7.5 16.5v-4M12 16.5v-8M16.5 16.5v-5.5"/></svg></div><span class="lb">成绩查询</span></div>
+        <div class="cell"><div class="ic ic-g"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.8l2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z"/></svg></div><span class="lb">量化考核</span></div>
+        <div class="cell"><div class="ic ic-v"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="17" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M9 7l1.3-2.2h3.4L15 7"/></svg></div><span class="lb">限时征集</span></div>
+        <div class="cell"><div class="ic ic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-6.5L6 20v-3.6a3 3 0 0 1-2-2.85V7.5a3 3 0 0 1 3-3z"/></svg></div><span class="lb">给老师发消息</span></div>
+        <div class="cell"><div class="ic ic-r"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/><circle cx="8.5" cy="14.5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg></div><span class="lb">校历</span></div>
+        <div class="cell"><div class="ic ic-n"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="4.5" y="4.5" width="6.5" height="6.5" rx="2"/><rect x="13" y="4.5" width="6.5" height="6.5" rx="2"/><rect x="4.5" y="13" width="6.5" height="6.5" rx="2"/><rect x="13" y="13" width="6.5" height="6.5" rx="2"/></svg></div><span class="lb">更多</span></div>
+      </div>
+    </div>
+
+    <div class="notice">
+      <div class="sp"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18.5 5.5 8 8.8H5.5a2 2 0 0 0-2 2v2.4a2 2 0 0 0 2 2h1.2l1.5 4.5 2.3-.8-1.2-3.6 9.7 3.2z"/></svg></div>
+      <span class="tx">下周三外拍报名截止，请有意参加的同学尽快提交回执</span>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><span class="cap">今日课程</span><span class="more">更多 ›</span></div>
+      <div class="card">
+        <div class="lrow">
+          <span class="dot" style="background:#4a5c8c"></span>
+          <div class="bd"><div class="tt">普通话语音基础</div><div class="sb">08:30–09:00 · BY05 · 余老师</div></div>
+          <span class="rt">第1节</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:#c9ab7c"></span>
+          <div class="bd"><div class="tt">文学作品朗读</div><div class="sb">10:15–10:45 · BY05 · 沈老师</div></div>
+          <span class="rt">第2节</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:#34a36b"></span>
+          <div class="bd"><div class="tt">新闻播报实训</div><div class="sb">14:00–14:30 · BY08 · 沈老师</div></div>
+          <span class="rt">第3节</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-hd"><span class="cap">待办</span><span class="more">更多 ›</span></div>
+      <div class="card">
+        <div class="lrow">
+          <span class="dot" style="background:#c9ab7c"></span>
+          <div class="bd"><div class="tt">今日作业 · 新闻播报口语录音</div><div class="sb">截止今晚 20:00 · 提交后老师点评</div></div>
+          <span class="tag tag-gold">今晚截止</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:#e0564a"></span>
+          <div class="bd"><div class="tt">外拍报名 · 市级朗诵艺术展演</div><div class="sb">截止明天 18:00 · 需家长回执</div></div>
+          <span class="tag tag-red">明天截止</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tb on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.8 19.5 11v7.5a1.5 1.5 0 0 1-1.5 1.5h-3.8v-5h-4.4v5H6a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span class="lb">今日</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></svg><span class="lb">打卡</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg><span class="lb">作业</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg><span class="lb">课表</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.6"/><path d="M5.2 19.6c1.2-3.3 3.7-5 6.8-5s5.6 1.7 6.8 5"/></svg><span class="lb">我的</span></div>
+    <div class="hi"></div>
+  </div>
+</div>
+</body>
+</html>

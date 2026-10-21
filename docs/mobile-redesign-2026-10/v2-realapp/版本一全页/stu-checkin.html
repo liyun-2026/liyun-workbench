@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>② 学生·打卡</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#1c1c1e;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.status svg{display:block}
+.nav{display:flex;align-items:center;justify-content:center;height:40px;position:relative;flex-shrink:0}
+.nav .tt{font-size:17px;font-weight:600;color:#1c1c1e}
+.dial-wrap{display:flex;flex-direction:column;align-items:center;margin-top:26px;flex-shrink:0}
+.dial{width:262px;height:262px;border-radius:50%;border:1px solid #eceae4;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(74,92,140,.08);position:relative}
+.dial .r1{position:absolute;width:224px;height:224px;border-radius:50%;background:rgba(74,92,140,.06)}
+.dial .r2{position:absolute;width:186px;height:186px;border-radius:50%;background:rgba(74,92,140,.10)}
+.dial .core{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}
+.dial .clock{font-size:40px;font-weight:700;color:#1c1c1e;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.dial .st{font-size:13px;color:#85858b;margin-top:8px}
+.dial .st b{color:#34a36b;font-weight:600}
+.dial .tick{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#c9ab7c}
+.hint{margin-top:16px;font-size:12px;color:#85858b}
+.acts{margin-top:22px;display:flex;gap:12px;width:322px}
+.btn{flex:1;height:48px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:600}
+.btn-p{background:#4a5c8c;color:#fff;box-shadow:0 4px 12px rgba(74,92,140,.28)}
+.btn-s{background:#fff;color:#4a5c8c;border:1px solid #eceae4}
+.today{margin:24px 12px 0;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(28,28,30,.04);display:flex;align-items:center;padding:13px 14px;gap:11px}
+.today .dot{width:8px;height:8px;border-radius:50%;background:#c9ab7c;flex-shrink:0}
+.today .bd{flex:1}
+.today .tt{font-size:15px;color:#1c1c1e;font-weight:500}
+.today .sb{font-size:12px;color:#85858b;margin-top:2px}
+.today .rt{font-size:11px;color:#34a36b;background:rgba(52,163,107,.10);border-radius:999px;padding:4px 10px;font-weight:500}
+.wm{position:absolute;left:-30%;top:110px;width:160%;height:800px;transform:rotate(-32deg);pointer-events:none;opacity:.08;z-index:5;overflow:hidden}
+.wm div{font-size:15px;color:#4a5c8c;font-weight:600;letter-spacing:2px;white-space:nowrap;line-height:110px}
+.tabbar{height:84px;background:#fff;border-top:1px solid #eceae4;display:flex;padding:6px 8px 0;flex-shrink:0;position:relative;z-index:9;margin-top:auto}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:5px}
+.tb .lb{font-size:10px;color:#9a9aa1}
+.tb.on .lb{color:#4a5c8c;font-weight:600}
+.tb.on svg{color:#4a5c8c}
+.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1c1c1e;opacity:.9}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span class="t">9:41</span>
+    <svg width="64" height="12" viewBox="0 0 64 12" fill="#1c1c1e"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#1c1c1e" stroke-opacity=".4"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+  </div>
+  <div class="nav"><span class="tt">今日打卡</span></div>
+
+  <div style="flex:1;position:relative;overflow:hidden">
+    <div class="wm">
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+      <div>砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学　　砺蕴一班 · 陈同学</div>
+    </div>
+
+    <div class="dial-wrap">
+      <div class="dial">
+        <div class="r1"></div><div class="r2"></div><div class="tick"></div>
+        <div class="core">
+          <div class="clock">10:15:00</div>
+          <div class="st">第 2 节课上 · <b>可打卡</b></div>
+        </div>
+      </div>
+      <div class="hint">2026年10月21日 · 周三 · 砺蕴一班</div>
+      <div class="acts">
+        <div class="btn btn-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></svg>扫码打卡</div>
+        <div class="btn btn-s"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4a5c8c" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="6.5" width="15" height="11" rx="2"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01M8.5 13.5h.01M12 13.5h.01M15.5 13.5h.01" stroke-linejoin="round"/></svg>4 位密钥</div>
+      </div>
+    </div>
+
+    <div class="today">
+      <span class="dot"></span>
+      <div class="bd"><div class="tt">文学作品朗读 · 第 2 节</div><div class="sb">10:15–10:45 · BY05 · 沈老师</div></div>
+      <span class="rt">打卡时段 10:05–10:25</span>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.8 19.5 11v7.5a1.5 1.5 0 0 1-1.5 1.5h-3.8v-5h-4.4v5H6a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span class="lb">今日</span></div>
+    <div class="tb on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></svg><span class="lb">打卡</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg><span class="lb">作业</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg><span class="lb">课表</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.6"/><path d="M5.2 19.6c1.2-3.3 3.7-5 6.8-5s5.6 1.7 6.8 5"/></svg><span class="lb">我的</span></div>
+    <div class="hi"></div>
+  </div>
+</div>
+</body>
+</html>

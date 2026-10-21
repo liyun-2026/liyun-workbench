@@ -1581,10 +1581,7 @@ body.board-mode .mtabbar{display:none!important}
     --serif:"Noto Serif SC","Songti SC","STSong",serif;
     --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
     --paper:#f7f6f2;
-    --hero-h:150px;                            /* 各页单独覆盖 */
-    background:
-      linear-gradient(160deg,#50618f,var(--blue)) no-repeat 0 0 / 100% var(--hero-h),
-      var(--paper);
+    background:var(--paper);                   /* ==MOBILE-V1== 撤蓝头（v1 终稿）：浅底纸面 */
     position:relative; overflow:hidden;
     gap:0;                                     /* 版距改由卡片 margin 控制 */
     /* 吃掉 .main 的四周留白：满幅沉浸头 + 通栏内容；底部留足 .mtabbar 高度 */
@@ -1592,11 +1589,7 @@ body.board-mode .mtabbar{display:none!important}
     padding:0 16px calc(72px + env(safe-area-inset-bottom,0px));
     min-height:100vh;
   }
-  #page-stuHome.on  {--hero-h:186px}
-  #page-stuSign.on  {--hero-h:150px}
-  #page-stuHw.on    {--hero-h:132px}
-  #page-stuTable.on {--hero-h:132px}
-  #page-settings.on {--hero-h:150px}
+  /* ==MOBILE-V1== 蓝头带撤除，--hero-h 覆盖行随之退场 */
 
   /* ── hero 浮雕（样张定案）：砺蕴编钟纹 logo，右下角，清晰线条 opacity .32 ──
      只挂样张里有 hero 浮雕的两页（学生首页 / 我的），打卡/作业/课表样张没有；
@@ -1812,14 +1805,9 @@ body.board-mode .mtabbar{display:none!important}
   }
   #page-today.on, #page-myclass.on, #page-tickets.on,
   #page-home.on, #page-homework.on, #page-timetable.on{
-    --hero-h:132px;                            /* 各页单独覆盖 */
-    background:
-      linear-gradient(160deg,#50618f,var(--blue)) no-repeat 0 0 / 100% var(--hero-h),
-      var(--paper);
+    background:var(--paper);                   /* ==MOBILE-V1== 撤蓝头（v1 终稿）：浅底纸面 */
   }
-  #page-today.on {--hero-h:150px}
-  #page-home.on  {--hero-h:150px}
-  #page-timetable.on {--hero-h:112px}
+  /* ==MOBILE-V1== 蓝头带撤除，--hero-h 覆盖行随之退场 */
 
   /* ── hero 浮雕（样张定案）：砺蕴编钟纹 logo，头带右下角，清晰线条 opacity .32 ──
      只挂样张里有的两页（教师今天 / 教务首页）；pointer-events:none 不挡点击；
@@ -2043,9 +2031,7 @@ body.board-mode .mtabbar{display:none!important}
    · 搜索胶囊为装饰样式：生产无全局搜索功能，未接（元素 title 已注明）。 */
 .m2-only{display:none}
 @media (max-width:1099.98px){
-  /* ── 页面级：头带加高（学生 hero 多一条搜索胶囊）、桌面页头退场 ──
-     蓝带可见高度对齐样张：样张 .hero min-height 200 − sheet 叠头 24 = 176。 */
-  #page-stuHome.on{--hero-h:176px}
+  /* ── 页面级：桌面页头退场（==MOBILE-V1== 蓝头带已撤，--hero-h 随之退场）── */
   #page-stuHome.on > .page-title,
   #page-stuHome.on > .page-sub{display:none}
 
@@ -2196,8 +2182,7 @@ body.board-mode .mtabbar{display:none!important}
   #page-home.on > .chapter{order:8}
 
   /* ── hero：问候行（衬线白字 + 角色徽标）+ 副题（样张 .greet-row/.role-badge）──
-     蓝带可见高度对齐样张：样张 .hero min-height 200 − sheet 叠头 24 = 176。 */
-  #page-home.on{--hero-h:176px}
+     （==MOBILE-V1== 蓝头带已撤，--hero-h 随之退场；hero 本身在 v1 隐藏） */
   #page-home.on > .m2-hero{
     margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 54px) 20px 0;
     position:relative; z-index:1;
@@ -2287,6 +2272,199 @@ body.board-mode .mtabbar{display:none!important}
   }
 }
 /* ==HOME2-PAGES-MOBILE-END== */
+
+/* ==MOBILE-V1== 版本一（集美式）13 页终稿（<1100）── 撤蓝头 / 三首页轮播 / 我的页蓝框
+   样张：docs/mobile-redesign-2026-10/v2-realapp/版本一全页/（用户逐页确认稿）。
+   铁律：只动 <1100；业务 JS 零改动（本批 JS 收在文件尾 ==MOBILE-V1== 标记内，
+   仅限轮播圆点 / 时段问候展示 / 统考倒计时天数 / 首页概览卡纯展示填充）；
+   StuMark 水印不动；深色走令牌（--paper #18211E、深金 #D9BE86）；mtabbar 不动；
+   桌面 ≥1100 与 0c5f170 逐像素一致（新增 DOM 全挂 .m2-only，全局 display:none）。
+   形态：
+   · 撤蓝头：12 页改样张「浅底大标题」；唯一保留蓝头的是「我的」（settings）——
+     蓝框收小 + 底部 20px 圆角（样张 m-me .hd）；
+   · 三首页（stuHome / today / home）：顶栏（融合标 + 时段问候 + 角色金签）+
+     顶部轮播（第一张 = 方案 C 暖金渐变统考倒计时卡，第二张 = 角色概览卡露边）+
+     圆点指示；概览由文件尾 V1 模块用真实数据填。 */
+@media (max-width:1099.98px){
+  /* ── 1. 撤蓝头：纸底；首页 bg-logo 浮雕退场（浅底上无意义；我的页另行重挂）── */
+  #page-stuHome.on, #page-today.on, #page-home.on,
+  #page-stuSign.on, #page-stuHw.on, #page-stuTable.on,
+  #page-myclass.on, #page-tickets.on, #page-homework.on, #page-timetable.on{
+    background:var(--paper);
+  }
+  #page-stuHome.on .bg-logo, #page-today.on .bg-logo, #page-home.on .bg-logo{display:none}
+
+  /* ── 2. 浅底大标题（样张 .pt：24px/800 墨色，顶到状态栏下）──
+     覆盖 v85/v86 的「衬线白字 20px」沉浸头。 */
+  #page-stuSign.on > .page-title, #page-stuHw.on > .page-title,
+  #page-stuTable.on > .page-title, #page-myclass.on > .page-title,
+  #page-tickets.on > .page-title, #page-homework.on > .page-title,
+  #page-timetable.on > .page-title{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 18px) 20px 0;
+    font-family:inherit; font-size:24px; font-weight:800;
+    letter-spacing:.5px; color:var(--text);
+  }
+  #page-stuSign.on > .page-sub, #page-stuHw.on > .page-sub,
+  #page-stuTable.on > .page-sub, #page-myclass.on > .page-sub,
+  #page-tickets.on > .page-sub, #page-homework.on > .page-sub{
+    color:var(--text-dim);
+  }
+  /* 首天头 / 首班头落回浅底 → 白字翻墨色（盖掉 v85/v86 的 !important 白字） */
+  #page-stuTable.on #stuWeek > p.hint:first-child{color:var(--text) !important}
+  #page-stuTable.on #stuWeek > p.hint:first-child::after{background:var(--line)}
+  #page-myclass.on #mcBody > div:first-child > h2{color:var(--text)}
+  #page-myclass.on #mcBody > div:first-child > h2 .hint{color:var(--text-dim)}
+  /* settings 版本行回纸底墨色（v85 白字是给蓝带的） */
+  #page-settings.on #verLine{color:var(--text-dim)}
+
+  /* ── 2b. att 章节头：chead 蓝带撤除 → 浅底大标题 + 控件色复原（覆盖 v86 蓝带版）── */
+  #page-att.on .chead{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 18px) 20px 12px;
+    background:transparent; border-bottom:none;
+  }
+  #page-att.on .chead h2{
+    color:var(--text); font-weight:800; letter-spacing:.5px; font-size:24px;
+    font-family:inherit;
+  }
+  #page-att.on .chead h2 small{color:var(--text-dim)}
+  #page-att.on .chead .fold{color:var(--text); border-bottom-color:var(--line)}
+  #page-att.on .chead .btn.ghost{
+    background:transparent; color:var(--text); border:1px solid var(--line);
+  }
+
+  /* ── 3. today 页头退场（样张首页无大标题行；时钟/副题 JS 照跑，仅展示隐藏）── */
+  #page-today.on > .page-title, #page-today.on > .page-sub{display:none}
+
+  /* ── 4. 三首页 m2-hero 退场（问候已上顶栏；日期/周次信息进概览卡底行）── */
+  #page-stuHome.on > .m2-hero, #page-home.on > .m2-hero{display:none}
+
+  /* ── 5. 顶栏（三首页）：融合标 + 问候大字 + 角色金签（样张 .top）── */
+  .v1-badge{
+    flex:none; display:none; align-items:center; height:19px; padding:0 8px;
+    margin-left:8px; border-radius:9px; vertical-align:2px;
+    border:1px solid rgba(168,137,90,.55); color:var(--gold-deep);
+    font-family:var(--serif,"Noto Serif SC","Songti SC",serif);
+    font-size:10px; letter-spacing:1px; text-indent:1px;
+  }
+  body.stu:has(#page-stuHome.on) .topbar .t-name,
+  body:has(#page-today.on) .topbar .t-name,
+  body:has(#page-home.on) .topbar .t-name{
+    font-size:19px; font-weight:700; color:var(--text); letter-spacing:.5px;
+  }
+  body.stu:has(#page-stuHome.on) .topbar .t-brand .brand-lock,
+  body:has(#page-today.on) .topbar .t-brand .brand-lock,
+  body:has(#page-home.on) .topbar .t-brand .brand-lock{width:71px; height:30px}
+  body.stu:has(#page-stuHome.on) .topbar .v1-badge,
+  body:has(#page-today.on) .topbar .v1-badge,
+  body:has(#page-home.on) .topbar .v1-badge{display:inline-flex}
+  @media (max-width:699px){
+    /* 三首页顶栏从 v85/v86 隐藏名单捞回（样张首页顶栏 = logo + 问候） */
+    body.stu:has(#page-stuHome.on) .topbar,
+    body:has(#page-today.on) .topbar,
+    body:has(#page-home.on) .topbar{display:flex}
+  }
+
+  /* ── 6. 我的页（settings）：唯一保留蓝头 —— 蓝框收小 + 底部 20px 圆角（样张 m-me）── */
+  #page-settings.on{background:var(--paper)}
+  #page-settings.on::before{
+    content:""; position:absolute; top:0; left:0; right:0; z-index:0;
+    height:calc(env(safe-area-inset-top,0px) + 118px);
+    background:linear-gradient(160deg,#50618f,var(--blue));
+    border-radius:0 0 20px 20px;
+  }
+  #page-settings.on > .page-title{
+    position:relative; z-index:1;
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 20px) 20px 0;
+    font-family:inherit; font-size:24px; font-weight:800;
+    letter-spacing:.5px; color:#fff;
+  }
+  #page-settings.on > .page-sub{position:relative; z-index:1; color:rgba(255,255,255,.72)}
+  #page-settings.on #verLine{position:relative; z-index:1; color:rgba(255,255,255,.66)}
+  #page-settings.on .anchor-layout{position:relative; z-index:1; margin-top:26px}
+  #page-settings.on .bg-logo{
+    display:block; position:absolute; right:-4px; z-index:0; animation:none;
+    top:calc(env(safe-area-inset-top,0px) + 4px); bottom:auto;
+    width:128px; transform:rotate(-8deg); opacity:.28; pointer-events:none;
+  }
+
+  /* ── 7. 首页轮播：C 款倒计时卡 + 角色概览卡 + 圆点（样张 v1 终稿）── */
+  #page-stuHome.on .v1-carousel, #page-today.on .v1-carousel, #page-home.on .v1-carousel{
+    display:block; margin:12px 0 0;
+  }
+  .v1-track{
+    display:flex; gap:9px; overflow-x:auto; scroll-snap-type:x mandatory;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:2px;
+  }
+  .v1-track::-webkit-scrollbar{display:none}
+  .v1-card{flex:0 0 calc(100% - 24px); min-width:0; scroll-snap-align:start}
+  .v1-dots{display:flex; gap:5px; justify-content:center; margin-top:10px}
+  .v1-dots i{
+    width:5px; height:5px; border-radius:3px; background:var(--line);
+    transition:width .2s, background-color .2s;
+  }
+  .v1-dots i.on{width:16px; background:var(--gold-deep)}
+
+  /* C 款卡（方案 C 定案）：暖金渐变固定品牌面（深浅两模式白字都可读） */
+  .v1-cd{
+    position:relative; border-radius:16px; padding:20px 18px 13px; color:#fff;
+    background:linear-gradient(135deg,#dcc59a,#c9ab7c 55%,#b99a63);
+    box-shadow:0 10px 22px rgba(168,137,90,.28);
+  }
+  .v1-cd .v1-flag{
+    position:absolute; top:14px; right:14px; display:inline-flex; align-items:center;
+    height:20px; padding:0 9px; border:1px solid rgba(255,255,255,.72); border-radius:10px;
+    font-size:10px; letter-spacing:3px; text-indent:3px; color:rgba(255,255,255,.95);
+  }
+  .v1-cd .v1-n{display:flex; align-items:baseline; gap:6px; margin-top:2px}
+  .v1-cd .v1-n b{
+    font-family:var(--serif,"Noto Serif SC","Songti SC",serif);
+    font-size:46px; font-weight:900; line-height:1; letter-spacing:1px;
+  }
+  .v1-cd .v1-n i{font-style:normal; font-size:15px; opacity:.92}
+  .v1-cd .v1-t{margin-top:6px; font-size:13px; letter-spacing:2px; color:rgba(255,255,255,.95)}
+  .v1-cd .v1-ft{
+    display:flex; justify-content:space-between; gap:10px; margin-top:13px; padding-top:9px;
+    border-top:1px solid rgba(255,255,255,.42); font-size:11px; letter-spacing:.5px;
+    color:rgba(255,255,255,.92);
+  }
+
+  /* 概览卡（第二张，露边）：白卡描边，深色随令牌翻 */
+  .v1-ov{
+    background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:16px 16px 12px;
+  }
+  .v1-ov .v1-ov-h{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:12px; color:var(--text-dim); letter-spacing:1px;
+  }
+  .v1-ov .v1-ov-h .more{font-size:11px; color:var(--gold-deep); text-decoration:none}
+  .v1-ov .v1-ov-n{display:flex; align-items:baseline; gap:5px; margin-top:10px}
+  .v1-ov .v1-ov-n b{
+    font-family:var(--serif,"Noto Serif SC","Songti SC",serif);
+    font-size:30px; font-weight:700; line-height:1; color:var(--text);
+  }
+  .v1-ov .v1-ov-n i{font-style:normal; font-size:12px; color:var(--text-dim)}
+  .v1-ov .v1-ov-s{margin-top:7px; font-size:12px; color:var(--text-dim)}
+  .v1-ov .v1-ov-ft{
+    display:flex; justify-content:space-between; gap:10px; margin-top:12px; padding-top:8px;
+    border-top:1px solid var(--line); font-size:11px; color:var(--text-dim);
+  }
+
+  /* ── 8. stuHome 版序：轮播 → 打卡 → 今天上课 → 作业 → 公告（类选择器，取代 nth-child）── */
+  #page-stuHome.on > .v1-carousel{order:1}
+  #page-stuHome.on > .m2-k-sign{order:2; margin-top:12px}
+  #page-stuHome.on > .m2-k-cls{order:3}
+  #page-stuHome.on > .m2-k-hw{order:4}
+  #page-stuHome.on > .m2-k-notice{order:5}
+
+  /* home 旧倒计时卡手机端退场：倒计时已由轮播 C 卡承载（就地修改天数在桌面保留） */
+  #page-home.on > .tl-head{display:none}
+
+  /* ── 深色：无需新规则 —— 大标题/概览卡/圆点走 --text/--card/--line/--gold-deep
+        （v85/v86 深色块已翻 --paper #18211E 与 --gold-deep #D9BE86），
+        C 卡与我的页蓝框为固定品牌面，白字两种模式都可读。 ── */
+}
+/* ==MOBILE-V1== END */
 
 /* 统一线性图标：替代跨平台不互通的 emoji，stroke 跟随文字色 */
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -3168,6 +3346,25 @@ try {
           </span>
         </div>
         <div class="m2-sub" id="m2AdmSub"></div>
+      </div>
+      <!-- ==MOBILE-V1== 首页轮播：C 款统考倒计时卡 + 角色概览卡（桌面 .m2-only 不渲染；
+           天数与概览由文件尾 ==MOBILE-V1== 纯展示模块用真实数据填，LIYUN_EXAM_DATE 单一来源） -->
+      <div class="v1-carousel m2-only">
+        <div class="v1-track" tabindex="0" aria-label="首页看板，左右滑动">
+          <div class="v1-card v1-cd" id="v1CdCardAdm" role="group" aria-label="统考倒计时">
+            <span class="v1-flag" aria-hidden="true">冲刺</span>
+            <div class="v1-n"><b id="v1CdDaysAdm">--</b><i>天</i></div>
+            <div class="v1-t">距统考</div>
+            <div class="v1-ft"><span id="v1CdDateAdm">目标日 2027.01.09</span><span>博艺 · 砺蕴</span></div>
+          </div>
+          <div class="v1-card v1-ov" role="group" aria-label="全校概览">
+            <div class="v1-ov-h"><span>全校概览</span><a class="more" id="v1OvMoreAdm" href="#"></a></div>
+            <div class="v1-ov-n"><b id="v1OvNumAdm">--</b><i id="v1OvUnitAdm">节</i></div>
+            <div class="v1-ov-s" id="v1OvSubAdm"></div>
+            <div class="v1-ov-ft"><span id="v1OvFtAdm"></span><span id="v1OvFt2Adm"></span></div>
+          </div>
+        </div>
+        <div class="v1-dots" aria-hidden="true"><i class="on"></i><i></i></div>
       </div>
       <div class="m2-stats m2-only">
         <div class="m2-stat"><div class="num" id="m2Rate">--</div><div class="unit">今日出勤率</div></div>
@@ -4248,6 +4445,25 @@ try {
     <section class="page" id="page-today">
       <!-- v86 手机端 hero 浮雕（样张 m-home-teacher .bg-logo）；桌面 .bg-logo 默认隐藏 -->
       <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
+      <!-- ==MOBILE-V1== 首页轮播：C 款统考倒计时卡 + 角色概览卡（桌面 .m2-only 不渲染；
+           天数与概览由文件尾 ==MOBILE-V1== 纯展示模块用真实数据填，LIYUN_EXAM_DATE 单一来源） -->
+      <div class="v1-carousel m2-only">
+        <div class="v1-track" tabindex="0" aria-label="首页看板，左右滑动">
+          <div class="v1-card v1-cd" id="v1CdCardTd" role="group" aria-label="统考倒计时">
+            <span class="v1-flag" aria-hidden="true">冲刺</span>
+            <div class="v1-n"><b id="v1CdDaysTd">--</b><i>天</i></div>
+            <div class="v1-t">距统考</div>
+            <div class="v1-ft"><span id="v1CdDateTd">目标日 2027.01.09</span><span>博艺 · 砺蕴</span></div>
+          </div>
+          <div class="v1-card v1-ov" role="group" aria-label="今日我的课">
+            <div class="v1-ov-h"><span>今日我的课</span><a class="more" id="v1OvMoreTd" href="#"></a></div>
+            <div class="v1-ov-n"><b id="v1OvNumTd">--</b><i id="v1OvUnitTd">节</i></div>
+            <div class="v1-ov-s" id="v1OvSubTd"></div>
+            <div class="v1-ov-ft"><span id="v1OvFtTd"></span><span id="v1OvFt2Td"></span></div>
+          </div>
+        </div>
+        <div class="v1-dots" aria-hidden="true"><i class="on"></i><i></i></div>
+      </div>
       <div class="page-title"><span id="tdHi">今天</span> <span class="clock" id="ckToday"></span></div>
       <div class="page-sub" id="tdSub"></div>
       <div class="card wide" id="tdNoticeCard" style="display:none">
@@ -4369,6 +4585,25 @@ try {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
           搜索服务/待办/资讯
         </div>
+      </div>
+      <!-- ==MOBILE-V1== 首页轮播：C 款统考倒计时卡 + 角色概览卡（桌面 .m2-only 不渲染；
+           天数与概览由文件尾 ==MOBILE-V1== 纯展示模块用真实数据填，LIYUN_EXAM_DATE 单一来源） -->
+      <div class="v1-carousel m2-only">
+        <div class="v1-track" tabindex="0" aria-label="首页看板，左右滑动">
+          <div class="v1-card v1-cd" id="v1CdCardStu" role="group" aria-label="统考倒计时">
+            <span class="v1-flag" aria-hidden="true">冲刺</span>
+            <div class="v1-n"><b id="v1CdDaysStu">--</b><i>天</i></div>
+            <div class="v1-t">距统考</div>
+            <div class="v1-ft"><span id="v1CdDateStu">目标日 2027.01.09</span><span>博艺 · 砺蕴</span></div>
+          </div>
+          <div class="v1-card v1-ov" role="group" aria-label="今日课程">
+            <div class="v1-ov-h"><span>今日课程</span><a class="more" id="v1OvMoreStu" href="#"></a></div>
+            <div class="v1-ov-n"><b id="v1OvNumStu">--</b><i id="v1OvUnitStu">节</i></div>
+            <div class="v1-ov-s" id="v1OvSubStu"></div>
+            <div class="v1-ov-ft"><span id="v1OvFtStu"></span><span id="v1OvFt2Stu"></span></div>
+          </div>
+        </div>
+        <div class="v1-dots" aria-hidden="true"><i class="on"></i><i></i></div>
       </div>
       <div class="page-title">今天 <span class="clock" id="ckStu"></span></div>
       <div class="page-sub" id="stuSub"></div>
@@ -18227,6 +18462,190 @@ const M2Pages = {
 };
 M2Pages.init();
 /* ==== 手机首页样张结构数据填充 END ==== */
+
+/* ==MOBILE-V1== 版本一手机端 · 纯展示 JS（业务零改动）──
+   仅四件事：顶栏问候展示（去逗号）/ 角色金签 / 轮播圆点同步 /
+   统考倒计时天数（LIYUN_EXAM_DATE 单一来源）/ 首页概览卡填充。
+   只读现有数据与已渲染 DOM，不加任何写操作；全部 try-catch，失败静默不碍业务。 */
+const V1 = {
+  /* 统考日单一来源（用户 2026-10 定案）。已过 / 未配置 → 倒计时整卡隐藏 */
+  EXAM_DATE: '2027-01-09',
+
+  _set(id, v){
+    const e = document.getElementById(id);
+    if (e && e.textContent !== v) e.textContent = v;
+  },
+
+  init(){
+    try { this.greetTop(); } catch(e){}
+    try { this.watchPages(); } catch(e){}
+    try { this.dots(); } catch(e){}
+    this.sync();
+  },
+
+  /* 顶栏问候：「李老师，早上好」→「李老师早上好」（样张形态无逗号）。
+     Greet.paint 会随时重写 topName，挂 observer 跟随改写（纯展示）。 */
+  greetTop(){
+    const el = document.getElementById('topName');
+    if (!el || !window.MutationObserver || this._gObs) return;
+    this._gObs = new MutationObserver(() => {
+      const t = el.textContent || '';
+      const fixed = t.split('，').join('');
+      if (fixed !== t) el.textContent = fixed;
+    });
+    this._gObs.observe(el, { childList:true, characterData:true, subtree:true });
+  },
+
+  /* 角色金签：教师/教务在顶栏问候旁挂「教师/教务」小签（学生不挂，样张口径）。
+     每次按当前角色同步（切换账号 / 登出后金签跟着更新或摘除）。 */
+  badge(){
+    const bar = document.getElementById('topbar');
+    if (!bar) return;
+    let role = '';
+    try {
+      const r = (typeof Auth !== 'undefined' && Auth.role) ? Auth.role() : '';
+      role = ({ teacher:'教师', super:'教务', office:'教务', admin:'教务', both:'教务' })[r] || '';
+    } catch(e){}
+    let stu = false;
+    try { stu = !!(typeof Auth !== 'undefined' && Auth.isStudent && Auth.isStudent()); } catch(e){}
+    const want = (role && !stu) ? role : '';
+    const cur = document.getElementById('v1Badge');
+    if (!want){ if (cur) cur.remove(); return; }
+    if (cur){ if (cur.textContent !== want) cur.textContent = want; return; }
+    const sp = document.createElement('span');
+    sp.className = 'v1-badge'; sp.id = 'v1Badge'; sp.textContent = want;
+    const name = document.getElementById('topName');
+    if (name && name.parentNode === bar) name.insertAdjacentElement('afterend', sp);
+  },
+
+  /* 页面切换跟随（仿 M2Pages；注册在其后，读到的概览数据都是已填好的） */
+  watchPages(){
+    if (!window.MutationObserver || this._pObs) return;
+    const cb = () => { try { this.badge(); } catch(e){} this.sync(); };
+    const main = document.getElementById('main');
+    if (main) new MutationObserver(cb).observe(main, { subtree:true, attributes:true, attributeFilter:['class'] });
+    new MutationObserver(cb).observe(document.body, { attributes:true, attributeFilter:['data-role'] });
+  },
+
+  sync(){
+    try { this.badge(); } catch(e){}
+    const cur = document.querySelector('.page.on');
+    if (!cur) return;
+    if (cur.id === 'page-stuHome') this.stu();
+    else if (cur.id === 'page-today') this.today();
+    else if (cur.id === 'page-home') this.adm();
+  },
+
+  /* 倒计时卡：EXAM_DATE 常量实算天数；已过 / 未配置 → 整卡隐藏（圆点收到 1 枚） */
+  cd(suf){
+    const card = document.getElementById('v1CdCard' + suf);
+    if (!card) return;
+    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(this.EXAM_DATE || '');
+    const days = m ? Math.ceil((new Date(+m[1], m[2] - 1, +m[3]) - new Date(new Date().setHours(0, 0, 0, 0))) / 864e5) : NaN;
+    if (!isFinite(days) || days < 0){
+      card.style.display = 'none';
+      const c = card.closest('.v1-carousel');
+      if (c) c.querySelectorAll('.v1-dots i').forEach((d, k) => {
+        if (k > 0) d.style.display = 'none';
+      });
+      return;
+    }
+    card.style.display = '';
+    this._set('v1CdDays' + suf, String(days));
+    this._set('v1CdDate' + suf, '目标日 ' + this.EXAM_DATE.split('-').join('.'));
+  },
+
+  /* ① 学生首页：概览卡 = 今日课程（Stu.todayLessons 真数据 + 下一节） */
+  stu(){
+    this.cd('Stu');
+    try {
+      const ls = (typeof Stu !== 'undefined' && Stu.todayLessons) ? Stu.todayLessons() : [];
+      this._set('v1OvNumStu', String(ls.length));
+      this._set('v1OvUnitStu', '节');
+      let sub = '今天没有排课';
+      if (ls.length){
+        const periods = Store.list('periods');
+        const nm = new Date(); const cur = nm.getHours() * 60 + nm.getMinutes();
+        let nxt = null;
+        for (const x of ls){
+          const p = periods.find(pp => pp && pp.id === x.periodId) || {};
+          const s = p.start || x.time || '';
+          const mm = /^(\d{1,2}):(\d{2})/.exec(s);
+          if (mm && (+mm[1] * 60 + +mm[2]) >= cur && !nxt) nxt = { s, t: x.title || '' };
+        }
+        sub = nxt ? ('下一节 ' + nxt.s + (nxt.t ? ' · ' + nxt.t : '')) : '今日课程已结束';
+      }
+      this._set('v1OvSubStu', sub);
+      const more = document.getElementById('v1OvMoreStu');
+      if (more){ more.textContent = '课表 ›'; more.setAttribute('onclick', "App.go('stuTable');return false"); }
+      this._set('v1OvFtStu', (typeof M2Pages !== 'undefined' && M2Pages.dateFull) ? M2Pages.dateFull() : '');
+      this._set('v1OvFt2Stu', (typeof M2Pages !== 'undefined' && M2Pages.termWeek) ? M2Pages.termWeek() : '');
+    } catch(e){}
+  },
+
+  /* ⑥ 教师今天：概览卡 = 今日我的课（数 #tdToday 已渲染的 .item 行，零新业务逻辑） */
+  today(){
+    this.cd('Td');
+    try {
+      const box = document.getElementById('tdToday');
+      const n = box ? box.querySelectorAll('.item').length : 0;
+      this._set('v1OvNumTd', String(n));
+      this._set('v1OvUnitTd', '节');
+      let sub = '今天没有排你的课';
+      const first = box ? box.querySelector('.item .mono') : null;
+      if (n && first){
+        const mm = /\d{1,2}:\d{2}/.exec(first.textContent || '');
+        sub = mm ? ('首节 ' + mm[0]) : '今日课程已排';
+      }
+      this._set('v1OvSubTd', sub);
+      const more = document.getElementById('v1OvMoreTd');
+      if (more) more.textContent = '';
+      const wk = document.getElementById('tdWeek');
+      const wn = wk ? wk.querySelectorAll('.item').length : 0;
+      this._set('v1OvFtTd', (typeof M2Pages !== 'undefined' && M2Pages.dateFull) ? M2Pages.dateFull() : '');
+      this._set('v1OvFt2Td', '本周 ' + wn + ' 节');
+    } catch(e){}
+  },
+
+  /* ⑩ 教务首页：概览卡 = 全校概览（学员数/出勤率读 M2Pages 已填好的数盘） */
+  adm(){
+    this.cd('Adm');
+    try {
+      const cnt = document.getElementById('m2StuCnt');
+      const rate = document.getElementById('m2Rate');
+      this._set('v1OvNumAdm', cnt ? (cnt.textContent || '--') : '--');
+      this._set('v1OvUnitAdm', '人');
+      const cls = Store.list('classes').length;
+      const wk = (typeof M2Pages !== 'undefined' && M2Pages.termWeek) ? M2Pages.termWeek() : '';
+      this._set('v1OvSubAdm', (cls + ' 个班' + (wk ? ' · ' + wk : '')));
+      const more = document.getElementById('v1OvMoreAdm');
+      if (more) more.textContent = '';
+      this._set('v1OvFtAdm', '今日出勤率');
+      this._set('v1OvFt2Adm', rate ? (rate.textContent || '--') : '--');
+    } catch(e){}
+  },
+
+  /* 轮播圆点：scroll 位置同步 on 态（一次绑定，scroll/resize 被动监听） */
+  dots(){
+    document.querySelectorAll('.v1-carousel').forEach(c => {
+      const track = c.querySelector('.v1-track');
+      const dotsEl = c.querySelector('.v1-dots');
+      if (!track || !dotsEl || track.dataset.v1dots === '1') return;
+      track.dataset.v1dots = '1';
+      const up = () => {
+        const dots = dotsEl.querySelectorAll('i');
+        const half = (track.scrollWidth - track.clientWidth) / 2;
+        const i = track.scrollLeft > half ? 1 : 0;
+        dots.forEach((d, k) => d.classList.toggle('on', k === i));
+      };
+      track.addEventListener('scroll', up, { passive:true });
+      window.addEventListener('resize', up, { passive:true });
+    });
+  }
+};
+V1.init();
+/* ==MOBILE-V1== 纯展示 JS END == */
+
 
 App.init();
 /* 开屏层兜底：万一初始化卡住，最多 6 秒后强制淡出，绝不让人卡在开屏。

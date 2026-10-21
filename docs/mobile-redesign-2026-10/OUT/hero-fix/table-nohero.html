@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>课表 · 无题头（题头归位示意）</title>
+<link rel="stylesheet" href="../../../preview-mobile-2026-10/assets/mobile.css">
+<style>
+  /* —— 题头归位示意：课表页无题头，纸底直接开始 —— */
+  .nohero-body{
+    padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  /* 日期滑轨（纸底版：白卡胶囊，当天金底） */
+  .rail{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding:4px 0 18px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .rc{
+    flex:none;
+    width:44px;
+    padding:7px 0 9px;
+    border-radius:12px;
+    text-align:center;
+    background:#fff;
+    border:1px solid var(--line);
+    color:var(--ink-2);
+    position:relative;
+  }
+  .rc .dw{font-size:10px;letter-spacing:1px}
+  .rc .dn{
+    font-family:Georgia,var(--serif);
+    font-size:16px;
+    font-weight:600;
+    margin-top:2px;
+    line-height:1.2;
+    color:var(--ink);
+  }
+  .rc .mo{font-size:9px;color:var(--ink-3);margin-top:1px}
+  .rc.today{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:rgba(255,255,255,.9);
+    box-shadow:0 3px 10px rgba(201,171,124,.35);
+  }
+  .rc.today .dn{color:#fff}
+  .rc.today .mo{color:rgba(255,255,255,.78)}
+
+  /* 时间线（照 m-table.html） */
+  .tl-row{
+    display:grid;
+    grid-template-columns:60px 20px 1fr;
+    column-gap:8px;
+  }
+  .tl-time{
+    text-align:right;
+    padding-top:13px;
+  }
+  .tl-time .tm{
+    font-family:Georgia,var(--serif);
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.2;
+  }
+  .tl-time .no{
+    font-size:10px;
+    color:var(--ink-3);
+    margin-top:2px;
+    letter-spacing:1px;
+  }
+  .tl-node{
+    position:relative;
+  }
+  .tl-node::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:0;bottom:0;
+    width:1px;
+    background:var(--line);
+    transform:translateX(-.5px);
+  }
+  .tl-row:first-child .tl-node::before{top:18px}
+  .tl-row:last-child .tl-node::before{bottom:auto;height:18px}
+  .tl-node .nd{
+    position:absolute;
+    left:50%;
+    top:17px;
+    transform:translateX(-50%);
+    width:7px;height:7px;
+    border-radius:50%;
+    background:var(--ink-3);
+    box-shadow:0 0 0 3px var(--paper);
+  }
+  .tl-row.live .tl-node .nd{
+    background:var(--gold);
+    width:9px;height:9px;
+    box-shadow:0 0 0 3px rgba(201,171,124,.25);
+  }
+  .tl-card{
+    margin-bottom:14px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:12px 14px;
+    position:relative;
+  }
+  .tl-card .cn{
+    font-family:var(--serif);
+    font-size:15.5px;
+    font-weight:600;
+    color:var(--ink);
+    letter-spacing:.5px;
+  }
+  .tl-card .cm{
+    font-size:12px;
+    color:var(--ink-2);
+    margin-top:4px;
+  }
+  .tl-card .cs{
+    font-size:11px;
+    color:var(--ink-3);
+    margin-top:2px;
+  }
+  .tl-row.done .tl-card{opacity:.45}
+  .tl-row.done .tl-card .cn{color:var(--ink-2)}
+  .tl-row.done .tl-node .nd{background:var(--line)}
+  .tl-row.live .tl-card{
+    border:1.5px solid var(--gold);
+    box-shadow:0 4px 14px rgba(201,171,124,.22);
+  }
+  .tl-row.live .tl-card .cn{color:var(--blue-ink)}
+  .tl-badge{
+    position:absolute;
+    top:-9px;
+    right:12px;
+    height:20px;
+    padding:0 10px;
+    border-radius:10px;
+    background:var(--gold);
+    color:#fff;
+    font-size:10px;
+    line-height:20px;
+    letter-spacing:1px;
+  }
+  .tl-row.next .tl-card .cn::before{
+    content:"";
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold);
+    margin-right:7px;
+    vertical-align:2px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 学生端整页水印（生产逻辑：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 无题头：纸底直接开始 -->
+  <main class="nohero-body">
+
+    <div class="sec" style="margin-top:18px">
+      <h2>本周课表</h2>
+      <span class="more">第 9 教学周 · 今日 6 节</span>
+    </div>
+
+    <!-- 横滑日期条（一 ~ 日，周三 21 当天金底） -->
+    <div class="rail">
+      <div class="rc"><div class="dw">周一</div><div class="dn">19</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周二</div><div class="dn">20</div><div class="mo">10月</div></div>
+      <div class="rc today"><div class="dw">周三</div><div class="dn">21</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周四</div><div class="dn">22</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周五</div><div class="dn">23</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周六</div><div class="dn">24</div><div class="mo">10月</div></div>
+      <div class="rc"><div class="dw">周日</div><div class="dn">25</div><div class="mo">10月</div></div>
+    </div>
+
+    <!-- 当天时间线（简化 3 节） -->
+    <div class="tl">
+
+      <div class="tl-row done">
+        <div class="tl-time"><div class="tm">09:10</div><div class="no">第1节</div></div>
+        <div class="tl-node"><span class="nd"></span></div>
+        <div class="tl-card">
+          <div class="cn">播音 · 气息与发声</div>
+          <div class="cm">09:10 – 10:50 · 王老师</div>
+          <div class="cs">BY08 演播室 · 第1–2节连堂</div>
+        </div>
+      </div>
+
+      <div class="tl-row live">
+        <div class="tl-time"><div class="tm">13:30</div><div class="no">第5节</div></div>
+        <div class="tl-node"><span class="nd"></span></div>
+        <div class="tl-card">
+          <span class="tl-badge">进行中</span>
+          <div class="cn">稿件朗读 · 文学作品</div>
+          <div class="cm">13:30 – 15:10 · 沈老师</div>
+          <div class="cs">BY03 朗读教室 · 第5–6节连堂</div>
+        </div>
+      </div>
+
+      <div class="tl-row next">
+        <div class="tl-time"><div class="tm">15:30</div><div class="no">第7节</div></div>
+        <div class="tl-node"><span class="nd"></span></div>
+        <div class="tl-card">
+          <div class="cn">形体 · 体态与仪态</div>
+          <div class="cm">15:30 – 16:10 · 林老师</div>
+          <div class="cs">形体房 · 第7节</div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- 底部 5-Tab（学生端 · 课表 active） -->
+  <nav class="tabbar">
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a class="on" href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>方案 C · 大卡流 · 学生今日</title>
+<link rel="stylesheet" href="../theme-base.css">
+<style>
+  /* 内容短于视口时底色延伸到底 */
+  .flow{min-height:100vh}
+
+  /* 大卡流：卡间留白 20px+，每块自成一张大头卡 */
+  .flow{
+    position:relative;
+    margin-top:-24px;
+    padding:20px 16px calc(80px + env(safe-area-inset-bottom));
+  }
+  .bcard{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px 16px 14px;
+    margin-bottom:20px;
+    box-shadow:0 4px 16px rgba(43,58,94,.05);
+  }
+  .bcard:last-child{margin-bottom:0}
+  .bhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .bhead .bic{
+    flex:none;width:26px;height:26px;border-radius:8px;
+    background:rgba(74,92,140,.08);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .bhead h2{
+    font-family:var(--serif);font-size:16px;font-weight:600;
+    color:var(--blue-ink);letter-spacing:1px;
+  }
+  .bhead .sp{flex:1}
+  .bhead .more{font-size:11px;color:var(--ink-3)}
+
+  .card{background:none;border:0;border-radius:0;padding:0}
+  .bigbtn{border-radius:12px}
+  .sub-note{font-size:11px;color:var(--ink-3);margin-top:8px;text-align:center}
+</style>
+</head>
+<body>
+
+  <!-- 学生端整页水印（与生产逻辑一致：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 沉浸头 -->
+  <div class="hero">
+    <img class="bg-logo" src="../mark-liyun-gold.png" alt="">
+    <div class="greet">上午好，陈同学</div>
+    <div class="sub">砺蕴一班 · 10 月 21 日 星期三 · 第 9 教学周</div>
+    <div class="search-pill">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      搜索服务/待办/资讯
+    </div>
+  </div>
+
+  <!-- 大卡流 -->
+  <div class="flow">
+
+    <!-- ① 打卡卡 -->
+    <div class="bcard">
+      <div class="bhead">
+        <span class="bic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+        <h2>今日打卡</h2>
+        <span class="sp"></span>
+        <span class="more">打卡窗口 08:00–20:30</span>
+      </div>
+      <a class="bigbtn" href="#">
+        <div>
+          <div class="bt">进入打卡 →</div>
+          <div class="bs">到校后先打卡，再进教室</div>
+        </div>
+        <span class="go">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <!-- ② 上课卡（时间线全量） -->
+    <div class="bcard">
+      <div class="bhead">
+        <span class="bic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+        <h2>今天上课</h2>
+        <span class="sp"></span>
+        <span class="more">3 节 ›</span>
+      </div>
+      <div class="card">
+        <div class="sched">
+          <span class="dot"></span>
+          <div class="info">
+            <div class="name">普通话语音基础</div>
+            <div class="meta">08:30–09:10 · BY03 · 顾老师</div>
+          </div>
+          <span class="pill blue">已结束</span>
+        </div>
+        <div class="sched">
+          <span class="dot"></span>
+          <div class="info">
+            <div class="name">文学作品朗读</div>
+            <div class="meta">10:15–10:55 · BY05 · 余老师</div>
+          </div>
+          <span class="pill gold">即将开始</span>
+        </div>
+        <div class="sched">
+          <span class="dot"></span>
+          <div class="info">
+            <div class="name">新闻播报实训</div>
+            <div class="meta">14:00–14:40 · BY08 · 沈老师</div>
+          </div>
+          <span class="pill blue">下午</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 作业卡 -->
+    <div class="bcard">
+      <div class="bhead">
+        <span class="bic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+        <h2>我的作业</h2>
+        <span class="sp"></span>
+        <span class="more">全部 ›</span>
+      </div>
+      <div class="card">
+        <div class="todo">
+          <div class="info">
+            <div class="name">今日作业 · 新闻播报口播稿录音</div>
+            <div class="due">沈老师布置 · 时长 60 秒以内 · 已于 09:12 提交</div>
+          </div>
+          <span class="pill gold">已交</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 公告卡 -->
+    <div class="bcard">
+      <div class="bhead">
+        <span class="bic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l11 4V6L4 10z"/><path d="M15 8.5c2.5 0 4 1.5 4 3.5s-1.5 3.5-4 3.5"/><path d="M6.5 14.5l1 4.5h2.5l-.8-4"/></svg></span>
+        <h2>校园公告</h2>
+        <span class="sp"></span>
+        <span class="more">更多 ›</span>
+      </div>
+      <div>
+        <div class="notice">
+          <div class="date"><div class="d">24</div><div class="ym">2026.10</div></div>
+          <div>
+            <div class="t">十月份家长开放日安排</div>
+            <div class="s">本周六 14:00 开放课堂观摩，欢迎家长到 BY05 教室旁听，凭邀请短信入校。</div>
+          </div>
+        </div>
+        <div class="notice">
+          <div class="date"><div class="d">28</div><div class="ym">2026.10</div></div>
+          <div>
+            <div class="t">下周三外拍报名截止</div>
+            <div class="s">滨江实景外拍名额剩 6 个，请在本周三 20:00 前在「限时征集」里完成报名。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 全部功能入口卡 -->
+    <div class="bcard">
+      <div class="bhead">
+        <span class="bic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></span>
+        <h2>全部功能</h2>
+        <span class="sp"></span>
+      </div>
+      <div class="grid4">
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span><span class="lb">打卡</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span><span class="lb">作业</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span><span class="lb">课表</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l11 4V6L4 10z"/><path d="M15 8.5c2.5 0 4 1.5 4 3.5s-1.5 3.5-4 3.5"/><path d="M6.5 14.5l1 4.5h2.5l-.8-4"/></svg></span><span class="lb">公告</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.5"/><path d="M9.5 13.5L8 21l4-2.2L16 21l-1.5-7.5"/><path d="M10 9l1.5 1.5L14.5 7"/></svg></span><span class="lb">成绩</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-5h6v5"/><path d="M9 10h.01M15 10h.01M12 10h.01"/></svg></span><span class="lb">班级</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h9.5L20 7v14.5H6z"/><path d="M9 9h6M9 13h6M9 17h4"/></svg></span><span class="lb">请假</span></a>
+        <a class="gi"><span class="tile">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span><span class="lb">我的</span></a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（学生端 · 今日 active） -->
+  <nav class="tabbar">
+    <a class="on" href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

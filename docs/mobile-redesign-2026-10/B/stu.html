@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>方案 B · 焦点式 · 学生今日</title>
+<link rel="stylesheet" href="../theme-base.css">
+<style>
+  /* 内容短于视口时白板延伸到底 */
+  .sheet{min-height:100vh}
+
+  /* 紧凑 hero */
+  .hero.compact{
+    padding:calc(env(safe-area-inset-top) + 44px) 20px 34px;
+    min-height:0;
+  }
+  .hero.compact .greet{font-size:21px}
+  .hero.compact .sub{font-size:12px}
+
+  /* 「此刻」大卡 */
+  .now-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:20px 18px 18px;
+    box-shadow:0 10px 28px rgba(43,58,94,.08);
+  }
+  .now-card .eyebrow{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;letter-spacing:2px;color:var(--gold-deep);
+  }
+  .now-card .eyebrow::before{
+    content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);
+  }
+  .now-card .big{
+    font-family:var(--serif);
+    font-size:26px;font-weight:600;letter-spacing:1px;
+    color:var(--blue-ink);margin-top:10px;line-height:1.3;
+  }
+  .now-card .status{
+    display:inline-flex;align-items:center;
+    margin-top:10px;height:26px;padding:0 12px;border-radius:13px;
+    background:rgba(201,171,124,.16);color:var(--gold-deep);
+    font-size:12px;font-weight:600;
+  }
+  .now-card .where{
+    display:flex;gap:16px;margin-top:12px;
+    font-size:12px;color:var(--ink-2);
+  }
+  .now-card .where b{color:var(--ink);font-weight:600}
+  .now-card .bigbtn{margin-top:16px}
+  .now-card .win{
+    text-align:center;font-size:11px;color:var(--ink-3);margin-top:10px;
+  }
+
+  /* 横滑摘要条 */
+  .strip{
+    display:flex;gap:8px;overflow-x:auto;
+    margin-top:20px;padding:2px;
+    scrollbar-width:none;
+  }
+  .strip::-webkit-scrollbar{display:none}
+  .chip{
+    flex:none;display:inline-flex;align-items:center;gap:6px;
+    height:32px;padding:0 14px;border-radius:16px;
+    background:#fff;border:1px solid var(--line);
+    font-size:12px;color:var(--ink-2);
+  }
+  .chip b{font-family:Georgia,var(--serif);font-size:14px;color:var(--blue-ink)}
+  .chip.hot{border-color:rgba(201,171,124,.7);background:rgba(201,171,124,.10)}
+  .chip.hot b{color:var(--gold-deep)}
+
+  /* 宫格 4 项 */
+  .grid4{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;
+    margin-top:22px;
+  }
+  .gi{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .gi .tile{
+    width:46px;height:46px;border-radius:13px;
+    background:rgba(74,92,140,.08);
+    display:flex;align-items:center;justify-content:center;color:var(--blue);
+  }
+  .gi .lb{font-size:11px;color:var(--ink-2)}
+
+  .sec-t{
+    font-family:var(--serif);font-size:15px;font-weight:600;
+    color:var(--blue-ink);letter-spacing:1px;
+    margin:24px 2px 10px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 学生端整页水印（与生产逻辑一致：仅学生端有） -->
+  <div class="wm"></div>
+
+  <!-- 紧凑头 -->
+  <div class="hero compact">
+    <img class="bg-logo" src="../mark-liyun-gold.png" alt="">
+    <div class="greet">上午好，陈同学</div>
+    <div class="sub">10 月 21 日 星期三 · 第 9 教学周</div>
+  </div>
+
+  <!-- 白板叠头 -->
+  <div class="sheet">
+
+    <!-- ① 此刻大卡 -->
+    <div class="now-card">
+      <span class="eyebrow">此刻 · 第 2 节</span>
+      <div class="big">文学作品朗读</div>
+      <span class="status">距开始 37 分钟</span>
+      <div class="where">
+        <span>教室 <b>BY05</b></span>
+        <span>老师 <b>余老师</b></span>
+        <span>时间 <b>10:15</b></span>
+      </div>
+      <a class="bigbtn" href="#">
+        <div>
+          <div class="bt">去打卡 →</div>
+          <div class="bs">到校后先打卡，再进教室</div>
+        </div>
+        <span class="go">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg>
+        </span>
+      </a>
+      <div class="win">打卡窗口 08:00—20:30</div>
+    </div>
+
+    <!-- ② 横滑摘要条 -->
+    <div class="strip">
+      <span class="chip hot"><b>3</b> 今天 3 件事</span>
+      <span class="chip"><b>3</b> 上课</span>
+      <span class="chip"><b>1</b> 作业</span>
+      <span class="chip"><b>2</b> 公告</span>
+    </div>
+
+    <!-- ③ 快捷宫格 -->
+    <div class="sec-t">快捷入口</div>
+    <div class="grid4">
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span><span class="lb">打卡</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span><span class="lb">作业</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span><span class="lb">课表</span></a>
+      <a class="gi"><span class="tile">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg></span><span class="lb">更多</span></a>
+    </div>
+
+  </div>
+
+  <!-- 底部 5-Tab（学生端 · 今日 active） -->
+  <nav class="tabbar">
+    <a class="on" href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg></span>
+      今日
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+      打卡
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg></span>
+      作业
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></svg></span>
+      课表
+    </a>
+    <a href="#">
+      <span class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-6.5 8-6.5s8 2.7 8 6.5"/></svg></span>
+      我的
+    </a>
+  </nav>
+
+</body>
+</html>

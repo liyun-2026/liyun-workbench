@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>⑧ 教师·消息</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#26262a}
+.phone{position:relative;width:390px;height:844px;background:#f5f4f1;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;color:#1c1c1e;flex-shrink:0}
+.status .t{font-size:15px;font-weight:600;letter-spacing:.3px}
+.status svg{display:block}
+.nav{display:flex;align-items:center;height:44px;padding:0 16px;flex-shrink:0}
+.nav .tt{font-size:20px;font-weight:700;color:#1c1c1e}
+.nav .op{margin-left:auto;color:#85858b}
+.search{margin:4px 16px 0;height:36px;background:#eceae4;border-radius:999px;display:flex;align-items:center;padding:0 13px;gap:7px;color:#a3a3aa;font-size:13px;flex-shrink:0}
+.list{margin:14px 0 0;background:#fff;border-top:1px solid #eceae4;flex:1;overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;padding:14px 16px;position:relative}
+.mrow+.mrow{border-top:1px solid #eceae4}
+.mic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.mic-b{background:rgba(74,92,140,.10);color:#4a5c8c}
+.mic-g{background:rgba(201,171,124,.16);color:#a98a55}
+.mic-v{background:rgba(52,163,107,.10);color:#34a36b}
+.mic .n{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:#e0564a;color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 4px;border:1.5px solid #fff}
+.mrow .bd{flex:1;min-width:0}
+.mrow .tt{font-size:15.5px;color:#1c1c1e;font-weight:500}
+.mrow .sb{font-size:13px;color:#85858b;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .rt{font-size:11.5px;color:#a3a3aa;flex-shrink:0;align-self:flex-start;margin-top:2px}
+.tabbar{height:84px;background:#fff;border-top:1px solid #eceae4;display:flex;padding:6px 8px 0;flex-shrink:0;position:relative;z-index:9}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:5px}
+.tb .lb{font-size:10px;color:#9a9aa1}
+.tb.on .lb{color:#4a5c8c;font-weight:600}
+.tb.on svg{color:#4a5c8c}
+.hi{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:#1c1c1e;opacity:.9}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status">
+    <span class="t">9:41</span>
+    <svg width="64" height="12" viewBox="0 0 64 12" fill="#1c1c1e"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="1" width="3" height="11" rx="1"/><path d="M28 5.5a8.5 8.5 0 0 1 11 0l-1.6 1.9a6 6 0 0 0-7.8 0z"/><circle cx="33.5" cy="9.5" r="1.8"/><rect x="44" y="2" width="17" height="8" rx="2.5" fill="none" stroke="#1c1c1e" stroke-opacity=".4"/><rect x="46" y="4" width="11" height="4" rx="1"/><path d="M62 4.5v3a2 2 0 0 0 0-3z"/></svg>
+  </div>
+  <div class="nav">
+    <span class="tt">消息</span>
+    <svg class="op" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+  </div>
+  <div class="search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a3a3aa" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+    搜索消息/待办
+  </div>
+
+  <div class="list">
+    <div class="mrow">
+      <div class="mic mic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-6.5L6 20v-3.6a3 3 0 0 1-2-2.85V7.5a3 3 0 0 1 3-3z"/></svg><span class="n">3</span></div>
+      <div class="bd"><div class="tt">系统通知</div><div class="sb">您本周的课时统计已生成，点击查看详情</div></div>
+      <span class="rt">10:02</span>
+    </div>
+    <div class="mrow">
+      <div class="mic mic-g"><span style="font-size:16px;font-weight:700">余</span></div>
+      <div class="bd"><div class="tt">余老师</div><div class="sb">李老师：关于明天外拍集合时间的说明，麻烦转达家长</div></div>
+      <span class="rt">09:36</span>
+    </div>
+    <div class="mrow">
+      <div class="mic mic-v"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a2.5 2.5 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a2.5 2.5 0 0 0 0-5z"/><path d="M14 6.5v11" stroke-dasharray="2.5 2.5"/></svg></div>
+      <div class="bd"><div class="tt">工单系统</div><div class="sb">您的工单 #108（教室投影维修）已完成，请确认</div></div>
+      <span class="rt">昨天</span>
+    </div>
+    <div class="mrow">
+      <div class="mic mic-b"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="3.5" width="13" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3.5"/></svg></div>
+      <div class="bd"><div class="tt">作业提醒</div><div class="sb">「新闻播报口语录音」已交 12/13，截止今晚 20:00</div></div>
+      <span class="rt">昨天</span>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11 12 4.8 19.5 11v7.5a1.5 1.5 0 0 1-1.5 1.5h-3.8v-5h-4.4v5H6a1.5 1.5 0 0 1-1.5-1.5z"/></svg><span class="lb">今日</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="5" width="13" height="16" rx="2"/><rect x="9" y="3.5" width="6" height="3" rx="1"/><path d="M9.5 13.5l2 2 3.5-4"/></svg><span class="lb">考勤</span></div>
+    <div class="tb on"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.5h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-6.5L6 20v-3.6a3 3 0 0 1-2-2.85V7.5a3 3 0 0 1 3-3z"/></svg><span class="lb">消息</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5.5" width="16" height="15" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></svg><span class="lb">课表</span></div>
+    <div class="tb"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.3" r="3.6"/><path d="M5.2 19.6c1.2-3.3 3.7-5 6.8-5s5.6 1.7 6.8 5"/></svg><span class="lb">我的</span></div>
+    <div class="hi"></div>
+  </div>
+</div>
+</body>
+</html>

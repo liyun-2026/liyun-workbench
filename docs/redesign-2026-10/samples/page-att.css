@@ -55,6 +55,13 @@
 .legend{display:flex;flex-direction:column;gap:8px;margin-top:var(--sp-3);font-size:13px;color:var(--text-dim)}
 .legend span{display:flex;align-items:center;gap:8px}
 .legend i{width:12px;height:12px;flex:0 0 auto;border-radius:2px}
+/* P2-12：图例色块由行内 var() 收敛为类 */
+.legend i.ok{background:var(--stamp-ok)}
+.legend i.late{background:var(--stamp-late)}
+.legend i.sick{background:var(--stamp-sick)}
+.legend i.leave{background:var(--stamp-leave)}
+/* P2-12：页尾章节标题字体由行内 var() 收敛为类（配合 .hint 的弱化文本用） */
+.h-serif{font-family:var(--font-serif);font-size:var(--fs-h2);color:var(--text)}
 .pending{font-size:14px;display:grid;gap:12px}
 .pending .p{display:flex;gap:10px;align-items:flex-start}
 .pending .p .grow{flex:1;min-width:0}
@@ -67,16 +74,21 @@
    拆开 .sumsticky(display:contents)：本节小结 → 吸顶横向汇总条；待批请假 → 落到名单之后 */
 @media (max-width:1099px){
   .sumsticky{display:contents}
-  .sumbox:first-child{order:-1;position:sticky;top:58px;z-index:4;
+  /* top:60 = 顶栏高（13+行高+13+1 ≈ 60.3）取整：吸住时 bar 顶边与顶栏底边差值 ≤2px（P2-c 判据） */
+  .sumbox:first-child{order:-1;position:sticky;top:60px;z-index:4;
     display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--sp-6);row-gap:8px;
     background:var(--card);border:0;border-bottom:1px solid var(--line);border-radius:0;
     padding:8px 0;margin:0}   /* G3：吸顶用实底 --card + 分隔线，读得出「浮在内容之上的一条」 */
+  /* P2-d：吸住态由 JS 挂 .is-stuck（att.html stuckTick），补 --sh-1 阴影，避免「行被拦腰切断像渲染断了」 */
+  .sumbox:first-child.is-stuck{box-shadow:var(--sh-1)}
   .sumbox:first-child h3{margin:0;flex:0 0 auto}
   .sumbox:first-child .sumrow{padding:0;justify-content:flex-start;gap:8px;flex:0 0 auto}
   .sumbox:first-child .sumrow b{font-size:18px}
   .sumbox:first-child .ratio{flex:1 1 120px;min-width:96px;margin-top:0}
   .sumbox:first-child .legend{flex-direction:row;flex-wrap:wrap;gap:8px 16px;margin-top:0;flex:0 0 auto}
   .sumbox:first-child .sumacts{margin-top:0;flex:0 0 auto}
+  /* P2-d 留痕：order 使视觉顺序 ≠ DOM/焦点顺序（汇总条内唯一可聚焦的「复制小结文案」Tab 序排在 26 枚印章之后），
+     WCAG 2.4.3 属轻微偏离，汇总条为静态文本，有意保留不强行改 DOM。 */
   .sumbox:last-child{order:1}   /* 待批请假：落到名单全宽之后 */
 }
 

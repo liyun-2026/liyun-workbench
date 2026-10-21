@@ -26,9 +26,10 @@
   --brand-ink:#7E6438;        /* 金·作文字时用（F4：四浅底最低 5.12:1） */
   --brand-deco:#C9AB7C;       /* 装饰金：只做点缀 */
   --accent-ink:#26241F;       /* accent 作文字时用（F4；③ 端口覆盖为深金 #7A5E28） */
-  --line:#E7E3DA;             /* 唯一的框 */
+  --line:#E7E3DA;             /* 唯一的框（1px 分隔线/装饰线，不受 3:1 约束） */
+  --line-strong:#8A857C;      /* P2-13：组件边界用强线（实测最低 3.37:1 on tint③ / 3.67 on 白，≥3:1） */
   --ok:#3F7D5A; --warn:#A8611E; --danger:#B23A2E; --info:#3B6EA5;
-  --cursor:#9C4E1F; --focus:#B0602A;   /* F4：--cursor 作文字 4.23→5.47 */
+  --cursor:#9C4E1F; --focus:var(--cursor);   /* P2-b：合并回 §1.1「--focus 复用 --cursor」（实测 on 白 5.96、on --bg 5.47，均优于拆分值） */
   --hover:color-mix(in srgb,var(--text) 6%,transparent);
   --stamp-ok:#2A6E50; --stamp-late:#7C5B0D; --stamp-sick:#1B4B5A; --stamp-leave:#B23A2E; /* F4：叠底后 ≥4.5 */
 
@@ -136,7 +137,7 @@ table{border-collapse:collapse}
   cursor:pointer;background:var(--accent);color:var(--btn-text);white-space:nowrap;
   transition:background-color var(--dur-base) var(--ease-base),border-color var(--dur-base) var(--ease-base),color var(--dur-base) var(--ease-base)}
 .btn:hover{filter:brightness(1.06)}
-.btn.ghost{background:transparent;border-color:var(--line);color:var(--text)}
+.btn.ghost{background:transparent;border-color:var(--line-strong);color:var(--text)}   /* P2-13：组件边界 ≥3:1（--line 仅作装饰分隔线） */
 .btn.ghost:hover{border-color:var(--accent);color:var(--accent-ink)}   /* F4：文字用 accent-ink */
 .btn.mini{padding:5px 11px;font-size:13px}
 .row{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap}

@@ -17,6 +17,7 @@ function ratio(a,b){ var la=lum(hx(a)),lb=lum(hx(b)); var hi=Math.max(la,lb),lo=
 function mix(fg,bg,pct){ var f=hx(fg),b=hx(bg),p=pct/100;
   var o=[0,1,2].map(function(i){return Math.round(f[i]*p+b[i]*(1-p));});
   return '#'+o.map(function(v){return ('0'+v.toString(16)).slice(-2);}).join(''); }
+function rgb2hx(s){ var m=String(s).match(/\d+/g); return '#'+m.slice(0,3).map(function(v){return ('0'+(+v).toString(16)).slice(-2);}).join(''); }
 
 var PAGES=['home','att','roster','homework','settings'];
 var WIDES=[390,700,750,900,1099,1100,1600];
@@ -37,6 +38,10 @@ function check(j){
   if(!w||!d||!de){ ok(false, tag+' 无法访问 iframe'); return; }
   if(de.getAttribute('data-port')!=='port1'){ try{ w.Shell.setPort('port1'); }catch(e){} }   /* 幂等：强制 ① */
   ok(de.scrollWidth<=de.clientWidth+1, tag+' 无横向溢出 (scrollW='+de.scrollWidth+' clientW='+de.clientWidth+')');
+  /* P2-13：.btn.ghost 组件边界用 --line-strong，白底为最浅保底 ≥3:1 */
+  var gh=d.querySelector('.btn.ghost');
+  if(gh){ var gbc=rgb2hx(w.getComputedStyle(gh).borderTopColor);
+    ok(ratio(gbc,'#FFFFFF')>=3, tag+' P2-13 ghost 边框 ≥3:1 on 白 ('+gbc+' '+ratio(gbc,'#FFFFFF').toFixed(2)+')'); }
   var side=d.querySelector('.side'), tab=d.querySelector('.tabbar');
   var sideVis=side&&w.getComputedStyle(side).display!=='none';
   var tabVis=tab&&w.getComputedStyle(tab).display!=='none';
@@ -83,12 +88,21 @@ function check(j){
       if(maxS>=1000){
         var s1=Math.min(1200,maxS-600), s2=s1+600;
         ok(bcs.position==='sticky', tag+' 汇总条 computed position:sticky (实='+bcs.position+')');
-        w.scrollTo(0,s1); var y1=w.scrollY, r1=bar.getBoundingClientRect().top;
-        w.scrollTo(0,s2); var y2=w.scrollY, r2=bar.getBoundingClientRect().top;
+        w.scrollTo(0,s1); w.dispatchEvent(new Event('scroll'));   /* 同步触发 P2-d 的 stuckTick */
+        var y1=w.scrollY, r1=bar.getBoundingClientRect().top;
+        w.scrollTo(0,s2); w.dispatchEvent(new Event('scroll'));
+        var y2=w.scrollY, r2=bar.getBoundingClientRect().top;
         ok(Math.abs(y1-s1)<=1&&Math.abs(y2-s2)<=1, tag+' 滚动确实到位 (scrollY '+y1+'/'+y2+' vs 目标 '+s1+'/'+s2+')');
         ok(Math.abs(r1-stickTop)<=2, tag+' 滚 '+s1+' 后 rect.top 命中吸附位 (实 '+r1.toFixed(1)+' ≈ 设定 '+stickTop+')');
+        /* P2-c【差值判据】吸住 = bar 顶边与顶栏底边差值 ≤2px（旧判据 b1<=tbH+4 单独看不可靠） */
+        var tbB=d.getElementById('topbar').getBoundingClientRect().bottom;
+        ok(Math.abs(r1-tbB)<=2, tag+' P2-c 吸住：bar 顶边贴顶栏底边 (bar '+r1.toFixed(1)+' vs tb '+tbB.toFixed(1)+'，差 '+Math.abs(r1-tbB).toFixed(1)+'px)');
+        /* P2-d：吸住态挂 .is-stuck 且有 --sh-1 阴影；回顶后摘掉 */
+        ok(bar.classList.contains('is-stuck'), tag+' P2-d 吸住态挂 .is-stuck');
+        ok(w.getComputedStyle(bar).boxShadow!=='none', tag+' P2-d 吸住态有阴影 ('+w.getComputedStyle(bar).boxShadow+')');
         ok(Math.abs(r2-r1)<=0.5, tag+' 再滚 600 rect.top 不变 ('+r1.toFixed(1)+'→'+r2.toFixed(1)+')');
-        w.scrollTo(0,0);
+        w.scrollTo(0,0); w.dispatchEvent(new Event('scroll'));
+        ok(!bar.classList.contains('is-stuck'), tag+' P2-d 回顶后摘掉 .is-stuck');
       } else ok(false, tag+' 可滚动高度不足，sticky 无法验证 (maxS='+maxS+')');
       /* G3：吸顶条 = 实底 + 分隔线，读得出「浮在内容之上的一条」 */
       ok(bcs.backgroundColor!=='rgba(0, 0, 0, 0)'&&bcs.backgroundColor!=='transparent',
@@ -112,6 +126,9 @@ function check(j){
     var stamps=d.querySelectorAll('#roster .stamp'), noAria=0;
     stamps.forEach(function(b){ if(!b.getAttribute('aria-label')) noAria++; });
     ok(stamps.length>0&&noAria===0, tag+' 印章初始 aria-label 齐全 ('+noAria+'/'+stamps.length+' 缺)');
+    /* P2-12：行内 var() 收敛为类 */
+    ok(!d.querySelector('.legend i[style]')&&!!d.querySelector('.legend i.ok'), tag+' P2-12 图例色块已收敛为类 (.ok/.late/.sick/.leave)');
+    ok(!d.querySelector('.chapter h3[style]'), tag+' P2-12 章节标题无行内字体样式 (.h-serif)');
   }
 
   /* 名册 .split 双列 */
@@ -126,6 +143,7 @@ function check(j){
     if(hc&&hd){
       var cr=hc.getBoundingClientRect().right, ir=hd.getBoundingClientRect().right;
       ok(ir<=cr+1, tag+' #hwDate 不溢出卡片 (inp.right='+ir.toFixed(1)+' ≤ card.right='+cr.toFixed(1)+')');
+      ok(!hd.getAttribute('style'), tag+' P2-12 #hwDate 行内样式已收敛为类 (.hw-date)');
     }
   }
 
@@ -151,6 +169,10 @@ function check(j){
       ok(r2>=4.5, tag+' '+p+' accent-ink/tint '+r2.toFixed(2));
       ok(r3>=4.5, tag+' '+p+' brand-ink/tint '+r3.toFixed(2));
       ok(r4>=4.5, tag+' '+p+' brand-ink/card '+r4.toFixed(2));
+      /* P2-b：--focus 复用 --cursor（合并裁决），且焦点环（非文字 UI 组件）≥3:1 */
+      var fc=g('--focus'), cu=g('--cursor');
+      ok(!!fc&&fc===cu, tag+' '+p+' P2-b --focus 复用 --cursor ('+(fc||'空')+')');
+      ok(ratio(fc,'#FFFFFF')>=3, tag+' '+p+' P2-b 焦点环 ≥3:1 on 白 ('+ratio(fc,'#FFFFFF').toFixed(2)+')');
     });
     w.Shell.setPort('port1');
     /* F4：四态印章文字 vs 自身叠底（底色 = --tint） */

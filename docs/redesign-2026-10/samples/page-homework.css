@@ -10,6 +10,9 @@
 .hk-pct{font-family:var(--font-serif);font-size:20px}
 .hw-form textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:var(--r-sm);
   padding:10px 12px;font:inherit;font-size:15px;background:var(--card);resize:vertical}
+/* P2-12：#hwDate 行内样式收敛为类（原样式逐条照搬） */
+.hw-form .hw-date{width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:9px 12px;background:var(--card)}
 .hw-form label{display:block;font-size:var(--fs-small);color:var(--text-dim);margin:var(--sp-3) 0 6px}
 .hw-form .chips{display:flex;gap:8px;flex-wrap:wrap}
 .hw-form .chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);
