@@ -373,7 +373,11 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    蓝头带 + 纸底白卡 + 衬线标题，教师考勤只读卡 tag-ro 观感、att 直选药丸样张化，
    timetable 保守适配（只动头带与卡片观感，格子零触碰）；业务逻辑、MTab、
    学生端 3a 成果零改动；桌面 ≥1100 不受影响。无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-VERSION = 'v86'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v87：手机端两页样例结构重排（stuHome ← m-home-student / home ← m-home-admin）——
+   新增 m2 展示层 DOM（hero 大问候/搜索胶囊/数盘/今日教务/待办/宫格/分节头）+ M2Pages
+   纯展示填数模块；业务逻辑、水印、MTab 零改动；桌面 ≥1100 逐像素一致。
+   无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+VERSION = 'v87'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

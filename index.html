@@ -2029,6 +2029,228 @@ body.board-mode .mtabbar{display:none!important}
 }
 /* ==TA-PAGES-MOBILE-END== */
 
+/* ==STU2-PAGES-MOBILE== v87 两页样例结构重排（<1100）── stuHome ← m-home-student
+   本批与 v85/v86 的区别：不只是换肤，允许新增/重排展示层 DOM（静态小步 Edit，
+   不做整文件正则）。硬规矩：
+   · 业务逻辑零改动 —— StuHome/Stu/StuSign/StuHw 函数一字不动，#stuHomeSign/
+     #stuToday/#stuHwToday/#stuNotices 容器原样保留（#stuNotices 在 <1100 由
+     .m2-notices 顶替显示，容器本身隐藏，桌面照旧）；
+   · StuMark 水印一字不动；本块不引入任何更高层级内容；
+   · 桌面 ≥1100 与 0c5f170 逐像素一致：所有新结构挂 .m2-only，全局 display:none，
+     仅在 <1100 且对应页面 .on 时按 ID 权重放开（不用 !important）；
+   · 深色模式：沿用 v85 令牌翻转（--paper 深 #18211E、--blue-ink/--gold-deep 深
+     #D9BE86），蓝头带固定品牌面白字；
+   · 搜索胶囊为装饰样式：生产无全局搜索功能，未接（元素 title 已注明）。 */
+.m2-only{display:none}
+@media (max-width:1099.98px){
+  /* ── 页面级：头带加高（学生 hero 多一条搜索胶囊）、桌面页头退场 ── */
+  #page-stuHome.on{--hero-h:196px}
+  #page-stuHome.on > .page-title,
+  #page-stuHome.on > .page-sub{display:none}
+
+  /* ── 版序（样张 m-home-student）：hero → 今日打卡 → 今天上课 → 我的作业 → 校园公告 ──
+     每个直接子元素都显式给 order（同时盖掉 v85 的 nth-child 调序，后者在此页已失效）。 */
+  #page-stuHome.on > .m2-hero{order:1; display:block}
+  #page-stuHome.on > .m2-s-sign{order:2; display:flex}
+  #page-stuHome.on > .m2-k-sign{order:3; margin-top:0}
+  #page-stuHome.on > .m2-s-cls{order:4; display:flex}
+  #page-stuHome.on > .m2-k-cls{order:5; margin-top:0}
+  #page-stuHome.on > .m2-s-hw{order:6; display:flex}
+  #page-stuHome.on > .m2-k-hw{order:7; margin-top:0}
+  #page-stuHome.on > .m2-s-notice{order:8; display:flex}
+  #page-stuHome.on > .m2-k-notice{order:9; margin-top:0}
+
+  /* ── hero：大问候 + 副题 + 搜索胶囊（样张 .greet/.sub/.search-pill）── */
+  #page-stuHome.on > .m2-hero{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 46px) 20px 0;
+    position:relative; z-index:1;
+  }
+  #page-stuHome.on .m2-greet{
+    font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:1px; color:#fff;
+  }
+  #page-stuHome.on .m2-sub{
+    font-size:12px; color:rgba(255,255,255,.72); margin-top:4px; letter-spacing:.5px;
+  }
+  #page-stuHome.on .m2-search{
+    display:flex; align-items:center; gap:8px; height:38px; margin-top:16px;
+    padding:0 14px; border-radius:19px; background:rgba(255,255,255,.14);
+    color:rgba(255,255,255,.85); font-size:13px;
+  }
+  #page-stuHome.on .m2-search svg{flex:none}
+
+  /* ── 分节头（样张 .sec）：衬线墨蓝标题 + 右侧 more ── */
+  #page-stuHome.on .m2-sec,
+  #page-home.on .m2-sec{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin:20px 2px 8px;
+  }
+  #page-stuHome.on .m2-sec h2,
+  #page-home.on .m2-sec h2{
+    font-family:var(--serif); font-size:16px; font-weight:600;
+    color:var(--blue-ink); letter-spacing:1px; margin:0;
+  }
+  #page-stuHome.on .m2-sec .more,
+  #page-home.on .m2-sec .more{
+    font-size:11px; color:var(--text-dim); text-decoration:none;
+  }
+  #page-stuHome.on .card > .m2-sec:first-child,
+  #page-home.on .card > .m2-sec:first-child{margin-top:8px}
+  /* 卡内旧 h2 标题退场：标题已挪到分节头（桌面照旧显示） */
+  #page-stuHome.on .card > h2{display:none}
+
+  /* ── 大按钮（打卡入口，样张 .bigbtn）；状态行由 M2Pages 按真实打卡态填 ──
+     旧状态块 #stuHomeSign 在 <1100 退场：状态/时间已进大按钮副行，
+     完整详情（方式/记录）在打卡页；桌面照旧渲染。 */
+  #page-stuHome.on #stuHomeSign{display:none}
+  #page-stuHome.on .m2-bigbtn{
+    display:flex; align-items:center; justify-content:space-between;
+    min-height:52px; margin-top:4px; padding:12px 16px; border-radius:14px;
+    background:linear-gradient(120deg,var(--blue-deep),var(--blue)); color:#fff;
+    text-decoration:none;
+  }
+  #page-stuHome.on .m2-bigbtn .bt{font-size:16px; font-weight:600; letter-spacing:1px}
+  #page-stuHome.on .m2-bigbtn .bs{font-size:12px; color:rgba(255,255,255,.72); margin-top:2px}
+  #page-stuHome.on .m2-bigbtn .go{
+    flex:none; display:flex; align-items:center; justify-content:center;
+    width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.16); color:#fff;
+  }
+
+  /* ── 校园公告（样张 .notice 日期块）：M2Pages 按 Store『notices』真数据重画，
+        原容器 #stuNotices 本块隐藏（桌面照旧）── */
+  #page-stuHome.on #stuNotices{display:none}
+  #page-stuHome.on .m2-notices{display:block; margin-top:2px}
+  #page-stuHome.on .m2-notice{
+    display:flex; gap:12px; padding:13px 0;
+  }
+  #page-stuHome.on .m2-notice + .m2-notice{border-top:1px solid var(--line)}
+  #page-stuHome.on .m2-notice .date{
+    flex:none; width:46px; text-align:center; padding-right:12px; border-right:2px solid var(--gold-deep);
+  }
+  #page-stuHome.on .m2-notice .date .d{
+    font-family:Georgia,var(--serif); font-size:25px; line-height:1.1;
+    color:var(--blue-ink); font-weight:600;
+  }
+  #page-stuHome.on .m2-notice .date .ym{font-size:10px; color:var(--text-dim); margin-top:2px}
+  #page-stuHome.on .m2-notice .t{font-size:14px; font-weight:600; color:var(--text)}
+  #page-stuHome.on .m2-notice .s{
+    font-size:12px; color:var(--text-dim); margin-top:3px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  }
+}
+/* ==STU2-PAGES-MOBILE-END== */
+
+/* ==HOME2-PAGES-MOBILE== v87 教务首页结构重排（<1100）── home ← m-home-admin
+   · 数盘/今日教务/待办全部由 M2Pages 从 Store 实算实填（出勤率口径同考勤导出：
+     正常/应到；待处理=open 工单，含待批请假），一个假数字不编；
+   · 样张「待办」里的假人名假事用生产真实等价物替换：待批学生请假 / 老师上报调课申请；
+   · 时间轴主轴 #tlWrap 与倒计时卡是生产核心功能，样张没有 → 保留原位（样张之外
+     的真实功能不删），版序插在「今日教务」之后；
+   · 宫格 8 项只跳现有页面 id，越权由 App.can 拦（文案与样张对齐生产叫法）；
+   · 桌面 ≥1100 逐像素一致（.m2-only 全局 display:none）；深色同 STU2 块。 */
+@media (max-width:1099.98px){
+  #page-home.on > .page-title,
+  #page-home.on > .page-sub{display:none}
+
+  /* ── 版序：hero → 数盘 → 今日教务 → 倒计时 → 时间轴 → 待办 → 工作台 → 今日要闻 ── */
+  #page-home.on > .m2-hero{order:1; display:block}
+  #page-home.on > .m2-stats{order:2; display:flex}
+  #page-home.on > .m2-k-tj{order:3; margin-top:0; display:block}
+  #page-home.on > .tl-head{order:4}
+  #page-home.on > .tl-wrap{order:5}
+  #page-home.on > .m2-k-todo{order:6; margin-top:0; display:block}
+  #page-home.on > .m2-k-grid{order:7; margin-top:0; display:block}
+  #page-home.on > .chapter{order:8}
+
+  /* ── hero：问候行（衬线白字 + 角色徽标）+ 副题（样张 .greet-row/.role-badge）── */
+  #page-home.on > .m2-hero{
+    margin:0 -16px; padding:calc(env(safe-area-inset-top,0px) + 46px) 20px 0;
+    position:relative; z-index:1;
+  }
+  #page-home.on .m2-greet-row{display:flex; align-items:center; gap:10px}
+  #page-home.on .m2-greet{
+    font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:1px; color:#fff;
+  }
+  #page-home.on .m2-role-badge{
+    flex:none; display:inline-flex; align-items:center; gap:4px; height:20px; padding:0 9px;
+    border-radius:10px; border:1px solid rgba(232,205,148,.65); color:#e8cd94;
+    font-size:10px; letter-spacing:2px; text-indent:2px;
+  }
+  #page-home.on .m2-role-badge svg{flex:none}
+  #page-home.on .m2-sub{
+    font-size:12px; color:rgba(255,255,255,.72); margin-top:4px; letter-spacing:.5px;
+  }
+
+  /* ── 全校概览数盘（样张 .stats：衬线大数字四格，深色随令牌翻金）── */
+  #page-home.on .m2-stats{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 0; margin:16px 0 0;
+  }
+  #page-home.on .m2-stat{flex:1; text-align:center}
+  #page-home.on .m2-stat + .m2-stat{border-left:1px solid var(--line)}
+  #page-home.on .m2-stat .num{
+    font-family:Georgia,var(--serif); font-size:26px; line-height:1.1; color:var(--blue);
+  }
+  #page-home.on .m2-stat .num small{
+    font-size:12px; font-family:var(--serif,serif); color:var(--text-dim); margin-left:1px;
+  }
+  #page-home.on .m2-stat .unit{font-size:12px; color:var(--text-dim); margin-top:2px}
+  #page-home.on .m2-stat.hot .num{color:var(--gold-deep)}
+
+  /* ── 今日教务 / 待办（样张 .sched/.todo 行语汇 + .pill 状态胶囊）── */
+  #page-home.on .m2-schedlist{display:block; padding:0 0 6px}
+  #page-home.on .m2-row{
+    display:flex; align-items:flex-start; gap:10px; padding:12px 0;
+  }
+  #page-home.on .m2-row + .m2-row{border-top:1px solid var(--line)}
+  #page-home.on .m2-row .dot{
+    flex:none; width:8px; height:8px; border-radius:50%;
+    background:var(--gold-deep); margin-top:7px;
+  }
+  #page-home.on .m2-row .dot.bad{background:#c44a3a}
+  #page-home.on .m2-row .info{flex:1; min-width:0}
+  #page-home.on .m2-row .name{font-size:15px; font-weight:600; color:var(--text)}
+  #page-home.on .m2-row .name.m2-reddot::before{
+    content:""; display:inline-block; width:6px; height:6px; border-radius:50%;
+    background:#c44a3a; margin-right:6px; vertical-align:2px;
+  }
+  #page-home.on .m2-row .meta{font-size:12px; color:var(--text-dim); margin-top:3px}
+  #page-home.on .m2-pill{
+    flex:none; display:inline-flex; align-items:center; height:22px; padding:0 10px;
+    border-radius:11px; font-size:11px; line-height:1; white-space:nowrap;
+  }
+  #page-home.on .m2-pill.gold{background:rgba(201,171,124,.16); color:var(--gold-deep)}
+  #page-home.on .m2-pill.red{background:rgba(196,74,58,.10); color:#c44a3a}
+  #page-home.on .m2-pill.blue{background:rgba(74,92,140,.10); color:var(--blue)}
+
+  /* ── 教务工作台宫格（样张 .grid4，8 项 · 4 列 2 行）── */
+  #page-home.on .m2-grid4{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:16px 6px; padding:4px 0 8px;
+  }
+  #page-home.on .m2-grid4 .gi{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    min-height:44px; text-decoration:none;
+  }
+  #page-home.on .m2-grid4 .tile{
+    width:44px; height:44px; border-radius:12px; background:rgba(74,92,140,.08);
+    display:flex; align-items:center; justify-content:center; color:var(--blue);
+  }
+  #page-home.on .m2-grid4 .lb{
+    font-size:11px; color:var(--text-dim); line-height:1.2; text-align:center;
+  }
+
+  /* ── 深色模式：数盘/宫格/胶囊翻深（蓝头带固定品牌面白字不动，跟 v85/v86 同一套）── */
+  @media (prefers-color-scheme: dark){
+    #page-home.on .m2-stat .num{color:#D9BE86}
+    #page-home.on .m2-stat.hot .num{color:#D9BE86}
+    #page-home.on .m2-grid4 .tile{background:rgba(217,190,134,.12); color:#D9BE86}
+    #page-home.on .m2-pill.red{background:rgba(196,74,58,.16); color:#E89286}
+    #page-home.on .m2-pill.blue{background:rgba(217,190,134,.12); color:#D9BE86}
+    #page-home.on .m2-row .dot.bad{background:#E89286}
+    #page-home.on .m2-row .name.m2-reddot::before{background:#E89286}
+  }
+}
+/* ==HOME2-PAGES-MOBILE-END== */
+
 /* 统一线性图标：替代跨平台不互通的 emoji，stroke 跟随文字色 */
 .ic{width:1em;height:1em;display:inline-block;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .ic-inline{width:1.15em;height:1.15em;margin-right:.45em;vertical-align:-.2em}
@@ -2895,6 +3117,48 @@ try {
       <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
       <div class="page-title">今日 <span class="clock" id="ckHome"></span></div>
       <div class="page-sub" id="homeSub"></div>
+
+      <!-- v87 手机端样张结构（m-home-admin）：hero 问候+角色徽标 / 全校概览数盘 /
+           今日教务 / 待办事项 / 教务工作台宫格。全部 .m2-only 桌面 display:none；
+           数字由 M2Pages 纯展示模块从 Store 实算（考勤率口径同考勤导出=正常/应到），
+           一个假数字不编；宫格只跳现有页面 id（App.go，越权由 App.can 拦）。 -->
+      <div class="m2-hero m2-only">
+        <div class="m2-greet-row">
+          <span class="m2-greet" id="m2AdmGreet"></span>
+          <span class="m2-role-badge" id="m2AdmBadge">
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 1.5l4 1.8v3c0 2.6-1.7 4-4 4.7-2.3-.7-4-2.1-4-4.7v-3L6 1.5z"/></svg>
+            <span id="m2AdmBadgeTx">教务</span>
+          </span>
+        </div>
+        <div class="m2-sub" id="m2AdmSub"></div>
+      </div>
+      <div class="m2-stats m2-only">
+        <div class="m2-stat"><div class="num" id="m2Rate">--</div><div class="unit">今日出勤率</div></div>
+        <div class="m2-stat"><div class="num" id="m2StuCnt">0</div><div class="unit">在读学员</div></div>
+        <div class="m2-stat"><div class="num" id="m2WeekHrs">0</div><div class="unit">本周课时</div></div>
+        <div class="m2-stat hot"><div class="num" id="m2OpenCnt">0</div><div class="unit">待处理</div></div>
+      </div>
+      <div class="card m2-k-tj m2-only">
+        <div class="m2-sec m2-only"><h2>今日教务</h2><span class="more" id="m2TjMore"></span></div>
+        <div class="m2-schedlist m2-only" id="m2TjBody"></div>
+      </div>
+      <div class="card m2-k-todo m2-only">
+        <div class="m2-sec m2-only"><h2>待办事项</h2><span class="more" id="m2TodoMore"></span></div>
+        <div class="m2-schedlist m2-only" id="m2TodoBody"></div>
+      </div>
+      <div class="card m2-k-grid m2-only">
+        <div class="m2-sec m2-only"><h2>教务工作台</h2><span class="more">全部 ›</span></div>
+        <div class="m2-grid4 m2-only">
+          <a class="gi" href="#" onclick="App.go('timetable');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/><path d="M8 14h3M13 14h3M8 17.5h3"/></svg></span><span class="lb">课表排课</span></a>
+          <a class="gi" href="#" onclick="App.go('att');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.5h6v3H9z"/><path d="M8.5 12.5l2 2 4-4.5"/><path d="M9 17h6"/></svg></span><span class="lb">考勤总览</span></a>
+          <a class="gi" href="#" onclick="App.go('hours');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/></svg></span><span class="lb">课时统计</span></a>
+          <a class="gi" href="#" onclick="App.go('coop');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l11 4V6L4 10z"/><path d="M15 8.5c2.5 0 4 1.5 4 3.5s-1.5 3.5-4 3.5"/><path d="M6.5 14.5l1 4.5h2.5l-.8-4"/></svg></span><span class="lb">通知发布</span></a>
+          <a class="gi" href="#" onclick="App.go('roster');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c0-3 2.4-5 5.5-5s5.5 2 5.5 5"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M16 14.5c2.6 0 4.5 1.7 4.5 4"/></svg></span><span class="lb">名册管理</span></a>
+          <a class="gi" href="#" onclick="App.go('students');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-5h6v5"/><path d="M9 10h.01M15 10h.01M12 10h.01"/></svg></span><span class="lb">学生账号</span></a>
+          <a class="gi" href="#" onclick="App.go('exam');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.5"/><path d="M9.5 13.5L8 21l4-2.2L16 21l-1.5-7.5"/><path d="M10 9l1.5 1.5L14.5 7"/></svg></span><span class="lb">模考成绩</span></a>
+          <a class="gi" href="#" onclick="App.go('settings');return false"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.6M12 17.9v2.6M3.5 12h2.6M17.9 12h2.6M6 6l1.8 1.8M16.2 16.2L18 18M18 6l-1.8 1.8M7.8 16.2L6 18"/></svg></span><span class="lb">系统设置</span></a>
+        </div>
+      </div>
 
       <!-- 轴首（复用 .card.wide + .hero）：大数字 + 目标日 + 距下一节 -->
       <div class="card wide tl-head">
@@ -4057,21 +4321,42 @@ try {
     <section class="page" id="page-stuHome">
       <!-- v85 手机端 hero 浮雕（样张 m-home-student .bg-logo）；桌面 .bg-logo 默认隐藏 -->
       <img class="bg-logo" src="assets/mark-liyun-gold.png" alt="" aria-hidden="true">
+      <!-- v87 手机端样张结构（m-home-student）：hero 大问候 + 搜索胶囊 + 分节头。
+           全部 .m2-only 元素桌面 ≥1100 display:none，页面结构与 0c5f170 一致；
+           文案由 M2Pages 纯展示模块用真实数据填（Greet / Stu.gate / Store）。
+           搜索胶囊是装饰样式：生产无全局搜索功能，未接（title 已注明）。 -->
+      <div class="m2-hero m2-only">
+        <div class="m2-greet" id="m2StuGreet"></div>
+        <div class="m2-sub" id="m2StuSub"></div>
+        <div class="m2-search" title="装饰样式 · 未接搜索功能" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          搜索服务/待办/资讯
+        </div>
+      </div>
       <div class="page-title">今天 <span class="clock" id="ckStu"></span></div>
       <div class="page-sub" id="stuSub"></div>
-      <div class="card wide">
+      <div class="card wide m2-k-sign">
+        <div class="m2-sec m2-only"><h2>今日打卡</h2><span class="more" id="m2StuSignMore"></span></div>
+        <a class="m2-bigbtn m2-only" href="#" onclick="App.go('stuSign');return false">
+          <div><div class="bt" id="m2StuSignBt">进入打卡 →</div><div class="bs" id="m2StuSignBs"></div></div>
+          <span class="go"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.2-6.5-10a6.5 6.5 0 0113 0c0 4.8-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.2"/></svg></span>
+        </a>
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-target"></use></svg> 打卡</h2>
         <div id="stuHomeSign"></div>
       </div>
-      <div class="card wide">
+      <div class="card wide m2-k-notice">
+        <div class="m2-sec m2-only"><h2>校园公告</h2><span class="more">更多 ›</span></div>
+        <div class="m2-notices m2-only" id="m2StuNotices"></div>
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 教务通知</h2>
         <div id="stuNotices"></div>
       </div>
-      <div class="card">
+      <div class="card m2-k-cls">
+        <div class="m2-sec m2-only"><h2>今天上课</h2><span class="more" id="m2StuClsMore"></span></div>
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calendar"></use></svg>  今天上什么课</h2>
         <div id="stuToday"></div>
       </div>
-      <div class="card">
+      <div class="card m2-k-hw">
+        <div class="m2-sec m2-only"><h2>我的作业</h2><a class="more" href="#" onclick="App.go('stuHw');return false">全部 ›</a></div>
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg> 今日作业</h2>
         <div id="stuHwToday"></div>
       </div>
@@ -17655,6 +17940,205 @@ const MTab = {
 };
 MTab.init();
 /* ==== 手机底部 5-Tab END ==== */
+
+/* ==== 手机首页样张结构数据填充（v87 · 两页样例结构重排）START ====
+   纯展示模块：只做「读现有数据 → 填 m2-* 新 DOM」，不改任何现有函数、不碰业务逻辑。
+   数据来源全部是现有出口：问候=Greet.text()（真实登录人+时段）、打卡态=Stu.gate()/
+   Stu.statusText()、课=Stu.todayLessons()、公告=Store.list('notices')（与
+   StuHome.render 同源）、数盘=Att.SLOTS/Att.byStu + Util.realStudents + schedule
+   （出勤率口径同考勤导出：正常/应到）、待办=Store.list('tickets') open 工单。
+   触发时机跟 MTab 同款：监听 #main 里 .page class 变化（App.go 切页落到 stuHome/home
+   时填一次）+ body[data-role] 变化（登录/换角色重画）。桌面 ≥1100 m2-* 是
+   display:none，填了也不可见，不影响布局与像素。 */
+const M2Pages = {
+  init(){
+    if (this._init) return;
+    this._init = true;
+    if (window.MutationObserver){
+      const main = document.getElementById('main');
+      if (main) new MutationObserver(() => this.sync())
+        .observe(main, { subtree:true, attributes:true, attributeFilter:['class'] });
+      new MutationObserver(() => this.sync())
+        .observe(document.body, { attributes:true, attributeFilter:['data-role'] });
+    }
+    this.sync();
+  },
+
+  sync(){
+    const cur = document.querySelector('.page.on');
+    if (!cur) return;
+    if (cur.id === 'page-stuHome') this.stu();
+    else if (cur.id === 'page-home') this.admin();
+  },
+
+  _set(id, v){
+    const e = document.getElementById(id);
+    if (e && e.textContent !== v) e.textContent = v;
+  },
+
+  /* 「晚上好，XX」← 复用 Greet.text()（真实登录人与时段问候），只对调语序对齐样张 */
+  greet(){
+    let t = '';
+    try { t = (typeof Greet !== 'undefined' && Greet.text()) || ''; } catch(e){}
+    const p = t.split('，');
+    return p.length === 2 ? (p[1].trim() + '，' + p[0].trim()) : t;
+  },
+
+  /* 「10 月 20 日 星期二」（真实系统日期） */
+  dateCn(){
+    const d = new Date();
+    const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+    return (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 ' + wd;
+  },
+
+  /* ── 学生「今日」页（样张 m-home-student）── */
+  stu(){
+    try {
+      this._set('m2StuGreet', this.greet());
+      const r = Stu.rec();
+      const cls = r ? Util.clsName(r.classId) : '';
+      this._set('m2StuSub', [cls, this.dateCn()].filter(Boolean).join(' · '));
+
+      /* 打卡入口大按钮：真实打卡态（请假 / 已打卡含迟到分钟 / 未打卡），纯读取 */
+      const g = Stu.gate();
+      const s = g.rec;
+      let bt = '进入打卡 →', bs = '';
+      if (!g.ok){ bt = '今日不用打卡'; bs = g.text || '已请假'; }
+      else if (g.signed && s){
+        bt = '已打卡 · 看记录 →';
+        bs = Stu.statusText(s) +
+          (s.at ? ' · ' + new Date(s.at).toLocaleTimeString('zh-CN', { hour12:false }) : '');
+      } else bs = '还没打卡，点这里去打卡';
+      this._set('m2StuSignBt', bt);
+      this._set('m2StuSignBs', bs);
+      this._set('m2StuSignMore', '打卡 / 请假');
+
+      /* 今天上课：节数 = Stu.todayLessons() 真数据 */
+      const n = Stu.todayLessons().length;
+      this._set('m2StuClsMore', n ? n + ' 节' : '今天没有排课');
+
+      /* 校园公告：与 StuHome.render 同一数据源（Store.list('notices')），
+         重画成样张日期块；首行当标题，其余当摘要，原文一字不减 */
+      const nb = document.getElementById('m2StuNotices');
+      if (nb){
+        const list = Store.list('notices', (a,b) => (a.at||0) < (b.at||0) ? 1 : -1).slice(0, 5);
+        nb.innerHTML = list.length ? list.map(x => {
+          const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(x.date || ''));
+          const dd = m ? m[3] : '·';
+          const ym = m ? (m[1] + '.' + String(m[2]).padStart(2, '0')) : Util.esc(String(x.date || ''));
+          const lines = String(x.text || '').split('\n');
+          const t1 = lines[0] || '';
+          const rest = lines.slice(1).join(' ').trim();
+          return '<div class="m2-notice"><div class="date"><div class="d">' + dd +
+            '</div><div class="ym">' + ym + '</div></div><div><div class="t">' + Util.esc(t1) +
+            '</div>' + (rest ? '<div class="s">' + Util.esc(rest) + '</div>' : '') + '</div></div>';
+        }).join('') : '<div class="m2-notice"><div><div class="t">还没有通知</div></div></div>';
+      }
+    } catch(e){}
+  },
+
+  /* ── 教务「首页」页（样张 m-home-admin）── */
+  admin(){
+    try {
+      this._set('m2AdmGreet', this.greet());
+      const roleMap = { super:'总教务', office:'总教务', admin:'教务', both:'教务兼授课' };
+      let rk = '';
+      try { rk = (typeof Auth !== 'undefined' && Auth.role()) || ''; } catch(e){}
+      this._set('m2AdmBadgeTx', roleMap[rk] || '教务');
+
+      const stus = (typeof Util.realStudents === 'function') ? Util.realStudents() : Store.list('students');
+      const classes = Store.list('classes');
+      this._set('m2AdmSub', this.dateCn() + ' · ' + classes.length + ' 个班 · ' + stus.length + ' 位在读学员');
+
+      const t = Util.today();
+      const todayName = Schedule.DAYS[(new Date().getDay() + 6) % 7];
+      const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
+      const recs = Store.list('att:' + t);
+
+      /* ① 数盘：出勤率（口径同考勤导出 = 正常次数 / 应到次数）；在读学员；本周课时；
+            待处理 = open 工单（含待批请假，不含学生消息）——全是真数 */
+      let ok = 0, total = 0;
+      if (slots.length && stus.length){
+        slots.forEach(sl => {
+          const map = Att.byStu(t, sl.id);
+          stus.forEach(s => { total++; if (map[s.id] === '正常') ok++; });
+        });
+      }
+      this._set('m2Rate', total ? Math.round(ok / total * 100) + '%' : '--');
+      this._set('m2StuCnt', String(stus.length));
+      const monday = new Date(); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const weekDays = new Set();
+      for (let i = 0; i < 7; i++){
+        const d = new Date(monday); d.setDate(monday.getDate() + i);
+        weekDays.add(Schedule.DAYS[(d.getDay() + 6) % 7]);
+      }
+      this._set('m2WeekHrs', String(Store.list('schedule').filter(x => weekDays.has(x.day)).length));
+      const openCnt = Store.list('tickets').filter(x => x && x.status === 'open' && x.type !== '学生消息').length;
+      this._set('m2OpenCnt', String(openCnt));
+
+      /* ② 今日教务：全校课程（节次/班级/进行中按作息实算）+ 异常考勤提醒 */
+      const sch = Store.list('schedule');
+      const today = sch.filter(x => x.day === todayName);
+      const clsSet = new Set(today.map(x => x.cls).filter(Boolean));
+      let pill = '未开课';
+      try {
+        const ps = Schedule.periods();
+        const now = new Date().getHours() * 60 + new Date().getMinutes();
+        const cur = ps.find(p => Schedule._tmin(p.start) <= now && now < Schedule._tmin(p.end));
+        if (cur){
+          const n = today.filter(x => x.periodId === cur.id).length;
+          pill = '进行 ' + n + ' 节';
+        } else if (ps.length && now >= Schedule._tmin(ps[ps.length - 1].end)) pill = '已放学';
+      } catch(e){}
+      const badPeople = new Set(recs.filter(x => x.status && x.status !== '正常').map(x => x.studentId)).size;
+      const tj = [];
+      tj.push('<div class="m2-row"><span class="dot"></span><div class="info">' +
+        '<div class="name">今日全校课程</div><div class="meta">' + today.length + ' 节 · ' +
+        clsSet.size + ' 个班在授</div></div><span class="m2-pill blue">' + pill + '</span></div>');
+      tj.push(badPeople
+        ? '<div class="m2-row"><span class="dot bad"></span><div class="info">' +
+          '<div class="name m2-reddot">异常考勤提醒</div><div class="meta">迟到 / 病假 / 事假 / 未到，去考勤页逐人核</div></div>' +
+          '<span class="m2-pill red">' + badPeople + ' 人</span></div>'
+        : '<div class="m2-row"><span class="dot"></span><div class="info">' +
+          '<div class="name">考勤动态</div><div class="meta">今日暂无异常考勤</div></div>' +
+          '<span class="m2-pill gold">正常</span></div>');
+      const tjb = document.getElementById('m2TjBody');
+      if (tjb) tjb.innerHTML = tj.join('');
+      this._set('m2TjMore', today.length ? '考勤页可核' : '今日无排课');
+
+      /* ③ 待办：样张假人假事的等价真数据 —— 待批学生请假 / 老师上报（open 工单） */
+      const open = Store.list('tickets').filter(x => x && x.status === 'open');
+      const leaves = open.filter(x => x.type === '学生请假');
+      const reports = open.filter(x => x.type !== '学生请假' && x.type !== '学生消息');
+      const td = [];
+      if (leaves.length){
+        const who = leaves.slice(0, 2).map(x =>
+          (Util.stuName(x.studentId) || '') + (x.kind ? '（' + x.kind + '）' : '')).filter(Boolean).join(' / ');
+        td.push('<div class="m2-row"><span class="dot bad"></span><div class="info">' +
+          '<div class="name">学生请假 · ' + leaves.length + ' 条待批</div>' +
+          '<div class="meta">' + Util.esc(who || '学生提交，待教务批准') + '</div></div>' +
+          '<span class="m2-pill red">待批</span></div>');
+      }
+      if (reports.length){
+        const types = [...new Set(reports.map(x => x.type || '上报'))].slice(0, 3).join(' / ');
+        td.push('<div class="m2-row"><span class="dot"></span><div class="info">' +
+          '<div class="name">老师上报 · ' + reports.length + ' 条待处理</div>' +
+          '<div class="meta">' + Util.esc(types) + '</div></div>' +
+          '<span class="m2-pill gold">待处理</span></div>');
+      }
+      if (!td.length){
+        td.push('<div class="m2-row"><span class="dot"></span><div class="info">' +
+          '<div class="name">暂无待办</div><div class="meta">上报与请假都处理完了</div></div>' +
+          '<span class="m2-pill gold">清空</span></div>');
+      }
+      const tdb = document.getElementById('m2TodoBody');
+      if (tdb) tdb.innerHTML = td.join('');
+      this._set('m2TodoMore', openCnt ? '共 ' + openCnt + ' 条' : '无待办');
+    } catch(e){}
+  }
+};
+M2Pages.init();
+/* ==== 手机首页样张结构数据填充 END ==== */
 
 App.init();
 /* 开屏层兜底：万一初始化卡住，最多 6 秒后强制淡出，绝不让人卡在开屏。
