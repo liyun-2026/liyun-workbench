@@ -481,9 +481,10 @@ try {
   console.log('\n── 样张 vs 成品对照长图 ──');
   await view(cdp, { width: 390, height: 844, dsf: 1, mobile: true });
   await scheme(cdp, 'light');
-  /* 样张：学生今日 */
+  /* 样张：学生今日（隐藏样张自身 fixed 底栏，避免整页捕获时烙进长图伪影） */
   await cdp.send('Page.navigate', { url: 'file://' + path.join(SAMPLE_DIR, 'm-home-student.html') });
   await sleep(1200);
+  await cdp.eval(`(() => { const st = document.createElement('style'); st.textContent = '.tabbar,.mtabbar,.lg-tabbar{display:none!important}'; document.head.appendChild(st); return 1; })()`);
   const stuBlocks = await cdp.eval(`(() => {
     const out = [];
     const g = document.querySelector('.hero .greet'); if (g) out.push({ t: 'hero 问候', y: Math.max(0, g.getBoundingClientRect().top + scrollY - 40) });
@@ -492,9 +493,10 @@ try {
   })()`);
   let r = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
   const sampleStu = Buffer.from(r.data, 'base64');
-  /* 样张：教务首页 */
+  /* 样张：教务首页（同样隐藏 fixed 底栏） */
   await cdp.send('Page.navigate', { url: 'file://' + path.join(SAMPLE_DIR, 'm-home-admin.html') });
   await sleep(1200);
+  await cdp.eval(`(() => { const st = document.createElement('style'); st.textContent = '.tabbar,.mtabbar,.lg-tabbar{display:none!important}'; document.head.appendChild(st); return 1; })()`);
   const admBlocks = await cdp.eval(`(() => {
     const out = [];
     const g = document.querySelector('.hero .greet'); if (g) out.push({ t: 'hero 问候', y: Math.max(0, g.getBoundingClientRect().top + scrollY - 40) });
