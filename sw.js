@@ -383,7 +383,12 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    行内样式收敛为类、P2-d 吸住态 .is-stuck 阴影（展示 JS）、页题衬线化与
    anchor-layout 200px（全部收在 @media (min-width:1100px)，手机 <1100 零改动）。
    无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-VERSION = 'v88'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v89：学府门户桌面内容区深排（==XF2==）—— home 大横幅轮播（scroll-snap 可横滑，
+   四帧：演播室暗调 / 媒体艺术 / 拍立得三图 / 校园晨光）+ 快捷入口行 + 数据速览
+   （grid4 真实数据：在册 / 今日到课 / 今日未交 / 本周课时）+ 学期信息条 +
+   今日时间轴 evt 行化 + 要闻通知条目化（日期块）。新增静态文件
+   assets/banner-media-art.jpg（162KB，预览图压缩）→ SHELL 加一行 → VERSION 加一。 */
+VERSION = 'v89'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
@@ -572,6 +577,8 @@ const SHELL = [
   './assets/press-boyi_5A244503.jpg',
   './assets/press-boyi_E0B6CAF7.jpg',
   './assets/press-boyi_38DA048D.jpg',
+  /* v89 学府门户 home 大横幅第 2 帧底图（预览 PNG 162KB 压缩版） */
+  './assets/banner-media-art.jpg',
   './assets/brand-lock@sm.png',
   /* 看板顶带的品牌标：左＝博艺圆章裸摆、右＝砺蕴印 + 暖米黄圆底，**两枚等径**
      （v43 定色 / v44 改等大）。别再用 brand-lock-alpha.png —— 那是「给深色底做的
