@@ -395,7 +395,9 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ==XF4== 全站桌面卡头统一：.card 直角细边 + .card>h2 衬线 ◆/金图标 + 蓝规线 +
    .sec-h 细规线（名册/作业/考勤导出卡）+ 考勤小结数字衬线蓝。
    全部收在 @media (min-width:1100px)，<1100 一字不动；无新增静态文件 → VERSION 加一。 */
-VERSION = 'v90'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v91：修复校名头/页脚蓝章不显示 —— base64 src 把「data:image/png;base64,」前缀
+   写了两遍导致整张图加载失败（xf_check 骨架断言抓出）。无静态文件变化 → VERSION 加一。 */
+VERSION = 'v91'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

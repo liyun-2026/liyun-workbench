@@ -6,7 +6,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;background:#1c1e26;color:#e8e6e0}
-header{position:sticky;top:0;background:#23262f;padding:10px 18px;display:flex;align-items:center;gap:14px;z-index:9;border-bottom:1px solid #333}
+header{position:sticky;top:0;background:#23262f;padding:10px 18px;display:flex;align-items:center;gap:14px;z-index:9;border-bottom:1px solid #333;flex-wrap:wrap}
 header b{font-size:16px}
 #pos{color:#c9ab7c;font-weight:700;font-size:15px}
 button{background:#384a74;color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:14px;cursor:pointer}
@@ -25,7 +25,7 @@ footer{text-align:center;color:#666;font-size:12px;padding:18px 0 26px}
 </head>
 <body>
 <header>
-  <b>学府风生产版 · 逐页验收</b>
+  <b>学府风生产版 · 逐页验收（VoxOS 5.10）</b>
   <span id="pos"></span>
   <button onclick="go(-1)">← 上一页</button>
   <button onclick="go(1)">下一页 →</button>
@@ -36,19 +36,9 @@ footer{text-align:center;color:#666;font-size:12px;padding:18px 0 26px}
   <div id="cap"></div>
   <div id="index"></div>
 </main>
-<footer>共 34 页 · 数据均为生产真实数据渲染 · 通过的页不用回复，只说要改的</footer>
+<footer>共 35 页 · 数据均为生产真实数据渲染 · 通过的页不用回复，只说要改的</footer>
 <script>
-const pages=[
-["page-home","教务首页"],["page-today","今日"],["page-sign","签到"],["page-att","考勤管理"],
-["page-record","考勤记录"],["page-roster","花名册"],["page-students","学员档案"],["page-teachers","教师管理"],
-["page-timetable","课程表"],["page-timetable-grid","课程表·格子"],["page-homework","作业管理"],["page-exam","考试"],
-["page-gather","集合点名"],["page-quant","量化报表"],["page-health","健康上报"],["page-night","晚查"],
-["page-news","通知公告"],["page-coop","合作院校"],["page-tickets","工单"],["page-rules","制度规则"],
-["page-myclass","我的班级"],["page-profile","个人资料"],["page-settings","设置"],["page-board","看板"],
-["page-stuHome","学生首页"],["page-stuSign","学生打卡"],["page-stuTable","学生课表"],["page-stuHw","学生作业"],
-["page-stuMsg","学生消息"],["page-stuNews","学生通知"],["page-stuQuant","学生量化"],["page-stuProfile","学生资料"],
-["page-stuExam","学生考试"],["page-stuGather","学生集合"]
-];
+const pages=[["page-home","教务首页"],["page-today","今天"],["page-att","考勤管理"],["page-sign","打卡管理"],["page-homework","作业"],["page-roster","名册"],["page-students","学生账号"],["page-profile","学员档案"],["page-timetable","课表"],["page-timetable-grid","课表·大课表格子"],["page-hours","课时统计"],["page-night","晚自习"],["page-quant","量化"],["page-exam","模考"],["page-coop","协作"],["page-gather","限时征集"],["page-teachers","老师管理"],["page-record","录入今日"],["page-health","巡检"],["page-settings","设置"],["page-settings-stu","设置（学生）"],["page-board","看板"],["page-stuHome","学生首页"],["page-stuSign","学生打卡"],["page-stuNews","学生通知"],["page-stuTable","我的课表"],["page-stuExam","学生模考"],["page-stuQuant","我的量化"],["page-stuProfile","我的档案"],["page-stuHw","我的作业"],["page-stuMsg","学生消息"],["page-stuGather","学生集合"],["page-news","每日新闻"],["page-myclass","我带的班"],["page-tickets","上报与申请"]];
 let i=0;
 const pic=document.getElementById('pic'),cap=document.getElementById('cap'),
 pos=document.getElementById('pos'),idx=document.getElementById('index');
@@ -58,8 +48,8 @@ function show(n){
   pic.src=pages[i][0]+'.png';
   cap.textContent='图 '+pages[i][0]+'.png（如果这页空了或不对，截图发我）';
   pos.textContent=(i+1)+' / '+pages.length+' · '+pages[i][1];
-  [...idx.children].forEach((d,k)=>d.classList.toggle('cur',k===i));
-  window.scrollTo({top:0});
+  [...idx.children].forEach((d,j)=>d.classList.toggle('cur',j===i));
+  window.scrollTo(0,0);
 }
 function go(d){show(i+d)}
 document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1)});
