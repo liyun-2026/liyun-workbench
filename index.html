@@ -3036,7 +3036,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
 /* ── ⑩ 设置页（常用 / 高级 + 锚点）─────────────────────────────────────── */
 .anchor-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
-@media (min-width:1100px){ .anchor-layout{grid-template-columns:180px minmax(0,1fr);gap:var(--sp-8)} }
+@media (min-width:1100px){ .anchor-layout{grid-template-columns:200px minmax(0,1fr);gap:var(--sp-8)} }
 .anchor-nav{position:sticky;top:16px;display:flex;flex-direction:column;gap:2px}
 @media (max-width:1099px){ .anchor-nav{position:static;flex-direction:row;flex-wrap:wrap;gap:6px} }
 .anchor-nav a{font-size:14px;color:var(--text-dim);text-decoration:none;padding:6px 10px;border-radius:var(--r-sm);
@@ -3133,7 +3133,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 }
 
 /* ── ⑰c 设置页的锚点条：手机上整条不渲染（用户 2026-10-05 点名）──────────
-   锚点是给桌面「左栏 180px + 右内容」骨架用的（≥1100 才有左栏）。
+   锚点是给桌面「左栏 200px + 右内容」骨架用的（≥1100 才有左栏）。
    手机上是单列流，9 个锚点折成 3 行、占掉首屏近 1/4，却帮不上忙 ——
    手机找板块就是往下滑，这是电脑端骨架的残留。
    ≤699 直接 display:none；桌面 ≥1100 的左栏锚点一行没动。
@@ -3141,6 +3141,23 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    实测：settings@390 3753 → 3612（−141px），overX 仍 0，home/att 不变。 */
 @media (max-width:699px){
   #page-settings .anchor-nav{display:none}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ==DESKTOP-V2== 桌面端全量改版（Phase E · 2026-10-22，只动 ≥1100）
+   ───────────────────────────────────────────────────────────────────────────
+   来源：docs/redesign-2026-10/samples/shell.css（P2 清零版）+ 03 文档 §7 主理人核定修正。
+   铁律：本块所有规则收在 @media (min-width:1100px) —— 手机端 <1100 一个字不动；
+        业务 JS 零改动（展示 JS 收文件尾 ==DESKTOP-V2== JS 块）；深色走令牌。
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width:1100px){
+  /* §7：页题衬线基准 26px（令牌表默认值），宽桌面提到 30px（样张 shell.css 同源） */
+  :root{--fs-h1:30px}
+  /* 页题衬线化（样张 shell.css .page-title）。手机 v1 的 .page-title 覆盖
+     （font-family:inherit + font-weight:800）不受影响 —— 本条只在 ≥1100 生效。 */
+  .page-title{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h1);
+    letter-spacing:0;display:flex;align-items:baseline;gap:12px}
+  .page-title .clock{font-family:var(--mono);font-size:14px;color:var(--text-dim)}
 }
 
 /* ── 课时统计（阶段一：识别 + 人工确认预览）──────────────────────────────
