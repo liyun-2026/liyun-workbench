@@ -377,7 +377,13 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    新增 m2 展示层 DOM（hero 大问候/搜索胶囊/数盘/今日教务/待办/宫格/分节头）+ M2Pages
    纯展示填数模块；业务逻辑、水印、MTab 零改动；桌面 ≥1100 逐像素一致。
    无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-VERSION = 'v87'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v88：桌面端全量改版 Phase E（==DESKTOP-V2==）——
+   令牌对齐样张（--focus 合并 var(--cursor)、--line-strong、--fs-h1、深色
+   --cursor/--line-strong 覆盖）、.btn.ghost 换强分隔描边、att 图例与 #hwDate
+   行内样式收敛为类、P2-d 吸住态 .is-stuck 阴影（展示 JS）、页题衬线化与
+   anchor-layout 200px（全部收在 @media (min-width:1100px)，手机 <1100 零改动）。
+   无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+VERSION = 'v88'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

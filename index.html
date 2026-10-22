@@ -352,7 +352,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   border:none;border-radius:calc(var(--radius) - 6px);
   background:var(--accent);color:var(--btn-text);
 }
-.btn.ghost{background:transparent;color:var(--text);border:1px solid rgba(128,128,128,.3)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line-strong)}
 .btn.danger{background:#d9534f;color:#fff}
 .btn:active{opacity:.75}
 .row{display:flex;gap:8px;align-items:center}
@@ -2784,7 +2784,9 @@ body.board-mode .page.on > *{animation:none}
   --brand-deco:#C9AB7C;       /* 装饰金：只做点缀（= 旧 --gold 原值，降级用途） */
   --accent-ink:#26241F;       /* accent 作文字时用（F4；③ 端口覆盖为深金） */
   --cursor:#9C4E1F;           /* 游标暖赭（今日页「现在几点」）；F4：作文字 4.23→5.47 */
-  --focus:#B0602A;            /* 焦点环：非文字 UI 门槛 3:1，实测 4.23–4.61 */
+  --focus:var(--cursor);      /* P2-b 合并：焦点环与游标同源（非文字 UI 门槛 3:1，实测 4.23–4.61） */
+  --line-strong:#8A857C;      /* P2-13：强分隔/ghost 描边，白卡上 ≥3:1 */
+  --fs-h1:26px;               /* 桌面页题（衬线）基准字号；@1100 提到 30px */
   --hover:color-mix(in srgb,var(--text) 6%,transparent);
   --stamp-ok:#2A6E50; --stamp-late:#7C5B0D; --stamp-sick:#1B4B5A; --stamp-leave:#B23A2E;
   /* 未到（没来也没请假，比已批准的事假重）：墨色，浅色主题下最沉的一格 */
@@ -2952,6 +2954,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .legend{display:flex;flex-direction:column;gap:8px;margin-top:var(--sp-3);font-size:13px;color:var(--text-dim)}
 .legend span{display:flex;align-items:center;gap:8px}
 .legend i{width:12px;height:12px;flex:0 0 auto;border-radius:2px}
+/* ==DESKTOP-V2== P2-12：图例色块收敛为类（去掉 5 处行内 style，_qa 断言 .legend i[style] 应为 0） */
+.legend i.ok{background:var(--stamp-ok)} .legend i.late{background:var(--stamp-late)}
+.legend i.sick{background:var(--stamp-sick)} .legend i.leave{background:var(--stamp-leave)}
+.legend i.absent{background:var(--stamp-absent)}
 .sumbox .pending{font-size:14px;display:grid;gap:12px}
 .sumbox #attLeaveList .item{align-items:flex-start}
 @media (max-width:1099px){
@@ -2961,6 +2967,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .sumbox:first-child{order:-1;position:sticky;top:8px;z-index:4;
     display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--sp-6);row-gap:8px;
     background:var(--card);border:0;border-bottom:1px solid var(--line);border-radius:0;padding:8px 0;margin:0}
+  /* ==DESKTOP-V2== P2-d：吸住态由 JS 挂 .is-stuck（见文件尾 DESKTOP-V2 展示 JS），补阴影
+     避免「行被拦腰切断像渲染断了」；≥1100 右栏卡片态 JS 自动摘类。
+     ⚠️ 带 #page-att.on 前缀：v85 手机块 `#page-att.on .sumbox{box-shadow:none}`
+     是 ID 特异性，不带前缀会被它压成 none。 */
+  #page-att.on .sumbox:first-child.is-stuck{box-shadow:var(--sh-1)}
   .sumbox:first-child h3{margin:0;flex:0 0 auto}
   .sumbox:first-child .sumrow{padding:0;justify-content:flex-start;gap:8px;flex:0 0 auto}
   .sumbox:first-child .sumrow b{font-size:18px}
@@ -3019,6 +3030,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .hw-form textarea{width:100%;min-height:96px}
 .hw-form label{display:block;font-size:var(--fs-small);color:var(--text-dim);margin:var(--sp-3) 0 6px}
 .hw-form .chips{display:flex;gap:8px;flex-wrap:wrap}
+/* ==DESKTOP-V2== P2-12：#hwDate 行内样式收敛为类（_qa 断言 #hwDate 无 style 属性） */
+.hw-form .hw-date{width:100%;min-width:0}
 @media (min-width:1100px){ .page#page-homework.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑩ 设置页（常用 / 高级 + 锚点）─────────────────────────────────────── */
@@ -3063,7 +3076,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
     --brand-deco:#C9AB7C;
     --accent-ink:#D9BE86;       /* accent 作文字（深色下 accent=#c9ab7c），最低 7.74:1 */
     --cursor:#D98A5A;           /* 游标作文字，最低 5.13:1 */
-    --focus:#F2C99A;            /* 焦点环（非文字，3:1），最低 9.02:1 */
+    --focus:var(--cursor);      /* P2-b 同源合并（原 #F2C99A）；#D98A5A 深底 5.13:1，非文字 3:1 过 */
+    --line-strong:#8F897F;      /* ==DESKTOP-V2== P2-13：深色 ghost 描边（#8A857C 深底对比不足） */
     --stamp-ok:#7CC7A2; --stamp-late:#D9AF52; --stamp-sick:#7FBED2; --stamp-leave:#E89286;
     --stamp-absent:#D6D1C6;   /* 深色下「未到」取浅中性，明度与上面四色对齐 */
     --stamp-ink:#1E1C18;      /* 深色下填充都是浅色 → 字用深墨 */
@@ -3569,11 +3583,11 @@ try {
             <div class="sumrow"><span>未登记</span><b class="num" data-sum="none">0</b></div>
             <div class="ratio" aria-hidden="true"><i class="ok"></i><i class="late"></i><i class="sick"></i><i class="leave"></i><i class="absent"></i></div>
             <div class="legend">
-              <span><i style="background:var(--stamp-ok)"></i><span data-leg="ok">正常 0</span></span>
-              <span><i style="background:var(--stamp-late)"></i><span data-leg="late">迟到 0</span></span>
-              <span><i style="background:var(--stamp-sick)"></i><span data-leg="sick">病假 0</span></span>
-              <span><i style="background:var(--stamp-leave)"></i><span data-leg="leave">事假 0</span></span>
-              <span><i style="background:var(--stamp-absent)"></i><span data-leg="absent">未到 0</span></span>
+              <span><i class="ok"></i><span data-leg="ok">正常 0</span></span>
+              <span><i class="late"></i><span data-leg="late">迟到 0</span></span>
+              <span><i class="sick"></i><span data-leg="sick">病假 0</span></span>
+              <span><i class="leave"></i><span data-leg="leave">事假 0</span></span>
+              <span><i class="absent"></i><span data-leg="absent">未到 0</span></span>
             </div>
             <p class="hint" id="attSum"></p>
             <p class="sr-only" id="attLive" aria-live="polite"></p>
@@ -3783,7 +3797,7 @@ try {
           <label>发给哪些班（可多选，点「全部」一次选上所有班）</label>
           <div style="display:flex;flex-wrap:wrap;gap:6px" id="hwClsPick"></div>
           <label for="hwDate">截止日期</label>
-          <input type="date" id="hwDate" style="width:100%;min-width:0">
+          <input type="date" id="hwDate" class="hw-date">
           <label for="hwText">作业内容</label>
           <textarea id="hwText" placeholder="作业内容，如：即兴评述《AI 会取代主持人吗》，明早功检查"></textarea>
           <p style="margin-top:16px"><button class="btn" onclick="Homework.add()">布置</button></p>
@@ -18649,6 +18663,27 @@ const V1 = {
 };
 V1.init();
 /* ==MOBILE-V1== 纯展示 JS END == */
+
+/* ==DESKTOP-V2== 桌面改版 · 纯展示 JS（业务零改动）──
+   P2-d：att 汇总条 <1100 吸住态挂 .is-stuck（配 CSS 阴影），≥1100 摘类。
+   ⚠️ 生产壳与样张不同：滚动发生在 .main（overflow-y:auto），window 不滚 ——
+   监听与判定都以 .main 为准；顶栏在生产常驻 .main 之外，吸住阈值取 sticky
+   偏移 8px + 2px 容差（与样张 QA「顶边 ≤ 顶栏底边 +2px」同源）。 */
+(function(){
+  var sumbar = document.querySelector('.attgrid .sumbox');
+  if (!sumbar) return;
+  var main = sumbar.closest('.main') || document.querySelector('.main');
+  if (!main) return;
+  function stuckTick(){
+    if (window.matchMedia('(min-width:1100px)').matches){ sumbar.classList.remove('is-stuck'); return; }
+    var mr = main.getBoundingClientRect(), br = sumbar.getBoundingClientRect();
+    var stuck = main.scrollTop > 0 && (br.top - mr.top) <= 10;
+    sumbar.classList.toggle('is-stuck', stuck);
+  }
+  main.addEventListener('scroll', stuckTick, { passive:true });
+  window.addEventListener('resize', stuckTick);
+  stuckTick();
+})();
 
 
 App.init();
