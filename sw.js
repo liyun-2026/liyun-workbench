@@ -388,7 +388,14 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    （grid4 真实数据：在册 / 今日到课 / 今日未交 / 本周课时）+ 学期信息条 +
    今日时间轴 evt 行化 + 要闻通知条目化（日期块）。新增静态文件
    assets/banner-media-art.jpg（162KB，预览图压缩）→ SHELL 加一行 → VERSION 加一。 */
-VERSION = 'v89'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v90：学府门户桌面内容区深排第二批（==XF3==/==XF4==）——
+   today（老师「今天」）：教务通知日期块条目化（XF3 展示模块重画，防自激同
+   XF2.notices）+ 我的课两卡 ≥1100 同行（1.5fr/1fr 栅格）+ 卡头节标词汇；
+   news（每日新闻页）：卡头节标 + 新闻行化（时刻列衬线蓝）；
+   ==XF4== 全站桌面卡头统一：.card 直角细边 + .card>h2 衬线 ◆/金图标 + 蓝规线 +
+   .sec-h 细规线（名册/作业/考勤导出卡）+ 考勤小结数字衬线蓝。
+   全部收在 @media (min-width:1100px)，<1100 一字不动；无新增静态文件 → VERSION 加一。 */
+VERSION = 'v90'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

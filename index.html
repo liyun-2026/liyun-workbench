@@ -3730,6 +3730,81 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xd-stat, #page-home.on .tl-head, #page-home.on .tl-wrap{background:var(--card)}
   .xf-bcap{background:rgba(20,26,44,.88)}
 }
+
+/* ==XF3== 内容区深排第二批：today（老师「今天」）+ news（每日新闻页）
+   ─────────────────────────────────────────────────────────────────────
+   来源：docs/preview-2026-10/page-today.html（通知日期块 + 我的课 1.5fr/1fr 同行）
+   同批复用首批词汇：◆ 衬线节标 + 细规线 + 直角细边卡。
+   铁律同 XF2：全部收在 ≥1100（<1100 一字不动）；业务 JS 零改动
+   （教务通知条目化由文件尾 XF3 展示模块重画，深色经 ：root 令牌翻转自适应）。 */
+@media (min-width:1100px){
+  /* 卡片收敛为学府版式（同 home tl-wrap：白底细边、微圆直角、无投影） */
+  .page#page-today.on .card, .page#page-news.on .card{
+    background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:none;padding:22px 24px}
+  /* 卡头改节标：衬线 + ◆ + 下方细规线（预览 sec+rule 词汇；原 svg 图标保留） */
+  .page#page-today.on .card > h2, .page#page-news.on .card > h2{
+    font-family:var(--font-serif);font-size:21px;letter-spacing:4px;color:var(--ink);font-weight:700;
+    padding-bottom:12px;border-bottom:1px solid var(--line);position:relative;margin-bottom:16px}
+  .page#page-today.on .card > h2::after, .page#page-news.on .card > h2::after{
+    content:"";position:absolute;left:0;bottom:-1px;height:3px;width:96px;background:var(--blue)}
+  .page#page-today.on .card > h2 .ic-inline, .page#page-news.on .card > h2 .ic-inline{color:var(--gold-deep)}
+
+  /* today 栅格：我的课两卡同行（1.5fr 今日轴 + 1fr 本周表）；标题/通知/到课/新闻整行 */
+  .page#page-today.on{display:grid;grid-template-columns:1.5fr 1fr;column-gap:28px;align-items:start}
+  #page-today.on > .page-title, #page-today.on > .page-sub, #page-today.on > .banner{grid-column:1/-1}
+  #page-today.on > .card{grid-column:1/-1;min-width:0}
+  #page-today.on > .xf-les{grid-column:1}
+  #page-today.on > .xf-wk{grid-column:2}
+
+  /* 教务通知条目化（XF3 JS 重画为日期块；这里只管版式；日期块金线同 home 要闻） */
+  #page-today.on #tdNotice .item{display:grid;grid-template-columns:56px 1fr;gap:16px;
+    padding:14px 4px;border-bottom:1px dashed var(--line)}
+  #page-today.on #tdNotice .item:last-child{border-bottom:none}
+  #page-today.on #tdNotice .ndate{text-align:center;border-right:2px solid var(--gold);padding-right:12px}
+  #page-today.on #tdNotice .ndate b{display:block;font-family:Georgia,var(--font-serif);
+    font-size:22px;color:var(--blue-ink);line-height:1.1}
+  #page-today.on #tdNotice .ndate small{font-size:10px;color:var(--ink-3);letter-spacing:2px}
+  #page-today.on #tdNotice .nmain{min-width:0}
+  #page-today.on #tdNotice .nmain p{margin:0;font-size:13.5px;color:var(--text);
+    white-space:pre-wrap;word-break:break-word}
+  #page-today.on #tdNotice .nmain small{display:block;margin-top:5px;font-size:11.5px;
+    color:var(--ink-3);letter-spacing:1px}
+
+  /* 新闻列表（tNewsBody / nNewsBody 同为 News.paint 的 .item）：行化 + 时刻列衬线蓝 */
+  #page-today.on #tNewsBody .item, #page-news.on #nNewsBody .item{
+    padding:13px 4px;border-bottom:1px dashed var(--line)}
+  #page-today.on #tNewsBody .item:last-child, #page-news.on #nNewsBody .item:last-child{border-bottom:none}
+  #page-today.on #tNewsBody .item .mono, #page-news.on #nNewsBody .item .mono{
+    font-family:Georgia,var(--font-serif);font-size:13px;color:var(--blue)}
+  #page-today.on #tNewsBody .item .grow a, #page-news.on #nNewsBody .item .grow a{
+    font-size:14.5px;font-weight:500}
+  #page-today.on #tNewsBody .item:hover, #page-news.on #nNewsBody .item:hover{background:var(--tint)}
+}
+
+/* ==XF4== 内容区深排第三批：全站卡头节标统一（词汇级）
+   ─────────────────────────────────────────────────────────────────────
+   来源：docs/preview-2026-10/ 全套（预览本就按生产 DOM 逐页写成 —— 结构同源，
+   差距在词汇：卡头一律「◆/衬线 + 细规线」、卡片直角细边）。本批把首批
+   （home/today/news）的节标词汇铺满剩余全部桌面页。
+   铁律同前：≥1100 才生效（<1100 一字不动）；只动版式不动 DOM/业务 JS；
+   深色经 :root 令牌翻转自适应；大课表三拷贝结构不碰（h2 只换字体与规线）。 */
+@media (min-width:1100px){
+  .page.on .card{border-radius:4px;box-shadow:none}
+  .page.on .card > h2{
+    font-family:var(--font-serif);font-size:21px;letter-spacing:4px;color:var(--ink);font-weight:700;
+    padding-bottom:12px;border-bottom:1px solid var(--line);position:relative;margin-bottom:16px}
+  .page.on .card > h2::after{content:"";position:absolute;left:0;bottom:-1px;height:3px;width:96px;background:var(--blue)}
+  .page.on .card > h2 .ic-inline{color:var(--gold-deep)}
+  /* 无图标卡头补 ◆ 金菱（有 svg 图标的不再叠菱，避免双标记） */
+  .page.on .card > h2::before{content:"◆";font-size:11px;color:var(--gold-deep);letter-spacing:0;flex:none;align-self:center}
+  .page.on .card > h2:has(.ic-inline)::before{content:none}
+  /* 考勤小结数字：预览同款衬线蓝（异常保持朱砂） */
+  #page-att.on .sumrow b{color:var(--blue)}
+  #page-att.on .sumrow.bad b{color:var(--stamp-leave)}
+  /* 卡内小节标题（名册班级/学员、作业两卡、考勤导出两卡）同得细规线 */
+  .page.on .sec-h{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .page.on .hw-card{border-radius:4px;box-shadow:none}
+}
 </style>
 </head>
 <body>
@@ -5124,11 +5199,13 @@ try {
         <div id="tdAtt" style="margin-top:10px"></div>
         <p class="hint">这是教务那边的考勤结果，<b>只看不改</b>。要改、要补签都归教务，老师这边不用管。</p>
       </div>
-      <div class="card wide">
+      <!-- ==XF3== 桌面深排挂钩（<1100 无效果）：xf-les/xf-wk 两卡在 ≥1100 同行落位
+           （预览 page-today「我的课」1.5fr 时间轴 + 1fr 本周表）；业务 JS 不读这些类 -->
+      <div class="card wide xf-les">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 我今天要上的课</h2>
         <div id="tdToday"></div>
       </div>
-      <div class="card wide">
+      <div class="card wide xf-wk">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calendar"></use></svg>  本周我的课</h2>
         <div id="tdWeek"></div>
       </div>
@@ -19596,6 +19673,49 @@ const XF2 = {
   }
 };
 XF2.init();
+
+/* ==XF3== 内容区深排第二批展示 JS（业务零改动）──
+   教务通知条目化：Today.render 写进 #tdNotice 的 .item 重画为日期块条目
+   （数据仍来自渲染 DOM 的真实通知文本/日期/发布人；深色与 <1100 不受影响）。
+   与 XF2.notices 同款防自激：重画前 disconnect、赋值后再 observe。 */
+const XF3 = {
+  tdNotices(){
+    const body = document.getElementById('tdNotice');
+    if (!body || !window.MutationObserver || this._tObs) return;
+    const paint = () => {
+      try{
+        if (!window.matchMedia('(min-width:1100px)').matches) return;   /* 手机永远原样 */
+        const items = [...body.querySelectorAll(':scope > .item')];
+        if (!items.length) return;                                      /* 空态/加载中不碰 */
+        const html = items.map(it => {
+          const grow = it.querySelector('.grow');
+          if (!grow) return '';
+          const hint = grow.querySelector('.hint');
+          const meta = hint ? hint.textContent.trim() : '';
+          if (hint) hint.remove();
+          const txt = grow.textContent.trim();
+          const dt = (meta.split('·')[0] || '').trim().split('-');
+          const day = dt[2] ? String(+dt[2]) : '--';
+          const ym = dt[0] && dt[1] ? dt[0] + '.' + dt[1] : '';
+          const by = meta.includes('·') ? meta.split('·').slice(1).join('·').trim() : '';
+          return '<div class="item"><div class="ndate"><b>' + Util.esc(day) + '</b><small>' + Util.esc(ym) + '</small></div>' +
+                 '<div class="nmain"><p>' + Util.esc(txt) + '</p>' +
+                 (by ? '<small>' + Util.esc(by) + '</small>' : '') + '</div></div>';
+        }).join('');
+        this._tObs.disconnect();
+        body.innerHTML = html;
+        this._tObs.observe(body, { childList: true });
+      }catch(e){}
+    };
+    this._tObs = new MutationObserver(paint);
+    this._tObs.observe(body, { childList: true });
+    paint();
+  },
+  init(){
+    try{ this.tdNotices(); }catch(e){}
+  }
+};
+XF3.init();
 
 
 App.init();
