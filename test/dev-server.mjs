@@ -32,6 +32,11 @@ const TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.js': 'text/javascript; charset=utf-8',
+  /* ==DESKTOP-V2== 样张 _qa.html 经本服务跑回归时，iframe 里的 shell.css/page-*.css
+     必须以 text/css 提供 —— 否则 Chrome 拒载，251 PASS/130 FAIL 全是假失败。 */
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
 };
 
 const server = createServer(async (req, res) => {
