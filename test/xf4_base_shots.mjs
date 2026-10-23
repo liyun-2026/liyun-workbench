@@ -11,7 +11,8 @@ process.env.NO_PROXY = '*';
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 5491, BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const OUT = '/tmp/xf4-base';
+const OUT = process.env.XF4_OUT || '/tmp/xf4-base';
+const NAME = { super: p => 'page-' + p + '.png', teacher: p => 'page-' + p + '.png', student: p => 'page-' + (p === 'settings' ? 'settings-stu' : p) + '.png' };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
 async function waitFor(fn, { tries = 60, gap = 500, what = '目标' } = {}) {
@@ -92,7 +93,7 @@ const SEED_JS = `(async () => {
 const GROUPS = [
   ['super', { user: '李老师', pass: 'liyun2026' }, ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','teachers','health','settings','board']],
   ['teacher', { user: '张伟', pass: 'liyun2026' }, ['today','news','record','myclass','tickets']],
-  ['student', { user: '王梓涵', pass: 'liyun2026' }, ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg']],
+  ['student', { user: '王梓涵', pass: 'liyun2026' }, ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings']],
 ];
 
 const srv = spawn(process.execPath, [path.join(dir, 'test', 'dev-server.mjs'), String(PORT)], { cwd: dir, stdio: 'ignore' });
@@ -140,8 +141,32 @@ try {
       await cdp.eval(MASK_JS);
       await sleep(200);
       const r = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-      await writeFile(path.join(OUT, role + '-' + p + '.png'), Buffer.from(r.data, 'base64'));
+      await writeFile(path.join(OUT, NAME[role](p)), Buffer.from(r.data, 'base64'));
       console.log('shot', role + '-' + p);
+    }
+  }
+
+  /* 深色三页（super：home/att/settings；轮播冻在首帧防自动进帧） */
+  if (process.env.XF4_DARK) {
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+    await cdp.eval(`(async () => {
+      Store.setSecret('token',''); Auth._me = null; Auth.show();
+      document.getElementById('gUser').value = '李老师';
+      document.getElementById('gPass').value = 'liyun2026';
+      await Auth.submit();
+      await new Promise(r => setTimeout(r, 2400));
+      return 1;
+    })()`);
+    await sleep(900);
+    await cdp.eval(`(() => { const tr = document.getElementById('xfSlides'); if (tr && window.XF2) XF2._pause = Date.now() + 3600000; if (tr) tr.scrollLeft = 0; return 1; })()`);
+    for (const p of ['home','att','settings']){
+      await cdp.eval(`(async () => { App.go(${JSON.stringify(p)}); await new Promise(r => setTimeout(r, 600)); return 1; })()`).catch(() => {});
+      await sleep(300);
+      await cdp.eval(MASK_JS);
+      await sleep(200);
+      const r = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+      await writeFile(path.join(OUT, 'dark-' + p + '.png'), Buffer.from(r.data, 'base64'));
+      console.log('dark shot', p);
     }
   }
   console.log('完成 →', OUT);
