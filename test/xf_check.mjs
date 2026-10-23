@@ -250,11 +250,11 @@ try {
   })()`);
   ok('学府骨架可见（门户条/校名头/导航条）', sk.topShown);
   ok('侧栏在 ≥1100 退场', sk.sideHidden);
-  ok('门户条端口 = 教职工（真实身份）', sk.ports === '教职工', sk.ports);
+  ok('门户条端口 = 教师（真实身份；v92 起禁用旧三字称谓）', sk.ports === '教师', sk.ports);
   ok('门户条底色 = 深蓝 #384a74', /56,\s*74,\s*116/.test(sk.utilBg), sk.utilBg);
   ok('校名头用户信息 = 真实身份（李老师 · 首位教务）', sk.who.includes('李老师') && sk.who.includes('首位教务'), sk.who);
   ok('蓝章 logo 已内嵌且加载成功', sk.sealOk);
-  ok('导航条 = NAV_ORDER 真实页数（super 17 项）', sk.navN === 17, 'n=' + sk.navN);
+  ok('导航条 = NAV_ORDER 真实页数（super 主排 8 + 收纳 9 = 17 项）', sk.navN === 17, 'n=' + sk.navN);
   ok('当前页金色下划线高亮（今日）', sk.navOn === '今日', sk.navOn);
   ok('页脚可见且快速入口已填', sk.footShown && sk.footNavN === 8, 'footNav=' + sk.footNavN);
   ok('内容区收 1280', sk.mainW === 1280, 'w=' + sk.mainW);
@@ -278,14 +278,17 @@ try {
   ok('多帧真实底图（≥2 帧 backgroundImage）', hero.bgs >= 2, 'bgs=' + hero.bgs);
 
   console.log('\n── 33 页截图 + 顶栏像素校验（→ docs/xf-production-shots/）──');
+  /* v92 页眉三层化：home 保留门户条（深蓝）；其余页 (720,8) 应为白底校名头 */
   let pxOK = 0, pxBad = [];
   const shoot = async (id, label) => {
     const f = path.join(OUT, `page-${id}.png`);
     await goShot(cdp, id, f);
-    const px = await pixelAt(cdp, f, 720, 15);
-    const good = Math.abs(px.r-56) <= 14 && Math.abs(px.g-74) <= 14 && Math.abs(px.b-116) <= 14;
+    const px = await pixelAt(cdp, f, 720, 8);
+    const deepBlue = Math.abs(px.r-56) <= 14 && Math.abs(px.g-74) <= 14 && Math.abs(px.b-116) <= 14;
+    const white = px.r > 235 && px.g > 235 && px.b > 235;
+    const good = id === 'home' ? deepBlue : white;
     if (good) pxOK++; else pxBad.push(`${id}(${px.r},${px.g},${px.b})`);
-    console.log(`  · ${label || id}${good ? '' : '  ⚠️ (720,15)!=' + JSON.stringify(px)}`);
+    console.log(`  · ${label || id}${good ? '' : '  ⚠️ (720,8)=' + JSON.stringify(px)}`);
   };
   for (const id of ADM) await shoot(id);
   await switchUser(cdp, TEACHER);
@@ -294,15 +297,15 @@ try {
   for (const id of STU) await shoot(id);
   /* 学生 settings 同页复用（settings 已在 ADM 截过教务版；学生版再截一张带后缀） */
   await goShot(cdp, 'settings', path.join(OUT, 'page-settings-stu.png'));
-  const px = await pixelAt(cdp, path.join(OUT, 'page-settings-stu.png'), 720, 15);
-  if (Math.abs(px.r-56) <= 14 && Math.abs(px.g-74) <= 14 && Math.abs(px.b-116) <= 14) pxOK++; else pxBad.push('settings-stu');
+  const pxS = await pixelAt(cdp, path.join(OUT, 'page-settings-stu.png'), 720, 8);
+  if (pxS.r > 235 && pxS.g > 235 && pxS.b > 235) pxOK++; else pxBad.push('settings-stu');
   /* board（看板会挂 body.board-mode，放最后 + 截完回主页解除） */
   await switchUser(cdp, SUPER);
   await shoot('board', 'board(只读看板)');
   await cdp.eval(`(async()=>{ App.go('home'); await new Promise(r=>setTimeout(r,400));
     document.body.classList.remove('board-mode'); return 1; })()`);
-  ok(`顶栏 (720,15) 深蓝像素校验：${pxOK}/${ADM.length + TEA.length + STU.length + 2}`, pxBad.length === 0,
-     pxBad.length ? '异常页：' + pxBad.join(',') : '全部命中 #384a74±14');
+  ok(`页眉像素校验 (720,8)：${pxOK}/${ADM.length + TEA.length + STU.length + 2}（home 深蓝门户条 · 其余白底校名头）`, pxBad.length === 0,
+     pxBad.length ? '异常页：' + pxBad.join(',') : '全部命中');
 
   /* ═══ 2) 关键交互抽查 ═══ */
   console.log('\n── 关键交互抽查 ──');
@@ -313,6 +316,33 @@ try {
     hl: (document.querySelector('#xfNav a.on')||{}).dataset.id }))()`);
   ok('导航条点击「名册」→ 页面切换 + 高亮跟随', nav1.on === 'page-roster' && nav1.hl === 'roster', JSON.stringify(nav1));
   await goShot(cdp, 'roster', path.join(OUT, 'page-roster.png'));
+
+  /* 2.1b 其他功能下拉（v92 页眉三层化）：开 / 点外关 / Esc 关 / 收纳项跳转金线 */
+  await cdp.eval(`(async () => { App.go('home'); await new Promise(r => setTimeout(r, 500)); return 1; })()`);
+  const dr = await cdp.eval(`(async () => {
+    const btn = document.getElementById('xfMoreBtn');
+    if (!btn) return { has: false };
+    btn.click();
+    await new Promise(r => setTimeout(r, 200));
+    const m = document.getElementById('xfMore');
+    const open1 = m.classList.contains('open') && document.getElementById('xfMoreBtn').getAttribute('aria-expanded') === 'true';
+    document.body.click();
+    await new Promise(r => setTimeout(r, 200));
+    const open2 = m.classList.contains('open');
+    btn.click();
+    await new Promise(r => setTimeout(r, 200));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await new Promise(r => setTimeout(r, 200));
+    const open3 = m.classList.contains('open');
+    return { has: true, open1, open2, open3 };
+  })()`);
+  ok('其他功能下拉：点击开(aria) / 点外关 / Esc 关', dr.has && dr.open1 && !dr.open2 && !dr.open3, JSON.stringify(dr));
+  await cdp.eval(`(async () => { App.go('students'); await new Promise(r => setTimeout(r, 500)); return 1; })()`);
+  const ci = await cdp.eval(`(() => { const m = document.getElementById('xfMore');
+    return { curIn: m.classList.contains('cur-in'), itemOn: !!m.querySelector('.xf-more-panel a.on'),
+      pageOn: (document.querySelector('.page.on')||{}).id }; })()`);
+  ok('当前页在收纳项：下拉钮金线 + 面板项高亮 + 页面高亮不丢',
+     ci.curIn && ci.itemOn && ci.pageOn === 'page-students', JSON.stringify(ci));
 
   /* 2.2 考勤点章（切到考勤，点一个【未点】的章——点已点的会撤销，断言选中态与汇总联动） */
   await cdp.eval(`(() => { App.go('att'); return 1; })()`);

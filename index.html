@@ -3463,6 +3463,39 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xf-navstrip a.on{background:rgba(255,255,255,.10)}
   .xf-navstrip a.on::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:3px;background:var(--gold)}
 
+  /* ==XF5== 页眉三层化（用户 2026-10-23 敲定；只动 ≥1100 非 home；home 四层一行不动）
+     ──────────────────────────────────────────────────────────────────────
+     ① 门户条仅 home 保留；其余页整条退场（身份进用户卡、日期进白条）
+     ② 层序 = 校名头（白）→ 导航条（学府蓝）→ 白条；验收 (720,8)=白底校名头
+     ③ 导航一排化：主排 8 项（XF.NAV_MAIN 分组表）+「其他功能 ▾」下拉收纳 */
+  body:not(:has(#page-home.on)) .xf-util{display:none}
+  .xf-navstrip-in{flex-wrap:nowrap;align-items:stretch}
+  /* 「其他功能」下拉（纯展示层；键盘可达 aria-haspopup/aria-expanded；Esc/点外关闭在 XF） */
+  .xf-more{position:relative;display:flex;align-items:stretch;margin-left:auto}
+  .xf-more-btn{display:flex;align-items:center;gap:7px;background:none;border:none;cursor:pointer;
+    color:#eef1f8;font-size:14px;letter-spacing:3px;padding:14px 20px;position:relative;
+    white-space:nowrap;font-family:inherit;transition:background .2s}
+  .xf-more-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+  .xf-more-btn svg{transition:transform .2s}
+  .xf-more.open .xf-more-btn svg{transform:rotate(180deg)}
+  .xf-more.cur-in .xf-more-btn::after{content:"";position:absolute;left:20px;right:20px;bottom:0;height:3px;background:var(--gold)}
+  .xf-more-panel{display:none;position:absolute;top:100%;right:0;min-width:200px;
+    background:#fff;border:1px solid var(--line);border-radius:4px;padding:6px;
+    box-shadow:0 16px 40px rgba(20,28,50,.22);flex-direction:column;z-index:300}
+  .xf-more.open .xf-more-panel{display:flex}
+  .xf-more-panel a{color:var(--ink);font-size:13px;letter-spacing:2px;padding:10px 14px;
+    border-radius:3px;white-space:nowrap;cursor:pointer;position:relative}
+  .xf-more-panel a:hover{background:#f6f8fc;color:var(--blue)}
+  .xf-more-panel a.on{background:#faf6ec;color:var(--gold-deep)}
+  /* 1100~1300 收紧间距保一排（先收紧、不折行） */
+  @media (min-width:1100px) and (max-width:1320px){
+    .xf-navstrip a, .xf-more-btn{padding:13px 11px;font-size:13px;letter-spacing:1.5px}
+    .xf-navstrip a.on::after, .xf-more.cur-in .xf-more-btn::after{left:11px;right:11px}
+    .xf-navstrip-in{padding:0 14px}
+  }
+  /* 内容区贴上去：章节标题与白条间距减半（38→22px；home 不动） */
+  body:not(:has(#page-home.on)) .page.on{padding-top:22px}
+
   /* ── ⑥ 页脚（深蓝三栏 + 双细线版权条）───────────────────────────── */
   .xf-foot{background:var(--blue-ink);color:#aab6cf;margin-top:10px}
   .xf-foot-in{max-width:1280px;margin:0 auto;padding:40px 40px 30px;display:grid;
@@ -3541,6 +3574,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xf-head{background:#1f2431;border-bottom-color:#0f1526}
   .xf-head .xf-brand b{color:#d7def0}
   .xf-search{border-color:var(--line);color:var(--ink-2)}
+  /* 页眉三层化下拉：深色随令牌翻 */
+  .xf-more-panel{background:#222735;border-color:#343b4d;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  .xf-more-panel a{color:#e7e9f0}
+  .xf-more-panel a:hover{background:#2a3145;color:#c9d2e6}
+  .xf-more-panel a.on{background:rgba(200,168,105,.14);color:#c8a869}
   .xf-navstrip{background:linear-gradient(180deg,#3a4a75,var(--blue-deep))}
   .xf-foot{background:#0f1526}
   .imptbl th{background:#202534}
@@ -3978,8 +4016,7 @@ try {
            quick 按当前身份 App.can 过滤跳真实页，圆点随横滑同步，业务 JS 零改动） -->
     <div class="xf-term"><div class="xf-term-in">
       <span class="yr" id="xfTermYr">2026—2027 学年 · 秋季学期</span>
-      <span class="sep"></span><span id="xfTermWk"></span>
-      <span class="sep"></span><span>南阳博艺教育</span>
+      <span id="xfTermCtx"></span>
     </div></div>
     <div class="xf-hero">
       <section class="xf-banner" aria-label="校园形象轮播">
@@ -19428,7 +19465,8 @@ const XF = {
     const el = document.getElementById('xfPorts'); if (!el) return;
     let stu = false;
     try { stu = Auth.isStudent(); } catch(e){}
-    el.innerHTML = stu ? '<a class="on">学生端</a>' : '<a class="on">教职工</a>';
+    /* 全站身份标签统一（用户 2026-10-23 定）：只写「教师」/「学生」，旧三字称谓禁用 */
+    el.innerHTML = stu ? '<a class="on">学生</a>' : '<a class="on">教师</a>';
   },
   utilR(){
     const el = document.getElementById('xfUtilR'); if (!el) return;
@@ -19438,20 +19476,70 @@ const XF = {
   },
   who(){
     const el = document.getElementById('xfWho'); if (!el) return;
-    let name = '';
+    let name = '', stu = false;
     try{ name = Auth.name() || ''; }catch(e){}
+    try{ stu = Auth.isStudent(); }catch(e){}
     if (!name){ el.innerHTML = ''; return; }
     const av = name.trim().charAt(0) || '砺';
+    /* 身份标签紧跟名字（用户 2026-10-23 定）：教师/学生 · 原职责小字 */
+    const tag = stu ? '学生' : '教师';
     el.innerHTML = '<div class="av">' + Util.esc(av) + '</div><div><b>' + Util.esc(name) +
-                   '</b><small>' + Util.esc(this.roleLabel()) + '</small></div>';
+                   '</b><small>' + Util.esc(tag) + (this.roleLabel() ? ' · ' + Util.esc(this.roleLabel()) : '') + '</small></div>';
+  },
+  /* ── 页眉导航一排化（纯展示层，不碰业务）──
+     主排/收纳分组表（要调主排改这两张表即可；下拉是独立小组件：点击开合 +
+     点击外部/Esc 关闭，aria-haspopup/aria-expanded 键盘可达）：
+     · 教务（super/office/admin/both）主排 8：今日/考勤/打卡管理/作业/名册/学员档案/课表/设置；
+       收纳：学生账号/课时统计/晚自习/量化/模考/协作/限时征集/老师管理/巡检（+教务兼授课的
+       每日新闻/录入今日/我带的班/上报与申请）。
+     · 授课老师（teacher）7 项一排放得下：今日/每日新闻/录入今日/我带的班/学员档案/上报与申请/设置，不设下拉。
+     · 学生（student）主排 8：学生首页/打卡/我的课表/我的作业/我的量化/模考/我的档案/设置；
+       收纳：限时征集/通知/消息。 */
+  NAV_MAIN: {
+    super:   ['home','att','sign','homework','roster','profile','timetable','settings'],
+    office:  ['home','att','sign','homework','roster','profile','timetable','settings'],
+    admin:   ['home','att','sign','homework','roster','profile','timetable','settings'],
+    both:    ['home','att','sign','homework','roster','profile','timetable','settings'],
+    teacher: ['today','news','record','myclass','profile','tickets','settings'],
+    student: ['stuHome','stuSign','stuTable','stuHw','stuQuant','stuExam','stuProfile','settings'],
+  },
+  moreToggle(){
+    const m = document.getElementById('xfMore'); if (!m) return;
+    const open = !m.classList.contains('open');
+    m.classList.toggle('open', open);
+    const b = document.getElementById('xfMoreBtn');
+    if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  },
+  moreClose(){
+    const m = document.getElementById('xfMore');
+    if (m && m.classList.contains('open')){
+      m.classList.remove('open');
+      const b = document.getElementById('xfMoreBtn');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    }
   },
   nav(){
     const el = document.getElementById('xfNav'); if (!el) return;
     let list = [];
     try { list = App.visible() || []; } catch(e){}
-    el.innerHTML = list.map(r =>
-      '<a data-id="' + r.id + '" class="' + (r.id === this.cur ? 'on' : '') +
-      '" onclick="App.go(\'' + r.id + '\')">' + Util.esc(r.name) + '</a>').join('');
+    let role = '';
+    try { role = Auth.role() || ''; } catch(e){}
+    const mainIds = this.NAV_MAIN[role] || null;
+    const main = mainIds ? list.filter(r => mainIds.indexOf(r.id) >= 0)
+                         : list.slice(0, 8);
+    const rest = mainIds ? list.filter(r => mainIds.indexOf(r.id) < 0)
+                         : list.slice(8);
+    const a = r => '<a data-id="' + r.id + '" class="' + (r.id === this.cur ? 'on' : '') +
+                   '" onclick="App.go(\'' + r.id + '\')">' + Util.esc(r.name) + '</a>';
+    el.innerHTML = main.map(a).join('') + (rest.length
+      ? '<div class="xf-more" id="xfMore">' +
+        '<button type="button" class="xf-more-btn" id="xfMoreBtn" aria-haspopup="true" aria-expanded="false" onclick="XF.moreToggle()">其他功能 ' +
+        '<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 3.2L5 6.8l3.5-3.6"/></svg></button>' +
+        '<div class="xf-more-panel" role="menu" aria-label="其他功能">' + rest.map(r =>
+          '<a role="menuitem" data-id="' + r.id + '" class="' + (r.id === this.cur ? 'on' : '') +
+          '" onclick="App.go(\'' + r.id + '\');XF.moreClose()">' + Util.esc(r.name) + '</a>').join('') +
+        '</div></div>'
+      : '');
     const fn = document.getElementById('xfFootNav');
     if (fn) fn.innerHTML = list.slice(0, 8).map(r =>
       '<a data-id="' + r.id + '" onclick="App.go(\'' + r.id + '\')">' + Util.esc(r.name) + '</a>').join('');
@@ -19459,9 +19547,20 @@ const XF = {
   highlight(){
     let cur = '';
     try{ const on = document.querySelector('.page.on'); cur = on ? on.id.replace(/^page-/, '') : ''; }catch(e){}
+    const changed = cur !== this.cur;
     this.cur = cur;
+    if (changed) this.moreClose();   /* 切页顺手收起下拉（开着面板跳页不合常理） */
     const el = document.getElementById('xfNav');
-    if (el) el.querySelectorAll('a').forEach(a => a.classList.toggle('on', a.dataset.id === cur));
+    if (el){
+      el.querySelectorAll(':scope > a').forEach(a => a.classList.toggle('on', a.dataset.id === cur));
+      /* 当前页在「其他功能」里：下拉钮金下划线 + 面板项高亮，页面自身高亮不丢 */
+      const more = document.getElementById('xfMore');
+      if (more){
+        const inMore = !!more.querySelector('a[data-id="' + cur + '"]');
+        more.classList.toggle('cur-in', inMore);
+        more.querySelectorAll('.xf-more-panel a').forEach(x => x.classList.toggle('on', x.dataset.id === cur));
+      }
+    }
   },
   paint(){
     this.highlight();
@@ -19470,10 +19569,23 @@ const XF = {
   init(){
     if (!document.getElementById('xfNav')) return;
     this.paint();
+    /* 其他功能下拉：点击外部 / Esc 关闭（纯展示层） */
+    try{
+      document.addEventListener('click', e => {
+        const m = document.getElementById('xfMore');
+        if (m && m.classList.contains('open') && !m.contains(e.target)) this.moreClose();
+      });
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') this.moreClose(); });
+    }catch(e){}
     try{
       new MutationObserver(() => this.paint())
         .observe(document.getElementById('nav'), { childList: true });
-      new MutationObserver(() => this.highlight())
+      new MutationObserver(() => {
+        this.highlight();
+        /* 页眉白条上下文（学期|日期 / home 保留教学周+校名）跟页面切换刷新
+           （⚠️ const XF2 不挂 window，必须 typeof 直接引用） */
+        try{ if (typeof XF2 !== 'undefined' && XF2.termCtx) XF2.termCtx(); }catch(e){}
+      })
         .observe(document.getElementById('main'), { attributes: true, subtree: true, attributeFilter: ['class'] });
     }catch(e){}
   }
@@ -19489,6 +19601,26 @@ XF.init();
    全部 try-catch 静默；只读不写（news_cache 不动）。 */
 const XF2 = {
   _set(id, v){ const e = document.getElementById(id); if (e && e.textContent !== v) e.textContent = v; },
+
+  /* 页眉白条上下文（用户 2026-10-23 页眉三层化）：
+     非 home：学年学期 | 今日日期（实时，沿用 XF.utilR 同一渲染口径）；
+     home：四层页眉一行不动 —— 保留「第 N 教学周 + 南阳博艺教育」。
+     页面切换时由 XF.highlight 的观察者回调再刷。 */
+  termCtx(wkArg){
+    const el = document.getElementById('xfTermCtx'); if (!el) return;
+    let home = false;
+    try{ const p = document.getElementById('page-home'); home = !!(p && p.classList.contains('on')); }catch(e){}
+    if (home){
+      const tw = (typeof M2Pages !== 'undefined' && M2Pages.termWeek) ? M2Pages
+               : ((typeof V1 !== 'undefined' && V1.termWeek) ? V1 : null);
+      const wk = wkArg !== undefined ? wkArg : (tw ? tw.termWeek() : '');
+      el.innerHTML = '<span class="sep"></span><span>' + Util.esc(wk || '') + '</span>' +
+                     '<span class="sep"></span><span>南阳博艺教育</span>';
+    } else {
+      const d = new Date();
+      el.textContent = d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 · 星期' + '日一二三四五六'[d.getDay()];
+    }
+  },
 
   /* 中文数字（日期角标用：十月二十二日） */
   _cn(n){
@@ -19513,7 +19645,7 @@ const XF2 = {
     const tw = (typeof M2Pages !== 'undefined' && M2Pages.termWeek) ? M2Pages
              : ((typeof V1 !== 'undefined' && V1.termWeek) ? V1 : null);
     const wk = tw ? tw.termWeek() : '';
-    this._set('xfTermWk', wk);
+    try{ this.termCtx(wk); }catch(e){}
     /* 第 2 帧副题带教学周 */
     const sw = document.getElementById('xfSlideWk');
     if (sw && wk) sw.textContent = '砺蕴教务系统 · ' + this.termLabel().replace(' 学年', '学期').replace('· ', '') + ' · ' + wk;
