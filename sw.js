@@ -397,7 +397,7 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    全部收在 @media (min-width:1100px)，<1100 一字不动；无新增静态文件 → VERSION 加一。 */
 /* v91：修复校名头/页脚蓝章不显示 —— base64 src 把「data:image/png;base64,」前缀
    写了两遍导致整张图加载失败（xf_check 骨架断言抓出）。无静态文件变化 → VERSION 加一。 */
-VERSION = 'v92'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+VERSION = 'v93'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

@@ -236,8 +236,9 @@ try {
     const side = document.querySelector('.side');
     return {
       topShown: !!cs && cs.display !== 'none',
-      utilBg: getComputedStyle(document.querySelector('.xf-util')).backgroundColor,
-      ports: document.getElementById('xfPorts').textContent,
+      utilGone: !document.querySelector('.xf-util'),
+      bcapGone: !document.querySelector('.xf-bcap'),
+      term: document.querySelector('.xf-term-in').textContent,
       who: document.getElementById('xfWho').textContent,
       navN: document.querySelectorAll('#xfNav a').length,
       navOn: (document.querySelector('#xfNav a.on') || {}).textContent || '',
@@ -248,11 +249,14 @@ try {
       sealOk: !!document.querySelector('.xf-head img.seal') && document.querySelector('.xf-head img.seal').naturalWidth > 0,
     };
   })()`);
-  ok('学府骨架可见（门户条/校名头/导航条）', sk.topShown);
+  ok('学府骨架可见（校名头/导航条/白条）', sk.topShown);
   ok('侧栏在 ≥1100 退场', sk.sideHidden);
-  ok('门户条端口 = 教师（真实身份；v92 起禁用旧三字称谓）', sk.ports === '教师', sk.ports);
-  ok('门户条底色 = 深蓝 #384a74', /56,\s*74,\s*116/.test(sk.utilBg), sk.utilBg);
-  ok('校名头用户信息 = 真实身份（李老师 · 首位教务）', sk.who.includes('李老师') && sk.who.includes('首位教务'), sk.who);
+  ok('门户条已全站删除（含 home，不留死 DOM）', sk.utilGone);
+  ok('轮播日期角标已删除（不留死 DOM）', sk.bcapGone);
+  ok('用户卡 = 姓名·教师·首位教务（无权限标签）',
+     sk.who.includes('李老师') && sk.who.includes('教师') && sk.who.includes('首位教务') && !sk.who.includes('全部权限'), sk.who);
+  ok('白条 = 学年学期 | 实时日期（无教学周/校名）',
+     sk.term.includes('学年') && /\d+年\d+月\d+日/.test(sk.term) && !sk.term.includes('教学周') && !sk.term.includes('南阳'), sk.term.trim());
   ok('蓝章 logo 已内嵌且加载成功', sk.sealOk);
   ok('导航条 = NAV_ORDER 真实页数（super 主排 8 + 收纳 9 = 17 项）', sk.navN === 17, 'n=' + sk.navN);
   ok('当前页金色下划线高亮（今日）', sk.navOn === '今日', sk.navOn);
@@ -286,7 +290,7 @@ try {
     const px = await pixelAt(cdp, f, 720, 8);
     const deepBlue = Math.abs(px.r-56) <= 14 && Math.abs(px.g-74) <= 14 && Math.abs(px.b-116) <= 14;
     const white = px.r > 235 && px.g > 235 && px.b > 235;
-    const good = id === 'home' ? deepBlue : white;
+    const good = white;   /* v5.13：门户条全站删除，34 页页眉一致 → (720,8) 一律白底校名头 */
     if (good) pxOK++; else pxBad.push(`${id}(${px.r},${px.g},${px.b})`);
     console.log(`  · ${label || id}${good ? '' : '  ⚠️ (720,8)=' + JSON.stringify(px)}`);
   };
@@ -304,8 +308,8 @@ try {
   await shoot('board', 'board(只读看板)');
   await cdp.eval(`(async()=>{ App.go('home'); await new Promise(r=>setTimeout(r,400));
     document.body.classList.remove('board-mode'); return 1; })()`);
-  ok(`页眉像素校验 (720,8)：${pxOK}/${ADM.length + TEA.length + STU.length + 2}（home 深蓝门户条 · 其余白底校名头）`, pxBad.length === 0,
-     pxBad.length ? '异常页：' + pxBad.join(',') : '全部命中');
+  ok(`页眉像素校验 (720,8)：${pxOK}/${ADM.length + TEA.length + STU.length + 2}（v5.13 全站白底校名头）`, pxBad.length === 0,
+     pxBad.length ? '异常页：' + pxBad.join(',') : '全部命中白底');
 
   /* ═══ 2) 关键交互抽查 ═══ */
   console.log('\n── 关键交互抽查 ──');
@@ -391,7 +395,7 @@ try {
       line: rs.getPropertyValue('--line').trim(),
       headBg: getComputedStyle(document.querySelector('.xf-head')).backgroundColor,
       navBg: getComputedStyle(document.querySelector('.xf-navstrip')).backgroundImage.includes('gradient'),
-      utilBg: getComputedStyle(document.querySelector('.xf-util')).backgroundColor,
+      panelBg: getComputedStyle(document.querySelector('.xf-more-panel')).backgroundColor,
     };
   })()`);
   ok('深色 --paper = #191d27', /^#191d27$/i.test(dark.paper), dark.paper);
@@ -400,7 +404,7 @@ try {
   ok('深色 --line 变深（#343b4d）', /^#343b4d$/i.test(dark.line), dark.line);
   ok('深色校名头翻深（#1f2431）', /31,\s*36,\s*49/.test(dark.headBg), dark.headBg);
   ok('深色导航条仍为蓝渐变', dark.navBg);
-  ok('深色门户条仍为深蓝（可读）', /35,\s*44,\s*69/.test(dark.utilBg) || /43,\s*58,\s*94/.test(dark.utilBg), dark.utilBg);
+  ok('深色下拉面板随令牌翻深（#222735）', /34,\s*39,\s*53/.test(dark.panelBg), dark.panelBg);
   await switchUser(cdp, SUPER);
   for (const id of ['home','att','settings']) {
     await goShot(cdp, id, path.join(OUT, `dark-${id}.png`));

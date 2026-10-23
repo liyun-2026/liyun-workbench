@@ -60,18 +60,18 @@ try {
   })()`);
   await sleep(600);
 
-  /* ── home：四层保留 ── */
+  /* ── home：v5.13 起与其他页同款三层 ── */
   const h = await cdp.eval(`(() => {
     const u = document.querySelector('.xf-util');
     return { util: !!u && getComputedStyle(u).display !== 'none',
-      ports: document.getElementById('xfPorts').textContent.trim(),
+      bcap: !!document.querySelector('.xf-bcap'),
       term: document.querySelector('.xf-term-in').textContent.trim(),
       who: document.getElementById('xfWho').textContent.trim() };
   })()`);
-  ok('home 门户条保留（四层不动）', h.util);
-  ok('home 端口标签=教师（禁字清零）', h.ports === '教师', h.ports);
-  ok('home 白条=学年|教学周|校名（原样）', h.term.includes('学年') && h.term.includes('教学周') && h.term.includes('南阳博艺教育'), h.term);
-  ok('home 用户卡带身份「教师」', h.who.includes('教师'), h.who);
+  ok('home 门户条也删除（34 页一致）', !h.util);
+  ok('home 轮播日期角标已删除', !h.bcap);
+  ok('home 白条=学年|实时日期（教学周/校名已删）', h.term.includes('学年') && /\d+年\d+月\d+日/.test(h.term) && !h.term.includes('教学周') && !h.term.includes('南阳'), h.term);
+  ok('home 用户卡=教师·首位教务（无权限标签）', h.who.includes('教师') && h.who.includes('首位教务') && !h.who.includes('全部权限'), h.who);
 
   /* ── att：三层 ── */
   await cdp.eval(`(async () => { App.go('att'); await new Promise(r => setTimeout(r, 600)); return 1; })()`);
@@ -95,7 +95,7 @@ try {
   ok('下拉收纳 9 项（学生账号/课时/晚自习/量化/模考/协作/征集/老师/巡检）',
      a.moreN === 9 && a.moreIds.join(',') === 'students,hours,night,quant,exam,coop,gather,teachers,health', a.moreIds.join(','));
   ok('其他功能按钮 aria-haspopup', a.hasBtn && a.aria === 'true');
-  ok('白条=学年|日期（无教学周/校名）', a.term.includes('学年') && a.term.includes('年') && a.term.includes('星期') && !a.term.includes('教学周') && !a.term.includes('南阳'), a.term);
+  ok('白条=学年|日期（无教学周/校名）', a.term.includes('学年') && /\d+年\d+月\d+日/.test(a.term) && !a.term.includes('教学周') && !a.term.includes('南阳'), a.term);
   ok('内容区顶部 22px', a.pt === '22px', a.pt);
 
   /* 下拉交互：开 → 点外关 → 开 → Esc 关 → 点收纳项跳转+cur-in */
