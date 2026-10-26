@@ -403,7 +403,10 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ② 页脚清理：删「学生数据仅在本机与授权账号间同步」、快速入口改两列 4+4、
    「关于系统」只留两行（删 splash 版句与 liyun2026.top 展示网址）。
    无新增静态文件 → VERSION 加一。 */
-VERSION = 'v94'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v95（VoxOS 5.15）：倒计时卡单行修复——「距「04:00-04:40」27 分钟」30px 衬线必折行，
+   拆成「27 分钟」（大数字行，nowrap 永不折行）+「距「04:00-04:40」还有」（小字行）；
+   .tl-next .num 三个断点全部补 white-space:nowrap。无新增静态文件 → VERSION 加一。 */
+VERSION = 'v95'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
