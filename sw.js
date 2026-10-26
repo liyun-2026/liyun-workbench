@@ -406,7 +406,11 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
 /* v95（VoxOS 5.15）：倒计时卡单行修复——「距「04:00-04:40」27 分钟」30px 衬线必折行，
    拆成「27 分钟」（大数字行，nowrap 永不折行）+「距「04:00-04:40」还有」（小字行）；
    .tl-next .num 三个断点全部补 white-space:nowrap。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v95'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v96（VoxOS 5.16）：手机登录门轮播第 2/4 屏（「治学有序·教务有光」「博艺，梦开始的地方」）
+   换传媒高校剪影实拍版（用户验收方案二：AI 底图 base64 内嵌 121/145KB，
+   上部压暗保字 + 下缘渐白融入 #fff 圆角登录板 + 金杠衬线文案）。第 1/3 屏与
+   轮播结构、登录表单零触碰。无新增静态文件 → VERSION 加一。 */
+VERSION = 'v96'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
