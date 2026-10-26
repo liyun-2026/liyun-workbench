@@ -1386,12 +1386,14 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
      （胶囊退场后 120px 空洞太大，统一收成一条）。 */
 .mtabbar{
   --m-blue:#4a5c8c;                       /* 样张 --blue：选中项高亮色 */
-  position:fixed;bottom:0;left:0;right:0;  /* ==5.17== 全宽贴边：去 390 上限与居中 transform（大屏手机两侧缝） */
-  width:100%;
-  background:#fff;
-  border-top:1px solid var(--line);
+  /* ==5.18== 悬浮胶囊（方案 B）：左右 12px / 底 10px / 全圆角 / 半透明毛玻璃 blur + 投影 */
+  position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  border-radius:999px;overflow:hidden;
+  background:rgba(255,255,255,.82);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  border:1px solid rgba(43,52,70,.10);
+  box-shadow:0 10px 30px rgba(15,21,38,.16);
   display:none;                            /* 桌面 / 未登录门盖住时不占视觉 */
-  padding-bottom:env(safe-area-inset-bottom,0px);  /* 整条吃掉 home-indicator 区，底缘不露底色 */
   z-index:50;
 }
 .mtabbar:empty{display:none}               /* 没渲染出 Tab（未登录）就不立着一条空栏 */
@@ -1412,14 +1414,15 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 }
 /* ==5.17== 深色：bar 随令牌翻深（#18211E = 学生端深色 --paper 同值，mtabbar 在页作用域外拿不到令牌，硬编码同值）*/
 @media (prefers-color-scheme: dark){
-  .mtabbar{background:#18211E;border-top-color:#2c3835}
+  .mtabbar{background:rgba(24,33,30,.78);border-color:rgba(255,255,255,.10);
+    box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .mtabbar button{color:#8f97ab}           /* 深底未选中：≥4.5:1 */
   .mtabbar button.on{color:#b7c3f5}        /* 深底选中：亮化同族蓝（--m-blue 深底上只有 3.2:1） */
 }
 @media (max-width:1099.98px){
   .mtabbar{display:flex}
   .tabbar{display:none!important}          /* 旧手机底栏退场 */
-  .main{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}  /* ==5.18== 悬浮胶囊抬离底缘，预留加大防遮挡 */
 }
 @media (min-width:1100px){ .mtabbar{display:none!important} }
 body.board-mode .mtabbar{display:none!important}
@@ -3702,6 +3705,34 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .page.on .sec-h{padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .page.on .hw-card{border-radius:4px;box-shadow:none}
 }
+/* ==MB-REFINE-B== VoxOS 5.18 手机端方案 B 精细化（用户 2026-10-26 拍板；<1100 才生效，桌面零变化）
+   预览验收基准：docs/mobile-refine-shots/preview.html 方案 B（深色 390 home/att 真渲染）。
+   卡片 16px 圆角加阴影 · 输入 10px · 按钮胶囊全圆 · 卡间距 12/内边距 14 · 分割线淡化；
+   字号阶梯按预览范围（home/att：页题 22 / 卡题 15 / 正文 14 / 辅助 12 / 大数字 22）。
+   大课表三拷贝卡不裁切（overflow 豁免）；StuMark / 登录门 / 业务 JS 零触碰。 */
+@media (max-width:1099.98px){
+  .card{border-radius:16px;overflow:hidden;
+    box-shadow:0 4px 16px rgba(43,52,70,.08)}
+  /* 既有 MOBILE 块对五页 .card 有 ID 级 14px，同特异性在此后声明以覆盖 */
+  #page-today.on .card, #page-tickets.on .card, #page-home.on .card,
+  #page-homework.on .card, #page-timetable.on .card{border-radius:16px}
+  #page-timetable .card{overflow:visible}          /* 大课表三拷贝不裁切 */
+  input,select,textarea{border-radius:10px}
+  .btn{border-radius:999px}
+  .card{margin-bottom:12px;padding:14px}
+  .page,.page .card{--line:rgba(127,138,160,.16)}  /* 分割线淡化（深浅色同透明度） */
+  .card{border-color:rgba(127,138,160,.16)}
+  #page-home.on .page-title,#page-att.on .page-title,
+  #page-home.on .chead h2,#page-att.on .chead h2{font-size:22px}
+  #page-home.on .card h2,#page-att.on .card h2{font-size:15px}
+  #page-home.on .hint,#page-att.on .hint,
+  #page-home.on .page-sub,#page-att.on .page-sub{font-size:12px}
+  #page-home.on .m2-stat .num,#page-home.on .v1-n b,#page-att.on .sumrow b{font-size:22px}
+  @media (prefers-color-scheme: dark){
+    .card{box-shadow:0 6px 20px rgba(0,0,0,.35)}
+  }
+}
+
 </style>
 </head>
 <body>
