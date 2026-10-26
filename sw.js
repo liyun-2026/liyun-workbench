@@ -397,7 +397,13 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    全部收在 @media (min-width:1100px)，<1100 一字不动；无新增静态文件 → VERSION 加一。 */
 /* v91：修复校名头/页脚蓝章不显示 —— base64 src 把「data:image/png;base64,」前缀
    写了两遍导致整张图加载失败（xf_check 骨架断言抓出）。无静态文件变化 → VERSION 加一。 */
-VERSION = 'v93'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v94（VoxOS 5.14）：① 备份提醒金色横幅下线（删 App.checkBackup 及其 boot 调用；
+   UI.banner 系统保留——Health 巡检横幅仍在用）；备份提醒转为一条常驻系统通知
+   （==XF6== 向 Store 'notices' 注入固定 id 记录，全部通知流自然出现）。
+   ② 页脚清理：删「学生数据仅在本机与授权账号间同步」、快速入口改两列 4+4、
+   「关于系统」只留两行（删 splash 版句与 liyun2026.top 展示网址）。
+   无新增静态文件 → VERSION 加一。 */
+VERSION = 'v94'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：
