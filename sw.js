@@ -410,7 +410,13 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    换传媒高校剪影实拍版（用户验收方案二：AI 底图 base64 内嵌 121/145KB，
    上部压暗保字 + 下缘渐白融入 #fff 圆角登录板 + 金杠衬线文案）。第 1/3 屏与
    轮播结构、登录表单零触碰。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v96'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+/* v97（VoxOS 5.17）：① 删旧版入场动画 —— #splash 开屏层 DOM/CSS（金印落章+金晕）、
+   apple-touch-startup-image 启动图清单、Auth._splashOff 及全部调用与 6 秒兜底、
+   SW 换版的 __swPendingUpdate/KEY_QUIET/_splashStillUp 联动全部退役；
+   换版守门只留「30 秒未交互」与「看板空闲」两条。打开即见页面。
+   ② mtabbar 修复 —— 去 max-width:390 与居中 transform（全宽贴边）、深色随
+   --paper 令牌翻转不再白底、深底文字对比度达标。无新增静态文件 → VERSION 加一。 */
+VERSION = 'v97'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

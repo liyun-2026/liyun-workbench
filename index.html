@@ -29,43 +29,6 @@
 <meta name="theme-color" content="#f6f5f2">
 <!-- 深色模式那一枚。登录后由 Port.syncChrome() 按当前端口改写这两枚。 -->
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311">
-<!-- 开屏那枚融合标是第一屏里唯一的位图，早点开始下载，别等解析到 body 才发请求 -->
-<link rel="preload" as="image" href="assets/brand-lock.png">
-<!-- iPhone 系统启动图：按机型分辨率各配一张（深浅色各一套），盖住
-     「点开图标 → 页面还没解析出来」那段空白。内容＝开屏层的静止形态，
-     所以切到页面时看不出接缝。
-     ⚠️ 下面这份清单由 test/make_splash_shots.py 自动生成，不要手改；
-        要加机型就改那个脚本里的 SIZES 再重跑。 -->
-<!-- ==== 开屏图清单 START ==== -->
-<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-640x1136.png">
-<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (prefers-color-scheme: dark)" href="assets/splash/splash-640x1136-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-750x1334.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (prefers-color-scheme: dark)" href="assets/splash/splash-750x1334-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1125x2436.png">
-<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1125x2436-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1080x2340.png">
-<link rel="apple-touch-startup-image" media="(device-width: 360px) and (device-height: 780px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1080x2340-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1170x2532.png">
-<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1170x2532-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1179x2556.png">
-<link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1179x2556-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1206x2622.png">
-<link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1206x2622-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1242x2208.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1242x2208-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="assets/splash/splash-828x1792.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (prefers-color-scheme: dark)" href="assets/splash/splash-828x1792-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1242x2688.png">
-<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1242x2688-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1260x2736.png">
-<link rel="apple-touch-startup-image" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1260x2736-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1284x2778.png">
-<link rel="apple-touch-startup-image" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1284x2778-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1290x2796.png">
-<link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1290x2796-dark.png">
-<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="assets/splash/splash-1320x2868.png">
-<link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (prefers-color-scheme: dark)" href="assets/splash/splash-1320x2868-dark.png">
-<!-- ==== 开屏图清单 END ==== -->
 <!-- 字体已内嵌，无需再 preload（preload 一个用不上的字体会被浏览器警告） -->
 
 <style>
@@ -125,110 +88,6 @@
       url(assets/liyun-xingshu.woff2) format('woff2');
   font-display:block;
 }
-/* ==== 开屏层 START ==== */
-/* 开屏层：HTML 一解析就显示，替代 PWA 启动空档的黑屏。
-   ⚠️ 这里刻意**不做入场动画**（旧版「圆盘旋转进入 / 文字上浮」那套已删）。
-   开屏层要和 iPhone 的系统启动图无缝接上，而启动图是一张静态图、内容＝本页的静止形态。
-   若这里再做入场动画，启动图切过来的一瞬元素会先整个消失再冒出来，肉眼就是一闪。
-   所以只留**持续运动**：金线滑动 + 暖金晕呼吸 —— 第 0 帧就等于静止形态，
-   接缝看不出来，而且「一打开就有东西在动」。
-   🔴 2026-09-29 用户：「可以把开屏动画拉到两秒多……你开屏动画太快了，它还会闪第二次
-   去进行这个刷新，所以没有必要。」→ 整套动画按 1.7~1.75 倍放慢，保底显示
-   1200ms → 2400ms（见 Auth._splashOff 的 SPLASH_MIN），动画差不多演完正好进主界面。
-   ⚠️ 放慢时**每一处 delay 都按同一比例缩放**，让所有动画在 t=0 的相位与旧版完全一致 ——
-   系统启动图（assets/splash/*）渲染的就是这个 t=0 帧，相位不变 = 那 28 张图不用重出，
-   开屏层与系统启动图的接缝也依旧看不出。改时序前先照这条规矩来。
-   test/make_splash_shots.py 按下面同一段 CSS 渲染启动图，两边不会跑偏。 */
-#splash{
-  position:fixed;inset:0;z-index:120;background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:opacity .7s var(--ease);
-}
-#splash.off{opacity:0;pointer-events:none}
-/* 暖金晕：呼吸式明暗，等待期间始终有动静 */
-#splash .s-halo{
-  position:absolute;left:50%;top:50%;width:min(340px,74vw);aspect-ratio:1;
-  border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle, rgba(201,171,124,.22), rgba(201,171,124,0) 68%);
-  animation:s-breathe 3.4s ease-in-out infinite;
-}
-  /* 动画2：古铜金圆环「画」出来 + 融合标落在底板上淡入（底板让金字纹路更清晰） */
-  #splash .s-stage{position:relative;width:min(290px,72vw);height:min(290px,72vw);margin-top:6px;
-    display:flex;align-items:center;justify-content:center}
-  #splash .s-ring{position:absolute;inset:0;margin:auto;width:100%;height:100%;overflow:visible;
-    animation:s-ring-spin 2.6s var(--ease) -.65s both}
-  /* 金环「描绘」1.9s 画完（含负延迟，落在 t+1.55s）—— 必须短于 JS 那边
-     SPLASH_MIN=2400ms 的保底显示时长，否则开屏收掉时环还没画完，等于白画
-     （见 Auth._splashOff）。测试 test/sw_reload_check.mjs 有源码级护栏守着这对数字。 */
-  #splash .s-ring circle{fill:none;stroke:var(--gold);stroke-width:2;stroke-linecap:round;
-    stroke-dasharray:578;stroke-dashoffset:578;animation:s-ring-draw 1.9s var(--ease) -.35s forwards}
-  #splash .s-board{
-    position:relative;width:74%;aspect-ratio:1024/432;
-    display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(125% 125% at 50% 36%, #fffdf8 0%, #f4eee2 58%, #ece2cf 100%);
-    border:1px solid rgba(201,171,124,.55);border-radius:16px;
-    box-shadow:0 10px 28px rgba(120,90,40,.16), inset 0 0 0 4px rgba(255,255,255,.6);
-    animation:s-board-in 1.2s var(--ease) both;
-  }
-  #splash .s-lock{display:block;width:86%;height:auto;aspect-ratio:1024/432;
-    filter:drop-shadow(0 1px 2px rgba(120,90,40,.28));
-    animation:s-lock-in 1.4s var(--ease) .45s both}
-  @keyframes s-ring-spin{from{transform:rotate(-10deg) scale(.96)}to{transform:rotate(0) scale(1)}}
-  @keyframes s-ring-draw{from{stroke-dashoffset:578}to{stroke-dashoffset:0}}
-  @keyframes s-board-in{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
-  @keyframes s-lock-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-/* 带字距的居中文字必须 text-indent = letter-spacing，否则整行左偏半个字距 */
-#splash .s-bar{position:relative;width:150px;height:4px;border-radius:2px;background:var(--line);margin-top:40px;overflow:hidden}
-/* 进度条做成「一直滑」的不确定态：
-   旧版是 0→58% 长到一半就停住 —— 等超过 2.2 秒就看着像卡死。
-   现在永远在动，等多久都不显卡。
-   animation-delay 取负值是故意的：让第 0 帧就停在「已经滑到一半」的位置，
-   否则启动图上只有一条空轨道，看着像没开始。
-   ⚠️ 这个负延迟 test/make_splash_shots.py 会原样抄走，所以启动图和页面第一帧同相。
-   ⚠️ 2026-09-29 整体放慢时这一条**刻意没动**（1.5s / -.55s 保持原值）：它的第 0 帧
-   相位就是启动图上那条已滑到一半的金线，动它就得重出 28 张启动图。别的动画放慢
-   都按同一比例缩放 delay，此条是唯一例外（也是这套图唯一的相位锚点）。 */
-#splash .s-bar i{display:block;height:100%;width:44%;background:var(--gold);border-radius:2px;animation:s-bar-run 1.5s var(--ease) -.55s infinite}
-#splash .s-tag{
-  position:relative;
-  font-family:'LiYunXingShu','Kaiti SC','STKaiti',serif;
-  font-size:17px;color:var(--text-dim);margin-top:20px;letter-spacing:.35em;text-indent:.35em;
-}
-#splash .s-org{
-  position:relative;
-  font-size:12px;color:var(--text-dim);opacity:.85;margin-top:14px;
-  letter-spacing:.3em;text-indent:.3em;
-}
-/* ==SPLASH-V81== 新入场动画：金印落章 + 两圈金晕扩散 + 金句显影。
-   只在「已记住账号直接进系统」时出现（未登录时 DOM 已整体移除）。
-   旧的 s-ring/s-board/s-bar 结构与动画已从 DOM 摘除，相关规则留作历史不再命中。
-   ⚠️ 系统启动图（assets/splash/*，28 张）仍是旧版 t=0 帧渲染——PWA 装机首帧与新动画
-   有一瞬风格差，属已知可接受；要完全一致需重跑 test/make_splash_shots.py。 */
-#splash .s-stage2{position:relative;width:min(200px,46vw);aspect-ratio:1;
-  display:flex;align-items:center;justify-content:center;margin-top:-8px}
-#splash .s-seal{position:relative;z-index:2;width:102px;height:auto;
-  filter:drop-shadow(0 8px 20px rgba(120,90,40,.30));
-  animation:s-stamp .6s cubic-bezier(.2,.9,.3,1.18) both}
-#splash .s-pulse{position:absolute;inset:0;margin:auto;width:102px;height:102px;
-  border-radius:50%;border:1.5px solid var(--gold);opacity:0;pointer-events:none}
-#splash .s-pulse.p1{animation:s-pulse 1s var(--ease) .16s both}
-#splash .s-pulse.p2{animation:s-pulse 1s var(--ease) .46s both}
-@keyframes s-stamp{0%{opacity:0;transform:scale(1.9) rotate(-8deg)}62%{opacity:1;transform:scale(.96) rotate(1deg)}100%{opacity:1;transform:none}}
-@keyframes s-pulse{0%{opacity:.55;transform:scale(.8)}100%{opacity:0;transform:scale(2.1)}}
-/* ⚠️ 2026-09-29 删掉 s-disc-in / s-wave-in / s-name-in 三条 keyframes：
-   它们是「圆盘旋转进入 / 文字上浮」那套旧开屏留下的，元素早没了（上面注释里
-   写明了那套已删），只剩三条死定义飘在这儿 —— test/font_embed_check.mjs 的
-   开屏判据还在找它们的 `.s-name`，一直取不到样、白挂 3 条。一并清了。 */
-@keyframes s-bar-run{from{transform:translateX(-104%)}to{transform:translateX(232%)}}
-@keyframes s-breathe{
-  0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(.94)}
-  50%{opacity:1;transform:translate(-50%,-50%) scale(1)}
-}
-@media (prefers-reduced-motion: reduce){
-  #splash .s-halo,#splash .s-bar i{animation:none}
-  #splash .s-bar i{width:58%;transform:none}
-}
-/* ==== 开屏层 END ==== */
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#141311;
@@ -1527,12 +1386,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
      （胶囊退场后 120px 空洞太大，统一收成一条）。 */
 .mtabbar{
   --m-blue:#4a5c8c;                       /* 样张 --blue：选中项高亮色 */
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:390px;
+  position:fixed;bottom:0;left:0;right:0;  /* ==5.17== 全宽贴边：去 390 上限与居中 transform（大屏手机两侧缝） */
+  width:100%;
   background:#fff;
   border-top:1px solid var(--line);
   display:none;                            /* 桌面 / 未登录门盖住时不占视觉 */
-  padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);  /* 整条吃掉 home-indicator 区，底缘不露底色 */
   z-index:50;
 }
 .mtabbar:empty{display:none}               /* 没渲染出 Tab（未登录）就不立着一条空栏 */
@@ -1550,6 +1409,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .mtabbar button.on .ico::before{
   content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);
   width:3px;height:3px;border-radius:50%;background:var(--gold);   /* 样张：选中项上方金点 */
+}
+/* ==5.17== 深色：bar 随令牌翻深（#18211E = 学生端深色 --paper 同值，mtabbar 在页作用域外拿不到令牌，硬编码同值）*/
+@media (prefers-color-scheme: dark){
+  .mtabbar{background:#18211E;border-top-color:#2c3835}
+  .mtabbar button{color:#8f97ab}           /* 深底未选中：≥4.5:1 */
+  .mtabbar button.on{color:#b7c3f5}        /* 深底选中：亮化同族蓝（--m-blue 深底上只有 3.2:1） */
 }
 @media (max-width:1099.98px){
   .mtabbar{display:flex}
@@ -3915,44 +3780,6 @@ var Icon = {
 </script>
 
 
-<!-- ==== 开屏层 START ==== -->
-<!-- 开屏层：本地资源秒开，替代启动黑屏；App 就绪后由 JS 淡出移除。
-     ⚠️ 结构要和 assets/splash/ 里的系统启动图长得一模一样 ——
-     那批图是 test/make_splash_shots.py 照这段结构渲染的，改这里就要重出图。 -->
-<div id="splash" aria-hidden="true">
-  <div class="s-halo"></div>
-  <div class="s-stage2">
-    <span class="s-pulse p1"></span>
-    <span class="s-pulse p2"></span>
-    <img class="s-seal" src="assets/seal-boyi.png" alt="博艺教育 · 砺蕴" draggable="false">
-  </div>
-</div>
-<script>/* 记下开屏出现的那一刻，_splashOff 靠它保证开屏至少完整显示一小段，不会一闪而过 */
-window.__splashT0 = performance.now();
-/* 这一趟是不是「系统自己在后台刷的」？是的话直接撤掉开屏层 —— 用户已经在看界面了，
-   再放一遍入场动画就是「跳两次」。标记读后即清：之后用户自己按 F5，开屏照常出现。
-   （下标记的两处：SW 换版重载、令牌失效重载，都在各自出事的地方写这个 key。） */
-/* v81：开屏只服务「已记住账号直接进系统」这一条路。
-   未登录（没有缓存档案）→ 开屏整个跳过，第一眼就是 v80 新登录门，不再重复演一遍品牌动画。
-   判断依据：Store 的机密档前缀 bysdash$secret: 下有没有 me（Store 此刻可能还没定义，直接摸 localStorage）。 */
-try {
-  window.__liyunAutoEnter = !!localStorage.getItem('bysdash$secret:me');
-  if (!window.__liyunAutoEnter) {
-    var _sp0 = document.getElementById('splash');
-    if (_sp0 && _sp0.parentNode) _sp0.parentNode.removeChild(_sp0);
-    window.__splashT0 = -1e9;      // 双保险：_splashOff 到了也立刻到期
-  }
-} catch(e) { window.__liyunAutoEnter = false; }
-try {
-  if (sessionStorage.getItem('liyun_quiet_reload') === '1') {
-    sessionStorage.removeItem('liyun_quiet_reload');
-    var _sp = document.getElementById('splash');
-    if (_sp && _sp.parentNode) _sp.parentNode.removeChild(_sp);
-    window.__splashT0 = -1e9;      // 双保险：万一标记读掉了，_splashOff 也会立刻到期
-  }
-} catch (e) {}
-</script>
-<!-- ==== 开屏层 END ==== -->
 
 <!-- ==== 学生端整页水印 START ====
      只有学生端会显示（body.stu 时才 display:block），教务/老师端没有。
@@ -6677,7 +6504,7 @@ const Health = {
 
   /* ── 自动巡检 ─────────────────────────────────────────── */
 
-  /** 进工作台时挂上。延迟几秒，别抢开屏那一时的带宽 */
+  /** 进工作台时挂上。延迟几秒，不占启动那一刻的带宽 */
   boot(){
     /* 巡检页只有首位教务和总教务进得去：别的角色连这一页都没有，
        后台就别跑探针、别挂红点和横条了 —— 白白耗跨境流量还吓人。 */
@@ -7169,10 +6996,6 @@ const App = {
   /** 登录成功后进入工作台 */
   boot(){
     this._booted = true;    /* 供后台校验（_recheck）判断界面是否已经摆出来 */
-    /* ⚠️ 已经登录（刷新 / 重新打开）时，auth 走的是 boot() 这条线，
-       不再经过登录门的 show()/hide()，开屏层就没人收 —— 只能干等最后那个
-       6 秒兜底计时器，等于每次刷新都要看 6 秒开屏。这里必须显式收掉。 */
-    Auth._splashOff();
     this.renderChrome();
     Greet.start();                              // 左上角问候 + 今日时钟，每秒走一格
     if (Auth.isStaff()) Settings.initRules();   // 量化占位细则，只有教务这边需要
@@ -7185,7 +7008,7 @@ const App = {
     Staff.reset();                              // 换了账号，老师名单缓存作废
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
     else Sync.init();
-    Health.boot();        // 自动巡检：延后几秒跑，不占开屏那一时的带宽
+    Health.boot();        // 自动巡检：延后几秒跑，不占启动那一刻的带宽
     /* 学生换设备要密钥：不挡第一屏（后台查），查到没登记才把门摆出来 */
     try { StuDev.check(); } catch(e){}
   },
@@ -7229,10 +7052,8 @@ const App = {
       if (!ok){
         /* 令牌已失效（被撤 / 过期）。刚才是靠本机缓存档案进的界面，
            这时直接重载最干净 —— 重载后走「没登录」那条路，稳稳停在登录门，
-           不会把上一个账号的界面留在屏幕上。
-           这一趟也是系统自己刷的，别再放开场动画（同 SW 换版那条路径）。 */
+           不会把上一个账号的界面留在屏幕上。 */
         if (this._booted){
-          try { sessionStorage.setItem('liyun_quiet_reload', '1'); } catch(e){}
           location.reload();
         }
         else Auth.refreshGate();
@@ -15546,7 +15367,6 @@ const Auth = {
     if (gUser && !gUser.value) gUser.value = Store.get('_lastLoginUser', '');
     this._paintGate();
     g.classList.add('on');
-    this._splashOff();
   },
 
   /* 联网校验回来、模式定下来之后刷一遍门上的说明。
@@ -15556,43 +15376,7 @@ const Auth = {
     if (!g || !g.classList.contains('on')) return;
     this._paintGate();
   },
-  hide(){ document.getElementById('gate')?.classList.remove('on'); this._splashOff(); },
-  /* 收开屏层。进 App 或弹出登录门都算「就绪」，谁先到谁收。
-     保底显示 SPLASH_MIN=2.4 秒：开屏是这系统唯一的「品牌时刻」，太短会一闪而过像闪屏故障；
-     整套动画最后收束在 t+1.85s（金环 1.9s 带 -0.35s 负延迟 → 1.55s；融合标 1.4s 起
-     .45s 延迟 → 1.85s），2.4 秒收掉正好是「动画演完 → 落定小半秒 → 淡出进场」。
-
-     ⭐ 这里同时是**换版的黄金窗口**。这套壳子在境外节点，新 SW 装完要下 index.html
-     （644KB）外加十几个资源（含三档品牌标），跨境实测 5~10 秒；若这一趟已经发现
-     新版在路上（window.__swPendingUpdate，由末尾 SW 注册那段置位），就把开屏多留一会儿、
-     最多到 SPLASH_MAX=4.5 秒，让换版那次 reload 落在开屏还盖着的时候 ——
-     重载那一趟会跳过开屏（KEY_QUIET），用户看到的是一整段连续动画，
-     而不是「界面出来了又闪一下刷新」（用户 2026-09-29：「它还会闪第二次去进行这个刷新，
-     所以没有必要」）。赶不上就照常收屏，交给 OPEN_GRACE 那条路兜底，绝不把人卡在开屏上。
-     force=true 立刻收（末尾那个 6 秒兜底计时器用，不再二次等待）。 */
-  _splashOff(force){
-    const sp = document.getElementById('splash');
-    if (!sp || sp.classList.contains('off')) return;
-    /* v81：未登录时开屏 DOM 已整体移除（见装载脚本），本函数自然空转；
-       已记住账号的入场动画总长 ~1.5s（落章 .6s + 双晕 1s + 金句 .9s，1.5s 收正好收在金句显影后）。 */
-    const SPLASH_MIN = window.__liyunAutoEnter ? 1500 : 0, SPLASH_MAX = 4500, FADE_OUT = 700;
-    const t0 = window.__splashT0 || performance.now();
-    const age = () => performance.now() - t0;
-    const drop = () => {
-      const el = document.getElementById('splash');
-      if (!el || el.classList.contains('off')) return;
-      el.classList.add('off');
-      setTimeout(() => el.remove(), FADE_OUT + 60);   // 等淡出走完再摘掉
-    };
-    const tick = () => {
-      const el = document.getElementById('splash');
-      if (!el || el.classList.contains('off')) return;
-      /* 换版还在路上、而且还没到等待上限 → 再等 120ms 看看它能不能赶在开屏期完成 */
-      if (!force && window.__swPendingUpdate === true && age() < SPLASH_MAX) { setTimeout(tick, 120); return; }
-      drop();
-    };
-    setTimeout(tick, force ? 0 : Math.max(0, SPLASH_MIN - age()));
-  },
+  hide(){ document.getElementById('gate')?.classList.remove('on'); },
   err(msg){ const e = document.getElementById('gErr'); if (e) e.textContent = msg || ''; },
   busy(on){
     const b = document.getElementById('gBtn');
@@ -19778,93 +19562,32 @@ try {
 } catch (e) {}
 
 App.init();
-/* 开屏层兜底：万一初始化卡住，最多 6 秒后强制淡出，绝不让人卡在开屏。
-   传 true = 立刻收：这是最后一道闸，不再为「等换版」二次排队（正常路径最长
-   2.4s 保底 + 4.5s 等换版上限 = 4.5s 内必收，留了 1.5s 余量）。 */
-setTimeout(() => { const sp = document.getElementById('splash'); if (sp) Auth._splashOff(true); }, 6000);
-
 /* ── Service Worker：把「点开图标 → 看见东西」中间那段跨境下载盖掉 ──
    这个站部署在境外节点，每次冷启动光握手就要约一秒；没有 SW 时那一秒是白屏。
-   装上之后从第二次打开起，index.html 直接走本地缓存，开屏动画立刻就能动。
+   装上之后从第二次打开起，index.html 直接走本地缓存，秒开。
 
-   ⭐ 更新机制（2026-09-29 再放宽）：
-   新 SW 装完 → skipWaiting → activate → claim → 浏览器自动派发 controllerchange。
-   页面借这次机会重载一下，每个会话最多重载一次；重载那一趟跳过开屏
-   （见上面 __quietReload 那段），用户看到的永远是一整段连续的入场动画。
-
-   为什么不能只看一个内存变量 window._swReloading：reload 一次它就被重置了，
-   于是挡不住第二次；而 SW 有两条通知路径（controllerchange + shell-updated），
-   部署刚推上 CDN 的 30~75 秒里缓存指纹还可能对不上，一进站能连跳两三次开场动画。
-   实测（test/splash_probe.mjs）：首次访问 2 次文档加载 = 开屏播 2 遍，
-   而且第二次落在 t+6.7s / t+18s —— 人已经在用了才突然重放，所以「感觉像故障」。
-
-   🔴 2026-09-29 用户直接问：「桌面上的砺蕴系统，我怎么见没有更新呢？」
-   查下来不是没更新（线上、本机缓存都已是最新版），是**换版永远赶不上**：
-   这套壳子在境外节点，新 SW 装完要下 index.html（644KB）外加十几个资源，
-   跨境实测 5~10 秒；而开屏只有 1.2 秒 + 0.55 秒淡出 —— 按老规矩「只在开屏期换」，
-   controllerchange 回来时开屏早收了，于是**发版后第一次打开必然是旧版**，
-   得关掉窗口再开一次才是新的。看板那块 24 小时常亮的屏更是永远换不了（它从不重开）。
-
-   现在改成三种情况都允许静默换版，共同前提是**用户还没开始用**：
-     ① 开屏层还盖着        —— 老规矩，换来的是「一整段连续入场动画」
-     ② 打开 30 秒内、用户一次都没动过（没点 / 没按 / 没滚 / 没输入）
-     ③ 看板屏（board-mode）空闲 2 分钟 —— 只读屏没人碰，挂着自己换到新版
+   ⭐ 换版机制（v97 起无开屏层）：新 SW 装完 → skipWaiting → activate → claim
+   → 浏览器派发 controllerchange，页面借此机会重载一次（每会话最多一次）。
+   两种「用户还没开始用」的情况才允许静默换版：
+     ① 打开 30 秒内、用户一次都没动过（没点 / 没按 / 没滚 / 没输入）
+     ② 看板屏（board-mode）空闲 2 分钟 —— 只读屏没人碰，挂着自己换到新版
    用户一旦动过手就一律不换，留到下次打开（新 SW 已装好、缓存已是新版），
    不会把正在填的表单、正在看的页面刷掉。配套：常亮的屏每 20 分钟主动
    registration.update() 问一次有没有新版（浏览器默认只在导航时才会去问）。
-
-   ⭐ v46（2026-09-29 晚，用户：「可以把开屏动画拉到两秒多，给你更多的时间……
-   它还会闪第二次去进行这个刷新，所以没有必要」）：
-   思路是**把换版尽量吃进开屏期**，让「偷偷换掉」而不是「当面刷一下」。三件事：
-     ① 开屏整体放慢到 2.4 秒保底（动画 t+1.85s 演完，见 CSS 与 Auth._splashOff）；
-     ② 页面一加载就主动 reg.update() 问一次有没有新版，不等 20 分钟那一轮；
-     ③ 发现新版在路上就给 window.__swPendingUpdate 置位，开屏层见到它会把开屏
-        多留一会儿（上限 4.5 秒）等换版重载发生 —— 重载那趟跳过开屏，用户看到的
-        是一整段连续动画。赶不上就照常收屏，交给上面的 OPEN_GRACE 兜底。
-   一句话：开屏期的重载 = 用户看不见；开屏后的重载 = 眼前闪一下。所以宁可把开屏
-   用来等换版。（代价：开屏多显示 2 秒。用户明确说要换这个。）
+   （历史 v35~v46 的开屏期换版策略随 5.17 删除入场动画一并退役。）
 
    调试时加 ?nosw=1 可跳过注册，直接读源文件。 */
 if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
-  /* ⭐ v46：一进来就**主动问一次有没有新版**（浏览器默认只在导航时才会去问 sw.js），
-     并把「有新版在路上」告诉开屏层（window.__swPendingUpdate）。
-     为什么要这么急：开屏期是唯一能「悄悄换版」的窗口 —— 开屏还盖着时重载，
-     重载那趟跳过开屏，用户看到的是一整段连续动画。要是等开屏收了才发现新版，
-     重载就变成用户眼前的「界面出来了又闪一下」（他 2026-09-29 明确说这个没必要）。
-     首次安装不置位：那趟本来就没有旧版要换（hadController=false 也不重载）。 */
-  const _watchUpdate = (reg) => {
-    try {
-      reg.addEventListener('updatefound', () => {
-        const sw = reg.installing;
-        if (!sw) return;
-        if (!navigator.serviceWorker.controller) return;   // 首次安装：没有旧版要换，不必等
-        sw.addEventListener('statechange', () => {
-          if (sw.state === 'installing' || sw.state === 'installed' || sw.state === 'activating') {
-            window.__swPendingUpdate = true;
-          } else if (sw.state === 'activated') {
-            /* 换版完了但这一趟没重载（比如用户已经在用）→ 4 秒后撤掉标记，
-               免得开屏层一直以为「有新版在路上」 */
-            setTimeout(() => { window.__swPendingUpdate = false; }, 4000);
-          } else { window.__swPendingUpdate = false; }   // redundant：这版装失败了
-        });
-      });
-    } catch (e) {}
-  };
   navigator.serviceWorker.register('sw.js')
-    .then((reg) => { _watchUpdate(reg); try { reg.update(); } catch (e) {} })
+    .then((reg) => { try { reg.update(); } catch (e) {} })
     .catch(() => {});
   /* 这一趟之前有没有 SW 在管？没有 = 这是**首次安装**，本来就要从网上取一次，
      页面内容已经是最新的，重载纯属白跑一趟 → 直接不重载。 */
   const hadController = !!navigator.serviceWorker.controller;
   const KEY_DONE = 'liyun_sw_reloaded';     // 本会话已经为换版重载过（不消费）
-  const KEY_QUIET = 'liyun_quiet_reload';   // 下一趟别放开屏（读后即清）
   const OPEN_GRACE = 30000;                 // 打开后 30 秒内还没动手 → 允许换版
   const IDLE_GAP   = 120000;                // 看板那种常亮的屏：空闲 2 分钟 → 允许换版
   const CHECK_EVERY = 20 * 60 * 1000;       // 常亮屏每隔 20 分钟主动问一次有没有新版
-  const _splashStillUp = () => {
-    const sp = document.getElementById('splash');
-    return !!sp && !sp.classList.contains('off');
-  };
   /* 用户动过手没有？只要碰过一下（点、按、滚、输入），就再也不主动换版 ——
      宁可让他下次打开时自然生效，也不能把正在填的表单/正在看的页刷掉。 */
   let _touched = false, _lastAct = Date.now(), _openedAt = Date.now();
@@ -19878,7 +19601,6 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   };
   /* 这一趟能不能静默换版 —— 三种「用户还没开始用」的情况，见上面注释。 */
   const _mayQuietReload = () => {
-    if (_splashStillUp()) return true;                                // ① 开屏期
     if (!_touched && Date.now() - _openedAt < OPEN_GRACE) return true; // ② 刚打开没动手
     /* ③ 看板那块常亮的只读屏：没人操作、也没停在输入框里 → 空闲久了直接换 */
     if (_boardMode() && !_editingNow() && Date.now() - _lastAct > IDLE_GAP) return true;
@@ -19894,7 +19616,6 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
     window._swReloading = true;
     try {
       sessionStorage.setItem(KEY_DONE, '1');
-      sessionStorage.setItem(KEY_QUIET, '1');         // 让重载后那一趟跳过开屏
     } catch (e) {}
     location.reload();
   };

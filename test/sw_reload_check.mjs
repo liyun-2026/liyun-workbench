@@ -162,11 +162,8 @@ try {
   console.log('\n=== 3. 用户动过手：不该重载 ===');
   await cdp.eval(`(sessionStorage.clear(), true)`);
   await go(`${BASE}/?case=3`);
-  /* ⚠️ 必须**真等到开屏收掉**再动手。开屏 v46 起保底 2.4s + 淡出 0.7s，
-     用固定 sleep 会赶在开屏还盖着的时候派发事件 —— 那时走的是「开屏期」分支，
-     而那条分支本来就该换版，这条用例就白测了（改前是 sleep(1300)，开屏一拉长当场失效）。 */
-  await waitFor(async () => await cdp.eval(`!document.getElementById('splash')`),
-    { what: '开屏收掉', tries: 40, gap: 300 });
+  /* v97 起开屏层已整体移除：页面就绪即可派发交互事件（无「开屏期」分支可踩）。 */
+  await sleep(800);
   await cdp.eval(`(window.dispatchEvent(new Event('pointerdown', { bubbles: true })), true)`);
   {
     const before = loads;
@@ -210,9 +207,12 @@ try {
       assert(SRC.includes(`'${ev}'`), '少了 ' + ev + ' —— 那种操作就不算「动过手」了');
     return 7 + ' 种';
   });
-  t('开屏期这条老规矩还在（换来的是一整段连续入场动画）', () => {
-    assert(/if \(_splashStillUp\(\)\) return true;/.test(FLAT), '开屏期分支没了');
-    return '在';
+  t('开屏层已整体移除（v97：打开即见页面）', () => {
+    assert(!FLAT.includes('_splashStillUp'), '_splashStillUp 判据还残留 —— 开屏早没了');
+    assert(!FLAT.includes('__swPendingUpdate'), '__swPendingUpdate 开屏等待联动还残留');
+    assert(!FLAT.includes('Auth._splashOff'), 'Auth._splashOff 还残留');
+    assert(!FLAT.includes('id="splash"'), '#splash DOM 还残留');
+    return '已退役';
   });
   t('打开 30 秒内未交互也算「还没开始用」', () => {
     assert(/const OPEN_GRACE = 30000;/.test(FLAT), 'OPEN_GRACE 不是 30 秒');
@@ -220,47 +220,26 @@ try {
     return '在';
   });
 
-  /* ── v46：开屏拉长 + 把换版吃进开屏期（用户：「把开屏动画拉到两秒多」） ── */
-  console.log('\n=== 6. 开屏时长把换版吃进去：源码判据 ===');
-  const sm = /const SPLASH_MIN = (\d+), SPLASH_MAX = (\d+), FADE_OUT = (\d+);/.exec(FLAT);
-  const splashMin = sm && +sm[1], splashMax = sm && +sm[2], fadeOut = sm && +sm[3];
-  /* 各处动画的真实收束时刻（负延迟＝提前开始，正延迟＝往后挪） */
-  const ringDraw = /s-ring-draw (\d+(?:\.\d+)?)s var\(--ease\) -([\d.]+)s/.exec(FLAT);
-  const lockIn = /s-lock-in (\d+(?:\.\d+)?)s var\(--ease\) ([\d.]+)s/.exec(FLAT);
-  const boardIn = /s-board-in (\d+(?:\.\d+)?)s var\(--ease\) both/.exec(FLAT);
-  t('开屏保底 ≥2 秒（用户要求「拉到两秒多」，不是一闪而过）', () => {
-    assert(sm, '源码里找不到 SPLASH_MIN/SPLASH_MAX/FADE_OUT —— 开屏时长没人管了');
-    assert(splashMin >= 2000, `SPLASH_MIN 只有 ${splashMin}ms —— 又变回一闪而过`);
-    return splashMin + 'ms';
+  /* ── v97：开屏整层退役（用户 2026-10-26：删旧版入场动画，打开即见页面） ── */
+  console.log('\n=== 6. 开屏退役：源码判据 ===');
+  t('开屏 DOM/CSS/兜底全部清零', () => {
+    assert(!FLAT.includes('id="splash"'), '#splash DOM 还在');
+    assert(!/id="splash"|#splash\s*\{/.test(SRC), '#splash DOM/CSS 还在');
+    assert(!FLAT.includes("getElementById('splash')"), '6 秒兜底计时器还在');
+    assert(!FLAT.includes('apple-touch-startup-image'), 'iOS 系统启动图清单还在');
+    return '清零';
   });
-  t('整套动画都在保底时长内演完（否则等于白画）', () => {
-    assert(ringDraw && lockIn && boardIn, 'CSS 里的开屏动画名改了？解析不到 s-ring-draw / s-lock-in / s-board-in');
-    const fin = [
-      ['金环描绘', +ringDraw[1] - +ringDraw[2]],
-      ['融合标落底板', +lockIn[1] + +lockIn[2]],
-      ['底板浮现', +boardIn[1]],
-    ];
-    const last = Math.max(...fin.map(f => f[1]));
-    for (const [name, t2] of fin)
-      assert(t2 * 1000 <= splashMin - 200,
-        `${name} t+${t2.toFixed(2)}s 才演完，离保底 ${splashMin}ms 太近 —— 收屏时还在动，等于白画`);
-    return '最后收束 t+' + last.toFixed(2) + 's（保底 ' + splashMin + 'ms）';
+  t('换版守门只剩两条：30 秒未交互 + 看板空闲', () => {
+    assert(/const OPEN_GRACE = 30000;/.test(FLAT), 'OPEN_GRACE 不是 30 秒');
+    assert(FLAT.includes('!_touched && Date.now() - _openedAt < OPEN_GRACE'), '「没动过手」判断没了');
+    assert(FLAT.includes('_boardMode() && !_editingNow() && Date.now() - _lastAct > IDLE_GAP'), '看板空闲判断没了');
+    assert(FLAT.includes("const KEY_DONE = 'liyun_sw_reloaded';"), '每会话一次的 KEY_DONE 没了');
+    assert(!FLAT.includes('KEY_QUIET'), 'KEY_QUIET 还残留');
+    return '两条';
   });
-  t('开屏期遇到换版会多留一会儿（让重载落在用户看不见的时候）', () => {
-    assert(/window\.__swPendingUpdate === true && age\(\) < SPLASH_MAX/.test(FLAT),
-      '开屏层没看 __swPendingUpdate —— 换版又会等到界面出来才刷，用户看到的还是「闪第二次」');
-    assert(/_watchUpdate\(reg\); try \{ reg\.update\(\); \}/.test(FLAT),
-      '注册后没有立刻 reg.update()（浏览器只在导航时才去问，等发现新版时开屏早收了）');
-    assert(/首次安装：没有旧版要换，不必等/.test(FLAT),
-      '首次安装那条守卫没了 —— 白等一趟（那趟本来就不重载）');
+  t('注册后仍主动 reg.update() 问一次新版', () => {
+    assert(FLAT.includes('.then((reg) => { try { reg.update(); } catch (e) {} })'), 'reg.update() 主动查询没了');
     return '在';
-  });
-  t('等待上限 + 淡出仍在 6 秒兜底之内（绝不把人卡在开屏）', () => {
-    assert(splashMax + fadeOut + 60 < 6000,
-      `最长在场 ${splashMax + fadeOut}ms 顶到了 6 秒兜底，得留余量`);
-    assert(/Auth\._splashOff\(true\)/.test(FLAT),
-      '兜底计时器没传 force —— 到点了还得再排一次队');
-    return `最长 ${((splashMax + fadeOut) / 1000).toFixed(1)}s < 6s`;
   });
 
   console.log('\n────────────────────────────────────────');
