@@ -269,18 +269,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease);
 }
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ════════ 动画 ════════
-   只做「让状态变化可理解」的动画，不做炫技的。
-   这是一天开十次的工具，任何多余动效第十次看就烦了。 */
-@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.page.on > *{animation:rise .26s var(--ease) both}
-/* 错开进场，形成自上而下的节奏，只错开前几个免得末尾等太久 */
-.page.on > *:nth-child(1){animation-delay:0s}
-.page.on > *:nth-child(2){animation-delay:.03s}
-.page.on > *:nth-child(3){animation-delay:.06s}
-.page.on > *:nth-child(4){animation-delay:.09s}
-.page.on > *:nth-child(n+5){animation-delay:.12s}
+  /* 动画原则：只保留状态反馈（toast/弹层/进度），页面进场不加动效（2026-10-30 用户定稿） */
 
 .nav button,.btn,.card,.chip{transition:all var(--dur) var(--ease)}
 .btn:active{opacity:.75;transform:scale(.98)}
