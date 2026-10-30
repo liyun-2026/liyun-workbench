@@ -1132,13 +1132,38 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 /* ==SCHOOL-GATE-START== v80 学府门户登录门（≥1100 双栏影像版）──
    v80 时 <1100 走老版式；v83 起 <1100 改走下方 ==GATE-MOBILE== 块（影像轮播+白板），
    这段只管桌面。结构：左 .g-side 影像板（默认 display:none，只有这段里亮出来）+ 右 .g-main 表单。
-   登录成功后 Auth.submit 会给 .gate 挂 .reveal → 印章浮现过场约 2 秒再进门。
+   登录成功后 Auth.submit 会给 .gate 挂 .reveal → 满屏学府风过场约 1.4 秒再进门（==5.20==）。
    ⚠️ 防泄漏：.g-side / .g-roles / .g-mhero / .g-mfoot 在基础层先按死 display:none，
       窄屏绝不露头（g-mhero/g-mfoot 的手机端亮起在 GATE-MOBILE 块里做）。 */
 .gate .g-side{display:none}
 .gate .g-roles{display:none}
 .gate .g-mhero{display:none}
 .gate .g-mfoot{display:none}
+
+/* ── 登录成功过场（Auth.submit 挂 .reveal 触发）==5.20== 学府风满屏遮罩，全端共用：
+   深蓝渐变 + 博艺徽章 110px 浮现 + 衬线系统名 + 拉丁小字 + 220px 金线进度条（1.0s），
+   时序对齐 JS 1400ms（浮现 0.5s / 金线 .3s 延迟 + 1.0s ≈ 1.3s 走满）。挂在 .gate 直下
+   （原在 .g-side 内，手机端整栏 display:none 不渲染），position:fixed 满屏盖住登录门。 */
+.gs-reveal{
+  position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#243049 0%,#2c3a5c 100%);
+  opacity:0;pointer-events:none;transition:opacity .5s ease}
+.gate.reveal .gs-reveal{opacity:1;pointer-events:auto}
+.gs-reveal img{width:110px;height:110px;transform:scale(.7);opacity:0;
+  transition:all .5s cubic-bezier(.2,1.4,.4,1) .12s}
+.gate.reveal .gs-reveal img{transform:scale(1);opacity:1}
+.gs-reveal .gr-t{font-family:var(--serif);font-size:26px;letter-spacing:9px;text-indent:9px;
+  color:#f3efe6;margin-top:24px;opacity:0;transition:opacity .5s ease .3s}
+.gate.reveal .gs-reveal .gr-t{opacity:1}
+.gs-reveal .gr-sub{font-size:10px;letter-spacing:3px;text-indent:3px;color:rgba(243,239,230,.58);
+  margin-top:11px;opacity:0;transition:opacity .5s ease .42s}
+.gate.reveal .gs-reveal .gr-sub{opacity:1}
+.gs-reveal .gr-bar{width:220px;height:2px;background:rgba(201,171,124,.22);margin-top:26px;overflow:hidden}
+.gs-reveal .gr-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1s ease .3s}
+.gate.reveal .gs-reveal .gr-bar i{width:100%}
+@media (prefers-color-scheme: dark){
+  .gs-reveal{background:linear-gradient(180deg,#1a2236 0%,#222c47 100%)}
+}
 @media (min-width:1100px){
   .gate{--serif:"Noto Serif SC","Songti SC","STSong",serif;background:#f7f6f2}
   .gate .g-mhero{display:none!important}   /* v83 双保险：手机端轮播绝不进桌面 */
@@ -1207,20 +1232,6 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .gate .g-note{text-align:left}
   .gate .g-foot{position:static;margin-top:30px;padding-bottom:2px}
 
-  /* ── 登录成功过场（Auth.submit 挂 .reveal 触发）── */
-  .gs-reveal{
-    position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:radial-gradient(900px 600px at 50% 46%,rgba(20,29,49,.42),rgba(20,29,49,.92));
-    opacity:0;pointer-events:none;transition:opacity .8s ease .25s;
-  }
-  .gate.reveal .gs-reveal{opacity:1;pointer-events:auto}
-  .gs-reveal img{width:92px;height:92px;transform:scale(.6);opacity:0;transition:all .8s cubic-bezier(.2,1.4,.4,1) .45s}
-  .gate.reveal .gs-reveal img{transform:scale(1);opacity:1}
-  .gs-reveal .gr-t{font-family:var(--serif);font-size:30px;letter-spacing:10px;color:#f3efe6;margin-top:26px;opacity:0;transition:opacity .7s ease .7s}
-  .gate.reveal .gs-reveal .gr-t{opacity:1}
-  .gs-reveal .gr-bar{width:220px;height:2px;background:rgba(201,171,124,.22);margin-top:24px;overflow:hidden}
-  .gs-reveal .gr-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1.6s ease .6s}
-  .gate.reveal .gs-reveal .gr-bar i{width:100%}
 }
 /* ==SCHOOL-GATE-END== */
 
@@ -5588,11 +5599,6 @@ var Icon = {
         <div class="gs-sub">南阳博艺教育 · 专注播音艺考 22 年</div>
       </div>
       <div class="gs-foot"><span>2026—2027 学年 · 秋季学期 · 第 9 教学周</span><span>博学宏才 艺德卓绝</span></div>
-      <div class="gs-reveal" id="gReveal">
-        <img src="assets/seal-boyi.png" alt="">
-        <div class="gr-t">正在进入教务系统…</div>
-        <div class="gr-bar"><i></i></div>
-      </div>
     </div>
     <div class="g-main">
       <div class="wrap">
@@ -5625,6 +5631,12 @@ var Icon = {
         </div>
       </div>
     </div>
+  </div>
+  <div class="gs-reveal" id="gReveal" aria-hidden="true">
+    <img src="assets/seal-boyi.png" alt="">
+    <div class="gr-t">砺蕴教务系统</div>
+    <div class="gr-sub">BOYI EDUCATION · ACADEMIC ADMINISTRATION</div>
+    <div class="gr-bar"><i></i></div>
   </div>
 </div>
 <script>
@@ -15427,13 +15439,12 @@ const Auth = {
       if (!local) Store.setSecret('me', j.profile);   // 断网时靠这份进得来
       this._me = j.profile;
       this.busy(false);
-      /* v80：桌面宽屏走「学府门户」过场 —— 左栏影像放大、印章浮现约 2 秒再进门；
-         窄屏（手机端）不加戏，和以前一样立即进入。 */
-      if (window.matchMedia && matchMedia('(min-width:1100px)').matches){
+      /* ==5.20== 学府风过场：满屏深蓝渐变 + 徽章浮现 + 金线进度条，全端约 1.4 秒再进门。 */
+      {
         const g = document.getElementById('gate');
         if (g && document.getElementById('gReveal')){
           g.classList.add('reveal');
-          await new Promise(res => setTimeout(res, 2050));
+          await new Promise(res => setTimeout(res, 1400));
           g.classList.remove('reveal');
         }
       }
