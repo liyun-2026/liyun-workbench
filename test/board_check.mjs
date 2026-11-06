@@ -295,10 +295,10 @@ try {
         return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
                  r: Math.round(r.right), b: Math.round(r.bottom),
                  fs: getComputedStyle(document.getElementById('bdCode')).fontSize }; })(),
-      app: g('.app'), col: g('.col'), main: g('#main'), page: g('#page-board'), bd: g('.bd'), rows: g('.bd-rows') };
+      app: g('.app'), grid: g('.bd-grid'), main: g('#main'), page: g('#page-board'), bd: g('.bd'), rows: g('.bd-rows') };
   })()`);
   console.log('     视口 ' + dim.vw + '×' + dim.vh + ' | #page-board 子元素 ' + dim.kids.join(' , '));
-  for (const k of ['app', 'col', 'main', 'page', 'bd'])
+  for (const k of ['app', 'grid', 'main', 'page', 'bd'])
     console.log(`     ${k.padEnd(5)} x=${dim[k].x} y=${dim[k].y} ${dim[k].w}×${dim[k].h}  display=${dim[k].d} flex=${dim[k].flex}`);
 
   t('铺满整屏：page 与 .bd 都吃满视口，提醒条不让它下移', () => {
@@ -312,35 +312,37 @@ try {
     return '.bd ' + dim.bd.w + '×' + dim.bd.h + '，banner display=none';
   });
 
-  /* 纸色版：时钟在顶带右端，二维码与数字码在中间那栏 ——
-     两块的矩形仍然不能相交，这条判据一直要守。 */
-  t('时钟在顶带、打卡码在中栏，各占一层，不叠在一起', () => {
-    assert(dim.clock.b <= dim.code.y + 1,
-      '时钟底边 ' + dim.clock.b + ' 该在打卡码顶边 ' + dim.code.y + ' 之上（字号给大了会压下去）');
+  /* ==5.23== 面板化：时钟(clock 面板)与打卡码(qrcode 面板)各占一格 ——
+     两块面板的矩形不能相交（默认摆法下一左一中）。手动调序也守这条：
+     槽位几何保证任意 order 下六块面板互不叠。 */
+  const panelRects = await cdp.eval(`(() => {
+    const box = pid => {
+      const e = document.querySelector('.bd-panel[data-pid="' + pid + '"]');
+      const r = e.getBoundingClientRect();
+      return { x: Math.round(r.x), y: Math.round(r.y), r: Math.round(r.right), b: Math.round(r.bottom) };
+    };
+    return { clock: box('clock'), qrcode: box('qrcode') };
+  })()`);
+  t('时钟与打卡码各占一格面板，两块矩形不叠在一起', () => {
+    const a = panelRects.clock, b = panelRects.qrcode;
+    const overlap = a.x < b.r && b.x < a.r && a.y < b.b && b.y < a.b;
+    assert(!overlap, '时钟面板 ' + JSON.stringify(a) + ' 与打卡面板 ' + JSON.stringify(b) + ' 相交了');
     assert(dim.clock.w > 100 && dim.code.w > 200,
       '两块都该有足够的尺寸，实际时钟 ' + dim.clock.w + ' / 码 ' + dim.code.w);
-    return '时钟 ' + dim.clock.fs + '（y=' + dim.clock.y + ' 底 ' + dim.clock.b + '）→ 码 '
-         + dim.code.fs + '（y=' + dim.code.y + ' 宽 ' + dim.code.w + 'px）';
+    return 'clock ' + JSON.stringify(a) + ' ∩ qrcode ' + JSON.stringify(b) + ' = 空';
   });
 
-  /* 「看板要白色页面吧……要米白或者是黄白，不要正白晃眼」—— 用户这一轮点名的。
-     这块屏 24 小时亮着，正白 #FFF 会刺眼；米白压一点、暖一点（R ≥ G ≥ B 且不是纯白）。 */
+  /* ==5.23== 用户定稿：看板换学府风深蓝（scheme-b1 气质）——
+     深蓝渐变打底、金细线面板；不跟系统深浅色变（挂屏 24 小时是同一个样子）。 */
   const paper = await cdp.eval(`(() => {
-    const cs = getComputedStyle(document.body);
     const bd = getComputedStyle(document.querySelector('.bd'));
-    const m = (bd.backgroundColor || '').match(/\\d+/g) || [];
-    const hex = (cs.getPropertyValue('--bg') || '').trim();
-    return { varBg: hex, bg: bd.backgroundColor, rgb: m.slice(0, 3).map(Number),
-             scheme: cs.colorScheme, dark: matchMedia('(prefers-color-scheme: dark)').matches };
+    return { img: bd.backgroundImage, dark: matchMedia('(prefers-color-scheme: dark)').matches };
   })()`);
-  t('底是宣纸米白，不是正白（久看不刺眼；且不跟系统深浅色变）', () => {
-    const [r, g, b] = paper.rgb;
-    assert(paper.rgb.length === 3, '量不到底色：' + JSON.stringify(paper));
-    assert(!(r === 255 && g === 255 && b === 255), '不该是正白 #FFF（晃眼），实际 ' + paper.bg);
-    assert(r >= g && g >= b, '该是暖色（R ≥ G ≥ B），实际 ' + paper.bg);
-    assert(r >= 235 && r <= 253, '该是「米白/黄白」这一档亮度，实际 ' + paper.bg);
-    assert(paper.varBg.toUpperCase() === '#FAF7F0', '底色该钉在 #FAF7F0，实际 ' + paper.varBg);
-    return paper.bg + '（' + (paper.varBg || '') + '，系统当前' + (paper.dark ? '深色' : '浅色') + '，看板不受影响）';
+  t('底是学府风深蓝渐变（#243049→#2c3a5c），不跟系统深浅色变', () => {
+    assert(paper.img.includes('linear-gradient') && paper.img.includes('rgb(36, 48, 73)'),
+      '该是 #243049→#2c3a5c 的深蓝渐变，实际 ' + paper.img.slice(0, 120));
+    assert(!/#FAF7F0/i.test(paper.img), '宣纸米白该退役了，渐变里还留着');
+    return '深蓝渐变（系统当前' + (paper.dark ? '深色' : '浅色') + '，看板不受影响）';
   });
 
   /* 品牌标必须真的渲染出来 —— 用户对 logo 一直很在意，图上不出东西是最难发现的坏法。
@@ -350,15 +352,19 @@ try {
      「尺寸、加载、文件名全正常，只有像素看得出来」，所以判据落在像素上。 */
   const brand = await cdp.eval(`(() => {
     const img = document.querySelector('.bd-lock');
-    if (!img) return { err: '顶带里没有品牌标' };
-    const r = img.getBoundingClientRect(), top = document.querySelector('.bd-top').getBoundingClientRect();
-    const mid = document.querySelector('.bd-gate') || document.querySelector('.bd-col:nth-child(2)');
-    const mr = mid.getBoundingClientRect(), mc = mid.querySelector('.bd-lab');
+    if (!img) return { err: 'clock 面板里没有品牌标' };
+    const r = img.getBoundingClientRect();
+    const topEl = document.querySelector('.bd-panel[data-pid="clock"]');
+    if (!topEl) return { err: '没有 clock 面板' };
+    const top = topEl.getBoundingClientRect();
+    const mid = document.querySelector('.bd-panel[data-pid="qrcode"]');
+    const mr = mid.getBoundingClientRect();
     let fit = null;
-    if (mr && mc) {
+    if (mr) {
       /* ⚠️ 不能拿「子元素高度之和 + 间距」跟容器比 —— 那只在子元素恰好铺满时等价。
          老老实实量首尾两个子元素的真实上下沿，跟容器的**内容盒**（去掉上下 padding）比。 */
-      const kids = [...mid.children];
+      /* 编辑态那几个手柄/箭头按钮平时 display:none —— 量高度过滤掉，别让 0 高的框混进来 */
+      const kids = [...mid.children].filter(e => e.getBoundingClientRect().height > 0);
       const cs = getComputedStyle(mid);
       const top = mr.top + (parseFloat(cs.paddingTop) || 0);
       const bot = mr.bottom - (parseFloat(cs.paddingBottom) || 0);
@@ -502,12 +508,12 @@ try {
     return '左 ' + b[0].w + '×' + b[0].h + ' · 右 ' + b[1].w + '×' + b[1].h +
            '（原图 ' + brand.nw + '×' + brand.nh + '，净空隙 ' + b[1].gap + 'px）';
   });
-  t('中栏没被顶带挤溢出（挤出去会被 body 的 overflow:hidden 默默裁掉，图上少一行）', () => {
-    assert(brand.fit, '没量到中栏尺寸');
+  t('打卡面板没被挤溢出（挤出去会被 overflow:hidden 默默裁掉，图上少一行）', () => {
+    assert(brand.fit, '没量到打卡面板尺寸');
     assert(brand.fit.over <= 1,
-      '中栏溢出了 ' + brand.fit.over + 'px：内容 ' + brand.fit.spanH + 'px / 内容盒 ' +
+      '打卡面板溢出了 ' + brand.fit.over + 'px：内容 ' + brand.fit.spanH + 'px / 内容盒 ' +
       brand.fit.innerH + 'px —— 迟到请假未到那一行会被裁掉');
-    return '中栏 内容 ' + brand.fit.spanH + 'px / 内容盒 ' + brand.fit.innerH +
+    return '打卡面板 内容 ' + brand.fit.spanH + 'px / 内容盒 ' + brand.fit.innerH +
            'px（上下各余 ' + brand.fit.slack + 'px）';
   });
 
@@ -541,9 +547,12 @@ try {
     return '应到 ' + stats.should + ' / 实到 ' + stats.here + '（' + stats.mini + '）';
   });
   t('未到名单是「学员34~40」，三位请假的一个都没被算成欠勤', () => {
-    assert(stats.miss.length === 7, '名单该 7 人，实际 ' + stats.miss.length);
-    assert(stats.miss[0] === '学员34' && stats.miss[6] === '学员40', '名单该是 34~40，实际 ' + stats.miss.join('、'));
-    const all = stats.miss.join('、');
+    /* ==5.23== 名单进了 att 面板的小格，1600×900 下放得下就 7 行、放不下会复制一份上滚
+       （loop 态 14 行）—— 去重后验「7 个唯一名字」两头都认。 */
+    const uniq = [...new Set(stats.miss)];
+    assert(uniq.length === 7, '名单去重后该 7 人，实际 ' + uniq.length + '（' + stats.miss.length + ' 行）');
+    assert(uniq[0] === '学员34' && uniq[6] === '学员40', '名单该是 34~40，实际 ' + uniq.join('、'));
+    const all = uniq.join('、');
     ['学员31', '学员32', '学员33'].forEach(n =>
       assert(!all.includes(n), n + ' 已经批过假，不该出现在未到名单里'));
     /* 用户实机报的那条：未到名单里冒出「演示学员」 */
@@ -594,9 +603,9 @@ try {
     assert(it.length === 3, '该是三个数（迟到 / 请假 / 未到），实际 ' + it.length);
     assert(it.map(x => x.k).join('/') === '迟到/请假/未到', '三个标签该是迟到/请假/未到，实际 ' + it.map(x => x.k).join('/'));
     assert(it.map(x => x.n).join('/') === '4/3/7', '三个数该是 4/3/7，实际 ' + it.map(x => x.n).join('/'));
-    assert(it[0].c === 'rgb(170, 122, 30)', '迟到该是赭黄，实际 ' + it[0].c);
-    assert(it[1].c === 'rgb(74, 110, 155)', '请假该是霁蓝，实际 ' + it[1].c);
-    assert(it[2].c === 'rgb(178, 58, 46)', '未到该是朱砂，实际 ' + it[2].c);
+    assert(it[0].c === 'rgb(224, 177, 131)', '迟到该是深底赭黄，实际 ' + it[0].c);
+    assert(it[1].c === 'rgb(157, 180, 224)', '请假该是深底霁蓝，实际 ' + it[1].c);
+    assert(it[2].c === 'rgb(224, 138, 138)', '未到该是深底朱砂，实际 ' + it[2].c);
     const min = Math.min(...it.map(x => x.fs));
     assert(min >= 22, '这三个数字至少 22px（原来只有 12~19px），实际最小 ' + min + 'px');
     assert(Math.min(...it.map(x => x.labFs)) >= 12, '标签也不该被压小，实际 ' + it.map(x => x.labFs).join('/'));
@@ -658,10 +667,11 @@ try {
     const box = rows.parentElement;
     const panel = rows.closest('.bd-miss');
     const h3 = panel.querySelector('h3');
-    const quant = document.getElementById('bdQuant');
+    /* ==5.23== 名单搬进了 att 面板，跟「今日考勤」五个数贴着排（quant 独立成面板了） */
+    const att = document.getElementById('bdAtt');
     const pr = panel.getBoundingClientRect(), hr = h3.getBoundingClientRect(), lr = box.getBoundingClientRect();
     const cs = getComputedStyle(panel);
-    const gap = Math.round(hr.top - quant.getBoundingClientRect().bottom);
+    const gap = Math.round(hr.top - att.getBoundingClientRect().bottom);
     const fits = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
                    panelFit: panel.classList.contains('fit'),
                    rowsH: rows.scrollHeight, boxH: box.clientHeight,
@@ -679,12 +689,19 @@ try {
     Board.paint();            /* 还原成真实数据 */
     return { fits, over, again };
   })()`);
-  t('量化榜与未到名单贴着排（中间不裂缝）；名单装得下就不滚', () => {
-    assert(!clip.fits.loop, '7 个人在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
-    assert(clip.fits.fit, '7 个人放得下时该加 .fit 摆着，实际没加（内容 ' + clip.fits.rowsH + ' / 面板 ' + clip.fits.boxH + '）');
-    assert(clip.fits.gap < 40, '量化榜底边到名单标题顶边隔了 ' + clip.fits.gap + 'px —— 两块被推开了');
-    assert(clip.fits.above <= 2, '名单该贴着量化榜往下排，实际标题上方还空着 ' + clip.fits.above + 'px');
-    assert(clip.fits.below > clip.fits.above, '留白该沉在栏底（下 ' + clip.fits.below + 'px > 上 ' + clip.fits.above + 'px）');
+  t('考勤五数与未到名单贴着排（中间不裂缝）；装得下不滚、装不下才滚', () => {
+    /* ==5.23== att 面板在 sign 槽位里高度随屏走：装得下 = fit 不滚；
+       装不下（1600×900 的右上小格）= 复制一份缓慢上滚 —— 两条路都验几何。 */
+    const fits = clip.fits.rowsH <= clip.fits.boxH + 2;
+    assert(clip.fits.gap < 40, '考勤五数底边到名单标题顶边隔了 ' + clip.fits.gap + 'px —— 两块被推开了');
+    assert(clip.fits.above <= 2, '名单该贴着考勤五数往下排，实际标题上方还空着 ' + clip.fits.above + 'px');
+    if (fits){
+      assert(!clip.fits.loop, '名单在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
+      assert(clip.fits.fit, '放得下时该加 .fit 摆着，实际没加');
+      assert(clip.fits.below > clip.fits.above, '留白该沉在栏底（下 ' + clip.fits.below + 'px > 上 ' + clip.fits.above + 'px）');
+    } else {
+      assert(clip.fits.loop, '名单 ' + clip.fits.rowsH + 'px 装不进 ' + clip.fits.boxH + 'px 的面板，该开上滚');
+    }
     assert(clip.over.loop, '260 个人该开滚动（实际内容 ' + clip.over.rowsH + ' / 面板 ' + clip.over.boxH + '）');
     assert(!clip.over.fit, '要滚了就不该再挂 .fit');
     assert(clip.over.rowsH > clip.over.boxH, '复制后总高该超出面板，实际 ' + clip.over.rowsH + ' ≤ ' + clip.over.boxH);
@@ -833,21 +850,23 @@ try {
     await sleep(350);
     const m = await cdp.eval(`(() => {
       const bd = document.querySelector('.bd').getBoundingClientRect();
-      const cols = [...document.querySelectorAll('.bd-main > .bd-col')].map(e => {
+      const cols = [...document.querySelectorAll('.bd-grid > .bd-panel')].map(e => {
         const r = e.getBoundingClientRect();
         return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
                  r: Math.round(r.right), b: Math.round(r.bottom) }; });
-      /* 宽屏：三栏同一行（y 相等）、横向各占一段不压线。
-         窄屏：横向位置一致、纵向依次往下。 */
-      const side = cols.length === 3 && Math.abs(cols[0].y - cols[1].y) < 2 && Math.abs(cols[1].y - cols[2].y) < 2;
-      const stacked = cols.length === 3 && cols[1].y >= cols[0].b - 1 && cols[2].y >= cols[1].b - 1;
-      const disjoint = cols.every((c, i) => i === 0 || c.x >= cols[i - 1].r - 1);
-      /* 中栏（打卡码那列）在宽屏下是**不许溢出**的：body.board-mode .main 是
-         overflow:hidden，多出来的部分会被无声裁掉 —— 迟到/请假/未到那一行就这么没的
-         （v42 换 logo 时把顶带撑高了 10px，底下立刻少一行，图上才看出来）。 */
-      const gate = document.querySelector('.bd-gate');
+      /* ==5.23== 宽屏：六面板两两不相交（槽位几何保证，任意 order 都该成立）。
+         窄屏：纵向依次往下叠。 */
+      const overlap2 = (a, b) => a.x < b.r - 1 && b.x < a.r - 1 && a.y < b.b - 1 && b.y < a.b - 1;
+      const side = cols.length === 6 && cols.every((c, i) => cols.every((d, j) => i === j || !overlap2(c, d)));
+      const stacked = cols.length === 6 && cols.every((c, i) => i === 0 || c.y >= cols[i - 1].b - 1);
+      /* 打卡面板在宽屏下是**不许溢出**的：body.board-mode .main 是
+         overflow:hidden，多出来的部分会被无声裁掉 —— 迟到/请假/未到那一行就这么没的。 */
+      const gate = document.querySelector('.bd-panel[data-pid="qrcode"]');
       const gr = gate.getBoundingClientRect(), gcs = getComputedStyle(gate);
-      const gk = [...gate.children];
+      /* ==5.23== 只量**可见**子元素：.bd-drag/.bd-mv 编辑手柄常态 display:none，
+         getBoundingClientRect() 全零 —— 不滤掉的话 gf.top=0，
+         max(0, gt-0) 会把面板顶部坐标误算成几十px「溢出」（与 B4 fit 量法对齐）。 */
+      const gk = [...gate.children].filter(e => e.getBoundingClientRect().height > 0);
       const gt = gr.top + (parseFloat(gcs.paddingTop) || 0);
       const gb = gr.bottom - (parseFloat(gcs.paddingBottom) || 0);
       const gf = gk[0].getBoundingClientRect(), gl = gk[gk.length - 1].getBoundingClientRect();
@@ -856,21 +875,20 @@ try {
         /* 「铺满」＝铺满**内容区**：窄屏时 .main 自己会出纵向滚动条（约 15px），
            拿 innerWidth 比会误判成「没铺满」。所以参照系取 .main 的 clientWidth。 */
         cw: document.querySelector('.main').clientWidth,
-        n: cols.length, side: side, stacked: stacked, disjoint: disjoint, cols: cols,
+        n: cols.length, side: side, stacked: stacked, cols: cols,
         qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width),
         codeFs: getComputedStyle(document.getElementById('bdCode')).fontSize,
         spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)),
         gateOver: over, gateH: Math.round(gl.bottom - gf.top) };
     })()`);
-    t(w + '×' + h + '：铺满整屏、三栏不叠、没有横向溢出', () => {
+    t(w + '×' + h + '：铺满整屏、六面板' + (m.vw <= 900 ? '叠一栏' : '互不叠') + '、没有横向溢出', () => {
       assert(Math.abs(m.w - m.cw) < 2, '该铺满内容区 ' + m.cw + '，实际 ' + m.w + '（视口 ' + m.vw + '）');
-      assert(m.n === 3, '该有三栏（课表 / 码 / 量化），实际 ' + m.n);
+      assert(m.n === 6, '该有六块面板，实际 ' + m.n);
       if (m.vw <= 900) {
-        assert(m.stacked, '窄屏该把三栏叠成一栏往下排，实际没叠：' + JSON.stringify(m.cols));
+        assert(m.stacked, '窄屏该把面板叠成一栏往下排，实际没叠：' + JSON.stringify(m.cols));
       } else {
         assert(m.h >= m.vh * 0.9, '宽屏该吃满高度，实际 ' + m.h + ' / ' + m.vh);
-        assert(m.side, '宽屏该三栏并排，实际纵向位置不一致：' + JSON.stringify(m.cols));
-        assert(m.disjoint, '三栏横向互相压线了：' + JSON.stringify(m.cols));
+        assert(m.side, '宽屏六面板两两相交了：' + JSON.stringify(m.cols));
       }
       assert(m.qr >= 120, '二维码哪一档都该有可用尺寸，实际 ' + m.qr + 'px');
       assert(m.spill === 0, '横向溢出了 ' + m.spill + 'px');
@@ -883,6 +901,105 @@ try {
   }
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(500);
+
+  console.log('\n=== 7.5 双布局 + 手动调序 + 持久化（==5.23==）===');
+  /* 摆法存 _boardLayout（_ 开头 = 本机持久化、不参与同步）。这一节全链路验：
+     两预设切换 → 手动交换 → 重载保持 → 脏数据兜底 → Esc 出编辑态。
+     验完恢复默认 sign，别把自定义摆法漏给下面第 8 节的码宽断言。 */
+  const lay = await cdp.eval(`(() => {
+    const g = pid => document.querySelector('.bd-panel[data-pid="' + pid + '"]').style.gridArea;
+    const sign0 = { preset: document.getElementById('bdGrid').dataset.preset,
+                    order: Board._order.slice(), qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width) };
+    /* ① 切信息布局：qrcode 缩成侧卡（≥260）且落 s4，courses 上左大区 s1 */
+    Board.resetPreset('info');
+    const info = { preset: document.getElementById('bdGrid').dataset.preset,
+                   qrArea: g('qrcode'), crsArea: g('courses'),
+                   qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width) };
+    /* ② 手动交换 clock ↔ news（走 swapPids，与拖拽 drop 同一条路） */
+    Board.swapPids('clock', 'news');
+    const afterSwap = { order: Board._order.slice(), clockArea: g('clock'), newsArea: g('news'),
+                        saved: Store.get('_boardLayout') };
+    /* ③ ‹ › 微调：quant 往前挪一位 */
+    Board.moveBy('quant', -1);
+    const afterMove = { order: Board._order.slice() };
+    return { sign0, info, afterSwap, afterMove };
+  })()`);
+  t('两预设切换：sign 码 ≥320 / info 码 ≥260 且槽位换位', () => {
+    assert(lay.sign0.preset === 'sign' && lay.sign0.qr >= 320,
+      'sign 预设码宽该 ≥320，实际 ' + lay.sign0.qr);
+    assert(lay.info.preset === 'info', '切完 preset 该是 info，实际 ' + lay.info.preset);
+    assert(lay.info.qrArea === 's4' && lay.info.crsArea === 's1',
+      'info 下 qrcode 该占 s4、courses 占 s1，实际 ' + lay.info.qrArea + '/' + lay.info.crsArea);
+    assert(lay.info.qr >= 260 && lay.info.qr <= 340,
+      'info 下码宽该在 260~340（侧卡可扫但不抢主位），实际 ' + lay.info.qr);
+    return 'sign ' + lay.sign0.qr + 'px → info ' + lay.info.qr + 'px（qrcode→s4 · courses→s1）';
+  });
+  t('手动交换 clock↔news：order 与槽位同步互换，且已写进 _boardLayout', () => {
+    /* info 默认序 [courses,clock,att,qrcode,quant,news] → 交换 1↔5 位 */
+    assert(lay.afterSwap.order[1] === 'news' && lay.afterSwap.order[5] === 'clock',
+      '交换后 news 该在 s2、clock 在 s6，实际 ' + lay.afterSwap.order.join(','));
+    assert(lay.afterSwap.clockArea === 's6' && lay.afterSwap.newsArea === 's2',
+      'clock 该挪到 s6、news 到 s2，实际 ' + lay.afterSwap.clockArea + '/' + lay.afterSwap.newsArea);
+    assert(lay.afterSwap.saved && lay.afterSwap.saved.order && lay.afterSwap.saved.order[1] === 'news',
+      '_boardLayout 该已持久化，实际 ' + JSON.stringify(lay.afterSwap.saved));
+    return 'order ' + lay.afterSwap.order.join('→') + ' · 已存';
+  });
+  t('‹ › 微调：quant 往前挪一位（与相邻槽交换）', () => {
+    assert(lay.afterMove.order[3] === 'quant',
+      'quant 该从 s5 挪到 s4，实际 order ' + lay.afterMove.order.join(','));
+    return lay.afterMove.order.join('→');
+  });
+  /* ④ 重载：摆法保持（重开看板不丢） */
+  await go(cdp, `${BASE}/?nosw=1&board=1`);
+  await sleep(1200);
+  const persist = await cdp.eval(`(() => ({
+    preset: document.getElementById('bdGrid').dataset.preset,
+    order: Board._order ? Board._order.slice() : null,
+    areas: Board._order ? Board._order.map(pid =>
+      document.querySelector('.bd-panel[data-pid="' + pid + '"]').style.gridArea) : null,
+  }))()`);
+  t('重载后摆法保持（_boardLayout 本机持久化：order 与槽位原样回来）', () => {
+    assert(persist.preset === 'info', '重载后该还是 info，实际 ' + persist.preset);
+    assert(persist.order.join(',') === lay.afterMove.order.join(','),
+      '重载后 order 该与保存时一致，实际 ' + persist.order.join(','));
+    persist.areas.forEach((a, i) => assert(a === 's' + (i + 1),
+      '第 ' + (i + 1) + ' 个面板该占 s' + (i + 1) + '，实际 ' + a));
+    return 'info · ' + persist.order.join('→');
+  });
+  /* ⑤ 脏数据兜底：order 缺项/重复/非法 → 自动补齐六项 */
+  const dirty = await cdp.eval(`(() => {
+    Store.set('_boardLayout', { preset: 'sign', order: ['qrcode', 'qrcode', '垃圾', 'clock'] });
+    Board.start();
+    return { order: Board._order.slice(), n: document.querySelectorAll('#bdGrid .bd-panel').length };
+  })()`);
+  t('脏 order 兜底：重复/非法/缺项 → 自动补成六项全上屏（不丢面板）', () => {
+    assert(dirty.order.length === 6, '该兜回 6 项，实际 ' + dirty.order.length);
+    assert(new Set(dirty.order).size === 6, '六项不该有重复：' + dirty.order.join(','));
+    ['clock','qrcode','courses','att','quant','news'].forEach(pid =>
+      assert(dirty.order.includes(pid), '缺了 ' + pid + '：' + dirty.order.join(',')));
+    assert(dirty.n === 6, '屏上该有 6 块面板，实际 ' + dirty.n);
+    return dirty.order.join('→');
+  });
+  /* ⑥ 编辑条 + Esc 出编辑态 */
+  const edit = await cdp.eval(`(async () => {
+    Board.editMode(true);
+    const on = document.body.classList.contains('board-editing');
+    const draggable = document.querySelector('.bd-panel[data-pid="qrcode"]').draggable;
+    const bar = getComputedStyle(document.getElementById('bdEditbar')).display;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await new Promise(r => setTimeout(r, 200));
+    const off = !document.body.classList.contains('board-editing');
+    return { on, draggable, bar, off };
+  })()`);
+  t('编辑态：面板可拖、浮条亮起；Esc 退出编辑（不退看板）', () => {
+    assert(edit.on && edit.draggable && edit.bar === 'flex', '编辑态没进全：' + JSON.stringify(edit));
+    assert(edit.off, 'Esc 该只出编辑态、留在看板里');
+    return '编辑开→拖拽就绪→Esc 出（仍在看板）';
+  });
+  /* 恢复默认，别把自定义摆法漏给第 8 节 */
+  await cdp.eval(`Store.remove('_boardLayout'); Board.start();`);
+  await sleep(400);
+
   await shot(cdp, 'board-1920x1080.png');
 
   console.log('\n=== 8. 打卡二维码（编的是那 6 位数字本身）===');
@@ -915,9 +1032,8 @@ try {
   t('二维码放得够大、是正方形（放中间了，就该让站远一点也扫得动）', () => {
     assert(qr.w >= 180, '边长该 ≥180px，实际 ' + qr.w);
     assert(Math.abs(qr.w - qr.h) < 2, '该是正方形，实际 ' + qr.w + '×' + qr.h);
-    /* 用户这一轮点名的就是「二维码稍稍有点小了，给放大一点」—— 这里守个下限：
-       至少占视口高的三成，别又缩回去。 */
-    assert(qr.w >= 1080 * 0.3, '该够大（≥视口高的 3 成 ≈324px），实际 ' + qr.w + 'px');
+    /* ==5.23== 用户定稿：打卡为主的布局里码宽 ≥320px（3 米外可扫）。 */
+    assert(qr.w >= 320, 'sign 预设码宽该 ≥320px（用户定稿 3 米可扫），实际 ' + qr.w + 'px');
     return qr.w + '×' + qr.h + '（约 ' + (qr.w / (qr.mods + 8)).toFixed(1) + 'px 一格）';
   });
   t('二维码里编的是那 6 位数字本身，不是网址（学生用砺蕴自带扫一扫）', () => {
