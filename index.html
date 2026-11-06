@@ -2565,309 +2565,229 @@ body.board-mode #page-board{
 /* 看板不要入场动画：一屏数字挨个往上冒，看着像卡顿 */
 body.board-mode .page.on > *{animation:none}
 
-/* 版面：==5.23== 学府风深蓝版（用户定稿：双布局 + 面板手动调序，气质按
-   docs/board-redesign-shots/scheme-b1.html 那一轮的验收方向）——
-   深蓝渐变打底，六块金细线面板卡（clock/qrcode/courses/att/quant/news），
-   两套预设槽位（sign 打卡为主 / info 信息为主）+ 拖拽手动调序（order 存 _boardLayout 本机持久化）。
-   色彩令牌在 .bd 作用域内整体翻深色：下面所有规则继续写 var(--ink)/--dim/--rule，
-   深浅两版共用一套版式 —— 改色只动这一处，不逐条翻。 */
-.bd{
+/* 版面：==5.24== 看板双模式（用户定稿：签到立牌 sign / 信息中枢 dash，右下角随时切换）
+   —— 预览稿 docs/board-redesign-shots/scheme-sign.html / scheme-dash.html 1:1 移植。
+   5.23 的六面板槽位 + 拖拽调序体系整体下线（两模式为固定构图，拖拽不适用）。
+   数据链路一字未动：Board.collect() + Auth.call('code')，零新增接口。
+   两套骨架共用一组 data-bd 数据槽位（Board.setAll 遍历更新，隐藏的一套一并填）。 */
+.bd{flex:1;min-height:0;display:flex;flex-direction:column;font-variant-numeric:tabular-nums}
+.bdv{display:none;flex:1;min-height:0;flex-direction:column;min-width:0}
+#page-board[data-mode="sign"] .bdv-sign{display:flex}
+#page-board[data-mode="dash"] .bdv-dash{display:flex}
+
+/* ════ sign · 签到立牌（米白暖纸浅底海报）══════════════════════════
+   全屏只服务扫码：中央超大白卡 + 底部考勤明细带。课程/量化/通知不上屏。 */
+.bdv-sign{
+  --s-ink:#2b3446; --s-ink2:#5a6478; --s-ink3:#98a0b0; --s-navy:#243049;
+  --s-gold:#c9ab7c; --s-goldd:#a98d5f; --s-line:rgba(169,141,95,.35);
+  --s-ochre:#c07a52; --s-azure:#5f7cae; --s-miss:#b05550;
+  background:
+    radial-gradient(1200px 700px at 18% -10%, rgba(201,171,124,.10), transparent 60%),
+    radial-gradient(1100px 650px at 92% 110%, rgba(36,48,73,.06), transparent 55%),
+    linear-gradient(180deg,#f8f6f1 0%,#f5f2ea 100%);
+  color:var(--s-ink);padding:0 clamp(20px,3.7vw,72px);
+  font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+/* 顶带：蓝徽 + 系统名 | 衬线大时钟 + 日期 + 当前节次 */
+.bd-top{height:clamp(72px,9.3vh,100px);flex:0 0 auto;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--s-line)}
+.bd-brand{display:flex;align-items:center;gap:clamp(14px,1.3vw,24px);min-width:0}
+.bd-mark{height:clamp(40px,5.4vh,58px);width:auto;flex:none;display:block}
+.bd-bn1{font-family:var(--serif);font-size:clamp(19px,1.5vw,29px);font-weight:600;
+  letter-spacing:.24em;color:var(--s-navy);white-space:nowrap}
+.bd-bn2{margin-top:5px;font-size:clamp(9px,.6vw,11px);letter-spacing:.36em;color:var(--s-ink3);white-space:nowrap}
+.bd-tright{display:flex;align-items:center;gap:clamp(16px,1.9vw,36px);flex:none}
+.bd-clock{font-family:var(--serif);font-weight:600;font-variant-numeric:tabular-nums;
+  font-size:clamp(34px,3vw,58px);line-height:1;letter-spacing:.03em;color:var(--s-navy);white-space:nowrap}
+.bd-tmeta{text-align:right}
+.bd-tmeta .bd-d1{font-size:clamp(13px,.95vw,18px);letter-spacing:.14em;color:var(--s-ink2);white-space:nowrap}
+.bd-tmeta .bd-d2{margin-top:6px;font-size:clamp(11px,.7vw,13.5px);letter-spacing:.15em;color:var(--s-goldd);white-space:nowrap}
+/* 中央海报卡：420px 级大码 + 衬线 6 位数字 + 60s 倒计时金条 */
+.bd-stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.bd-poster{width:min(920px,92%);max-height:100%;display:flex;flex-direction:column;align-items:center;
+  background:#fff;border-radius:28px;border:1px solid rgba(36,48,73,.08);
+  box-shadow:0 30px 80px rgba(36,48,73,.14),0 4px 14px rgba(36,48,73,.06);
+  padding:clamp(18px,2.6vh,30px) clamp(24px,3.1vw,60px) clamp(16px,2.4vh,28px);gap:clamp(10px,1.5vh,17px)}
+.bd-lab{display:flex;align-items:center;gap:16px;font-size:clamp(13px,.85vw,16px);
+  letter-spacing:.32em;color:var(--s-ink2);white-space:nowrap}
+.bd-lab::before,.bd-lab::after{content:"";width:56px;height:1px;background:var(--s-line)}
+/* ⚠️ 码区四条铁律不变（纯白托盘 / 静默区靠 QRLib / 小圆角 / ≥180px）。
+   ==5.24== sign 定稿 ≥420px（1920×1080 → min(432,499,430)=430 ✓），
+   40vh 而非 44vh：海报卡「label+码+数字+倒计时」总高要留在舞台里，44vh 在 768 高的屏上会挤溢出 */
+.bd-qr2{width:min(40vh,26vw,430px);aspect-ratio:1;flex:none;background:#fff;
+  border-radius:8px;padding:clamp(6px,.9vw,14px);box-shadow:0 8px 26px rgba(36,48,73,.10)}
+.bd-qr2 svg{display:block;width:100%;height:100%}
+.bd-code{font-family:var(--mono);font-weight:600;font-size:clamp(44px,4.4vw,88px);line-height:1;
+  letter-spacing:.17em;text-indent:.17em;color:var(--s-navy);white-space:nowrap}
+.bd-timer{width:min(420px,80%)}
+.bd-bar{height:7px;border-radius:4px;background:rgba(169,141,95,.18);overflow:hidden}
+.bd-bar > i{display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--s-gold),var(--s-goldd));transition:width .9s linear}
+.bd-cd{margin-top:11px;text-align:center;font-size:clamp(11px,.73vw,14px);letter-spacing:.18em;color:var(--s-ink3)}
+.bd-cd b{color:var(--s-goldd);font-weight:600;font-variant-numeric:tabular-nums;font-size:clamp(13px,.86vw,16.5px)}
+/* 底部考勤明细带（金线之上）：五数语义着色 + 未到/请假名单 */
+.bd-detail{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:11px;
+  padding:clamp(10px,2vh,22px) 0 clamp(8px,1.6vh,18px)}
+.bd-nums5{display:flex;align-items:flex-start;gap:clamp(24px,3.3vw,64px)}
+.bd-nums5 .n{text-align:center}
+.bd-nums5 b{font-family:var(--serif);font-weight:600;font-size:clamp(30px,2.3vw,44px);line-height:1;
+  color:var(--s-navy);font-variant-numeric:tabular-nums;display:block}
+.bd-nums5 span{display:block;margin-top:8px;font-size:clamp(10px,.65vw,12.5px);letter-spacing:.24em;color:var(--s-ink2)}
+.bd-nums5 .gd b{color:var(--s-goldd)}
+.bd-nums5 .lt b{color:var(--s-ochre)}
+.bd-nums5 .lv b{color:var(--s-azure)}
+.bd-nums5 .ms b{color:var(--s-miss)}
+.bd-names{font-size:clamp(11px,.73vw,14px);letter-spacing:.14em;color:var(--s-ink2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bd-names .k{color:var(--s-ink3);margin-right:6px}
+.bd-names .who{color:var(--s-miss)}
+.bd-names .sep{margin:0 18px;color:var(--s-line)}
+/* 金线底带：校训 + 落款/新鲜度 */
+.bd-bot{flex:0 0 auto;height:clamp(64px,8.9vh,96px);display:flex;align-items:center;
+  justify-content:space-between;border-top:2px solid var(--s-gold)}
+.bd-motto{font-family:var(--serif);font-size:clamp(16px,1.25vw,24px);letter-spacing:.38em;color:var(--s-navy)}
+.bd-motto small{display:block;margin-top:6px;font-family:-apple-system;font-size:10.5px;
+  letter-spacing:.36em;color:var(--s-ink3)}
+.bd-cls{font-size:clamp(11px,.73vw,14px);letter-spacing:.21em;color:var(--s-ink3);text-align:right;white-space:nowrap}
+.bd-cls .bd-fresh2{display:block;margin-top:7px;letter-spacing:.1em}
+.bd-cls .bd-fresh2.warn{color:var(--s-miss)}
+
+/* ════ dash · 信息中枢（深蓝数据墙）══════════════════════════════
+   三列：课程全节次 / 考勤 2×2 大格 + 还没到名单 / 量化前 5 + 通知 3 条。
+   无二维码板块（不承担扫码）、无内部管理内容。 */
+.bdv-dash{
   --ink:#f3efe6; --dim:rgba(243,239,230,.60); --rule:rgba(201,171,124,.22);
   --gold:#c9ab7c; --gold-lite:#e8cf9e;
   --red:#e08a8a; --green:#8fc2a6; --amber:#e0b183; --blue:#9db4e0;
-  flex:1;min-height:0;display:flex;flex-direction:column;
-  /* 底色之上压两团几乎看不见的暖金晕（左上、右下）—— 深蓝底上金晕比米白纸上更收得住 */
-  background:
-    radial-gradient(120% 90% at 12% 6%, rgba(201,171,124,.07), transparent 58%),
-    radial-gradient(120% 90% at 88% 96%, rgba(201,171,124,.05), transparent 58%),
-    linear-gradient(180deg,#243049 0%,#2c3a5c 100%);
-  color:var(--ink);
-  font-variant-numeric:tabular-nums;
-}
-/* 顶带下面压一条**渐隐金线**（左浓右淡），像册页的天头 ——
-   比一道通长的灰线有分量，也不会抢下面三栏的注意力。 */
-/* clock 面板内部横排（==5.23== 顶带成了可拖动面板之一，内部仍是原来的排法） */
-.bd-clockrow{display:flex;align-items:center;gap:clamp(10px,1.5vw,32px);
-  flex:1;min-height:0;flex-wrap:wrap;align-content:center}
-/* 顶带品牌标（v43）：博艺圆章**原样裸摆**，只给砺蕴那半加一块**暖米黄圆底**，
-   章色由「品牌金细线」换成官方**暗金**版 —— 于是浅纸上也读得清。
-   ⚠️ 走过两条弯路，别再回去：
-     ① brand-lock-alpha.png（原 v41 用）是「给深色底做的米黄细线描」，本身没底色，
-        贴在这块米白纸上右侧的砺蕴章整块化掉 —— 「看不清」不是分辨率，是拿错了变体；
-     ② v42 整条套一块**深墨**底板：清楚是清楚了，但整屏宣纸白里插一块黑，用户否了
-        （「很丑」「博艺的 logo 是白色跟蓝色的」）。
-   尺寸（v44）：**两枚等径** —— 左博艺圆章 = 右砺蕴圆底，高度就是两枚共同的直径。
-      v43 之前左枚只有右枚的 72%：脚本按「左半画布 bbox」量边，被圆章右侧那撮
-      alpha 60~120 的淡色残影虚撑到 623px，圆章被压成 76%，用户一眼看出「你大我小」
-      （「这两个 logo 要一样大，不能你大我小，它俩是一样的」）。 */
-.bd-lock{height:clamp(38px,5.4vh,72px);width:auto;flex:none;display:block}
-.bd-date{font-size:clamp(13px,1.15vw,22px);color:var(--dim);font-family:var(--serif);
-  letter-spacing:.05em;flex:none}
-.bd-clock{margin-left:auto;font-size:clamp(26px,3.4vw,68px);font-weight:400;
-  line-height:1;letter-spacing:.02em;flex:none;white-space:nowrap}
-.bd-fresh{font-size:clamp(11px,.85vw,16px);color:var(--dim);flex:none;white-space:nowrap;
-  border-left:1px solid var(--rule);padding-left:clamp(10px,1.2vw,22px)}
+  background:linear-gradient(180deg,#243049 0%,#2c3a5c 100%);
+  color:var(--ink);padding:clamp(14px,2.4vh,26px) clamp(16px,2.1vw,40px);
+  font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif}
+.bd-top2{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(10px,1.4vw,26px) clamp(10px,1.9vh,20px);border-bottom:1px solid var(--rule)}
+.bd-clock2{font-family:var(--serif);font-weight:600;font-variant-numeric:tabular-nums;
+  font-size:clamp(30px,2.8vw,54px);line-height:1;letter-spacing:.04em;white-space:nowrap}
+.bd-clock2 .sec{font-size:.48em;color:var(--gold-lite)}
+.bd-tright2{display:flex;align-items:center;gap:clamp(16px,1.8vw,34px);flex:none}
+.bd-fresh{font-size:clamp(10px,.7vw,13px);color:var(--dim);flex:none;white-space:nowrap;
+  border-left:1px solid var(--rule);padding-left:clamp(8px,1vw,18px)}
 .bd-fresh.warn{color:var(--red)}
-
-/* ── 面板网格：==5.23== 六块面板 + 两套预设槽位 ──
-   order[i] 的面板占 s{i+1} 槽（Board.applyLayout 把 gridArea 写到面板上）。
-   手动调序只改 order、不动槽位几何 —— 槽位是两套预设定好的版面骨架。
-   ⚠️ body.board-mode .main 是 overflow:hidden —— 任何一格面板纵向溢出都会被
-   **无声裁掉**，board_check 每一档屏宽都量「qrcode 面板有没有溢出」（老规矩沿袭）。 */
-.bd-grid{flex:1;min-height:0;display:grid;
-  gap:clamp(10px,1.4vh,18px);
-  padding:clamp(12px,1.8vh,24px) clamp(14px,1.6vw,30px)}
-/* sign · 打卡为主：中列整列给打卡码（码 ≥320px），clock/courses 左、att/quant/news 右 */
-.bd-grid[data-preset="sign"]{
-  grid-template-columns:minmax(0,.95fr) minmax(0,1.3fr) minmax(0,1fr);
-  grid-template-rows:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
-  grid-template-areas:
-    "s1 s3 s4"
-    "s2 s3 s5"
-    "s2 s3 s6"}
-/* info · 信息为主：courses 左大区、att 中列整列，qrcode 缩成右上侧卡（码 ≥260px） */
-.bd-grid[data-preset="info"]{
-  grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,.85fr);
-  grid-template-rows:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr);
-  grid-template-areas:
-    "s1 s3 s4"
-    "s1 s3 s5"
-    "s2 s3 s6"}
-/* 窄屏（≤900）两套预设都叠成一竖条，能滚着看（见文件尾部窄屏块） */
-.bd-panel{position:relative;display:flex;flex-direction:column;min-height:0;min-width:0;
-  gap:clamp(6px,.9vh,13px);
-  border:1px solid rgba(201,171,124,.26);border-radius:14px;
-  background:rgba(16,23,40,.32);
-  padding:clamp(10px,1.7vh,22px) clamp(14px,1.8vw,30px)}
-/* clock 面板横排（其余五块竖排） */
-.bd-panel[data-pid="clock"]{flex-direction:row;align-items:center;flex-wrap:wrap;align-content:center}
-/* qrcode 面板：内容整体居中（老 .bd-gate 的排法搬进来），
-   纵向空间最紧的那块 —— 间距单独收一档 */
-.bd-panel[data-pid="qrcode"]{align-items:center;justify-content:center;text-align:center;
-  gap:clamp(5px,.8vh,13px)}
-
-/* 栏标题：宋体 + 一条延伸的细金线，像布告栏上的小标头。
-   金线用渐变收尾（近处金、远处隐），比一道灰线有手写的味道。 */
-.bd-h{font-family:var(--serif);font-size:clamp(13px,1.15vw,21px);font-weight:400;
-  color:var(--ink);letter-spacing:.14em;margin:0;display:flex;align-items:baseline;
-  gap:clamp(6px,.8vw,14px);flex:none;white-space:nowrap}
-.bd-h::after{content:"";flex:1;height:1px;position:relative;top:-.18em;
-  background:linear-gradient(90deg, rgba(168,135,63,.55), rgba(168,135,63,.06))}
-.bd-sub{font-size:clamp(12px,1.05vw,19px);color:var(--gold)}
-
-/* 中栏那行「今日打卡码」：宋体、字距放开，前面缀一枚小金点 ——
-   整块屏最要紧的一栏，标头不能跟左右两栏长得一样。 */
-.bd-lab{font-family:var(--serif);font-size:clamp(13px,1.25vw,23px);color:var(--ink);
-  letter-spacing:.34em;text-indent:.34em;display:flex;align-items:center;gap:clamp(8px,1vw,16px)}
-.bd-lab::before,.bd-lab::after{content:"";width:clamp(14px,1.6vw,30px);height:1px;
-  background:linear-gradient(90deg,transparent,rgba(168,135,63,.7))}
-.bd-lab::after{background:linear-gradient(90deg,rgba(168,135,63,.7),transparent)}
-
-/* ── 打卡二维码（居中 · 放大）──
-   学生扫一下就把码带走，不必凑到屏前抄 6 位数字。
-   ⚠️ 四条不能动，动了就扫不出来：
-     ① 码下面给一块纯白托盘：纸色底直接画码会损失对比度；
-     ② 静默区由 QRLib.svg() 里写死的 4 格白边提供，这里只管给它大小；
-     ③ 圆角要小：圆角是啃白底的，啃进静默区（4 格宽）就读不出来了；
-     ④ 边长别小于 ~180px。
-   尺寸跟着栏宽和屏高一起伸缩（窗口矮的时候先缩它，别把数字码挤出屏幕）。
-   v42 把 44vh 收到 43vh：中栏是最挤的一栏，收 1vh 换来「迟到/请假/未到」那行不被裁掉，
-   -2.3% 的边长肉眼看不出来。 */
-.bd-qr{width:min(34vh,30vw,540px);aspect-ratio:1;flex:none;
-  background:#fff;border-radius:6px;padding:clamp(6px,.9vw,16px);
-  box-shadow:0 10px 34px rgba(10,15,28,.45)}
-.bd-qr svg{display:block;width:100%;height:100%}
-/* info 预设：码缩成侧卡但仍要独立可扫 —— 用户定稿 ≥260px。
-   1600×900（board_check 的量尺）→ 17vw=272 ✓；1920×1080 → 上限 320 ✓。 */
-.bd-grid[data-preset="info"] .bd-qr{width:min(36vh,17vw,320px)}
-
-/* 6 位码：屏上第二大的东西（只让二维码压它一头）。等宽数字 + 宽字距，
-   站远一点也能一位一位数清楚。
-   ⚠️ 字号是按「中栏内容宽 ÷ 6 位数字的占宽」倒推的：7vw 在 1024 宽的屏上会顶到栏边，
-      取 6.2vw 留余量。位数已钉死 6 位（服务端派生），不必再做「长码降档」。 */
-.bd-code{font-family:var(--mono);font-size:clamp(26px,5.2vw,96px);font-weight:500;
-  line-height:1;color:var(--ink);letter-spacing:.14em;text-indent:.14em;white-space:nowrap}
-
-/* ── 换码倒计时 ──
-   进度条 + 一个大数字。**秒数才是要看的那个**（还有几秒就换），
-   所以数字给到跟码同一量级，最后 10 秒转朱砂催一下。 */
-.bd-timer{display:flex;align-items:center;gap:clamp(10px,1.4vw,26px);width:min(86%,470px)}
-.bd-bar{flex:1;height:clamp(5px,.8vh,10px);border-radius:99px;
-  background:rgba(255,255,255,.12);overflow:hidden}
-.bd-bar > i{display:block;height:100%;border-radius:99px;background:var(--gold);
-  transition:width .9s linear}
-.bd-cd{display:flex;align-items:baseline;gap:4px;flex:none;font-family:var(--serif);
-  color:var(--dim);font-size:clamp(13px,1.15vw,21px);letter-spacing:.06em;white-space:nowrap}
-.bd-cd b{font-family:var(--mono);font-size:clamp(19px,2vw,40px);font-weight:500;
-  color:var(--ink);line-height:1;min-width:1.7em;text-align:right}
-.bd-cd b.soon{color:var(--red)}
-
-/* 二维码下面：应到 / 实到 —— 这块屏最该被一眼看见的两个数 */
-.bd-countrow{display:flex;align-items:flex-end;justify-content:center;
-  gap:clamp(14px,2.2vw,48px);width:100%;
-  border-top:1px solid var(--rule);padding-top:clamp(6px,.8vh,12px)}
-.bd-count{display:flex;gap:clamp(14px,2.2vw,48px);align-items:flex-end}
-.bd-count > div{display:flex;flex-direction:column;align-items:center;gap:3px}
-.bd-count b{font-size:clamp(28px,3.9vw,76px);font-weight:500;line-height:1}
-.bd-count span{font-size:clamp(12px,1.05vw,19px);color:var(--dim);
-  font-family:var(--serif);letter-spacing:.12em}
-.bd-count .bd-c-ok b{color:var(--green)}
-
-/* ── 迟到 / 请假 / 未到：三个带标签的中等数字 ──
-   原来这里只是一行 19px 的小字（「迟到 4 · 请假 3 · 未到 7」），
-   站两米外一个都认不出 —— 现在各自成格、数字放大到 22~50px，细线分隔。
-   颜色各归其位：迟到赭、请假蓝、未到朱砂。 */
-.bd-mini{display:flex;align-items:baseline;justify-content:center;
-  gap:clamp(12px,2vw,40px);width:100%}
-.bd-m{display:flex;align-items:baseline;gap:clamp(5px,.6vw,11px)}
-.bd-m b{font-family:var(--mono);font-size:clamp(20px,2.1vw,44px);font-weight:500;
-  line-height:1;color:var(--ink)}
-.bd-m span{font-family:var(--serif);font-size:clamp(12px,1.05vw,19px);
-  color:var(--dim);letter-spacing:.1em}
-.bd-m + .bd-m{border-left:1px solid var(--rule);padding-left:clamp(12px,2vw,40px)}
-.bd-m.late b{color:var(--amber)}
-.bd-m.leave b{color:var(--blue)}
-/* ⚠️ 类名必须带 bd- 前缀：系统里有个通用的
-   `.warn{background:#fff6e9;border:1px solid #f0d9a8;padding:10px;font-size:13px}`
-   （给排课页的提示条用的）。直接叫 .warn 会被它一起吃掉 ——
-   「未到」那个数会平白多出一圈黄底、标签还被压成 13px。
-   这套亏吃过一次了（见 .bd-c-ok 与 .ok 的关系），别再犯。 */
-.bd-m.bd-warn b{color:var(--red)}
-
-/* ── 左栏：今日课表 ──
-   竖排，每行「时间 · 课名 · 班级」，细线分隔。课多、一列装不下时整列缓慢上滚。 */
-.bd-sched{flex:1;min-height:0;overflow:hidden}
-.bd-sched-in{display:flex;flex-direction:column}
-.bd-s{display:flex;align-items:baseline;gap:clamp(8px,1vw,18px);min-width:0;
-  padding:clamp(8px,1.2vh,17px) 0;border-bottom:1px solid var(--rule)}
-.bd-s:last-child{border-bottom:none}
-.bd-s-t{font-size:clamp(14px,1.4vw,26px);color:var(--gold);flex:none;font-variant-numeric:tabular-nums}
-.bd-s-n{font-size:clamp(15px,1.5vw,28px);color:var(--ink);min-width:0;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bd-s-w{margin-left:auto;font-size:clamp(12px,1.05vw,19px);color:var(--dim);flex:none;white-space:nowrap}
-/* 下一节课：左侧压一道金边、课名加重 —— 站在门口一眼就知道「接下来是哪个班」。
-   由 schedHtml() 比当前时刻（服务端校过的钟）挑出第一条还没开始的课。 */
-.bd-s.next{padding-left:clamp(9px,1.1vw,20px);border-left:3px solid var(--gold);
-  background:rgba(201,171,124,.11)}
-.bd-s.next .bd-s-n{font-weight:500}
-.bd-sched-in.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
-
-/* ── 右栏上半：班级量化榜（最多 5 格）──
-   按分数从高到低排。分数颜色走中式口径：高于 100 红、低于 100 绿、正好 100 墨。 */
-.bd-quant{display:flex;flex-direction:column;gap:clamp(4px,.7vh,11px);flex:none}
-.bd-q{display:flex;align-items:baseline;gap:clamp(8px,1vw,16px);min-width:0;
-  padding:clamp(6px,1vh,14px) clamp(8px,1vw,16px);
-  border:1px solid var(--rule);border-radius:6px;background:rgba(243,239,230,.05)}
-/* 名次「01~05」：宋体淡金两位序号。有它在，一眼就数得出这是「前五名」 */
-.bd-q-k{font-family:var(--serif);font-size:clamp(12px,1.1vw,20px);color:var(--gold);
-  flex:none;letter-spacing:.06em;font-variant-numeric:tabular-nums}
-.bd-q-n{font-size:clamp(13px,1.2vw,22px);color:var(--ink);min-width:0;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bd-q-v{margin-left:auto;font-size:clamp(18px,2vw,40px);font-weight:500;flex:none;
-  font-variant-numeric:tabular-nums;line-height:1}
-/* 榜首：金线加重、底子透一点暖金 —— 榜是拿来给人争的，第一名该有分量 */
-.bd-q:first-child{border-color:rgba(201,171,124,.45);background:rgba(201,171,124,.10)}
-.bd-q.up .bd-q-v{color:var(--red)}
-.bd-q.down .bd-q-v{color:var(--green)}
-
-/* ── 右栏下半：还没到 · 名单 ── */
-.bd-miss{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.8vh,11px)}
-/* 右栏现在是「班级量化 + 未到名单」两块。名单若还居中，会在两块之间裂开一大段空
-   —— 纸色底上留白不难看，**裂开的缝**才难看。所以装得下时也靠上排，留白统一沉到栏底。
-   .fit 由 Board.fill() 实时加/删，含义是「这趟装得下，别复制一份上滚」。 */
-.bd-miss.fit{justify-content:flex-start}
-.bd-miss.fit .bd-list{flex:none}
+/* 三列：左课程全节次 / 中考勤+名单 / 右量化+通知 */
+.bd-grid3{flex:1;min-height:0;display:grid;grid-template-columns:1.05fr 1fr 1fr;
+  grid-template-rows:minmax(0,1fr);   /* 行高锁进容器：否则 grid 行随内容长，名单灌满 260 人会把中列撑到几千 px */
+  gap:clamp(10px,1.15vw,22px);padding:clamp(10px,2vh,22px) 0 clamp(8px,1.7vh,18px)}
+.bd-pnl{min-height:0;min-width:0;display:flex;flex-direction:column;gap:clamp(8px,1.5vh,16px);
+  background:rgba(16,23,40,.32);border:1px solid var(--rule);border-radius:16px;
+  padding:clamp(12px,2.2vh,24px) clamp(14px,1.5vw,28px)}
+.bd-pnl.mid{justify-content:space-between}
+.bd-grp{display:flex;flex-direction:column;gap:clamp(8px,1.3vh,14px);min-height:0}
+.bd-h{font-family:var(--serif);font-size:clamp(14px,1.1vw,21px);font-weight:600;letter-spacing:.19em;
+  color:var(--gold-lite);margin:0;display:flex;align-items:baseline;gap:10px;flex:none;white-space:nowrap}
+.bd-h::after{content:"";flex:1;height:1px;background:var(--rule)}
+.bd-tag{font-size:clamp(10px,.65vw,12px);letter-spacing:.16em;color:var(--dim);font-weight:400;
+  font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 左列：课程全节次时间轴（当前节金高亮 +「进行中」徽，明日预览置灰） */
+.bd-tl{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.bd-tl-in{display:flex;flex-direction:column;gap:9px}
+.bd-s2{display:flex;align-items:center;gap:clamp(8px,.75vw,14px);padding:clamp(6px,1vh,11px) clamp(10px,.85vw,16px);
+  border-radius:10px;border:1px solid rgba(201,171,124,.14);background:rgba(243,239,230,.04)}
+.bd-s2-t{font-variant-numeric:tabular-nums;font-size:clamp(11px,.76vw,14.5px);color:var(--dim);
+  flex:0 0 clamp(84px,5.9vw,112px);letter-spacing:.03em;white-space:nowrap}
+.bd-s2-n{font-size:clamp(13px,.9vw,17px);letter-spacing:.06em;flex:1;min-width:0;
+  color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-s2-w{font-size:clamp(10px,.68vw,13px);color:var(--dim);flex:none;white-space:nowrap}
+.bd-s2.on{border-color:rgba(201,171,124,.55);background:rgba(201,171,124,.12)}
+.bd-s2.on .bd-s2-n{color:var(--gold-lite);font-weight:600}
+.bd-s2.on .bd-s2-t{color:var(--gold)}
+.bd-s2.dim{opacity:.45}
+.bd-live{font-size:clamp(9px,.57vw,11px);letter-spacing:.16em;color:#243049;background:var(--gold);
+  border-radius:999px;padding:3px 11px;flex:none}
+.bd-tl-sub{font-size:clamp(10px,.68vw,13px);letter-spacing:.23em;color:var(--dim);
+  margin-top:4px;text-align:center;flex:none}
+.bd-tl-in.loop{animation-name:bdUp2;animation-timing-function:linear;animation-iteration-count:infinite}
+@keyframes bdUp2{from{transform:translateY(0)}to{transform:translateY(calc(-1 * var(--bd-h,0px)))}}
+/* 中列：考勤四大数 2×2 大格（贴顶）+ 还没到名单（贴底） */
+.bd-num4{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(8px,.73vw,14px)}
+.bd-num4 .n{border:1px solid rgba(201,171,124,.16);border-radius:14px;text-align:center;
+  padding:clamp(16px,3.2vh,36px) 6px clamp(13px,2.7vh,30px);background:rgba(243,239,230,.04)}
+.bd-num4 b{font-family:var(--serif);font-weight:600;font-size:clamp(38px,4vw,76px);line-height:1;
+  font-variant-numeric:tabular-nums;display:block}
+.bd-num4 span{display:block;margin-top:clamp(5px,1.1vh,12px);font-size:clamp(10px,.68vw,13px);
+  letter-spacing:.22em;color:var(--dim)}
+.bd-num4 .gd b{color:var(--green)}
+.bd-num4 .lt b{color:var(--amber)}
+.bd-num4 .lv b{color:var(--blue)}
+/* 还没到名单：≤8 人，超出「等 N 人」；装不下整体缓慢上滚（fill 循环） */
+.bd-miss{min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.9vh,10px)}
 .bd-list{flex:1;min-height:0;overflow:hidden}
-/* ⚠️ 别给 .bd-rows 加 height:100% —— 那会让名单在剩余空间里单独居中，
-   标题就留出一条大缝（见上面 .bd-miss.fit）。居中交给外面那层面板做。 */
-.bd-rows{display:flex;flex-wrap:wrap;gap:clamp(5px,.6vw,11px);align-content:flex-start}
-/* 名单 .fit 只是「这趟装得下」的标记；真正的居中做在外层面板上（见 .bd-miss.fit）——
-   只给这里加 align-content:center 是空转的：flex 容器没有高度，居中无处可居。 */
-.bd-rows.fit{align-content:center}
-.bd-row{font-size:clamp(13px,1.35vw,26px);color:var(--ink);
-  background:rgba(224,138,138,.08);border:1px solid rgba(224,138,138,.24);
-  border-radius:6px;padding:clamp(4px,.62vh,10px) clamp(10px,.95vw,19px);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-rows{display:flex;flex-wrap:wrap;gap:clamp(6px,.6vw,11px);align-content:flex-start}
+.bd-rows.loop{animation-name:bdUp2;animation-timing-function:linear;animation-iteration-count:infinite}
+.bd-row{font-size:clamp(12px,.89vw,17px);letter-spacing:.09em;color:var(--ink);
+  background:rgba(224,138,138,.08);border:1px dashed rgba(224,138,138,.4);
+  border-radius:10px;padding:clamp(8px,1.7vh,19px) clamp(10px,.95vw,18px);
+  display:flex;align-items:center;gap:9px;white-space:nowrap;max-width:100%;
+  overflow:hidden;text-overflow:ellipsis}
+.bd-row::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--red);flex:none}
 .bd-row.calm{background:rgba(143,194,166,.10);border-color:rgba(143,194,166,.26);color:var(--green)}
-/* 名单 / 课表超出面板高度时，整体缓慢上滚循环（内容由 Board.fill 复制一份） */
-.bd-rows.loop{animation-name:bdUp;animation-timing-function:linear;animation-iteration-count:infinite}
-@keyframes bdUp{from{transform:translateY(0)}to{transform:translateY(calc(-1 * var(--bd-h,0px)))}}
+.bd-row.calm::before{display:none}
+/* 右列：量化前 5 + 最新通知 3 条 */
+.bd-quant{display:flex;flex-direction:column;gap:clamp(4px,.75vh,8px);flex:1;min-height:0;
+  justify-content:center}
+.bd-q{display:flex;align-items:center;gap:clamp(8px,.7vw,13px);min-width:0;
+  padding:clamp(5px,.85vh,9px) clamp(9px,.75vw,14px);
+  border:1px solid rgba(201,171,124,.14);border-radius:9px;background:rgba(243,239,230,.04)}
+.bd-q-k{font-family:var(--serif);font-size:clamp(11px,.73vw,14px);color:var(--gold);flex:none}
+.bd-q-n{font-size:clamp(12px,.81vw,15.5px);letter-spacing:.06em;flex:1;min-width:0;
+  color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-q-v{font-family:var(--serif);font-weight:600;font-size:clamp(15px,1.1vw,21px);
+  font-variant-numeric:tabular-nums;flex:none}
+.bd-q:first-child{border-color:rgba(201,171,124,.45);background:rgba(201,171,124,.10)}
+.bd-q.up .bd-q-v{color:var(--gold-lite)}
+.bd-q.down .bd-q-v{color:var(--green)}
+.bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
+.bd-n{display:flex;gap:12px;min-width:0}
+.bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold);
+  font-variant-numeric:tabular-nums;letter-spacing:.06em}
+.bd-n-x{font-size:clamp(11px,.76vw,14.5px);line-height:1.55;color:var(--dim);min-width:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 底部：通知跑马灯 + 校训金线 */
+.bd-bot2{flex:0 0 auto;border-top:2px solid var(--gold);padding-top:clamp(8px,1.3vh,14px);
+  display:flex;align-items:center;gap:clamp(14px,1.4vw,26px)}
+.bd-marq{flex:1;min-width:0;overflow:hidden;white-space:nowrap;
+  mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.bd-marq-in{display:inline-block;animation:bdMv 36s linear infinite}
+.bd-marq-in span{font-size:clamp(11px,.81vw,15.5px);letter-spacing:.1em;color:var(--dim);margin-right:70px}
+.bd-marq-in em{font-style:normal;color:var(--gold);margin-right:12px;font-variant-numeric:tabular-nums}
+@keyframes bdMv{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.bd-motto2{font-family:var(--serif);font-size:clamp(12px,.89vw,17px);letter-spacing:.35em;
+  color:var(--gold-lite);flex:none}
 
-/* 考勤小结面板（==5.23== att）：五个数一排 + 还没到名单 */
-.bd-att{display:flex;align-items:baseline;gap:clamp(12px,1.8vw,36px);flex:none;
-  padding-bottom:clamp(6px,1.0vh,14px);border-bottom:1px solid var(--rule)}
-.bd-att > div{display:flex;align-items:baseline;gap:clamp(4px,.5vw,9px)}
-.bd-att b{font-family:var(--mono);font-size:clamp(22px,2.2vw,44px);font-weight:500;line-height:1}
-.bd-att span{font-family:var(--serif);font-size:clamp(11px,.95vw,17px);color:var(--dim);letter-spacing:.08em}
-.bd-att .a-ok b{color:var(--gold-lite)} .bd-att .a-late b{color:var(--amber)}
-.bd-att .a-leave b{color:var(--blue)} .bd-att .a-miss b{color:var(--red)}
-/* 最新通知面板（==5.23== news）：前两条，一行一条（日期金 + 正文截断） */
-.bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(6px,1.0vh,14px)}
-.bd-n{display:flex;align-items:baseline;gap:clamp(8px,.9vw,16px);min-width:0}
-.bd-n-t{flex:0 0 auto;font-size:clamp(12px,1.0vw,18px);color:var(--gold);
-  font-variant-numeric:tabular-nums;letter-spacing:.04em}
-.bd-n-x{font-size:clamp(13px,1.15vw,21px);color:var(--ink);min-width:0;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ════ 右下浮动按钮组（==5.24== 切换布局 / 退出）══════════════════
+   平时完全看不见（这块屏是给路过的人看的），鼠标挪到右下角才浮出来。
+   「切换布局」点击即切 sign↔dash，无需刷新；模式存 _boardMode 本机记住。 */
+.bd-fab{position:fixed;right:14px;bottom:14px;z-index:60;display:flex;gap:10px;
+  opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none}
+body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:none;pointer-events:auto}
+.bd-fab button{border:1px solid var(--rule);background:rgba(20,27,44,.88);color:var(--dim);
+  font-family:inherit;font-size:12px;padding:7px 15px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.bd-fab button:hover{color:var(--gold-lite);border-color:var(--gold)}
 
-/* ── 编辑模式（==5.23== 手动调序）──
-   右上角「调布局」hover 浮现（与退出键同款规矩：这块屏平时不该有按钮）。
-   编辑态：面板虚线金框 + 面板头手柄可拖（HTML5 dnd）+ ‹› 微调箭头 + 顶浮条（预设/完成）。
-   拖完 / 点完成 / Esc 出编辑态，顺序写进 _boardLayout（_ 开头 = 本机持久化、不参与同步）。 */
-.bd-edit{position:fixed;right:14px;top:14px;z-index:60;
-  border:1px solid var(--rule);background:rgba(20,27,44,.85);color:var(--dim);
-  font-family:inherit;font-size:12px;padding:6px 13px;border-radius:99px;cursor:pointer;
-  opacity:0;transition:opacity .2s}
-.bd-edit:hover,.bd-edit:focus,.board-editing .bd-edit{opacity:1;color:var(--ink)}
-.bd-editbar{display:none;position:fixed;top:14px;left:50%;transform:translateX(-50%);
-  z-index:61;align-items:center;gap:10px;
-  border:1px solid rgba(201,171,124,.4);background:rgba(20,27,44,.94);border-radius:99px;
-  padding:8px 18px;box-shadow:0 10px 30px rgba(10,15,28,.5)}
-.board-editing .bd-editbar{display:flex}
-.bd-editbar span{font-size:12.5px;color:var(--dim);letter-spacing:.08em;white-space:nowrap}
-.bd-editbar button{border:1px solid var(--rule);background:transparent;color:var(--ink);
-  font-family:inherit;font-size:12.5px;padding:5px 14px;border-radius:99px;cursor:pointer;white-space:nowrap}
-.bd-editbar button:hover{border-color:var(--gold);color:var(--gold-lite)}
-.bd-editbar button.on{background:var(--gold);color:#243049;border-color:var(--gold)}
-/* 编辑态面板：虚线金框 + 手柄条 + 微调箭头 */
-body.board-editing .bd-panel{outline:1.5px dashed rgba(201,171,124,.55);outline-offset:-1.5px}
-body.board-editing .bd-panel[draggable="true"]{cursor:grab}
-.bd-panel.drag-over{outline:2px solid var(--gold-lite)!important;outline-offset:-2px;
-  background:rgba(201,171,124,.10)}
-.bd-drag{display:none;position:absolute;left:50%;top:6px;transform:translateX(-50%);
-  font-size:11px;letter-spacing:.3em;color:var(--gold);white-space:nowrap;
-  background:rgba(20,27,44,.85);border:1px solid var(--rule);border-radius:99px;
-  padding:2px 12px;cursor:grab;user-select:none;z-index:2}
-.board-editing .bd-drag{display:block}
-.bd-mv{display:none;position:absolute;top:6px;width:24px;height:24px;line-height:22px;
-  text-align:center;border:1px solid var(--rule);border-radius:50%;background:rgba(20,27,44,.85);
-  color:var(--ink);font-size:13px;cursor:pointer;user-select:none;z-index:2;padding:0}
-.board-editing .bd-mv{display:block}
-.bd-mv:hover{border-color:var(--gold);color:var(--gold-lite)}
-.bd-mv.prev{right:36px} .bd-mv.next{right:8px}
-
-/* 退出：平时完全看不见（这块屏是给路过的人看的，不该出现任何按钮），
-   鼠标挪到右下角才浮出来；Esc 也能退 */
-.bd-exit{position:fixed;right:14px;bottom:14px;z-index:60;
-  border:1px solid var(--rule);background:rgba(20,27,44,.85);color:var(--dim);
-  font-family:inherit;font-size:12px;padding:6px 13px;border-radius:99px;cursor:pointer;
-  opacity:0;transition:opacity .2s}
-.bd-exit:hover,.bd-exit:focus{opacity:1;color:var(--ink);border-color:var(--gold)}
-
-/* 窄屏（笔记本竖屏 / 有人把窗口拖窄）：三栏叠成一栏，能滚着看。
+/* 窄屏（笔记本竖屏 / 有人把窗口拖窄）：两模式都叠成一栏，能滚着看。
    ⚠️ 真实的看板是 1920×1080 横屏，这条只管「顺手在窄窗里也能看」。 */
 @media (max-width:900px){
   body.board-mode .main{overflow-y:auto}
   .bd{flex:none;height:auto;min-height:100%}
-  /* ⚠️ 选择器必须带 [data-preset] 追平预设规则的 (0,2,0) 特异性 + 源序在后 ——
-     裸 .bd-grid 会被 sign/info 的三列定义压住，窄屏永远叠不成一竖条。 */
-  .bd-grid[data-preset]{grid-template-columns:minmax(0,1fr);grid-template-rows:none;
-    grid-template-areas:"s1" "s2" "s3" "s4" "s5" "s6"}
-  .bd-panel{min-height:220px}
-  .bd-panel[data-pid="clock"]{min-height:0}
-  .bd-clock{margin-left:0}
-  .bd-qr{width:min(64vw,340px)}
-  .bd-grid[data-preset="info"] .bd-qr{width:min(64vw,340px)}
-  .bd-code{font-size:clamp(34px,13vw,110px)}
+  .bdv-sign,.bdv-dash{padding:18px 20px}
+  .bd-stage{flex:none;padding:14px 0}
+  .bd-poster{max-height:none}
+  .bd-qr2{width:min(64vw,340px)}
+  .bd-code{font-size:clamp(34px,13vw,80px)}
+  .bd-nums5{gap:18px;flex-wrap:wrap;justify-content:center}
+  .bd-grid3{display:flex;flex-direction:column}
+  .bd-pnl{min-height:220px}
+  .bd-pnl.mid{min-height:0}
+  .bd-num4{grid-template-columns:repeat(4,1fr)}
+  .bd-clock{font-size:clamp(26px,7vw,40px)}
+  .bd-clock2{font-size:clamp(26px,7vw,40px)}
 }
 
 /* ══════════ 扫一扫（学生端打卡用）══════════════════════════════
@@ -4973,92 +4893,106 @@ var Icon = {
          取数全部走现成的 Store 与 Auth.call('code')：不新增接口，主系统一改这块屏跟着变。 -->
     <section class="page" id="page-board">
       <div class="bd">
-        <!-- ==5.23== 六块面板（clock/qrcode/courses/att/quant/news）+ 两套预设槽位 +
-             手动调序（编辑态拖拽 / ‹› 微调，顺序存 _boardLayout 本机持久化）。
+        <!-- ==5.24== 双模式骨架（预览稿 scheme-sign.html / scheme-dash.html 1:1 移植）。
+             两套骨架共用一组 data-bd 数据槽位（Board.setAll 遍历更新）；
+             sign 独享的码件（bdQr/bdCode/bdBar/bdLeft）id 唯一，paintCode 直写；
+             dash 的名单/课表沿用 fill() 装不下就滚。
              数据链路一字未动：Auth.call('code') + Board.collect()，零新增接口。 -->
-        <div class="bd-grid" id="bdGrid" data-preset="sign">
-          <section class="bd-panel" data-pid="clock">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('clock',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('clock',1)" title="往后挪">›</button>
-            <!-- v43：博艺圆章原样裸摆（它本来就蓝+白），只给**砺蕴那半**加暖米黄圆底 ——
-                 深蓝底上这块浅色圆底反而更跳（登录门同款思路）。 -->
-            <img class="bd-lock" src="assets/brand-plate.png"
-                 srcset="assets/brand-plate.png 1x, assets/brand-plate@2x.png 2x, assets/brand-plate@3x.png 3x"
-                 alt="博艺教育 · 砺蕴" draggable="false">
-            <span class="bd-date" id="bdDate">—</span>
-            <span class="bd-clock" id="bdClock">--:--:--</span>
-            <span class="bd-fresh" id="bdFresh"></span>
-          </section>
 
-          <section class="bd-panel" data-pid="qrcode">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('qrcode',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('qrcode',1)" title="往后挪">›</button>
-            <div class="bd-lab">今日打卡码</div>
-            <div class="bd-qr" id="bdQr" role="img" aria-label="打卡二维码"></div>
-            <div class="bd-code" id="bdCode">····</div>
-            <!-- 换码倒计时：进度条走到头就换新码；右边那个秒数才是要看的 -->
-            <div class="bd-timer">
-              <div class="bd-bar"><i id="bdBar" style="width:100%"></i></div>
-              <div class="bd-cd"><b id="bdLeft">—</b><span>秒后换码</span></div>
+        <!-- ── sign · 签到立牌：米白海报，全屏只服务扫码 ── -->
+        <div class="bdv bdv-sign">
+          <div class="bd-top">
+            <div class="bd-brand">
+              <img class="bd-mark" src="assets/brand-plate.png"
+                   srcset="assets/brand-plate.png 1x, assets/brand-plate@2x.png 2x, assets/brand-plate@3x.png 3x"
+                   alt="博艺教育 · 砺蕴" draggable="false">
+              <div class="bd-bn"><div class="bd-bn1">砺蕴工作系统</div><div class="bd-bn2">BOYI EDUCATION · ACADEMIC ADMINISTRATION</div></div>
             </div>
-            <!-- ==5.23== 大数与三小数并排一行：qrcode 面板纵向预算省一整行，
-                 宽屏 vw 字号撞 clamp 上限也不会把「迟到/请假/未到」挤出屏 -->
-            <div class="bd-countrow">
-              <div class="bd-count">
-                <div><b id="bdShould">0</b><span>应到</span></div>
-                <div class="bd-c-ok"><b id="bdHere">0</b><span>实到</span></div>
+            <div class="bd-tright">
+              <div class="bd-clock" data-bd="clock">--:--:--</div>
+              <div class="bd-tmeta"><div class="bd-d1" data-bd="date">—</div><div class="bd-d2" data-bd="period"></div></div>
+            </div>
+          </div>
+          <div class="bd-stage">
+            <div class="bd-poster">
+              <div class="bd-lab">今日打卡码 · 扫码签到</div>
+              <div class="bd-qr2" id="bdQr" role="img" aria-label="打卡二维码"></div>
+              <div class="bd-code" id="bdCode">····</div>
+              <div class="bd-timer">
+                <div class="bd-bar"><i id="bdBar" style="width:100%"></i></div>
+                <div class="bd-cd"><b id="bdLeft">—</b><span>秒后换码 · 学员扫面前屏幕即可签到</span></div>
               </div>
-              <div class="bd-mini" id="bdMini"></div>
             </div>
-          </section>
-
-          <section class="bd-panel" data-pid="courses">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('courses',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('courses',1)" title="往后挪">›</button>
-            <h3 class="bd-h">今日课表 <span class="bd-sub" id="bdSoon"></span></h3>
-            <div class="bd-sched"><div class="bd-sched-in" id="bdSched"></div></div>
-          </section>
-
-          <section class="bd-panel" data-pid="att">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('att',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('att',1)" title="往后挪">›</button>
-            <h3 class="bd-h">今日考勤</h3>
-            <div class="bd-att" id="bdAtt"></div>
-            <div class="bd-miss">
-              <h3 class="bd-h" id="bdMissTitle">还没到</h3>
-              <div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div>
+          </div>
+          <div class="bd-detail">
+            <div class="bd-nums5">
+              <div class="n"><b data-bd="should">0</b><span>应到</span></div>
+              <div class="n gd"><b data-bd="here">0</b><span>实到</span></div>
+              <div class="n lt"><b data-bd="late">0</b><span>迟到</span></div>
+              <div class="n lv"><b data-bd="leave">0</b><span>请假</span></div>
+              <div class="n ms"><b data-bd="missn">0</b><span>未到</span></div>
             </div>
-          </section>
+            <div class="bd-names"><span class="k">未到</span><span data-bd="missnames">—</span><span class="sep">·</span><span class="k">请假</span><span data-bd="leavenames">—</span></div>
+          </div>
+          <div class="bd-bot">
+            <div class="bd-motto">博学宏才 · 艺德卓绝<small>BOYI EDUCATION · ERUDITART EAS</small></div>
+            <div class="bd-cls">砺蕴教务系统<span class="bd-fresh2" data-bd="fresh"></span></div>
+          </div>
+        </div>
 
-          <section class="bd-panel" data-pid="quant">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('quant',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('quant',1)" title="往后挪">›</button>
-            <h3 class="bd-h">班级量化</h3>
-            <div class="bd-quant" id="bdQuant"></div>
-          </section>
-
-          <section class="bd-panel" data-pid="news">
-            <span class="bd-drag">⠿ 拖动调位</span>
-            <button type="button" class="bd-mv prev" onclick="Board.moveBy('news',-1)" title="往前挪">‹</button>
-            <button type="button" class="bd-mv next" onclick="Board.moveBy('news',1)" title="往后挪">›</button>
-            <h3 class="bd-h">最新通知</h3>
-            <div class="bd-news" id="bdNews"></div>
-          </section>
+        <!-- ── dash · 信息中枢：深蓝数据墙（无码、无内部管理内容）── -->
+        <div class="bdv bdv-dash">
+          <div class="bd-top2">
+            <div class="bd-brand">
+              <img class="bd-mark" src="assets/brand-plate.png"
+                   srcset="assets/brand-plate.png 1x, assets/brand-plate@2x.png 2x, assets/brand-plate@3x.png 3x"
+                   alt="博艺教育 · 砺蕴" draggable="false">
+              <div class="bd-bn"><div class="bd-bn1">砺蕴工作系统</div><div class="bd-bn2">BOYI EDUCATION · ACADEMIC ADMINISTRATION</div></div>
+            </div>
+            <div class="bd-tright2">
+              <div class="bd-clock2"><span data-bd="clockHM">--:--</span><span class="sec" data-bd="clocksec">:--</span></div>
+              <div class="bd-tmeta"><div class="bd-d1" data-bd="date">—</div><div class="bd-d2" data-bd="period"></div></div>
+              <div class="bd-fresh" data-bd="fresh"></div>
+            </div>
+          </div>
+          <div class="bd-grid3">
+            <div class="bd-pnl">
+              <h3 class="bd-h">今日课程 <span class="bd-tag" data-bd="soon"></span></h3>
+              <div class="bd-tl"><div class="bd-tl-in" id="bdSched"></div></div>
+            </div>
+            <div class="bd-pnl mid">
+              <div class="bd-grp">
+                <h3 class="bd-h">今日考勤 <span class="bd-tag">实到含迟到</span></h3>
+                <div class="bd-num4">
+                  <div class="n"><b data-bd="should">0</b><span>应到</span></div>
+                  <div class="n gd"><b data-bd="here">0</b><span>实到</span></div>
+                  <div class="n lt"><b data-bd="late">0</b><span>迟到</span></div>
+                  <div class="n lv"><b data-bd="leave">0</b><span>请假</span></div>
+                </div>
+              </div>
+              <div class="bd-grp">
+                <h3 class="bd-h">还没到 <span class="bd-tag" data-bd="misstag">—</span></h3>
+                <div class="bd-miss"><div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div></div>
+              </div>
+            </div>
+            <div class="bd-pnl">
+              <h3 class="bd-h">班级量化 <span class="bd-tag">前 5</span></h3>
+              <div class="bd-quant" id="bdQuant"></div>
+              <h3 class="bd-h">最新通知 <span class="bd-tag">3 条</span></h3>
+              <div class="bd-news" id="bdNews"></div>
+            </div>
+          </div>
+          <div class="bd-bot2">
+            <div class="bd-marq"><div class="bd-marq-in" data-bd="marq"></div></div>
+            <div class="bd-motto2">博学宏才 · 艺德卓绝</div>
+          </div>
         </div>
       </div>
-      <button class="bd-edit" onclick="Board.editMode(true)">调布局</button>
-      <div class="bd-editbar" id="bdEditbar">
-        <span>拖动面板或点 ‹ › 调位 · 顺序自动记住</span>
-        <button type="button" id="bdPresetSign" onclick="Board.resetPreset('sign')">打卡布局</button>
-        <button type="button" id="bdPresetInfo" onclick="Board.resetPreset('info')">信息布局</button>
-        <button type="button" onclick="Board.editMode(false)">完成</button>
+      <!-- 右下浮动按钮组：hover 浮出，点击即切模式 / 退出 -->
+      <div class="bd-fab">
+        <button type="button" onclick="Board.toggleMode()">切换布局 · 当前 <span data-bd="modename">签到立牌</span></button>
+        <button type="button" onclick="Board.leave()">退出（Esc）</button>
       </div>
-      <button class="bd-exit" onclick="Board.leave()">退出看板（Esc）</button>
     </section>
     <!-- ==== 功能：看板端 END ==== -->
 
@@ -18269,131 +18203,61 @@ const Board = {
   _off: 0,       /* 本机时钟与服务端的偏差。三硬原则：时间以服务端为准 */
   _until: 0,     /* 这一枚码还剩到什么时候（服务端派生的码一定有时间点） */
   _code: '', _stamp: 0, _data: null,
-  _order: null, _preset: null, _dnd: null,
 
-  /* ── 双布局 + 手动调序（==5.23==）──
-     六块面板按 order 依次占 s1~s6 槽；两套预设只是两套槽位几何 + 默认 order。
-     顺序存 _boardLayout（_ 开头 = 本机持久化、不参与多端同步 —— 这是「这块屏」的脾气，
-     每台看板自己记自己的摆法）。
-     ⚠️ sanitize 铁律：order 缺项补齐、多余项丢弃、非法项过滤、重复项去重 ——
-     旧数据再脏也得兜回六块全上屏，宁可回默认也不许丢面板。 */
-  PIDS: ['clock','qrcode','courses','att','quant','news'],
-  PRESETS: {
-    sign: { preset:'sign', order:['clock','courses','qrcode','att','quant','news'] },
-    info: { preset:'info', order:['courses','clock','att','qrcode','quant','news'] },
+  /* ── 双模式（==5.24==）：签到立牌 sign / 信息中枢 dash ──
+     两套固定构图（预览稿 docs/board-redesign-shots/ 1:1 移植），
+     右下角 hover 浮出「切换布局」，点击即切、无需刷新。
+     模式存 _boardMode（_ 开头 = 本机持久化、不参与多端同步）——
+     下次开机落在上次的模式；首次默认 sign（扫码是这块屏的本职）。
+     5.23 的六面板槽位 + 拖拽调序体系整体下线：两模式为固定构图，拖拽不适用。 */
+  MODES: { sign: '签到立牌', dash: '信息中枢' },
+
+  mode(){
+    try { const m = Store.get('_boardMode'); if (this.MODES[m]) return m; } catch(e){}
+    return 'sign';
   },
 
-  layout(){
-    try {
-      const v = Store.get('_boardLayout');
-      if (v && this.PRESETS[v.preset] && Array.isArray(v.order)) return v;
-    } catch(e){}
-    return this.PRESETS.sign;
+  setMode(m){
+    if (!this.MODES[m] || m === this.mode()) return;
+    Store.set('_boardMode', m);
+    this.applyMode();
   },
 
-  /* 任意脏数组 → 恰好六项合法 order */
-  sanitize(order){
-    const out = [];
-    (Array.isArray(order) ? order : []).forEach(pid => {
-      if (this.PIDS.includes(pid) && !out.includes(pid)) out.push(pid);
+  toggleMode(){ this.setMode(this.mode() === 'sign' ? 'dash' : 'sign'); },
+
+  applyMode(){
+    const pg = document.getElementById('page-board');
+    if (pg) pg.dataset.mode = this.mode();
+    this.setAll('modename', this.MODES[this.mode()]);
+  },
+
+  /* data-bd 槽位批量写文本：两套骨架同名槽一起更新（隐藏的那套没有渲染开销） */
+  setAll(key, txt){
+    document.querySelectorAll('[data-bd="' + key + '"]').forEach(el => {
+      if (el.textContent !== txt) el.textContent = txt;
     });
-    this.PIDS.forEach(pid => { if (!out.includes(pid)) out.push(pid); });
-    return out.slice(0, 6);
   },
 
-  applyLayout(){
-    /* 缓存铁律（==5.23==）：_order 只在第一次（start 进门）从 Store 读，
-       之后 resetPreset / swapPids / moveBy 改的都是内存态 —— applyLayout 一律照
-       _order 渲染，**绝不回头重读 Store**（重读会把刚换好的顺序盖回去，
-       board_check 的切换/交换/持久化三连挂就挂在这一行上）。 */
-    if (!this._order){
-      const L = this.layout();
-      this._preset = L.preset;
-      this._order = this.sanitize(L.order);
+  /* 顶带当前节次：「第 2 节 · 10:15–11:45 · 指定稿件朗读」。
+     now 落在哪一节的 [start, end) 里就是哪节（end 缺失借下一节的 start）；
+     没落在任何一节里就照实说「当前无课」。 */
+  periodTxt(){
+    const d = new Date(Date.now() + this._off);
+    const p2 = n => String(n).padStart(2, '0');
+    const now = p2(d.getHours()) + ':' + p2(d.getMinutes());
+    const w = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+    const periods = Store.list('periods').slice()
+      .sort((a, b) => (a.start || '') > (b.start || '') ? 1 : -1);
+    const rows = Store.list('schedule').filter(x => x.day === w);
+    for (let i = 0; i < periods.length; i++){
+      const pd = periods[i];
+      const end = pd.end || (periods[i + 1] && periods[i + 1].start) || '';
+      if (!pd.start || now < pd.start || (end && now >= end)) continue;
+      const x = rows.find(r => r.periodId === pd.id) || {};
+      const t = x.time || (pd.start + '–' + (pd.end || ''));
+      return (pd.name || '') + ' · ' + t + (x.title ? ' · ' + x.title : '');
     }
-    const grid = document.getElementById('bdGrid');
-    if (!grid) return;
-    grid.dataset.preset = this._preset;
-    this._order.forEach((pid, i) => {
-      const p = grid.querySelector('.bd-panel[data-pid="' + pid + '"]');
-      if (!p) return;
-      p.dataset.slot = 's' + (i + 1);
-      p.style.gridArea = 's' + (i + 1);
-      grid.appendChild(p);          // DOM 顺序跟 order 走（Tab/读屏顺序一致）
-    });
-    const sg = document.getElementById('bdPresetSign'), inf = document.getElementById('bdPresetInfo');
-    if (sg) sg.classList.toggle('on', this._preset === 'sign');
-    if (inf) inf.classList.toggle('on', this._preset === 'info');
-  },
-
-  saveLayout(){
-    Store.set('_boardLayout', { preset: this._preset, order: this._order.slice() });
-  },
-
-  /* 编辑态：面板可拖 + 微调箭头 + 顶浮条。Esc / 完成都出编辑态（顺带保存）。 */
-  editMode(on){
-    if (!this.ok()) return;
-    const editing = on === undefined ? !document.body.classList.contains('board-editing') : !!on;
-    document.body.classList.toggle('board-editing', editing);
-    document.querySelectorAll('#bdGrid .bd-panel').forEach(p => { p.draggable = editing; });
-    if (editing) this.bindDnd();
-    else this.saveLayout();
-  },
-
-  bindDnd(){
-    if (this._dnd) return;
-    const grid = document.getElementById('bdGrid');
-    let src = null;
-    this._dnd = [
-      ['dragstart', e => {
-        const p = e.target.closest('.bd-panel'); if (!p) return;
-        src = p; e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', p.dataset.pid); } catch(err){}
-      }],
-      ['dragover', e => {
-        const p = e.target.closest('.bd-panel');
-        if (!p || !src || p === src) return;
-        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-        p.classList.add('drag-over');
-      }],
-      ['dragleave', e => {
-        const p = e.target.closest('.bd-panel'); if (p) p.classList.remove('drag-over');
-      }],
-      ['drop', e => {
-        const p = e.target.closest('.bd-panel');
-        if (p) p.classList.remove('drag-over');
-        if (!p || !src || p === src) return;
-        e.preventDefault();
-        this.swapPids(src.dataset.pid, p.dataset.pid);
-      }],
-      ['dragend', () => {
-        src = null;
-        document.querySelectorAll('#bdGrid .bd-panel').forEach(x => x.classList.remove('drag-over'));
-      }],
-    ].map(([ev, fn]) => { grid.addEventListener(ev, fn); return [ev, fn]; });
-  },
-
-  swapPids(a, b){
-    const i = this._order.indexOf(a), j = this._order.indexOf(b);
-    if (i < 0 || j < 0 || i === j) return;
-    this._order[i] = b; this._order[j] = a;
-    this.applyLayout(); this.saveLayout();
-  },
-
-  /* ‹ › 微调：与相邻槽位交换 */
-  moveBy(pid, dir){
-    const i = this._order.indexOf(pid);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= this._order.length) return;
-    this.swapPids(pid, this._order[j]);
-  },
-
-  /* 编辑条上两个一键重置（也兼预设切换） */
-  resetPreset(name){
-    if (!this.PRESETS[name]) return;
-    this._preset = name;
-    this._order = this.PRESETS[name].order.slice();
-    this.applyLayout(); this.saveLayout();
+    return '当前无课';
   },
 
   /* 只有教务端能看：老师那边没有打卡这一摊，学生更不该看到码 */
@@ -18495,7 +18359,6 @@ const Board = {
 
   leave(){
     document.body.classList.remove('board-mode');
-    document.body.classList.remove('board-editing');
     this.stop();
     try {
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -18507,18 +18370,14 @@ const Board = {
 
   start(){
     this.stop();
-    this._order = null;   /* ==5.23== 重进看板重新读本机摆法（缓存清零，见 applyLayout 注释） */
-    this.applyLayout(); /* 先把摆法恢复成本机记住的那套，再上数据 */
+    /* ==5.24== 旧 5.23 拖拽摆法数据（_boardLayout）已退役：见一次清一次 */
+    try { if (Store.get('_boardLayout')) Store.remove('_boardLayout'); } catch(e){}
+    this.applyMode();   /* 先落回本机记住的模式，再上数据 */
     this.tick();       /* 先把时钟摆上，别让人先看到一秒的空白 */
     this.refresh();    /* 码 + 数据 */
     this._sec = setInterval(() => this.tick(), 1000);
     this._pull = setInterval(() => this.refresh(), 30000);
-    this._esc = e => {
-      if (e.key === 'Escape'){
-        if (document.body.classList.contains('board-editing')) this.editMode(false);
-        else this.leave();
-      }
-    };
+    this._esc = e => { if (e.key === 'Escape') this.leave(); };
     document.addEventListener('keydown', this._esc);
     /* 切走标签页会被系统收掉唤醒锁，回来得重新要一次 */
     this._vis = () => { if (!document.hidden) this.keepAwake(); };
@@ -18588,6 +18447,7 @@ const Board = {
     });
     const away = this.leavers(date);
     const miss = [];
+    const leaveNames = [];
     let ok = 0, late = 0, leave = 0;
     students.forEach(st => {
       const r  = bySid[st.id];   // 打卡记录（学生自己在门口打的）
@@ -18601,14 +18461,14 @@ const Board = {
       const st2 = (r && ar)
         ? (((ar._u || 0) >= (r._u || 0)) ? ar.status : r.status)
         : (r ? r.status : (ar ? ar.status : ''));
-      if (away.has(st.id) || st2 === '病假' || st2 === '事假'){ leave++; return; }
+      if (away.has(st.id) || st2 === '病假' || st2 === '事假'){ leave++; leaveNames.push(st.name); return; }
       /* 「未到」= 明确标了没来，必须进 miss。
          大屏上「实到 = ok + late」，漏了这一支会被当成「已到」，
          值班老师看一眼以为人都到齐了 —— 这是这一轮最危险的一处。 */
       if (!st2 || st2 === '未到'){ miss.push(st); return; }
       if (st2 === '迟到') late++; else ok++;
     });
-    return { total: students.length, should: students.length - leave, ok, late, leave, miss };
+    return { total: students.length, should: students.length - leave, ok, late, leave, miss, leaveNames };
   },
 
   /* 今天批过假的学员 id：走协作里的请假工单（已批 = status done）。
@@ -18628,31 +18488,28 @@ const Board = {
     const p = n => String(n).padStart(2, '0');
     const d = new Date(Date.now() + this._off);
 
-    const ck = document.getElementById('bdClock');
+    /* ==5.24== 两套骨架共用 data-bd 槽位：sign 一体时钟 HH:MM:SS，
+       dash 分体 HH:MM + :SS（小号秒），一秒一写。 */
     const t = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
-    if (ck && ck.textContent !== t) ck.textContent = t;
+    this.setAll('clock', t);
+    this.setAll('clockHM', t.slice(0, 5));
+    this.setAll('clocksec', t.slice(5));
 
-    const dt = document.getElementById('bdDate');
-    if (dt){
-      const w = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
-      const txt = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${w}`;
-      if (dt.textContent !== txt) dt.textContent = txt;
-    }
+    const w = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()];
+    this.setAll('date', `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${w}`);
 
-    /* 距上课还有多久 —— 比钟点本身更有用，一眼知道还来不来得及。
-       摆在左栏课表标题右边，跟课表待在一起最自然。 */
-    const soon = document.getElementById('bdSoon');
-    if (soon){
-      const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : { startAt: '08:30' };
-      const hm = String(r.startAt || '08:30').split(':');
-      const at = new Date(d);
-      at.setHours(Number(hm[0]) || 0, Number(hm[1]) || 0, 0, 0);
-      const mins = Math.round((at - d) / 60000);
-      const txt = mins > 0 ? `${mins} 分钟后上课` : (mins === 0 ? '正在上课' : '已经上课');
-      if (soon.textContent !== txt) soon.textContent = txt;
-    }
+    /* 顶带当前节次（sign/dash 同一份） */
+    this.setAll('period', this.periodTxt());
 
-    this.paintCode();
+    /* 距上课还有多久 —— dash 左栏课表标题旁，一眼知道还来不来得及。 */
+    const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : { startAt: '08:30' };
+    const hm = String(r.startAt || '08:30').split(':');
+    const at = new Date(d);
+    at.setHours(Number(hm[0]) || 0, Number(hm[1]) || 0, 0, 0);
+    const mins = Math.round((at - d) / 60000);
+    this.setAll('soon', mins > 0 ? `${mins} 分钟后上课` : (mins === 0 ? '正在上课' : '已经上课'));
+
+    this.paintCode();   /* 数字码/二维码/倒计时条每秒走一格，到点也在这一步触发换码 */
     this.paintFresh();
   },
 
@@ -18697,77 +18554,83 @@ const Board = {
   /* 数据新鲜度：这块屏最怕「网断了、数字还挂着」——教务看一眼以为一切正常。
      超过一分半没更新就把这一行点亮成警示色。 */
   paintFresh(){
-    const el = document.getElementById('bdFresh');
-    if (!el || !this._stamp) return;
+    const els = document.querySelectorAll('[data-bd="fresh"]');
+    if (!els.length || !this._stamp) return;
     const p = n => String(n).padStart(2, '0');
     const d = new Date(this._stamp);
     const stale = Date.now() - this._stamp > 90000;
     const txt = stale
       ? `数据停留于 ${p(d.getHours())}:${p(d.getMinutes())} · 可能已断网`
       : `数据更新 ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-    if (el.textContent !== txt) el.textContent = txt;
-    el.classList.toggle('warn', stale);
+    els.forEach(el => {
+      if (el.textContent !== txt) el.textContent = txt;
+      el.classList.toggle('warn', stale);
+    });
   },
+
 
   paint(){
     const D = this._data;
     if (!D) return;
-
-    /* 中栏那两个大数：应到 / 实到。实到 = 正常 + 迟到（迟到了但人确实来了）。 */
-    const sh = document.getElementById('bdShould');
-    if (sh && sh.textContent !== String(D.should)) sh.textContent = D.should;
-    const he = document.getElementById('bdHere');
-    const here = D.ok + D.late;
-    if (he && he.textContent !== String(here)) he.textContent = here;
-
-    /* 迟到 / 请假 / 未到 —— 三个带标签的中等数字（原来是一行 19px 小字，
-       站两米外看不见）。颜色各归其位：迟到赭、请假蓝、未到朱砂。 */
-    const mini = document.getElementById('bdMini');
-    if (mini){
-      const txt = `<div class="bd-m late"><b>${D.late}</b><span>迟到</span></div>`
-                + `<div class="bd-m leave"><b>${D.leave}</b><span>请假</span></div>`
-                + `<div class="bd-m bd-warn"><b>${D.miss.length}</b><span>未到</span></div>`;
-      if (mini.innerHTML !== txt) mini.innerHTML = txt;
-    }
-
+    /* 五个数（sign 明细带 + dash 2×2 大格是同一组槽位，一起填）。
+       实到 = 正常 + 迟到（迟到了但人确实来了）。 */
+    this.setAll('should', String(D.should));
+    this.setAll('here', String(D.ok + D.late));
+    this.setAll('late', String(D.late));
+    this.setAll('leave', String(D.leave));
+    this.setAll('missn', String(D.miss.length));
+    this.paintNames(D);
+    this.paintMiss(D);
     this.paintQuant();
-    this.paintAtt();
     this.paintNews();
-
-    const t = document.getElementById('bdMissTitle');
-    if (t) t.textContent = D.miss.length ? `还没到 · ${D.miss.length} 人` : '还没到';
-
-    const miss = document.getElementById('bdMiss');
-    if (miss) this.fill(miss, D.miss.length
-      ? D.miss.map(s => `<div class="bd-row">${Util.esc(s.name)}</div>`).join('')
-      : '<div class="bd-row calm">全部到齐</div>');
+    this.paintMarquee();
 
     const sc = document.getElementById('bdSched');
     if (sc) this.fill(sc, this.schedHtml());
   },
 
-  /* ── 考勤小结面板（==5.23== att）：五个数一排（与打卡卡上的大数同源同口径，
-     这边是走近平看明细的那份），名单复用 fill() 的装不下就滚 ── */
-  paintAtt(){
-    const D = this._data;
-    const box = document.getElementById('bdAtt');
-    if (box && D){
-      const html = '<div><b>' + D.should + '</b><span>应到</span></div>'
-        + '<div class="a-ok"><b>' + (D.ok + D.late) + '</b><span>实到</span></div>'
-        + '<div class="a-late"><b>' + D.late + '</b><span>迟到</span></div>'
-        + '<div class="a-leave"><b>' + D.leave + '</b><span>请假</span></div>'
-        + '<div class="a-miss"><b>' + D.miss.length + '</b><span>未到</span></div>';
-      if (box.dataset.raw !== html){ box.dataset.raw = html; box.innerHTML = html; }
-    }
+  /* sign 底带名单行：未到 / 请假各列名，超过 6 人截断成「等 N 人」，空的一律「—」 */
+  paintNames(D){
+    const cut6 = arr => arr.length <= 6 ? arr.join('、') : arr.slice(0, 6).join('、') + ' 等 ' + arr.length + ' 人';
+    this.setAll('missnames', D.miss.length ? cut6(D.miss.map(s => s.name)) : '—');
+    this.setAll('leavenames', (D.leaveNames || []).length ? cut6(D.leaveNames) : '—');
   },
 
-  /* ── 最新通知面板（==5.23== news）：前两条，一行一条 ── */
+  /* dash「还没到」名单：≤8 人，超出补一条「等 N 人」；装不下走 fill 的上滚循环 */
+  paintMiss(D){
+    const miss = document.getElementById('bdMiss');
+    if (miss){
+      const names = D.miss.map(s => s.name);
+      const shown = names.slice(0, 8);
+      const html = names.length
+        ? shown.map(n => `<div class="bd-row">${Util.esc(n)}</div>`).join('')
+          + (names.length > 8 ? `<div class="bd-row calm">等 ${names.length} 人</div>` : '')
+        : '<div class="bd-row calm">全部到齐</div>';
+      this.fill(miss, html);
+    }
+    this.setAll('misstag', D.miss.length ? `${D.miss.length} 人` : '全部到齐');
+  },
+
+  /* dash 底部跑马灯：最新 3 条 ×2 复制（translateX(-50%) 无缝循环）。
+     内容没变不动它 —— 重排会让滚动跳回开头。 */
+  paintMarquee(){
+    const box = document.querySelector('[data-bd="marq"]');
+    if (!box) return;
+    const rows = Store.list('notices')
+      .slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.at || 0) - (a.at || 0))
+      .slice(0, 3)
+      .map(n => '<span><em>' + Util.esc((n.date || '').slice(5)) + '</em>' + Util.esc(n.text || '') + '</span>');
+    const html = rows.length ? rows.join('') + rows.join('') : '<span>暂无通知</span>';
+    if (box.dataset.raw !== html){ box.dataset.raw = html; box.innerHTML = html; }
+  },
+
+  /* ── 最新通知（==5.24== dash 右列改前三条）── */
   paintNews(){
     const box = document.getElementById('bdNews');
     if (!box) return;
     const rows = Store.list('notices')
       .slice().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.at || 0) - (a.at || 0))
-      .slice(0, 2)
+      .slice(0, 3)
       .map(n => {
         const d = (n.date || '').slice(5).replace('-', '/');
         return '<div class="bd-n"><span class="bd-n-t">' + Util.esc(d) + '</span>'
@@ -18805,31 +18668,39 @@ const Board = {
 
   schedHtml(){
     const d = new Date(Date.now() + this._off);
-    const w = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
-    const periods = Store.list('periods');
-    const rows = Store.list('schedule').filter(x => x.day === w).map(x => {
-      const pd = periods.find(q => q.id === x.periodId) || {};
-      return { t: x.time || pd.start || '', x };
-    }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
-    /* 左栏是竖排：一行一课 —— 时间 · 课名 · 老师/班级，细线分隔。
-       课表长过一栏时，整列缓慢上滚（fill 里复制一份循环）。 */
-    if (!rows.length) return '<div class="bd-s" style="color:#8B8072">今天没有排课</div>';
-    /* 挑出「下一节课」加金边：比较的是服务端校过的钟，
-       所以这块屏摆了一年也不会因为本机时间飘了而挑错。
-       没有比现在更晚的课（今天都上完了），就一条都不标。 */
     const p2 = n => String(n).padStart(2, '0');
     const nowHM = p2(d.getHours()) + ':' + p2(d.getMinutes());
-    let marked = false;
-    return rows.slice(0, 24).map(r => {
+    const periods = Store.list('periods');
+    const rowsOf = w => Store.list('schedule').filter(x => x.day === w).map(x => {
+      const pd = periods.find(q => q.id === x.periodId) || {};
+      return { t: x.time || pd.start || '', x, pd };
+    }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
+    const row = (r, cls, live) => {
       const who = r.x.teacher || r.x.cls || '';
-      const next = !marked && r.t && String(r.t) >= nowHM;
-      if (next) marked = true;
-      return `<div class="bd-s${next ? ' next' : ''}">`
-        + `<span class="bd-s-t">${r.t ? Util.esc(r.t) : '—'}</span>`
-        + `<span class="bd-s-n">${Util.esc(r.x.title || '')}</span>`
-        + (who ? `<span class="bd-s-w">${Util.esc(String(who).split('、')[0])}</span>` : '')
+      return `<div class="bd-s2${cls}">`
+        + `<span class="bd-s2-t">${r.t ? Util.esc(r.t) : '—'}</span>`
+        + `<span class="bd-s2-n">${Util.esc(r.x.title || '')}</span>`
+        + (who ? `<span class="bd-s2-w">${Util.esc(String(who).split('、')[0])}</span>` : '')
+        + (live ? '<span class="bd-live">进行中</span>' : '')
         + `</div>`;
-    }).join('');
+    };
+    const rows = rowsOf(['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]);
+    if (!rows.length) return '<div class="bd-s2" style="color:#8B8072">今天没有排课</div>';
+    /* 「进行中」= 服务端校过的钟落在这一节的 [start, end) 里（end 缺失借下一节的 start）。
+       比的是服务端校过的钟，这块屏摆一年也不会因为本机时间飘了而标错。 */
+    let cur = -1;
+    rows.forEach((r, i) => {
+      const st = r.pd.start || r.t;
+      const en = r.pd.end || (rows[i + 1] && rows[i + 1].pd.start) || '';
+      if (st && nowHM >= st && (!en || nowHM < en)) cur = i;
+    });
+    const today = rows.map((r, i) => row(r, i === cur ? ' on' : '', i === cur)).join('');
+    /* 明日预览：前两节，置灰 —— 给明天一个盼头，也给今天一个「快上完了」的参照 */
+    const tmr = rowsOf(['周日','周一','周二','周三','周四','周五','周六'][(d.getDay() + 1) % 7]).slice(0, 2);
+    const next = tmr.length
+      ? '<div class="bd-tl-sub">—— 明日预览 ——</div>' + tmr.map(r => row(r, ' dim', false)).join('')
+      : '';
+    return today + next;
   },
 
   /* 名单 / 课表塞不下面板时，复制一份缓慢上滚循环。

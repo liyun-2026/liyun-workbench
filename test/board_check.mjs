@@ -238,7 +238,7 @@ try {
       txt: document.getElementById('bdCode').textContent,
       bar: document.getElementById('bdBar').style.width,
       left: document.getElementById('bdLeft').textContent,
-      unit: document.querySelector('.bd-cd span').textContent,
+      unit: document.querySelector('.bd-cd span').textContent.trim(),
       soon: document.getElementById('bdLeft').classList.contains('soon'),
     };
     /* 走到最后 10 秒：秒数该转朱砂（soon）催一下 */
@@ -253,7 +253,7 @@ try {
   t('打卡码画得出来：6 位数字 + 进度条 + 「N 秒后换码」倒计时', () => {
     assert(code.a.txt === '317204', '该显示 317204，实际 ' + code.a.txt);
     assert(/^\d+$/.test(code.a.left), '倒计时要有个秒数，实际「' + code.a.left + '」');
-    assert(code.a.unit === '秒后换码', '倒计时的单位该是「秒后换码」，实际「' + code.a.unit + '」');
+    assert(code.a.unit.startsWith('秒后换码'), '倒计时的单位该以「秒后换码」开头，实际「' + code.a.unit + '」');
     /* ⚠️ CSSOM 会归一化：设进去的 "50.0%" 读回来是 "50%"。别把小数位写进判据。 */
     assert(/^\d+(\.\d+)?%$/.test(code.a.bar), '进度条该有具体宽度，实际 ' + code.a.bar);
     const w30 = parseFloat(code.early), w6 = parseFloat(code.b.bar);
@@ -287,18 +287,18 @@ try {
         e.className + ' pos=' + getComputedStyle(e).position + ' y=' + Math.round(e.getBoundingClientRect().y)),
       banner: (() => { const b = document.querySelector('#page-board .banner');
         return b ? getComputedStyle(b).display : 'none'; })(),
-      clock: (() => { const r = document.getElementById('bdClock').getBoundingClientRect();
+      clock: (() => { const e = document.querySelector('[data-bd="clock"]');
+        const r = e.getBoundingClientRect();
         return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
-                 r: Math.round(r.right), b: Math.round(r.bottom),
-                 fs: getComputedStyle(document.getElementById('bdClock')).fontSize }; })(),
+                 fs: getComputedStyle(e).fontSize }; })(),
       code: (() => { const r = document.getElementById('bdCode').getBoundingClientRect();
         return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
                  r: Math.round(r.right), b: Math.round(r.bottom),
                  fs: getComputedStyle(document.getElementById('bdCode')).fontSize }; })(),
-      app: g('.app'), grid: g('.bd-grid'), main: g('#main'), page: g('#page-board'), bd: g('.bd'), rows: g('.bd-rows') };
+      app: g('.app'), signv: g('.bdv-sign'), main: g('#main'), page: g('#page-board'), bd: g('.bd'), rows: g('#bdMiss') };
   })()`);
   console.log('     视口 ' + dim.vw + '×' + dim.vh + ' | #page-board 子元素 ' + dim.kids.join(' , '));
-  for (const k of ['app', 'grid', 'main', 'page', 'bd'])
+  for (const k of ['app', 'signv', 'main', 'page', 'bd'])
     console.log(`     ${k.padEnd(5)} x=${dim[k].x} y=${dim[k].y} ${dim[k].w}×${dim[k].h}  display=${dim[k].d} flex=${dim[k].flex}`);
 
   t('铺满整屏：page 与 .bd 都吃满视口，提醒条不让它下移', () => {
@@ -312,37 +312,38 @@ try {
     return '.bd ' + dim.bd.w + '×' + dim.bd.h + '，banner display=none';
   });
 
-  /* ==5.23== 面板化：时钟(clock 面板)与打卡码(qrcode 面板)各占一格 ——
-     两块面板的矩形不能相交（默认摆法下一左一中）。手动调序也守这条：
-     槽位几何保证任意 order 下六块面板互不叠。 */
-  const panelRects = await cdp.eval(`(() => {
-    const box = pid => {
-      const e = document.querySelector('.bd-panel[data-pid="' + pid + '"]');
+  /* ==5.24== sign 固定构图：顶带 → 舞台（海报卡）→ 明细带 → 底带，四段纵排不叠。
+     body.board-mode .main 是 overflow:hidden，任何一段溢出都会被无声裁掉。 */
+  const secRects = await cdp.eval(`(() => {
+    const box = s => { const e = document.querySelector('.bdv-sign ' + s);
+      if (!e) return null;
       const r = e.getBoundingClientRect();
-      return { x: Math.round(r.x), y: Math.round(r.y), r: Math.round(r.right), b: Math.round(r.bottom) };
-    };
-    return { clock: box('clock'), qrcode: box('qrcode') };
+      return { y: Math.round(r.y), b: Math.round(r.bottom), h: Math.round(r.height) }; };
+    return { top: box('.bd-top'), stage: box('.bd-stage'), detail: box('.bd-detail'), bot: box('.bd-bot') };
   })()`);
-  t('时钟与打卡码各占一格面板，两块矩形不叠在一起', () => {
-    const a = panelRects.clock, b = panelRects.qrcode;
-    const overlap = a.x < b.r && b.x < a.r && a.y < b.b && b.y < a.b;
-    assert(!overlap, '时钟面板 ' + JSON.stringify(a) + ' 与打卡面板 ' + JSON.stringify(b) + ' 相交了');
+  t('sign 四段构图（顶带/舞台/明细带/底带）自上而下排开、段与段不叠', () => {
+    const R = secRects;
+    ['top','stage','detail','bot'].forEach(k => assert(R[k], 'sign 骨架缺了 .' + k));
+    assert(R.top.b <= R.stage.y + 1, '顶带（到 ' + R.top.b + '）与舞台（从 ' + R.stage.y + '）叠了');
+    assert(R.stage.b <= R.detail.y + 1, '舞台（到 ' + R.stage.b + '）与明细带（从 ' + R.detail.y + '）叠了');
+    assert(R.detail.b <= R.bot.y + 1, '明细带（到 ' + R.detail.b + '）与底带（从 ' + R.bot.y + '）叠了');
+    assert(R.stage.h >= R.top.h && R.stage.h >= R.detail.h, '舞台该是主体（' + R.stage.h + 'px），不该比带子矮');
     assert(dim.clock.w > 100 && dim.code.w > 200,
-      '两块都该有足够的尺寸，实际时钟 ' + dim.clock.w + ' / 码 ' + dim.code.w);
-    return 'clock ' + JSON.stringify(a) + ' ∩ qrcode ' + JSON.stringify(b) + ' = 空';
+      '时钟与码都该有足够尺寸，实际时钟 ' + dim.clock.w + ' / 码 ' + dim.code.w);
+    return 'top ' + R.top.h + ' → stage ' + R.stage.h + ' → detail ' + R.detail.h + ' → bot ' + R.bot.h;
   });
 
-  /* ==5.23== 用户定稿：看板换学府风深蓝（scheme-b1 气质）——
-     深蓝渐变打底、金细线面板；不跟系统深浅色变（挂屏 24 小时是同一个样子）。 */
+  /* ==5.24== sign 换米白暖纸浅底（签到立牌海报），不跟系统深浅色变（挂屏 24 小时一个样）。
+     dash 的深蓝渐变在 7.5 节切过去验。 */
   const paper = await cdp.eval(`(() => {
-    const bd = getComputedStyle(document.querySelector('.bd'));
+    const bd = getComputedStyle(document.querySelector('.bdv-sign'));
     return { img: bd.backgroundImage, dark: matchMedia('(prefers-color-scheme: dark)').matches };
   })()`);
-  t('底是学府风深蓝渐变（#243049→#2c3a5c），不跟系统深浅色变', () => {
-    assert(paper.img.includes('linear-gradient') && paper.img.includes('rgb(36, 48, 73)'),
-      '该是 #243049→#2c3a5c 的深蓝渐变，实际 ' + paper.img.slice(0, 120));
-    assert(!/#FAF7F0/i.test(paper.img), '宣纸米白该退役了，渐变里还留着');
-    return '深蓝渐变（系统当前' + (paper.dark ? '深色' : '浅色') + '，看板不受影响）';
+  t('sign 底是米白暖纸渐变（#f8f6f1 系海报底），不跟系统深浅色变', () => {
+    assert(paper.img.includes('linear-gradient') && paper.img.includes('rgb(248, 246, 241)'),
+      '该是 #f8f6f1 系的暖纸渐变，实际 ' + paper.img.slice(0, 140));
+    assert(!paper.img.includes('rgb(36, 48, 73)'), '深蓝不该再当 sign 的底，实际渐变里还有');
+    return '暖纸渐变（系统当前' + (paper.dark ? '深色' : '浅色') + '，看板不受影响）';
   });
 
   /* 品牌标必须真的渲染出来 —— 用户对 logo 一直很在意，图上不出东西是最难发现的坏法。
@@ -351,16 +352,17 @@ try {
      被用户否掉。v43 定稿 = 博艺圆章裸摆 + 只给砺蕴那半套暖米黄圆底。两次都是
      「尺寸、加载、文件名全正常，只有像素看得出来」，所以判据落在像素上。 */
   const brand = await cdp.eval(`(() => {
-    const img = document.querySelector('.bd-lock');
-    if (!img) return { err: 'clock 面板里没有品牌标' };
+    const img = document.querySelector('.bdv-sign .bd-mark');
+    if (!img) return { err: 'sign 顶带里没有品牌标' };
     const r = img.getBoundingClientRect();
-    const topEl = document.querySelector('.bd-panel[data-pid="clock"]');
-    if (!topEl) return { err: '没有 clock 面板' };
+    const topEl = document.querySelector('.bdv-sign .bd-top');
+    if (!topEl) return { err: '没有顶带' };
     const top = topEl.getBoundingClientRect();
-    const mid = document.querySelector('.bd-panel[data-pid="qrcode"]');
-    const mr = mid.getBoundingClientRect();
+    const mid = document.querySelector('.bdv-sign .bd-poster');
+    const mr = mid ? mid.getBoundingClientRect() : null;
     let fit = null;
     if (mr) {
+      /* ==5.24== 量的是海报卡：码 + 数字 + 倒计时整卡不许溢出（overflow:hidden 会无声裁） */
       /* ⚠️ 不能拿「子元素高度之和 + 间距」跟容器比 —— 那只在子元素恰好铺满时等价。
          老老实实量首尾两个子元素的真实上下沿，跟容器的**内容盒**（去掉上下 padding）比。 */
       /* 编辑态那几个手柄/箭头按钮平时 display:none —— 量高度过滤掉，别让 0 高的框混进来 */
@@ -462,7 +464,7 @@ try {
     assert(brand.complete && brand.nw > 0, '图没加载出来：' + JSON.stringify(brand));
     assert(/brand-plate/.test(brand.src), '该用「博艺圆章 + 砺蕴米黄圆底」那版，实际 ' + brand.src);
     assert(brand.inTop, '标该在顶带里，实际位置 ' + JSON.stringify(brand));
-    assert(brand.w >= 60, '标不该小到看不清，实际 ' + brand.w + 'px 宽');
+    assert(brand.w >= 40, '标不该小到看不清，实际 ' + brand.w + 'px 宽');
     return brand.nw + '×' + brand.nh + ' 原图 → 屏上 ' + brand.w + '×' + brand.h + 'px';
   });
   t('底色**只加在砺蕴那半**（左＝博艺圆章裸摆，右＝砺蕴圆底）', () => {
@@ -508,12 +510,12 @@ try {
     return '左 ' + b[0].w + '×' + b[0].h + ' · 右 ' + b[1].w + '×' + b[1].h +
            '（原图 ' + brand.nw + '×' + brand.nh + '，净空隙 ' + b[1].gap + 'px）';
   });
-  t('打卡面板没被挤溢出（挤出去会被 overflow:hidden 默默裁掉，图上少一行）', () => {
-    assert(brand.fit, '没量到打卡面板尺寸');
+  t('海报卡没被挤溢出（挤出去会被 overflow:hidden 默默裁掉，倒计时条会不见）', () => {
+    assert(brand.fit, '没量到海报卡尺寸');
     assert(brand.fit.over <= 1,
-      '打卡面板溢出了 ' + brand.fit.over + 'px：内容 ' + brand.fit.spanH + 'px / 内容盒 ' +
-      brand.fit.innerH + 'px —— 迟到请假未到那一行会被裁掉');
-    return '打卡面板 内容 ' + brand.fit.spanH + 'px / 内容盒 ' + brand.fit.innerH +
+      '海报卡溢出了 ' + brand.fit.over + 'px：内容 ' + brand.fit.spanH + 'px / 内容盒 ' +
+      brand.fit.innerH + 'px —— 倒计时那行会被裁掉');
+    return '海报卡 内容 ' + brand.fit.spanH + 'px / 内容盒 ' + brand.fit.innerH +
            'px（上下各余 ' + brand.fit.slack + 'px）';
   });
 
@@ -522,21 +524,21 @@ try {
     Board._code = '317204'; Board._until = Date.now() + 43000;   /* 让屏幕好看点，后面截图用 */
     Board._data = Board.collect(Util.today());
     Board.paint();
+    const q1 = k => { const e = document.querySelector('[data-bd="' + k + '"]'); return e ? e.textContent : null; };
     return {
       d: Board._data,
-      should: document.getElementById('bdShould').textContent,
-      here: document.getElementById('bdHere').textContent,
-      mini: document.getElementById('bdMini').textContent.replace(/\\s+/g, ' ').trim(),
-      miniItems: [...document.querySelectorAll('#bdMini .bd-m')].map(e => ({
+      should: q1('should'), here: q1('here'), lateN: q1('late'), leaveN: q1('leave'), missN: q1('missn'),
+      nums5: [...document.querySelectorAll('.bd-nums5 .n')].map(e => ({
         k: e.querySelector('span').textContent, n: e.querySelector('b').textContent,
         c: getComputedStyle(e.querySelector('b')).color,
         fs: parseFloat(getComputedStyle(e.querySelector('b')).fontSize) })),
+      names: document.querySelector('.bd-names').textContent.replace(/\\s+/g, ' ').trim(),
       quantNames: [...document.querySelectorAll('#bdQuant .bd-q-n')].map(e => e.textContent),
       miss: [...document.querySelectorAll('#bdMiss .bd-row')].map(x => x.textContent),
-      missTitle: document.getElementById('bdMissTitle').textContent,
+      missTag: (document.querySelector('[data-bd="misstag"]') || {}).textContent || '',
     };
   })()`);
-  t('应到 37（40 人减 3 请假）、已到 30、迟到 4、请假 3、未到 7', () => {
+  t('应到 37（40 人减 3 请假）、已到 30、迟到 4、请假 3、未到 7（五个数全上明细带）', () => {
     const d = stats.d;
     assert(d.total === 40, '名册该 40 人，实际 ' + d.total);
     assert(d.leave === 3, '请假该 3 人（2 张工单 + 1 条病假），实际 ' + d.leave);
@@ -544,7 +546,18 @@ try {
     assert(d.ok === 26, '正常该 26 人，实际 ' + d.ok);
     assert(d.late === 4, '迟到该 4 人，实际 ' + d.late);
     assert(d.miss.length === 7, '未到该 7 人，实际 ' + d.miss.length);
-    return '应到 ' + stats.should + ' / 实到 ' + stats.here + '（' + stats.mini + '）';
+    assert(stats.should === '37' && stats.here === '30' && stats.lateN === '4'
+        && stats.leaveN === '3' && stats.missN === '7',
+      '屏上五数该是 37/30/4/3/7，实际 ' + [stats.should, stats.here, stats.lateN, stats.leaveN, stats.missN].join('/'));
+    return '屏上五数 ' + [stats.should, stats.here, stats.lateN, stats.leaveN, stats.missN].join('/');
+  });
+  t('sign 明细带把未到/请假名单写出来了（数字旁边小字列名，空的一律「—」）', () => {
+    assert(/未到/.test(stats.names) && /请假/.test(stats.names), '名单行该有「未到/请假」两个槽，实际「' + stats.names + '」');
+    const leaveNames = stats.d.leaveNames || [];
+    assert(leaveNames.length === 3, 'collect 该带回 3 个请假名字（2 工单 + 1 病假），实际 ' + leaveNames.join('、'));
+    assert(!/请假\s*—/.test(stats.names), '有 3 人请假，名单不该是「—」，实际「' + stats.names + '」');
+    assert(!/未到\s*—/.test(stats.names), '有 7 人未到，名单不该是「—」，实际「' + stats.names + '」');
+    return '「' + stats.names + '」';
   });
   t('未到名单是「学员34~40」，三位请假的一个都没被算成欠勤', () => {
     /* ==5.23== 名单进了 att 面板的小格，1600×900 下放得下就 7 行、放不下会复制一份上滚
@@ -557,7 +570,7 @@ try {
       assert(!all.includes(n), n + ' 已经批过假，不该出现在未到名单里'));
     /* 用户实机报的那条：未到名单里冒出「演示学员」 */
     assert(!all.includes('演示'), '演示学员不该出现在这块屏的未到名单里，实际名单：' + all);
-    return '标题「' + stats.missTitle + '」名单 ' + all;
+    return '标「' + stats.missTag + '」名单 ' + all;
   });
   /* 演示班同样不许上量化榜 —— 它名下哪怕有 99 分也不该占一个格子 */
   t('量化榜上没有「演示班」（演示数据连班级维度都进不来）', () => {
@@ -569,55 +582,31 @@ try {
      这是用户点名的排法：二维码下面就直接是「应到多少人、实到多少人」。
      颜色仍然只上数字，系统里那个通用 `.ok{background:#eafaf0}` 不许渗进来。 */
   const tiles = await cdp.eval(`(() => {
-    const box = document.querySelector('.bd-count');
-    const cells = [...box.querySelectorAll('b')].map(b => ({
-      n: b.textContent, cls: b.parentElement.className, c: getComputedStyle(b).color }));
-    const lab = [...box.querySelectorAll('span')].map(s => s.textContent);
-    return { box: box.className, bg: getComputedStyle(box).backgroundColor,
-             cells: cells, lab: lab,
-             mini: document.getElementById('bdMini').textContent.replace(/\\s+/g, ' ').trim(),
-             miniItems: [...document.querySelectorAll('#bdMini .bd-m')].map(e => {
-               const cs = getComputedStyle(e);
-               return { k: e.querySelector('span').textContent, n: e.querySelector('b').textContent,
-                        cls: e.className,
-                        c: getComputedStyle(e.querySelector('b')).color,
-                        fs: parseFloat(getComputedStyle(e.querySelector('b')).fontSize),
-                        labFs: parseFloat(getComputedStyle(e.querySelector('span')).fontSize),
-                        bg: cs.backgroundColor, pad: cs.paddingTop, bw: cs.borderTopWidth };
-             }) };
+    const cells = [...document.querySelectorAll('.bd-nums5 .n')].map(e => ({
+      n: e.querySelector('b').textContent, cls: e.className, c: getComputedStyle(e.querySelector('b')).color,
+      fs: parseFloat(getComputedStyle(e.querySelector('b')).fontSize),
+      labFs: parseFloat(getComputedStyle(e.querySelector('span')).fontSize),
+      bg: getComputedStyle(e).backgroundColor }));
+    return { cells: cells };
   })()`);
-  t('二维码下面是「应到 / 实到」两个大数（实到 = 正常 + 迟到），只有数字着色', () => {
-    assert(tiles.cells.length === 2, '该是两块（应到 / 实到），实际 ' + tiles.cells.length);
-    assert(tiles.lab.join('/') === '应到/实到', '两个标签该是「应到 / 实到」，实际 ' + tiles.lab.join('/'));
-    assert(tiles.cells[0].n === '37', '应到该 37，实际 ' + tiles.cells[0].n);
-    assert(tiles.cells[1].n === '30', '实到该 30（26 正常 + 4 迟到），实际 ' + tiles.cells[1].n);
-    assert(tiles.bg === 'rgba(0, 0, 0, 0)', '这一块不该有底色，实际 ' + tiles.bg + '（类名 ' + tiles.box + '）');
-    /* 类名必须带 bd- 前缀：系统的 .ok{background:#eafaf0} 会把「已到」的绿底换成浅绿块 */
-    assert(/bd-c-ok/.test(tiles.cells[1].cls), '「实到」该带 bd-c-ok（不能直接叫 ok），实际「' + tiles.cells[1].cls + '」');
-    return tiles.cells.map(x => x.n).join(' / ' + '应到实到'.slice(0, 0)) + ' ｜ ' + tiles.mini;
-  });
-  /* 「已到、未到下面请假的等等这三个再放大一点，太小了看不到」—— 用户点名的。
+  /* ==5.24== sign 明细带：五个数全部上屏（用户定稿），语义着色（暖纸版色板）。
      验的是**实际算出来的字号**，不是 CSS 里写了多少 —— 写了 clamp 也可能被后面的规则压掉。 */
-  t('迟到 / 请假 / 未到 各自成格、数字放大到一眼能读（原来一行小字）', () => {
-    const it = tiles.miniItems;
-    assert(it.length === 3, '该是三个数（迟到 / 请假 / 未到），实际 ' + it.length);
-    assert(it.map(x => x.k).join('/') === '迟到/请假/未到', '三个标签该是迟到/请假/未到，实际 ' + it.map(x => x.k).join('/'));
-    assert(it.map(x => x.n).join('/') === '4/3/7', '三个数该是 4/3/7，实际 ' + it.map(x => x.n).join('/'));
-    assert(it[0].c === 'rgb(224, 177, 131)', '迟到该是深底赭黄，实际 ' + it[0].c);
-    assert(it[1].c === 'rgb(157, 180, 224)', '请假该是深底霁蓝，实际 ' + it[1].c);
-    assert(it[2].c === 'rgb(224, 138, 138)', '未到该是深底朱砂，实际 ' + it[2].c);
+  t('明细带五数全上：应到/实到/迟到/请假/未到，数字放大、语义着色（暖纸版）', () => {
+    const it = tiles.cells;
+    assert(it.length === 5, '该是五个数，实际 ' + it.length);
+    assert(it.map(x => x.n).join('/') === '37/30/4/3/7', '五个数该是 37/30/4/3/7，实际 ' + it.map(x => x.n).join('/'));
+    assert(it[1].c === 'rgb(169, 141, 95)', '实到该是暖金，实际 ' + it[1].c);
+    assert(it[2].c === 'rgb(192, 122, 82)', '迟到该是暖赭，实际 ' + it[2].c);
+    assert(it[3].c === 'rgb(95, 124, 174)', '请假该是青蓝，实际 ' + it[3].c);
+    assert(it[4].c === 'rgb(176, 85, 80)', '未到该是绯红，实际 ' + it[4].c);
     const min = Math.min(...it.map(x => x.fs));
-    assert(min >= 22, '这三个数字至少 22px（原来只有 12~19px），实际最小 ' + min + 'px');
-    assert(Math.min(...it.map(x => x.labFs)) >= 12, '标签也不该被压小，实际 ' + it.map(x => x.labFs).join('/'));
-    /* ⚠️ 类名一律带 bd- 前缀。系统里有一批通用类（`.warn` / `.ok` / …）自带底色、内边距、
-       甚至 font-size —— 直接借名会被一起吃掉：`未到` 那个数会平白多一圈黄底、
-       标签被压成 13px。这条就是守这个的（.ok 已经在「实到」那条里守过一回）。 */
+    assert(min >= 28, '五个数字至少 28px（站两米外要读得出），实际最小 ' + min + 'px');
+    assert(Math.min(...it.map(x => x.labFs)) >= 10, '标签也不该被压小，实际 ' + it.map(x => x.labFs).join('/'));
     it.forEach(x => {
-      assert(x.bg === 'rgba(0, 0, 0, 0)', '「' + x.k + '」不该有底色（被通用类吃了？类名 ' + x.cls + '），实际 ' + x.bg);
-      assert(x.pad === '0px', '「' + x.k + '」不该有内边距，实际 ' + x.pad);
-      assert(/^bd-/.test(x.cls), '类名该带 bd- 前缀，实际「' + x.cls + '」');
+      assert(x.bg === 'rgba(0, 0, 0, 0)', '「' + x.n + '」不该有底色（被通用类吃了？类名 ' + x.cls + '），实际 ' + x.bg);
+      assert(/^n( |$)/.test(x.cls), '类名该是明细带的 .n，实际「' + x.cls + '」');
     });
-    return it.map(x => x.k + ' ' + x.n + '（' + x.fs + 'px）').join(' · ') + ' ｜ 文字「' + tiles.mini + '」';
+    return it.map(x => x.n + '（' + x.fs + 'px）').join(' · ');
   });
 
   /* 「班级量化其实只留最多五个班级的格子就够了」—— 用户点名的上限。
@@ -658,27 +647,16 @@ try {
     .map(x => x.t + '→' + x.bg).slice(0, 12)`);
   console.log('     看板里带底色的元素：' + paints.join(' | '));
 
-  /* 滚动只该在「塞不下」时开：7 个人放得下，就该老老实实不滚、内容靠上排；
-     人一多才该复制一份上滚，而且只复制一份 —— 不能每半分钟刷新就翻一倍。
-     另外守一条版面的事：右栏是「量化榜 + 未到名单」两块，名单**不能**被居中，
-     否则两块之间会裂开一大段空（纸色底上留白不难看，裂缝难看）。 */
+  /* ==5.24== 滚动只该在「塞不下」时开：7 个人放得下就不滚；人一多才复制一份上滚，
+     且只复制一份 —— 不能每半分钟刷新就翻一倍。名单在 dash 中列，切过去量才作数。 */
+  await cdp.eval(`Board.setMode('dash')`);
+  await sleep(300);
   const clip = await cdp.eval(`(() => {
     const rows = document.getElementById('bdMiss');
     const box = rows.parentElement;
     const panel = rows.closest('.bd-miss');
-    const h3 = panel.querySelector('h3');
-    /* ==5.23== 名单搬进了 att 面板，跟「今日考勤」五个数贴着排（quant 独立成面板了） */
-    const att = document.getElementById('bdAtt');
-    const pr = panel.getBoundingClientRect(), hr = h3.getBoundingClientRect(), lr = box.getBoundingClientRect();
-    const cs = getComputedStyle(panel);
-    const gap = Math.round(hr.top - att.getBoundingClientRect().bottom);
     const fits = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
-                   panelFit: panel.classList.contains('fit'),
-                   rowsH: rows.scrollHeight, boxH: box.clientHeight,
-                   /* 标题上方、名单下方各剩多少 —— 靠上排就该「上≈0、下很大」 */
-                   above: Math.round(hr.top - (pr.top + parseFloat(cs.paddingTop))),
-                   below: Math.round((pr.bottom - parseFloat(cs.paddingBottom)) - lr.bottom),
-                   gap: gap };
+                   rowsH: rows.scrollHeight, boxH: box.clientHeight };
     const many = Array.from({ length: 260 }, (_, i) => '<div class="bd-row">学员' + (i + 1) + '</div>').join('');
     Board.fill(rows, many);
     const over = { loop: rows.classList.contains('loop'), fit: rows.classList.contains('fit'),
@@ -687,34 +665,29 @@ try {
     Board.fill(rows, many);   /* 同一份内容再灌一次：该直接跳过，不能又复制一遍 */
     const again = { rowsH: rows.scrollHeight, loop: rows.classList.contains('loop') };
     Board.paint();            /* 还原成真实数据 */
-    return { fits, over, again };
+    return { fits, over, again, shown: [...rows.querySelectorAll('.bd-row')].length };
   })()`);
-  t('考勤五数与未到名单贴着排（中间不裂缝）；装得下不滚、装不下才滚', () => {
-    /* ==5.23== att 面板在 sign 槽位里高度随屏走：装得下 = fit 不滚；
-       装不下（1600×900 的右上小格）= 复制一份缓慢上滚 —— 两条路都验几何。 */
+  await cdp.eval(`Board.setMode('sign')`);
+  await sleep(200);
+  t('还没到名单（dash 中列）：装得下不滚、装不下才滚、同一份不重灌', () => {
     const fits = clip.fits.rowsH <= clip.fits.boxH + 2;
-    assert(clip.fits.gap < 40, '考勤五数底边到名单标题顶边隔了 ' + clip.fits.gap + 'px —— 两块被推开了');
-    assert(clip.fits.above <= 2, '名单该贴着考勤五数往下排，实际标题上方还空着 ' + clip.fits.above + 'px');
     if (fits){
-      assert(!clip.fits.loop, '名单在 ' + clip.fits.boxH + 'px 的面板里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
-      assert(clip.fits.fit, '放得下时该加 .fit 摆着，实际没加');
-      assert(clip.fits.below > clip.fits.above, '留白该沉在栏底（下 ' + clip.fits.below + 'px > 上 ' + clip.fits.above + 'px）');
+      assert(!clip.fits.loop, '名单在 ' + clip.fits.boxH + 'px 里放得下，不该开滚动（实际高 ' + clip.fits.rowsH + '）');
     } else {
-      assert(clip.fits.loop, '名单 ' + clip.fits.rowsH + 'px 装不进 ' + clip.fits.boxH + 'px 的面板，该开上滚');
+      assert(clip.fits.loop, '名单 ' + clip.fits.rowsH + 'px 装不进 ' + clip.fits.boxH + 'px，该开上滚');
     }
     assert(clip.over.loop, '260 个人该开滚动（实际内容 ' + clip.over.rowsH + ' / 面板 ' + clip.over.boxH + '）');
     assert(!clip.over.fit, '要滚了就不该再挂 .fit');
     assert(clip.over.rowsH > clip.over.boxH, '复制后总高该超出面板，实际 ' + clip.over.rowsH + ' ≤ ' + clip.over.boxH);
     assert(clip.again.rowsH === clip.over.rowsH, '同一份内容重灌不该再复制（' + clip.over.rowsH + ' → ' + clip.again.rowsH + '）');
     assert(parseFloat(clip.over.dur) >= 14, '滚动时长该有个下限，实际 ' + clip.over.dur);
-    return '两块间距 ' + clip.fits.gap + 'px（上 ' + clip.fits.above + ' / 下 ' + clip.fits.below
-         + 'px）· 塞不下：高 ' + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
+    return (fits ? '装得下不滚' : '装不下上滚') + ' · 塞 260 人：高 ' + clip.over.rowsH + 'px 上滚 ' + clip.over.dur;
   });
 
   console.log('\n=== 3. 时钟在走 / 数据新鲜度有话说 ===');
-  const clockA = await cdp.eval(`document.getElementById('bdClock').textContent`);
+  const clockA = await cdp.eval(`document.querySelector('[data-bd="clock"]').textContent`);
   await sleep(1600);
-  const clockB = await cdp.eval(`document.getElementById('bdClock').textContent`);
+  const clockB = await cdp.eval(`document.querySelector('[data-bd="clock"]').textContent`);
   t('时钟每秒在走（服务端校时后的时间）', () => {
     assert(/^\d{2}:\d{2}:\d{2}$/.test(clockA), '时钟格式不对：' + clockA);
     assert(clockA !== clockB, '一秒半过去了时钟没变（还是 ' + clockA + '）');
@@ -722,9 +695,10 @@ try {
   });
   const fresh = await cdp.eval(`(() => {
     Board._stamp = Date.now(); Board.paintFresh();
-    const now = { t: document.getElementById('bdFresh').textContent, warn: document.getElementById('bdFresh').classList.contains('warn') };
+    const el = document.querySelector('[data-bd="fresh"]');
+    const now = { t: el.textContent, warn: el.classList.contains('warn') };
     Board._stamp = Date.now() - 5 * 60000; Board.paintFresh();
-    const old = { t: document.getElementById('bdFresh').textContent, warn: document.getElementById('bdFresh').classList.contains('warn') };
+    const old = { t: el.textContent, warn: el.classList.contains('warn') };
     return { now, old };
   })()`);
   t('数据新鲜度：刚拉过写「数据更新」，五分钟没更新亮成「可能已断网」', () => {
@@ -743,13 +717,13 @@ try {
       Store.upsert('schedule', { id: null, day: w, periodId: pd.id, time: t, title: title, teacher: teacher });
     });
     Board.paint();
-    const got = [...document.querySelectorAll('#bdSched .bd-s')].map(e => ({
-      t: (e.querySelector('.bd-s-t') || {}).textContent || '',
-      n: (e.querySelector('.bd-s-n') || {}).textContent || '',
-      w: (e.querySelector('.bd-s-w') || {}).textContent || '' }));
+    const got = [...document.querySelectorAll('#bdSched .bd-s2:not(.dim)')].map(e => ({
+      t: (e.querySelector('.bd-s2-t') || {}).textContent || '',
+      n: (e.querySelector('.bd-s2-n') || {}).textContent || '',
+      w: (e.querySelector('.bd-s2-w') || {}).textContent || '' }));
     return { w: w, got: got, empty: /今天没有排课/.test(document.getElementById('bdSched').textContent) };
   })()`);
-  t('左栏今日课表出来了：一行一课，带时间与老师（竖排、细线分隔）', () => {
+  t('dash 左列今日课表出来了：一行一课，带时间与老师（全部节次上时间轴）', () => {
     assert(!sched.empty, '课表还是空的（今天 ' + sched.w + '）');
     assert(sched.got.length === 3, '该有 3 行课，实际 ' + sched.got.length);
     assert(sched.got[0].t === '07:30' && sched.got[2].t === '14:00',
@@ -836,7 +810,7 @@ try {
     return 'roles=' + roles.roles.join('/');
   });
 
-  console.log('\n=== 7. 换一台屏也铺得满、三栏不叠 ===');
+  console.log('\n=== 7. 换一台屏也铺得满（sign 海报构图）===');
   /* 这块屏要挂的可能是 55 寸电视，也可能是办公室那台老笔记本 —— 字号全走 vw/vh，
      同一套代码都得铺满。宽屏三栏并排（左课表 / 中码 / 右量化），
      窄到 900px 以下（顺手用手机打开）叠成一栏，能滚着看。 */
@@ -850,22 +824,9 @@ try {
     await sleep(350);
     const m = await cdp.eval(`(() => {
       const bd = document.querySelector('.bd').getBoundingClientRect();
-      const cols = [...document.querySelectorAll('.bd-grid > .bd-panel')].map(e => {
-        const r = e.getBoundingClientRect();
-        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
-                 r: Math.round(r.right), b: Math.round(r.bottom) }; });
-      /* ==5.23== 宽屏：六面板两两不相交（槽位几何保证，任意 order 都该成立）。
-         窄屏：纵向依次往下叠。 */
-      const overlap2 = (a, b) => a.x < b.r - 1 && b.x < a.r - 1 && a.y < b.b - 1 && b.y < a.b - 1;
-      const side = cols.length === 6 && cols.every((c, i) => cols.every((d, j) => i === j || !overlap2(c, d)));
-      const stacked = cols.length === 6 && cols.every((c, i) => i === 0 || c.y >= cols[i - 1].b - 1);
-      /* 打卡面板在宽屏下是**不许溢出**的：body.board-mode .main 是
-         overflow:hidden，多出来的部分会被无声裁掉 —— 迟到/请假/未到那一行就这么没的。 */
-      const gate = document.querySelector('.bd-panel[data-pid="qrcode"]');
+      /* ==5.24== sign 固定构图：量「舞台海报卡」不许溢出 —— overflow:hidden 会无声裁掉倒计时条。 */
+      const gate = document.querySelector('.bdv-sign .bd-poster');
       const gr = gate.getBoundingClientRect(), gcs = getComputedStyle(gate);
-      /* ==5.23== 只量**可见**子元素：.bd-drag/.bd-mv 编辑手柄常态 display:none，
-         getBoundingClientRect() 全零 —— 不滤掉的话 gf.top=0，
-         max(0, gt-0) 会把面板顶部坐标误算成几十px「溢出」（与 B4 fit 量法对齐）。 */
       const gk = [...gate.children].filter(e => e.getBoundingClientRect().height > 0);
       const gt = gr.top + (parseFloat(gcs.paddingTop) || 0);
       const gb = gr.bottom - (parseFloat(gcs.paddingBottom) || 0);
@@ -875,131 +836,152 @@ try {
         /* 「铺满」＝铺满**内容区**：窄屏时 .main 自己会出纵向滚动条（约 15px），
            拿 innerWidth 比会误判成「没铺满」。所以参照系取 .main 的 clientWidth。 */
         cw: document.querySelector('.main').clientWidth,
-        n: cols.length, side: side, stacked: stacked, cols: cols,
         qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width),
         codeFs: getComputedStyle(document.getElementById('bdCode')).fontSize,
         spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)),
-        gateOver: over, gateH: Math.round(gl.bottom - gf.top) };
+        posterOver: over, posterH: Math.round(gl.bottom - gf.top) };
     })()`);
-    t(w + '×' + h + '：铺满整屏、六面板' + (m.vw <= 900 ? '叠一栏' : '互不叠') + '、没有横向溢出', () => {
+    t(w + '×' + h + '：铺满整屏、海报卡不溢出、没有横向溢出', () => {
       assert(Math.abs(m.w - m.cw) < 2, '该铺满内容区 ' + m.cw + '，实际 ' + m.w + '（视口 ' + m.vw + '）');
-      assert(m.n === 6, '该有六块面板，实际 ' + m.n);
-      if (m.vw <= 900) {
-        assert(m.stacked, '窄屏该把面板叠成一栏往下排，实际没叠：' + JSON.stringify(m.cols));
-      } else {
-        assert(m.h >= m.vh * 0.9, '宽屏该吃满高度，实际 ' + m.h + ' / ' + m.vh);
-        assert(m.side, '宽屏六面板两两相交了：' + JSON.stringify(m.cols));
-      }
+      if (m.vw > 900) assert(m.h >= m.vh * 0.9, '宽屏该吃满高度，实际 ' + m.h + ' / ' + m.vh);
       assert(m.qr >= 120, '二维码哪一档都该有可用尺寸，实际 ' + m.qr + 'px');
+      if (w === 1920) assert(m.qr >= 420, '1920 档码宽该 ≥420px（用户定稿：巨型码），实际 ' + m.qr + 'px');
       assert(m.spill === 0, '横向溢出了 ' + m.spill + 'px');
-      if (m.vw > 900) assert(m.gateOver <= 1,
-        '中栏纵向溢出 ' + m.gateOver + 'px（内容 ' + m.gateH + 'px）—— 会被 overflow:hidden 裁掉底下那一行');
-      return '铺满 ' + m.w + '×' + m.h + '，' + (m.vw <= 900 ? '叠成一栏' : '三栏并排')
-           + '，二维码 ' + m.qr + 'px，数字码 ' + m.codeFs
-           + (m.vw > 900 ? '，中栏 ' + m.gateH + 'px 不溢出' : '');
+      if (m.vw > 900) assert(m.posterOver <= 1,
+        '海报卡纵向溢出 ' + m.posterOver + 'px（内容 ' + m.posterH + 'px）—— 会被 overflow:hidden 裁掉底下那一行');
+      return '铺满 ' + m.w + '×' + m.h + '，二维码 ' + m.qr + 'px，数字码 ' + m.codeFs
+           + (m.vw > 900 ? '，海报卡 ' + m.posterH + 'px 不溢出' : '');
+    });
+  }
+  /* ==5.24== dash 版两档抽查：1920 三列互不叠、420 叠一栏可滚 */
+  await cdp.eval(`Board.setMode('dash')`);
+  await sleep(300);
+  for (const [w, h] of [[1920, 1080], [420, 900]]){
+    await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await sleep(350);
+    const m = await cdp.eval(`(() => {
+      const bd = document.querySelector('.bd').getBoundingClientRect();
+      const cols = [...document.querySelectorAll('.bd-grid3 > .bd-pnl')].map(e => {
+        const r = e.getBoundingClientRect();
+        return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+                 r: Math.round(r.right), b: Math.round(r.bottom) }; });
+      const overlap2 = (a, b) => a.x < b.r - 1 && b.x < a.r - 1 && a.y < b.b - 1 && b.y < a.b - 1;
+      const side = cols.length === 3 && cols.every((c, i) => cols.every((d, j) => i === j || !overlap2(c, d)));
+      const stacked = cols.length === 3 && cols.every((c, i) => i === 0 || c.y >= cols[i - 1].b - 1);
+      const marq = document.querySelector('[data-bd="marq"]');
+      return { vw: innerWidth, w: Math.round(bd.width), h: Math.round(bd.height),
+        cw: document.querySelector('.main').clientWidth,
+        n: cols.length, side, stacked,
+        marq: marq ? marq.textContent.length : 0,
+        noQr: !document.querySelector('.bdv-dash .bd-qr2, .bdv-dash .bd-code'),
+        spill: Math.max(0, Math.round(document.documentElement.scrollWidth - innerWidth)) };
+    })()`);
+    t('dash ' + w + '×' + h + '：' + (m.vw <= 900 ? '叠一栏可滚' : '三列互不叠') + '、无码板块、跑马灯有内容', () => {
+      assert(Math.abs(m.w - m.cw) < 2, '该铺满内容区 ' + m.cw + '，实际 ' + m.w);
+      assert(m.n === 3, '该有三块面板，实际 ' + m.n);
+      if (m.vw <= 900) assert(m.stacked, '窄屏该叠成一栏：' + JSON.stringify(m.cols));
+      else assert(m.side, '三列相交了：' + JSON.stringify(m.cols));
+      assert(m.noQr, 'dash 里不该有二维码/数字码板块');
+      assert(m.marq > 0, '跑马灯该有内容');
+      assert(m.spill === 0, '横向溢出了 ' + m.spill + 'px');
+      return (m.vw <= 900 ? '叠一栏' : '三列') + ' · 跑马灯 ' + m.marq + ' 字';
     });
   }
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
+  await sleep(350);
+  await cdp.eval(`Board.setMode('sign')`);
+  await sleep(300);
+
+  await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
   await sleep(500);
 
-  console.log('\n=== 7.5 双布局 + 手动调序 + 持久化（==5.23==）===');
-  /* 摆法存 _boardLayout（_ 开头 = 本机持久化、不参与同步）。这一节全链路验：
-     两预设切换 → 手动交换 → 重载保持 → 脏数据兜底 → Esc 出编辑态。
-     验完恢复默认 sign，别把自定义摆法漏给下面第 8 节的码宽断言。 */
-  const lay = await cdp.eval(`(() => {
-    const g = pid => document.querySelector('.bd-panel[data-pid="' + pid + '"]').style.gridArea;
-    const sign0 = { preset: document.getElementById('bdGrid').dataset.preset,
-                    order: Board._order.slice(), qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width) };
-    /* ① 切信息布局：qrcode 缩成侧卡（≥260）且落 s4，courses 上左大区 s1 */
-    Board.resetPreset('info');
-    const info = { preset: document.getElementById('bdGrid').dataset.preset,
-                   qrArea: g('qrcode'), crsArea: g('courses'),
-                   qr: Math.round(document.getElementById('bdQr').getBoundingClientRect().width) };
-    /* ② 手动交换 clock ↔ news（走 swapPids，与拖拽 drop 同一条路） */
-    Board.swapPids('clock', 'news');
-    const afterSwap = { order: Board._order.slice(), clockArea: g('clock'), newsArea: g('news'),
-                        saved: Store.get('_boardLayout') };
-    /* ③ ‹ › 微调：quant 往前挪一位 */
-    Board.moveBy('quant', -1);
-    const afterMove = { order: Board._order.slice() };
-    return { sign0, info, afterSwap, afterMove };
+  console.log('\n=== 7.5 双模式切换 + 持久化（==5.24==）===');
+  /* 模式存 _boardMode（_ 开头 = 本机持久化、不参与同步）。全链路验：
+     ① 首次默认 sign → ② 切 dash（即时生效、骨架互斥、深蓝底）→ ③ reload 落在 dash
+     → ④ 清掉落回 sign → ⑤ 旧拖拽体系源码清零 → ⑥ Esc 退出。
+     验完保证落在 sign，别把模式漏给第 8 节的码宽断言。 */
+  const md = await cdp.eval(`(async () => {
+    Store.remove('_boardMode');
+    Board.start();
+    await new Promise(r => setTimeout(r, 300));
+    const g = sel => document.querySelector(sel);
+    const vis = sel => { const e = g(sel); return e ? getComputedStyle(e).display : null; };
+    const first = { mode: Board.mode(), dataMode: document.getElementById('page-board').dataset.mode,
+                    signShow: vis('.bdv-sign'), dashShow: vis('.bdv-dash'),
+                    fabTxt: (g('[data-bd="modename"]') || {}).textContent };
+    /* ① → dash：点击切换（走 fab 同一条路），免刷新即时生效 */
+    Board.toggleMode();
+    await new Promise(r => setTimeout(r, 300));
+    const dash = { mode: Board.mode(), dataMode: document.getElementById('page-board').dataset.mode,
+                   signShow: vis('.bdv-sign'), dashShow: vis('.bdv-dash'),
+                   saved: Store.get('_boardMode'),
+                   dashBg: getComputedStyle(g('.bdv-dash')).backgroundImage,
+                   marq: (g('[data-bd="marq"]') || {}).textContent.length || 0,
+                   num4: document.querySelectorAll('.bd-num4 .n').length,
+                   qrW: Math.round((g('.bdv-sign .bd-qr2') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width) };
+    /* ② reload：落在上次的模式（本机记住） */
+    return { first, dash };
   })()`);
-  t('两预设切换：sign 码 ≥320 / info 码 ≥260 且槽位换位', () => {
-    assert(lay.sign0.preset === 'sign' && lay.sign0.qr >= 320,
-      'sign 预设码宽该 ≥320，实际 ' + lay.sign0.qr);
-    assert(lay.info.preset === 'info', '切完 preset 该是 info，实际 ' + lay.info.preset);
-    assert(lay.info.qrArea === 's4' && lay.info.crsArea === 's1',
-      'info 下 qrcode 该占 s4、courses 占 s1，实际 ' + lay.info.qrArea + '/' + lay.info.crsArea);
-    assert(lay.info.qr >= 260 && lay.info.qr <= 340,
-      'info 下码宽该在 260~340（侧卡可扫但不抢主位），实际 ' + lay.info.qr);
-    return 'sign ' + lay.sign0.qr + 'px → info ' + lay.info.qr + 'px（qrcode→s4 · courses→s1）';
+  t('首次默认 sign：右下角浮钮显示「签到立牌」，米白骨架亮、深蓝骨架藏', () => {
+    assert(md.first.mode === 'sign' && md.first.dataMode === 'sign', '默认该 sign，实际 ' + md.first.mode + '/' + md.first.dataMode);
+    assert(md.first.signShow === 'flex' && md.first.dashShow === 'none',
+      'sign 该亮、dash 该藏，实际 ' + md.first.signShow + '/' + md.first.dashShow);
+    assert(md.first.fabTxt === '签到立牌', '浮钮该显示当前模式名，实际「' + md.first.fabTxt + '」');
+    return md.first.dataMode + ' · sign 显示 / dash 隐藏';
   });
-  t('手动交换 clock↔news：order 与槽位同步互换，且已写进 _boardLayout', () => {
-    /* info 默认序 [courses,clock,att,qrcode,quant,news] → 交换 1↔5 位 */
-    assert(lay.afterSwap.order[1] === 'news' && lay.afterSwap.order[5] === 'clock',
-      '交换后 news 该在 s2、clock 在 s6，实际 ' + lay.afterSwap.order.join(','));
-    assert(lay.afterSwap.clockArea === 's6' && lay.afterSwap.newsArea === 's2',
-      'clock 该挪到 s6、news 到 s2，实际 ' + lay.afterSwap.clockArea + '/' + lay.afterSwap.newsArea);
-    assert(lay.afterSwap.saved && lay.afterSwap.saved.order && lay.afterSwap.saved.order[1] === 'news',
-      '_boardLayout 该已持久化，实际 ' + JSON.stringify(lay.afterSwap.saved));
-    return 'order ' + lay.afterSwap.order.join('→') + ' · 已存';
+  t('一键切 dash：即时生效（免刷新）、互斥翻转、深蓝底、无码板块、跑马灯有内容', () => {
+    assert(md.dash.mode === 'dash' && md.dash.dataMode === 'dash', '该切到 dash，实际 ' + md.dash.mode + '/' + md.dash.dataMode);
+    assert(md.dash.signShow === 'none' && md.dash.dashShow === 'flex',
+      'dash 该亮、sign 该藏，实际 ' + md.dash.signShow + '/' + md.dash.dashShow);
+    assert(md.dash.saved === 'dash', '_boardMode 该已持久化，实际 ' + JSON.stringify(md.dash.saved));
+    assert(md.dash.dashBg.includes('rgb(36, 48, 73)'), 'dash 该是 #243049 系深蓝渐变，实际 ' + md.dash.dashBg.slice(0, 100));
+    assert(md.dash.num4 === 4, '考勤四大数该是 2×2 四格，实际 ' + md.dash.num4);
+    assert(md.dash.qrW === 0, 'dash 里码区该不可见（宽 0），实际 ' + md.dash.qrW);
+    assert(md.dash.marq > 0, '跑马灯该有通知内容');
+    return 'sign→dash 免刷新 · 已存 _boardMode · 跑马灯 ' + md.dash.marq + ' 字';
   });
-  t('‹ › 微调：quant 往前挪一位（与相邻槽交换）', () => {
-    assert(lay.afterMove.order[3] === 'quant',
-      'quant 该从 s5 挪到 s4，实际 order ' + lay.afterMove.order.join(','));
-    return lay.afterMove.order.join('→');
-  });
-  /* ④ 重载：摆法保持（重开看板不丢） */
+  /* ③ reload：落在上次的模式 */
   await go(cdp, `${BASE}/?nosw=1&board=1`);
   await sleep(1200);
   const persist = await cdp.eval(`(() => ({
-    preset: document.getElementById('bdGrid').dataset.preset,
-    order: Board._order ? Board._order.slice() : null,
-    areas: Board._order ? Board._order.map(pid =>
-      document.querySelector('.bd-panel[data-pid="' + pid + '"]').style.gridArea) : null,
+    mode: Board.mode(), dataMode: document.getElementById('page-board').dataset.mode,
+    signShow: getComputedStyle(document.querySelector('.bdv-sign')).display,
+    dashShow: getComputedStyle(document.querySelector('.bdv-dash')).display,
   }))()`);
-  t('重载后摆法保持（_boardLayout 本机持久化：order 与槽位原样回来）', () => {
-    assert(persist.preset === 'info', '重载后该还是 info，实际 ' + persist.preset);
-    assert(persist.order.join(',') === lay.afterMove.order.join(','),
-      '重载后 order 该与保存时一致，实际 ' + persist.order.join(','));
-    persist.areas.forEach((a, i) => assert(a === 's' + (i + 1),
-      '第 ' + (i + 1) + ' 个面板该占 s' + (i + 1) + '，实际 ' + a));
-    return 'info · ' + persist.order.join('→');
+  t('重载后落在上次的模式（_boardMode 本机持久化）', () => {
+    assert(persist.mode === 'dash' && persist.dataMode === 'dash', '重载该还在 dash，实际 ' + persist.mode + '/' + persist.dataMode);
+    assert(persist.dashShow === 'flex' && persist.signShow === 'none', '骨架互斥没保持：' + persist.signShow + '/' + persist.dashShow);
+    return '重载 → dash';
   });
-  /* ⑤ 脏数据兜底：order 缺项/重复/非法 → 自动补齐六项 */
-  const dirty = await cdp.eval(`(() => {
-    Store.set('_boardLayout', { preset: 'sign', order: ['qrcode', 'qrcode', '垃圾', 'clock'] });
+  /* ④ 清掉 → 默认 sign；顺手验 Esc 直退（编辑态分层已随拖拽体系退役） */
+  const back = await cdp.eval(`(async () => {
+    Store.remove('_boardMode');
     Board.start();
-    return { order: Board._order.slice(), n: document.querySelectorAll('#bdGrid .bd-panel').length };
-  })()`);
-  t('脏 order 兜底：重复/非法/缺项 → 自动补成六项全上屏（不丢面板）', () => {
-    assert(dirty.order.length === 6, '该兜回 6 项，实际 ' + dirty.order.length);
-    assert(new Set(dirty.order).size === 6, '六项不该有重复：' + dirty.order.join(','));
-    ['clock','qrcode','courses','att','quant','news'].forEach(pid =>
-      assert(dirty.order.includes(pid), '缺了 ' + pid + '：' + dirty.order.join(',')));
-    assert(dirty.n === 6, '屏上该有 6 块面板，实际 ' + dirty.n);
-    return dirty.order.join('→');
-  });
-  /* ⑥ 编辑条 + Esc 出编辑态 */
-  const edit = await cdp.eval(`(async () => {
-    Board.editMode(true);
-    const on = document.body.classList.contains('board-editing');
-    const draggable = document.querySelector('.bd-panel[data-pid="qrcode"]').draggable;
-    const bar = getComputedStyle(document.getElementById('bdEditbar')).display;
+    await new Promise(r => setTimeout(r, 300));
+    const mode = Board.mode();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    await new Promise(r => setTimeout(r, 200));
-    const off = !document.body.classList.contains('board-editing');
-    return { on, draggable, bar, off };
+    await new Promise(r => setTimeout(r, 400));
+    return { mode, leftBoard: !document.body.classList.contains('board-mode') };
   })()`);
-  t('编辑态：面板可拖、浮条亮起；Esc 退出编辑（不退看板）', () => {
-    assert(edit.on && edit.draggable && edit.bar === 'flex', '编辑态没进全：' + JSON.stringify(edit));
-    assert(edit.off, 'Esc 该只出编辑态、留在看板里');
-    return '编辑开→拖拽就绪→Esc 出（仍在看板）';
+  t('清掉 _boardMode 落回默认 sign；Esc 直接退出看板', () => {
+    assert(back.mode === 'sign', '清掉后该默认 sign，实际 ' + back.mode);
+    assert(back.leftBoard, 'Esc 该退出看板');
+    return '默认 sign · Esc 退出';
   });
-  /* 恢复默认，别把自定义摆法漏给第 8 节 */
-  await cdp.eval(`Store.remove('_boardLayout'); Board.start();`);
-  await sleep(400);
-
+  /* ⑤ 旧拖拽体系源码清零（node 侧 grep，页面里不该再有这些符号） */
+  const legacy = ['bdGrid', 'bd-panel', 'bd-drag', 'bd-mv', 'bd-editbar', 'board-editing',
+    'editMode', 'applyLayout', 'saveLayout', 'resetPreset', 'swapPids', 'moveBy', 'bindDnd',
+    'sanitize(order', 'PIDS:', 'PRESETS:', 'bdSoon', 'bdAtt', 'bdShould', 'bdHere', 'bdMini', 'bdMissTitle'];
+  const hits = legacy.filter(w => BOARD_SRC.includes(w));
+  t('旧六面板/拖拽体系源码清零（5.23 槽位与编辑态不留死代码）', () => {
+    assert(hits.length === 0, 'index.html 里还有旧体系残迹：' + hits.join('、'));
+    const cnt = BOARD_SRC.split('_boardLayout').length - 1;
+    assert(cnt <= 3, '_boardLayout 只该剩 start 里那一次清理（注释+调用），实际出现 ' + cnt + ' 次');
+    return legacy.length + ' 个旧符号全零 · _boardLayout 余 ' + cnt + ' 处（退役清理）';
+  });
+  /* 回 sign，别把模式漏给第 8 节 */
+  await cdp.eval(`Store.remove('_boardMode'); Board.enter()`);
+  await sleep(600);
   await shot(cdp, 'board-1920x1080.png');
 
   console.log('\n=== 8. 打卡二维码（编的是那 6 位数字本身）===');
@@ -1032,8 +1014,8 @@ try {
   t('二维码放得够大、是正方形（放中间了，就该让站远一点也扫得动）', () => {
     assert(qr.w >= 180, '边长该 ≥180px，实际 ' + qr.w);
     assert(Math.abs(qr.w - qr.h) < 2, '该是正方形，实际 ' + qr.w + '×' + qr.h);
-    /* ==5.23== 用户定稿：打卡为主的布局里码宽 ≥320px（3 米外可扫）。 */
-    assert(qr.w >= 320, 'sign 预设码宽该 ≥320px（用户定稿 3 米可扫），实际 ' + qr.w + 'px');
+    /* ==5.24== 用户定稿：签到立牌 = 巨型码 ≥420px（一张海报，3 米外可扫）。 */
+    assert(qr.w >= 420, 'sign 码宽该 ≥420px（用户定稿巨型码），实际 ' + qr.w + 'px');
     return qr.w + '×' + qr.h + '（约 ' + (qr.w / (qr.mods + 8)).toFixed(1) + 'px 一格）';
   });
   t('二维码里编的是那 6 位数字本身，不是网址（学生用砺蕴自带扫一扫）', () => {
