@@ -1,68 +1,71 @@
 <!DOCTYPE html>
-<!-- 看板端重设计 · B 系两精修变体预览相册（1920×1080 真实渲染截图）。方案全部独立文件，未动生产 index.html。
-     ==5.23== 用户已拍板定稿并施工上线：双布局（sign 打卡为主 / info 信息为主）+ 面板手动调序，见下方定稿说明。 -->
+<!-- 看板端重设计 · 两方案定稿上线相册（1920×1080 生产真机截图）。
+     ==背景== 用户对 5.23 成品验收相册的批评：款式 1/2 只是面板大小微调、同一副骨架同一副配色，看不出区别。
+     ==本轮== 两款从底色 / 密度 / 骨架全部拉开：签到立牌（米白海报）vs 信息中枢（深蓝数据墙）。
+     ==上线== 用户拍板「施工上线，两款看板可以让我随时切换」，VoxOS 5.24 已落生产：
+     右下角 hover 浮钮一键切换、_boardMode 本机记住、旧六面板拖拽体系整体下线。 -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>看板端重设计 · B 系两变体预览（已定稿上线）</title>
+<title>看板端重设计 · 两款定稿（已上线 VoxOS 5.24）</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#141a26;color:#e7e9f0;min-height:100vh;
-    font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:56px 6vw 90px}
-  .head{max-width:1500px;margin:0 auto 14px}
+    font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:56px 5vw 90px}
+  .head{max-width:1560px;margin:0 auto 14px}
   .pending{color:#ff6b6b;font-size:17px;letter-spacing:3px;font-weight:600;margin-bottom:18px}
   h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:34px;font-weight:600;letter-spacing:6px}
-  .sub{margin-top:12px;font-size:14px;color:#8b93a6;line-height:1.8}
-  .sec{max-width:1500px;margin:64px auto 0}
-  .cap{display:flex;align-items:baseline;gap:18px;margin-bottom:16px}
-  .cap .name{font-family:'Noto Serif SC','Songti SC',serif;font-size:27px;font-weight:600;
-    letter-spacing:3px;color:#e8cf9e}
+  .sub{margin-top:12px;font-size:14.5px;color:#8b93a6;line-height:1.8}
+  .sec{max-width:1560px;margin:60px auto 0}
+  .cap{display:flex;align-items:baseline;gap:20px;margin-bottom:16px}
+  .cap .name{font-family:'Noto Serif SC','Songti SC',serif;font-size:30px;font-weight:600;
+    letter-spacing:4px;color:#e8cf9e}
   .cap .desc{font-size:14.5px;color:#9aa3b5;line-height:1.7}
   .frame{border:1px solid #2a3348;border-radius:12px;overflow:hidden;background:#0d1119;
     box-shadow:0 18px 50px rgba(0,0,0,.4)}
   .frame img{width:100%;display:block}
-  .foot{max-width:1500px;margin:70px auto 0;padding-top:24px;border-top:1px solid #2a3348;
+  .foot{max-width:1560px;margin:64px auto 0;padding-top:24px;border-top:1px solid #2a3348;
     font-size:13px;color:#6d7688;line-height:2}
   .foot b{color:#c9ab7c;font-weight:500}
-  .idx{margin-top:10px;font-size:12.5px;color:#586070;line-height:2.1}
-  .idx span{color:#8b93a6}
 </style>
 </head>
 <body>
   <div class="head">
-    <div class="pending" style="color:#8fc2a6">● 已按用户定稿施工上线（VoxOS 5.23）—— 双布局 + 面板手动调序已进生产，board_check 67 项全过</div>
-    <h1>看板端重设计 · B 系两精修变体</h1>
-    <div class="sub">拍板方向：不要轮播，所有信息收进同一块面板。两变体均在方案 B（信息分栏）基础上精修，1920×1080 横屏 · 学府风令牌 · 真种子数据（砺蕴一班 · 周五课表 · 真考勤口径：应到 9 / 实到 8 / 迟到 1 / 请假 1 / 未到 2）· 真 QRLib 二维码（编 6 位数字本身）· 真时钟 / 换码倒计时 / 跑马灯。</div>
-    <div class="sub" style="margin-top:10px;border:1px solid rgba(143,194,166,.35);border-radius:8px;padding:12px 16px;background:rgba(143,194,166,.06)"><b style="color:#8fc2a6">定稿说明（==5.23==）</b>：最终落地形态 = 两变体的收敛融合 —— 六面板组件化（clock / qrcode / courses / att / quant / news）装进同一块金细线面板屏，深蓝底学府风；两款预设布局：款式 1「打卡为主」（码宽 ≥320px，3 米可扫）/ 款式 2「信息为主」（码 ≥260px，信息更宽），看板右下「调布局」可拖拽 / ‹›微调面板顺序，本机持久化，另备两预设一键重置。下述两变体为当时的比稿稿，供回溯。</div>
+    <div class="pending" style="color:#7fc98f">● 已上线 · VoxOS 5.24 —— 两款随时切换（右下角浮钮 / _boardMode 本机记住），以下为生产真机成片</div>
+    <h1>看板端重设计 · 两款定稿</h1>
+    <div class="sub">针对「5.23 两款看不出区别」的批评返工：这一轮把<b style="color:#e7e9f0">底色（米白 vs 深蓝）、信息密度（一张海报 vs 一面数据墙）、骨架（单卡居中 vs 三列面板）</b>全部拉开，远看一眼就是两块不同的屏。以下均为 <b style="color:#e7e9f0">VoxOS 5.24 生产版 1920×1080 真机渲染</b>：真时钟（秒在走）、真 60 秒换码倒计时（最后十秒转红催换）、真 QRLib 二维码（编动态码本身）、真种子数据（40 人口径：应到 37 / 实到 30 / 迟到 4 / 请假 3 / 未到 7）。</div>
   </div>
 
   <div class="sec">
     <div class="cap">
-      <span class="name">变体 1 · 一体面板版（B-fused）</span>
-      <span class="desc">一张金细线大面板包住全部信息，内部金线/留白分区、不再左右异色割裂：顶带时钟 + 日期 + 节次 + 新鲜度 → 中部三列（打卡白卡 / 课程时间轴 / 考勤小结 + 量化前 3）→ 底带静态通知两行 + 校训。<b style="color:#6d7688">落地工作量：中</b>（重排 #page-board + 通知/量化两块新渲染，跑马灯不用做）</span>
+      <span class="name">款式 1 · 签到立牌（SIGNAGE）</span>
+      <span class="desc">「一张会动的海报」——米白暖纸浅底，全屏只服务扫码：中央超大白卡（巨型码 ≥420px + 衬线特大 6 位数字 + 金条换码倒计时），顶带博艺蓝徽 + 衬线大时钟 + 日期节次（当前节次实时）；<b style="color:#e8cf9e">底部金线之上一条考勤明细带：五数全上（应到 37 · 实到 30 · 迟到 4 · 请假 3 · 未到 7，按语义金/赭/蓝/红着色）+ 小字名单「未到 学员34 … 等 7 人 · 请假 学员31、学员32、学员33」</b>，仍保持海报克制、不与主卡抢视觉；金线下方校训 + 班级落款。课程 / 量化 / 通知一概不上屏。</span>
     </div>
-    <div class="frame"><img src="shot-b1.png" alt="变体 1 · 一体面板版"></div>
+    <div class="frame"><img src="final24-sign.png" alt="款式 1 · 签到立牌（生产成片）"></div>
   </div>
 
   <div class="sec">
     <div class="cap">
-      <span class="name">变体 2 · 全信息密度版（B-max）</span>
-      <span class="desc">信息量拉满：顶状态带 → 左列大时钟 + 打卡大卡，右列上 = 课程全部节次（已上 / 非当日置灰、进行中金高亮）、下 = 考勤五数 + 还没到名单（≤6 人）+ 量化前 3 → 底部跑马灯通知（滚动保留）+ 校训。<b style="color:#6d7688">落地工作量：中偏高</b>（在变体 1 之上多名单 / 全节次置灰态 / 跑马灯三块，board_check 增补较多）</span>
+      <span class="name">款式 2 · 信息中枢（DASHBOARD）</span>
+      <span class="desc">「办公室数据墙」——深蓝底多面板仪表盘，信息密度拉满，<b style="color:#e8cf9e">不承担扫码（打卡板块整块移除）、也不上内部管理内容（工单板块整块移除）</b>：左列今日课程全节次时间轴（当前节金高亮「进行中」徽、明日预览置灰）；中列今日考勤四大数 2×2 大格（应到 / 实到 / 迟到 / 请假）+「还没到名单」红点胶囊；右列班级量化前 5 + 最新通知 3 条；底部通知跑马灯 + 校训金线。全屏只保留学生可见信息，与款式 1 形成「远看海报 / 近看报表」的强对比。</span>
     </div>
-    <div class="frame"><img src="shot-b2.png" alt="变体 2 · 全信息密度版"></div>
+    <div class="frame"><img src="final24-dash.png" alt="款式 2 · 信息中枢（生产成片）"></div>
+  </div>
+
+  <div class="sec">
+    <div class="cap">
+      <span class="name">切换 · 右下角浮钮（hover 浮出）</span>
+      <span class="desc">鼠标移到右下角浮出<b style="color:#e8cf9e">「切换布局 · 当前 信息中枢」+「退出 (Esc)」</b>：点一下即切另一款（免刷新、即时生效），本机记住选择（_boardMode），下次打开落在上次的模式；Esc 随时直接退出看板。</span>
+    </div>
+    <div class="frame" style="padding:34px;background:#10131c"><img src="final24-fab.png" alt="切换浮钮 hover 特写" style="border-radius:8px"></div>
   </div>
 
   <div class="foot">
-    <b>两变体差异一句话</b>：变体 1 收敛克制（无跑马灯、通知只留静态两行、量化压到面板右下角）；变体 2 全量展示（多「还没到」名单、全节次课表含明日置灰行、底部跑马灯）。打卡码区、考勤口径、动态码基建两版完全一致。<br>
-    <b>共同基建</b>：数据全走 Board 现成链路（Auth.call('code') 60s 动态码 / Board.collect 口径 / schedule+periods / quant_log / tickets），零新增接口；board-mode 全屏 + WakeLock + Esc 退出 + 数据新鲜度警示全部保留。
-    <div class="idx">
-      —— 上一轮四方案索引（已被本轮拍板收敛：C 轮播出局，A / D 暂存）——<br>
-      <span>方案 A · 签到专注版</span> scheme-a.html / shot-a.png ·
-      <span>方案 B · 信息分栏版</span> scheme-b.html / shot-b.png ·
-      <span>方案 C · 航站楼轮播版</span> scheme-c.html / shot-c*.png（出局）·
-      <span>方案 D · 品牌海报版</span> scheme-d.html / shot-d.png
-    </div>
+    <b>两款式差异一句话</b>：款式 1 把一切让给那枚码（米白 / 单卡 / 零信息噪音），款式 2 把一切摆上墙（深蓝 / 三列 / 全量数据）——同一块屏，两种人格。<br>
+    <b>共同底座</b>：数据全走 Board 现成链路（Auth.call('code') 60s 动态码 / collect 口径 / schedule+periods / quant_log / tickets），零新增接口；WakeLock + Esc 退出保留。<br>
+    <b>上线说明（VoxOS 5.24）</b>：两套骨架共用 data-bd 槽位同源喂数；旧 5.23 六面板 / 拖拽 / 槽位体系整体下线清干净；board_check 68 项断言全绿（含五档屏宽构图、双模式切换与 reload 持久化、旧符号 grep 清零）。<br>
+    <b>比稿历史</b>：5.23 现网版与预览稿见 git 历史 docs/board-redesign-shots/（scheme-a~d、scheme-b1/b2、scheme-sign/dash 与 shot-sign/shot-dash 预览帧）。
   </div>
 </body>
 </html>
