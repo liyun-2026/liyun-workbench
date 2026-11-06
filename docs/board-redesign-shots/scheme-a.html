@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<!-- 方案 A · 签到专注版 —— 整屏只为一件事：让学生 3 米外扫上码。
+     深蓝渐变 + 衬线大时钟 + 白色大卡超大码 + 底部校训金线。预览稿，未上线。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>方案 A · 签到专注版 · 看板重设计预览</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --navy-1:#243049; --navy-2:#2c3a5c; --navy-deep:#1a2236;
+    --gold:#c9ab7c; --gold-lite:#e8cf9e; --gold-dim:rgba(201,171,124,.22);
+    --paper:#f3efe6; --paper-2:rgba(243,239,230,.58); --paper-3:rgba(243,239,230,.38);
+    --ink:#2b3446;
+    --serif:'Noto Serif SC','Songti SC','STSong',serif;
+  }
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{
+    background:linear-gradient(180deg,var(--navy-1) 0%,var(--navy-2) 100%);
+    color:var(--paper);font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    display:flex;flex-direction:column;
+  }
+  /* ── 顶部条 ── */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:30px 44px 0}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand img{width:44px;height:44px;display:block}
+  .brand b{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:5px;color:var(--paper)}
+  .fresh{font-size:14px;letter-spacing:2px;color:var(--paper-3)}
+  /* ── 主构图 ── */
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-top:-12px}
+  .clock{font-family:var(--serif);font-weight:600;font-variant-numeric:tabular-nums;
+    font-size:150px;line-height:1;color:var(--paper);letter-spacing:6px;text-indent:6px}
+  .clock .sec{font-size:64px;color:var(--gold-lite);letter-spacing:0;text-indent:0}
+  .dateline{margin-top:20px;font-size:25px;letter-spacing:4px;color:var(--paper-2)}
+  .dateline em{font-style:normal;color:var(--gold-lite)}
+  /* 白色大卡 */
+  .card{margin-top:42px;background:#fff;border-radius:24px;padding:40px 64px 36px;
+    box-shadow:0 24px 70px rgba(10,15,28,.45);display:flex;flex-direction:column;align-items:center}
+  .card .lab{font-size:15px;letter-spacing:7px;text-indent:7px;color:var(--ink-2,#6b7284);color:#6b7284}
+  .qr{width:352px;height:352px;margin-top:22px}
+  .qr svg{width:100%;height:100%;display:block}
+  .code{margin-top:20px;font-family:var(--serif);font-weight:600;font-size:86px;line-height:1;
+    color:var(--ink);letter-spacing:22px;text-indent:22px;font-variant-numeric:tabular-nums}
+  .timer{margin-top:24px;width:330px}
+  .timer .bar-track{height:3px;background:var(--gold-dim);border-radius:2px;overflow:hidden}
+  .timer .bar{height:100%;background:var(--gold);border-radius:2px;transition:width 1s linear}
+  .timer .cd{margin-top:10px;text-align:center;font-size:14px;letter-spacing:3px;color:#8a93a6}
+  .timer .cd b{font-size:15px;color:#a8895a;font-variant-numeric:tabular-nums}
+  /* ── 底部校训 ── */
+  .foot{padding:0 0 40px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  .foot .rule{width:64px;height:2px;background:var(--gold)}
+  .foot .motto{font-family:var(--serif);font-size:20px;letter-spacing:9px;text-indent:9px;color:var(--paper-2)}
+  .foot .eng{font-size:11px;letter-spacing:4px;color:var(--paper-3)}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand"><img src="../../assets/seal-boyi.png" alt=""><b>砺蕴教务系统</b></div>
+    <div class="fresh">数据更新 <span id="fs">—</span></div>
+  </div>
+  <div class="stage">
+    <div class="clock"><span id="ck">10:15</span><span class="sec">:<span id="cs">00</span></span></div>
+    <div class="dateline">2026年10月30日 · 星期五 · <em>第 2 节 10:15–11:45</em></div>
+    <div class="card">
+      <div class="lab">今日打卡码 · 扫码签到</div>
+      <div class="qr"><svg viewBox="0 0 29 29" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="29" height="29" fill="#fff"/><path d="M4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM7 4h1v1h-1zM8 4h1v1h-1zM9 4h1v1h-1zM10 4h1v1h-1zM13 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM23 4h1v1h-1zM24 4h1v1h-1zM4 5h1v1h-1zM10 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM18 5h1v1h-1zM24 5h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM7 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM21 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM7 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM18 7h1v1h-1zM20 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM13 8h1v1h-1zM15 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM21 8h1v1h-1zM22 8h1v1h-1zM24 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1zM24 9h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM9 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM19 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM24 10h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM16 11h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM19 12h1v1h-1zM20 12h1v1h-1zM21 12h1v1h-1zM22 12h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM8 13h1v1h-1zM12 13h1v1h-1zM16 13h1v1h-1zM19 13h1v1h-1zM23 13h1v1h-1zM24 13h1v1h-1zM5 14h1v1h-1zM6 14h1v1h-1zM10 14h1v1h-1zM11 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM17 14h1v1h-1zM20 14h1v1h-1zM22 14h1v1h-1zM4 15h1v1h-1zM5 15h1v1h-1zM8 15h1v1h-1zM9 15h1v1h-1zM11 15h1v1h-1zM19 15h1v1h-1zM20 15h1v1h-1zM22 15h1v1h-1zM5 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM12 16h1v1h-1zM13 16h1v1h-1zM14 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM20 16h1v1h-1zM21 16h1v1h-1zM23 16h1v1h-1zM12 17h1v1h-1zM13 17h1v1h-1zM14 17h1v1h-1zM15 17h1v1h-1zM16 17h1v1h-1zM17 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM4 18h1v1h-1zM5 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM8 18h1v1h-1zM9 18h1v1h-1zM10 18h1v1h-1zM13 18h1v1h-1zM14 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM21 18h1v1h-1zM4 19h1v1h-1zM10 19h1v1h-1zM12 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM16 19h1v1h-1zM17 19h1v1h-1zM18 19h1v1h-1zM19 19h1v1h-1zM22 19h1v1h-1zM24 19h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM10 20h1v1h-1zM12 20h1v1h-1zM13 20h1v1h-1zM14 20h1v1h-1zM16 20h1v1h-1zM19 20h1v1h-1zM21 20h1v1h-1zM23 20h1v1h-1zM4 21h1v1h-1zM6 21h1v1h-1zM7 21h1v1h-1zM8 21h1v1h-1zM10 21h1v1h-1zM12 21h1v1h-1zM14 21h1v1h-1zM16 21h1v1h-1zM20 21h1v1h-1zM21 21h1v1h-1zM22 21h1v1h-1zM4 22h1v1h-1zM6 22h1v1h-1zM7 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM12 22h1v1h-1zM14 22h1v1h-1zM15 22h1v1h-1zM17 22h1v1h-1zM19 22h1v1h-1zM4 23h1v1h-1zM10 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM7 24h1v1h-1zM8 24h1v1h-1zM9 24h1v1h-1zM10 24h1v1h-1zM12 24h1v1h-1zM13 24h1v1h-1zM15 24h1v1h-1zM17 24h1v1h-1zM21 24h1v1h-1zM23 24h1v1h-1z" fill="#111"/></svg></div>
+      <div class="code">483670</div>
+      <div class="timer">
+        <div class="bar-track"><div class="bar" id="bar" style="width:78%"></div></div>
+        <div class="cd"><b id="cdown">47</b> 秒后换码</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div class="rule"></div>
+    <div class="motto">博学宏才 · 艺德卓绝</div>
+    <div class="eng">BOYI EDUCATION · ERUDITART EAS</div>
+  </div>
+<script>
+  const p = n => String(n).padStart(2,'0');
+  function tick(){
+    const d = new Date();
+    const set = (id,t) => { const e = document.getElementById(id); if (e && e.textContent !== t) e.textContent = t; };
+    set('ck', p(d.getHours()) + ':' + p(d.getMinutes()));
+    set('cs', p(d.getSeconds()));
+    set('fs', p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()));
+  }
+  setInterval(tick, 1000); tick();
+  /* 换码倒计时演示：60 秒循环（生产为服务端派生 60s 动态码） */
+  let left = 47;
+  setInterval(() => {
+    left = left > 0 ? left - 1 : 60;
+    document.getElementById('bar').style.width = (left / 60 * 100) + '%';
+    document.getElementById('cdown').textContent = left;
+  }, 1000);
+</script>
+</body>
+</html>

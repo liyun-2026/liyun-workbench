@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!-- 看板端重设计 · B 系两精修变体预览相册（1920×1080 真实渲染截图）。方案全部独立文件，未动生产 index.html。
+     ==5.23== 用户已拍板定稿并施工上线：双布局（sign 打卡为主 / info 信息为主）+ 面板手动调序，见下方定稿说明。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>看板端重设计 · B 系两变体预览（已定稿上线）</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#141a26;color:#e7e9f0;min-height:100vh;
+    font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;padding:56px 6vw 90px}
+  .head{max-width:1500px;margin:0 auto 14px}
+  .pending{color:#ff6b6b;font-size:17px;letter-spacing:3px;font-weight:600;margin-bottom:18px}
+  h1{font-family:'Noto Serif SC','Songti SC',serif;font-size:34px;font-weight:600;letter-spacing:6px}
+  .sub{margin-top:12px;font-size:14px;color:#8b93a6;line-height:1.8}
+  .sec{max-width:1500px;margin:64px auto 0}
+  .cap{display:flex;align-items:baseline;gap:18px;margin-bottom:16px}
+  .cap .name{font-family:'Noto Serif SC','Songti SC',serif;font-size:27px;font-weight:600;
+    letter-spacing:3px;color:#e8cf9e}
+  .cap .desc{font-size:14.5px;color:#9aa3b5;line-height:1.7}
+  .frame{border:1px solid #2a3348;border-radius:12px;overflow:hidden;background:#0d1119;
+    box-shadow:0 18px 50px rgba(0,0,0,.4)}
+  .frame img{width:100%;display:block}
+  .foot{max-width:1500px;margin:70px auto 0;padding-top:24px;border-top:1px solid #2a3348;
+    font-size:13px;color:#6d7688;line-height:2}
+  .foot b{color:#c9ab7c;font-weight:500}
+  .idx{margin-top:10px;font-size:12.5px;color:#586070;line-height:2.1}
+  .idx span{color:#8b93a6}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="pending" style="color:#8fc2a6">● 已按用户定稿施工上线（VoxOS 5.23）—— 双布局 + 面板手动调序已进生产，board_check 67 项全过</div>
+    <h1>看板端重设计 · B 系两精修变体</h1>
+    <div class="sub">拍板方向：不要轮播，所有信息收进同一块面板。两变体均在方案 B（信息分栏）基础上精修，1920×1080 横屏 · 学府风令牌 · 真种子数据（砺蕴一班 · 周五课表 · 真考勤口径：应到 9 / 实到 8 / 迟到 1 / 请假 1 / 未到 2）· 真 QRLib 二维码（编 6 位数字本身）· 真时钟 / 换码倒计时 / 跑马灯。</div>
+    <div class="sub" style="margin-top:10px;border:1px solid rgba(143,194,166,.35);border-radius:8px;padding:12px 16px;background:rgba(143,194,166,.06)"><b style="color:#8fc2a6">定稿说明（==5.23==）</b>：最终落地形态 = 两变体的收敛融合 —— 六面板组件化（clock / qrcode / courses / att / quant / news）装进同一块金细线面板屏，深蓝底学府风；两款预设布局：款式 1「打卡为主」（码宽 ≥320px，3 米可扫）/ 款式 2「信息为主」（码 ≥260px，信息更宽），看板右下「调布局」可拖拽 / ‹›微调面板顺序，本机持久化，另备两预设一键重置。下述两变体为当时的比稿稿，供回溯。</div>
+  </div>
+
+  <div class="sec">
+    <div class="cap">
+      <span class="name">变体 1 · 一体面板版（B-fused）</span>
+      <span class="desc">一张金细线大面板包住全部信息，内部金线/留白分区、不再左右异色割裂：顶带时钟 + 日期 + 节次 + 新鲜度 → 中部三列（打卡白卡 / 课程时间轴 / 考勤小结 + 量化前 3）→ 底带静态通知两行 + 校训。<b style="color:#6d7688">落地工作量：中</b>（重排 #page-board + 通知/量化两块新渲染，跑马灯不用做）</span>
+    </div>
+    <div class="frame"><img src="shot-b1.png" alt="变体 1 · 一体面板版"></div>
+  </div>
+
+  <div class="sec">
+    <div class="cap">
+      <span class="name">变体 2 · 全信息密度版（B-max）</span>
+      <span class="desc">信息量拉满：顶状态带 → 左列大时钟 + 打卡大卡，右列上 = 课程全部节次（已上 / 非当日置灰、进行中金高亮）、下 = 考勤五数 + 还没到名单（≤6 人）+ 量化前 3 → 底部跑马灯通知（滚动保留）+ 校训。<b style="color:#6d7688">落地工作量：中偏高</b>（在变体 1 之上多名单 / 全节次置灰态 / 跑马灯三块，board_check 增补较多）</span>
+    </div>
+    <div class="frame"><img src="shot-b2.png" alt="变体 2 · 全信息密度版"></div>
+  </div>
+
+  <div class="foot">
+    <b>两变体差异一句话</b>：变体 1 收敛克制（无跑马灯、通知只留静态两行、量化压到面板右下角）；变体 2 全量展示（多「还没到」名单、全节次课表含明日置灰行、底部跑马灯）。打卡码区、考勤口径、动态码基建两版完全一致。<br>
+    <b>共同基建</b>：数据全走 Board 现成链路（Auth.call('code') 60s 动态码 / Board.collect 口径 / schedule+periods / quant_log / tickets），零新增接口；board-mode 全屏 + WakeLock + Esc 退出 + 数据新鲜度警示全部保留。
+    <div class="idx">
+      —— 上一轮四方案索引（已被本轮拍板收敛：C 轮播出局，A / D 暂存）——<br>
+      <span>方案 A · 签到专注版</span> scheme-a.html / shot-a.png ·
+      <span>方案 B · 信息分栏版</span> scheme-b.html / shot-b.png ·
+      <span>方案 C · 航站楼轮播版</span> scheme-c.html / shot-c*.png（出局）·
+      <span>方案 D · 品牌海报版</span> scheme-d.html / shot-d.png
+    </div>
+  </div>
+</body>
+</html>
