@@ -38,7 +38,7 @@
   --sidebar-active:#edebe5;
   --card:#ffffff;
   --text:#26241f;
-  --text-dim:#6E6A61;
+  --text-dim:#57544c;
   --accent:#26241f;
   --btn-text:#ffffff;
   --radius:14px;
@@ -94,7 +94,7 @@
     --sidebar-active:#332f2a;
     --card:#1c1a18;
     --text:#efe9df;
-    --text-dim:#8f897f;
+    --text-dim:#9aa3b8;
     --accent:#c9ab7c;
     --btn-text:#141311;
     --line:#302d29;
@@ -176,6 +176,12 @@ body{
    两个类**只在这两个断点里定义**，不写基准 display，
    免得把 <span> 变成块级、影响行内排版。 */
 @media (max-width:699px){ .only-desk{display:none !important} }
+/* ==5.25== 体检 🟡8：手机课表「大作息」卡头太挤 —— 标题孤字换行、
+   右侧「已定死 · 全体同步」竖排三行。窄屏让 hint 独占一行、完整不竖排 */
+@media (max-width:699px){
+  #page-timetable.on .card > h2{flex-wrap:wrap;row-gap:3px}
+  #page-timetable.on .card > h2 .hint{display:block!important;flex:1 1 100%;white-space:normal}
+}
 @media (min-width:700px){ .only-mob{display:none !important} }
 /* 「今日」旁边的实时时钟：24 时制，tabular-nums 让秒数跳动时不抖 */
 .clock{font-size:.6em;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
@@ -388,6 +394,16 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   animation:popIn .18s var(--ease) both;
 }
 @keyframes popIn{from{transform:translate(-50%,-46%) scale(.97);opacity:.4}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+/* ==5.25== 体检 🟡12：手机上设备密钥门贴底弹出（bottom sheet）——
+   居中模态正好压在打卡大圆钮上，学生一进打卡页就被挡 */
+@media (max-width:699px){
+  #devGate .sheet{
+    left:0;right:0;bottom:0;top:auto;transform:none;width:100%;max-height:72%;
+    border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.3);
+    animation:sheetUp .22s var(--ease) both;
+  }
+  @keyframes sheetUp{from{transform:translateY(40%);opacity:.4}to{transform:translateY(0);opacity:1}}
+}
 .role-opt{
   display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;
   border:1px solid var(--line);background:var(--card);border-radius:14px;
@@ -481,7 +497,7 @@ body.role-teacher{
   --sidebar-active:#edebe5;
   --card:#ffffff;
   --text:#26241f;
-  --text-dim:#6E6A61;
+  --text-dim:#57544c;
   --accent:#26241f;
   --btn-text:#ffffff;
   --line:#E7E3DA;
@@ -490,20 +506,22 @@ body.role-teacher{
 }
 @media (prefers-color-scheme: dark){
   body.role-teacher{
-    --bg:#141311;
-    --tint:#1a1815;
-    --rail:#2b2721;
-    --rail-text:#e9e3d8;
+    /* ==5.25== 深色面板统一学府深蓝系（--paper #191d27 同族）——
+       旧暖褐(#141311/#1c1a18)叠在学府深蓝门户上是两套色系打架，看着发脏 */
+    --bg:#191d27;
+    --tint:#1e2330;
+    --rail:#252b3a;
+    --rail-text:#e7e9f0;
     --rail-on:rgba(255,255,255,.14);
     --rail-on-text:#FFFFFF;
-    --rail-art:#cfc7b8;
-    --sidebar-active:#332f2a;
-    --card:#1c1a18;
+    --rail-art:#dfe3ee;
+    --sidebar-active:#2a3140;
+    --card:#1f2431;
     --text:#efe9df;
-    --text-dim:#8f897f;
+    --text-dim:#9aa3b8;
     --accent:#c9ab7c;
     --btn-text:#141311;
-    --line:#302d29;
+    --line:#323a4d;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
     --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
@@ -524,7 +542,7 @@ body.role-admin{
   --sidebar-active:#EAF0F7;
   --card:#FFFFFF;
   --text:#283038;
-  --text-dim:#7C8FA6;
+  --text-dim:#647891;
   --accent:#719BCB;
   --btn-text:#26303C;
   --line:#E7EEF6;
@@ -533,20 +551,21 @@ body.role-admin{
 }
 @media (prefers-color-scheme: dark){
   body.role-admin{
-    --bg:#181C21;
-    --tint:#1E242A;
-    --rail:#293645;
+    /* ==5.25== 对齐学府深蓝系（#191d27/#1f2431），与全站深色一体 */
+    --bg:#191d27;
+    --tint:#1e2330;
+    --rail:#252b3a;
     --rail-text:#E1EAF4;
     --rail-on:rgba(255,255,255,.16);
     --rail-on-text:#FFFFFF;
     --rail-art:#DEE8F3;
-    --sidebar-active:#283039;
-    --card:#22282F;
+    --sidebar-active:#2a3140;
+    --card:#1f2431;
     --text:#E4E9EE;
-    --text-dim:#8498AF;
+    --text-dim:#9aa3b8;
     --accent:#A6C0DE;
     --btn-text:#141414;
-    --line:#37404A;
+    --line:#323a4d;
     --shadow:0 0 0 1px rgba(255,255,255,.05);
     --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
@@ -567,7 +586,7 @@ body.role-super{
   --sidebar-active:#F7F3EA;
   --card:#FFFFFF;
   --text:#383328;
-  --text-dim:#A6997C;
+  --text-dim:#8a7c60;
   --accent:#CBB071;
   --btn-text:#4D432E;
   --line:#F6F2E7;
@@ -576,20 +595,21 @@ body.role-super{
 }
 @media (prefers-color-scheme: dark){
   body.role-super{
-    --bg:#211F18;
-    --tint:#2A261E;
-    --rail:#453D29;
+    /* ==5.25== 暖褐深色 → 学府深蓝系：小结卡/设置卡发脏的根因就是这组旧值 */
+    --bg:#191d27;
+    --tint:#1e2330;
+    --rail:#252b3a;
     --rail-text:#F4EEE1;
     --rail-on:rgba(255,255,255,.16);
     --rail-on-text:#FFFFFF;
     --rail-art:#F3EDDE;
-    --sidebar-active:#393428;
-    --card:#2F2B22;
+    --sidebar-active:#2a3140;
+    --card:#1f2431;
     --text:#EEEBE4;
-    --text-dim:#AFA284;
+    --text-dim:#9aa3b8;
     --accent:#DECDA6;
     --btn-text:#141414;
-    --line:#4A4437;
+    --line:#323a4d;
     --shadow:0 0 0 1px rgba(255,255,255,.05);
     --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
@@ -610,7 +630,7 @@ body.role-both{
   --sidebar-active:#edebe5;
   --card:#ffffff;
   --text:#26241f;
-  --text-dim:#6E6A61;
+  --text-dim:#57544c;
   --accent:#26241f;
   --btn-text:#ffffff;
   --line:#E7E3DA;
@@ -619,20 +639,21 @@ body.role-both{
 }
 @media (prefers-color-scheme: dark){
   body.role-both{
-    --bg:#141311;
-    --tint:#1a1815;
-    --rail:#2b2721;
+    /* ==5.25== 暖褐深色 → 学府深蓝系（与 teacher 端同值） */
+    --bg:#191d27;
+    --tint:#1e2330;
+    --rail:#252b3a;
     --rail-text:#e9e3d8;
     --rail-on:rgba(255,255,255,.14);
     --rail-on-text:#FFFFFF;
     --rail-art:#cfc7b8;
-    --sidebar-active:#332f2a;
-    --card:#1c1a18;
+    --sidebar-active:#2a3140;
+    --card:#1f2431;
     --text:#efe9df;
-    --text-dim:#8f897f;
+    --text-dim:#9aa3b8;
     --accent:#c9ab7c;
     --btn-text:#141311;
-    --line:#302d29;
+    --line:#323a4d;
     --shadow:0 0 0 1px rgba(255,255,255,.04);
     --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
@@ -653,7 +674,7 @@ body.stu{
   --sidebar-active:#EAF7F2;
   --card:#FFFFFF;
   --text:#283831;
-  --text-dim:#7CA694;
+  --text-dim:#63907d;
   --accent:#71CBA6;
   --btn-text:#2F4F41;
   --line:#E7F6F0;
@@ -662,20 +683,23 @@ body.stu{
 }
 @media (prefers-color-scheme: dark){
   body.stu{
-    --bg:#18211E;
-    --tint:#1E2A25;
-    --rail:#294539;
+    /* ==5.25== 深色绿黑 → 学府深蓝系：学生首页卡片发绿的根因。
+       学生端浅色仍是一整套绿皮；深色只把面板底统一进全站深蓝，
+       强调色保留青绿（绿 emphasis 在深蓝底上依旧成立，如同金色）。 */
+    --bg:#191d27;
+    --tint:#1e2330;
+    --rail:#252b3a;
     --rail-text:#E1F4EC;
     --rail-on:rgba(255,255,255,.16);
     --rail-on-text:#FFFFFF;
     --rail-art:#DEF3EA;
-    --sidebar-active:#283932;
-    --card:#222F29;
+    --sidebar-active:#2a3140;
+    --card:#1f2431;
     --text:#E4EEEA;
-    --text-dim:#84AF9D;
+    --text-dim:#9aa3b8;
     --accent:#A6DEC7;
     --btn-text:#141414;
-    --line:#374A42;
+    --line:#323a4d;
     --shadow:0 0 0 1px rgba(255,255,255,.05);
     --shadow-lg:0 10px 30px rgba(0,0,0,.45);
   }
@@ -747,9 +771,11 @@ body.stu .card{border-radius:16px}
 #watermark{display:none}
 body.stu #watermark{
   display:block;position:fixed;inset:0;z-index:3;pointer-events:none;
-  background-color:var(--text);opacity:.085;
+  /* ==5.25== 密度/浓度减半（.085→.045、mask 320×210→430×282）：
+     溯源能力不变（截图放大依然可读），正常阅读时不再满屏都是字 */
+  background-color:var(--text);opacity:.045;
   -webkit-mask-repeat:repeat;mask-repeat:repeat;
-  -webkit-mask-size:320px 210px;mask-size:320px 210px;
+  -webkit-mask-size:430px 282px;mask-size:430px 282px;
 }
 
 /* ════════ 打卡页：一个圈，按它 ════════
@@ -829,7 +855,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
     display:grid;grid-template-columns:236px minmax(0,1fr);
     gap:var(--gap);align-items:start;
   }
-  .split .pane-list{max-height:calc(100vh - 190px);overflow:auto}
+  .split .pane-list{max-height:calc(100vh - 190px);overflow-y:auto;overflow-x:hidden}
   .split .pane-main{display:flex;flex-direction:column;gap:var(--gap);min-width:0}
 }
 
@@ -2223,7 +2249,9 @@ body.board-mode .mtabbar{display:none!important}
   body.stu:has(#page-stuHome.on) .topbar .t-name,
   body:has(#page-today.on) .topbar .t-name,
   body:has(#page-home.on) .topbar .t-name{
-    font-size:19px; font-weight:700; color:var(--text); letter-spacing:.5px;
+    /* ==5.25== 体检 🟡14：问候语最长 8 字（张伟老师晚上好），19px 在 390 宽
+       被顶栏挤成「张伟老师晚上…」—— 字号随视口自适应，保完整不截断 */
+    font-size:clamp(12px,3.6vw,15px); font-weight:700; color:var(--text); letter-spacing:.5px;
   }
   body.stu:has(#page-stuHome.on) .topbar .t-brand .brand-lock,
   body:has(#page-today.on) .topbar .t-brand .brand-lock,
@@ -2254,7 +2282,7 @@ body.board-mode .mtabbar{display:none!important}
   }
   #page-settings.on > .page-sub{position:relative; z-index:1; color:rgba(255,255,255,.72)}
   #page-settings.on #verLine{position:relative; z-index:1; color:rgba(255,255,255,.66)}
-  #page-settings.on .anchor-layout{position:relative; z-index:1; margin-top:26px}
+  #page-settings.on .anchor-layout{position:relative; z-index:1; margin-top:14px}
   #page-settings.on .bg-logo{
     display:block; position:absolute; right:-4px; z-index:0; animation:none;
     top:calc(env(safe-area-inset-top,0px) + 4px); bottom:auto;
@@ -2779,6 +2807,15 @@ body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:
   .bdv-sign,.bdv-dash{padding:18px 20px}
   .bd-stage{flex:none;padding:14px 0}
   .bd-poster{max-height:none}
+  /* ==5.25== 手机顶带两行化：390 宽下 brand(徽+系名 nowrap) 与 tright(时钟+日期 nowrap)
+     挤一行会互相叠印（时钟压系名、节次压英文副题）—— 各占一整行居中，谁也不挤谁 */
+  .bd-top{flex-wrap:wrap;height:auto;padding:10px 0;row-gap:4px}
+  .bd-brand{flex:1 1 100%;justify-content:center}
+  .bd-mark{height:30px}
+  .bd-bn1{font-size:16px;letter-spacing:.18em}
+  .bd-tright{flex:1 1 100%;justify-content:center;gap:16px}
+  .bd-tmeta .bd-d1{font-size:11px}
+  .bd-tmeta .bd-d2{font-size:10px;margin-top:3px}
   .bd-qr2{width:min(64vw,340px)}
   .bd-code{font-size:clamp(34px,13vw,80px)}
   .bd-nums5{gap:18px;flex-wrap:wrap;justify-content:center}
@@ -3306,6 +3343,17 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
     max-width:1280px;margin:0 auto;width:100%;
     padding:38px 40px 64px;
   }
+  /* ==5.25== 体检 🟡5：短内容页页脚不贴底（页脚下面露一大段背景）——
+     body 拉满一屏、内容区 flex:1，footer 永远沉底 */
+  body:has(.xf-foot){display:flex;flex-direction:column;min-height:100vh}
+  body:has(.xf-foot) .main{flex:1}
+  /* ==5.25== 体检 🟡11：模考/征集页卡少内容少，两栏 grid 里普通卡只占半宽、
+     右边整片空白 —— 这两页卡片拉通全宽（成绩录入/征集列表本来就有 wide） */
+  #page-exam.on > .card, #page-gather.on > .card{grid-column:1 / -1}
+  /* ==5.25== 体检 🔴4：协作「待处理」卡头在两栏半宽里折成「待处/理」、
+     计数竖排三行 —— 标题一行排、计数贴右不折 */
+  #page-coop.on .card.pane-list > h2{flex-wrap:nowrap;white-space:nowrap}
+  #page-coop.on .card.pane-list > h2 .hint{flex:1;text-align:right;white-space:nowrap;margin:0 0 0 12px}
   /* v57 各页 grid 版式保持，容器宽度统一收 1280 */
   .xf-top{flex:0 0 auto}
 
@@ -3641,6 +3689,9 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
   /* 深色：hero/学期条/速览/时间轴行随令牌翻 */
   .xf-term{background:var(--card)}
+  /* ==5.25== 白条「学年」金字随 --blue-ink 翻成了 #0f1526（章节天头墨色），
+     压深蓝白条只剩 1.29:1 —— 单独给回浅色（对 #222735 约 9:1） */
+  .xf-term-in .yr{color:#d7def0}
   .xf-quick{background:var(--card)}
   .xd-stat, #page-home.on .tl-head, #page-home.on .tl-wrap{background:var(--card)}
 }
@@ -4062,7 +4113,7 @@ var Icon = {
           <div class="sec-h">班级</div>
           <p class="sec-meta"><span class="only-desk">选中一个班，右边看这个班的学员</span><span class="only-mob">选中一个班，下面看这个班的学员</span></p>
           <div class="row">
-          <input type="text" id="clsIn" placeholder="班级名，如：播音一班">
+          <input type="text" id="clsIn" placeholder="班级名称">
           <button class="btn" onclick="Roster.addClass()">建班</button>
         </div>
         <div id="clsList" style="margin-top:8px"></div>
@@ -4389,7 +4440,7 @@ var Icon = {
             <input type="date" id="hkDate" onchange="Homework.pickChkDate(this.value)" style="max-width:170px">
           </div>
           <div class="hk-progress" id="hkBar" role="progressbar" aria-label="完成进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i style="width:0%"></i></div>
-          <div class="row" style="margin-top:8px">
+          <div class="row" style="margin-top:8px;align-items:baseline">
             <span class="hk-pct num" id="hkPct">0%</span>
             <span class="hint" style="margin:0">已交 <b class="num" id="hkDone">0</b> / <b class="num" id="hkAll">0</b> 人</span>
           </div>
@@ -4556,7 +4607,7 @@ var Icon = {
           <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg> 选学员</h2>
           <select id="pfCls" onchange="Student.pickCls(this.value)"></select>
           <input type="text" id="pfSearch" placeholder="搜名字" oninput="Student.renderList()" style="margin-top:8px">
-          <div id="pfList" style="margin-top:6px;max-height:56vh;overflow:auto"></div>
+          <div id="pfList" style="margin-top:6px;max-height:56vh;overflow-y:auto;overflow-x:hidden"></div>
         </div>
         <div class="pane-main" id="pfBody"></div>
       </div>
@@ -5672,11 +5723,11 @@ var Icon = {
         <div class="g-tagline">博学宏才 · 艺德卓绝</div>
         <div class="g-sub" id="gSub"></div>
         <div class="g-roles" id="gRoles">
-          <button type="button" data-role="教师">
+          <button type="button" class="on" data-role="教师">
             <span class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="7" cy="4.6" r="2.1"/><path d="M3.2 13.2c.6-2.3 2-3.5 3.8-3.5s3.2 1.2 3.8 3.5"/><path d="M12.4 5.4v4.2M12.4 5.4l1.6.9"/></svg></span>
             <b>教师</b>
           </button>
-          <button type="button" class="on" data-role="学生">
+          <button type="button" data-role="学生">
             <span class="ric"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M8 3L14 5.6 8 8.2 2 5.6z"/><path d="M4.6 6.8v2.8c0 1.2 1.5 2.1 3.4 2.1s3.4-.9 3.4-2.1V6.8"/><path d="M13 6.2v3"/></svg></span>
             <b>学生</b>
           </button>
@@ -5722,11 +5773,12 @@ var Icon = {
       const btn = document.getElementById('gBtn');
       if (btn && !btn.disabled) btn.textContent = (b.dataset.role === '教师') ? '教 师 登 录' : '学 生 登 录';
     });
-    /* 桌面默认选中「学生」，按钮文案同步；窄屏不动按钮文案 */
+    /* 桌面默认选中「教师」（==5.25== 体检 🟢22：教务系统主要用户是老师，
+       默认学生是老遗留），按钮文案同步；窄屏不动按钮文案 */
     if (window.matchMedia && matchMedia('(min-width:1100px)').matches){
-      window.__gRole = '学生';
+      window.__gRole = '教师';
       const btn = document.getElementById('gBtn');
-      if (btn) btn.textContent = '学 生 登 录';
+      if (btn) btn.textContent = '教 师 登 录';
     }
   })();
 </script>
@@ -7246,7 +7298,7 @@ const Home = {
       out.push({
         at: at(i), kind: 'att',
         title: Util.esc(sl.name) + '考勤',
-        sub: t + ' · ' + Util.esc(sl.name) + ' · 已登记 ' + who.size + ' 人',
+        sub: t + ' · ' + Util.esc(sl.name) + ' · 已登记 ' + who.size + '人',
         state: bad ? ('异常 ' + bad) : '全部正常',
         done: bad ? 0 : 1,
         body: '已登记 ' + who.size + ' 人' + (bad ? ('，其中异常 ' + bad + ' 人次（迟到 / 病假 / 事假 / 未到）') : '，无人异常') + '。'
@@ -8812,7 +8864,7 @@ const Schedule = {
     const chips = document.getElementById('ruleChips');
     if (chips) chips.innerHTML = ps.length
       ? ps.map((p, i) => {
-          const nm = p.name && !/^\d{1,2}:\d{2}/.test(p.name) ? Util.esc(p.name) + ' ' : '';
+          const nm = p.name && !/^\d{1,2}:\d{2}/.test(p.name) && p.name !== ('第' + (i + 1) + '节') ? Util.esc(p.name) + ' ' : '';
           return `<span class="chip"><b>第${i + 1}节</b> ${nm}${Util.esc(p.start)}–${Util.esc(p.end)}${p.auto ? '' : ' <span class="hint" style="display:inline;margin:0">·手动</span>'}</span>`;
         }).join('')
       : '<span class="hint" style="margin:0">还没有节次，点「编辑 / 统一时间轴」加一段</span>';
@@ -12343,7 +12395,7 @@ const Quant = {
     const delta = period.reduce((s, x) => s + (Number(x.delta) || 0), 0);
     const reasons = this.reasonText(period);
     el.innerHTML = `
-      <div class="hero num">${total}<span class="unit">${Util.esc(cls ? cls.name : '')} · 总分</span></div>
+      <div class="hero num" style="display:flex;align-items:baseline;gap:10px">${total}<span class="unit" style="margin-left:0">${Util.esc(cls ? cls.name : '')} · 总分</span></div>
       <p class="hint" style="margin:2px 0 10px">起始 100 分 · ${from} ~ ${to} 这段${delta ? `变化 <b style="color:${delta > 0 ? '#c25650' : '#2e7d4f'}">${delta > 0 ? '+' : ''}${delta}</b> 分` : '没有加减分'}</p>
       ${reasons ? `<p style="margin:0;line-height:1.8"><b style="font-weight:500">加扣分原因：</b>${reasons}</p>` : ''}`;
   },
@@ -13616,7 +13668,7 @@ const Coop = {
                       .filter(t => t && t.type !== '学生请假' && t.type !== '学生消息');
     const open = list.filter(t => t.status === 'open' || t.status === undefined);
     const cnt = document.getElementById('coopCount');
-    if (cnt) cnt.textContent = open.length ? '（' + open.length + ' 条待处理）' : '';
+    if (cnt) cnt.textContent = open.length ? open.length + ' 条待处理' : '';
     el.innerHTML = list.length ? list.map(t => `
       <div class="item" style="flex-direction:column;align-items:stretch">
         <div class="row" style="justify-content:space-between">
@@ -14016,7 +14068,7 @@ const Teachers = {
       const shown  = u.name || u.user;
       const handle = ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
       const sub    = isSuper ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
-      const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+      const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:5px;flex-shrink:0;max-width:280px">
                ${Store.getSecret('greet:' + u.id)
                  ? `<button class="chip chip-on" onclick="Teachers.copyGreet('${u.id}')">复制发给TA</button>`
                  : ''}
@@ -15943,6 +15995,9 @@ const StuDev = {
 
   /** 门上的话按是哪一道没过来说：换设备 / 换账号，两句话都得说清楚 */
   open(j){
+    /* ==5.25== 体检 🟡12：看板是公共屏，设备密钥门绝不上看板；
+       打卡页也只收窄成底部贴边小卡（见 CSS），不盖住打卡大圆钮 */
+    if (document.body.classList.contains('board-mode')) return;
     const g = document.getElementById('devGate');
     if (!g) return;
     const t = document.getElementById('devGateTitle');
@@ -18327,6 +18382,9 @@ const Board = {
       UI.toast('看板号最多 ' + j.limit + ' 台设备，这一台没登记上 —— 请到设置页「看板端」点一次「释放看板设备」');
       return;
     }
+    /* ==5.25== 体检 🟡12：设备密钥门可能在进门时已弹出（check 是异步的，
+       board-mode 还没挂上拦不住）—— 进看板这一刻无论如何把它收掉 */
+    try { if (typeof StuDev !== 'undefined' && StuDev.close) StuDev.close(); } catch(e){}
     document.body.classList.add('board-mode');
     App.go('board');
     this.goFull();   /* 点这个按钮就是「我要用大屏看」，那就直接铺满 —— 留在窗口里没意义 */
