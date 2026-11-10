@@ -176,6 +176,11 @@ body{
    两个类**只在这两个断点里定义**，不写基准 display，
    免得把 <span> 变成块级、影响行内排版。 */
 @media (max-width:699px){ .only-desk{display:none !important} }
+/* ==5.27== 授课老师只读视角：标 .edit-only 的写操作控件整体藏掉（body 类由
+   App.renderChrome 按 Auth.canEdit() 挂）—— 比逐处 JS 判稳，深浅色都生效 */
+body.no-edit .edit-only{display:none !important}
+/* 只读「状态章」：看得见登记结果，但不长得像能点 */
+body.no-edit .stamp.ro-stamp{pointer-events:none;cursor:default}
 /* ==5.25== 体检 🟡8：手机课表「大作息」卡头太挤 —— 标题孤字换行、
    右侧「已定死 · 全体同步」竖排三行。窄屏让 hint 独占一行、完整不竖排 */
 @media (max-width:699px){
@@ -4132,8 +4137,8 @@ var Icon = {
           <div class="sec-h">班级</div>
           <p class="sec-meta"><span class="only-desk">选中一个班，右边看这个班的学员</span><span class="only-mob">选中一个班，下面看这个班的学员</span></p>
           <div class="row">
-          <input type="text" id="clsIn" placeholder="班级名称">
-          <button class="btn" onclick="Roster.addClass()">建班</button>
+          <input type="text" id="clsIn" placeholder="班级名称" disabled>
+          <button class="btn edit-only" onclick="Roster.addClass()">建班</button>
         </div>
         <div id="clsList" style="margin-top:8px"></div>
         </section>
@@ -4148,12 +4153,12 @@ var Icon = {
             <span style="flex:1"></span>
           </div>
           <select id="rosterCls" onchange="Roster.pickCls(this.value)" style="flex:0 1 auto;width:auto;min-width:150px;margin-top:10px"></select>
-        <div class="row">
+        <div class="row edit-only">
           <input type="text" id="stuIn" placeholder="学员姓名">
           <button class="btn" onclick="Roster.addStudent()">加入</button>
         </div>
         <div id="stuList" style="margin-top:8px"></div>
-        <div class="row" style="margin-top:10px">
+        <div class="row edit-only" style="margin-top:10px">
           <button class="btn ghost" onclick="Roster.toggleOfficers()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-users"></use></svg> 班干部</button>
         </div>
         <div id="officerBox" style="margin-top:10px"></div>
@@ -4162,7 +4167,7 @@ var Icon = {
             <summary>更多：建号 / 周末班 / 批量添加</summary>
             <div style="margin-top:10px">
 
-      <div class="card" id="singleAcctCard">
+      <div class="card edit-only" id="singleAcctCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 单独建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="singleName" placeholder="学员姓名" style="max-width:150px">
@@ -4178,7 +4183,7 @@ var Icon = {
 
       <!-- ==== 功能：批量建号 START ==== -->
 
-      <div class="card" id="batchAcctCard">
+      <div class="card edit-only" id="batchAcctCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 批量建号</h2>
         <div class="row" style="flex-wrap:wrap">
           <select id="batchCls" style="max-width:170px"></select>
@@ -4201,7 +4206,7 @@ var Icon = {
           <input type="date" id="wkDate" onchange="Weekend.pickDate(this.value)" style="max-width:175px">
           <span class="hint" id="wkStat" style="margin:0"></span>
         </div>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap">
+        <div class="row edit-only" style="margin-top:8px;flex-wrap:wrap">
           <button class="chip" onclick="Weekend.all(1)">本期全部参加</button>
           <button class="chip" onclick="Weekend.all(0)">本期全部取消</button>
           <button class="chip" onclick="Weekend.copy()">复制本期名单</button>
@@ -4210,7 +4215,7 @@ var Icon = {
       </div>
       <!-- ==== 功能：周末班 END ==== -->
 
-      <div class="card">
+      <div class="card edit-only">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-bolt"></use></svg> 批量添加学员</h2>
         <div class="row" style="justify-content:space-between;align-items:center">
           <button class="btn ghost" onclick="document.getElementById('batchFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 传名单识别</button>
@@ -4240,7 +4245,7 @@ var Icon = {
           <select id="attCls" class="fold" onchange="Att.pickCls(this.value)"></select>
           <select id="attSlot" class="fold" onchange="Att.pickSlot(this.value)"></select>
           <span style="flex:1"></span>
-          <button class="btn ghost mini" type="button" onclick="Att.allNormal()">一键全部正常</button>
+          <button class="btn ghost mini edit-only" type="button" onclick="Att.allNormal()">一键全部正常</button>
           <button class="btn ghost mini" type="button" onclick="Att.copySummary()">复制小结</button>
         </div>
       </div>
@@ -4320,7 +4325,7 @@ var Icon = {
         <div class="card" style="flex:1.15;min-width:340px;margin:0 12px 0 0">
           <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 大作息 · 大班课表用 <span class="hint" style="display:inline;font-weight:400">已定死 · 全体同步</span></h2>
           <div id="ruleChips" class="row" style="flex-wrap:wrap;gap:6px;margin:0"></div>
-          <div class="row" style="margin-top:10px;gap:8px;align-items:center">
+          <div class="row edit-only" style="margin-top:10px;gap:8px;align-items:center">
             <button class="btn ghost" onclick="Schedule.toggleRule()">编辑 / 统一时间轴</button>
             <span class="hint" style="margin:0">改早上时间，后面各节自动顺延</span>
           </div>
@@ -4338,7 +4343,7 @@ var Icon = {
             <datalist id="stuSuggestions"></datalist>
             <input type="text" id="miniTitle" placeholder="内容，如：一对一·自备稿件" style="flex:1.4;min-width:150px">
           </div>
-          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+          <div class="row edit-only" style="margin-top:8px;flex-wrap:wrap">
             <select id="miniTeacher" style="max-width:160px"></select>
             <button class="btn" onclick="Schedule.addMini()">加入小课/加课</button>
           </div>
@@ -4349,12 +4354,12 @@ var Icon = {
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-school"></use></svg> 教室</h2>
         <div id="roomList" class="row" style="flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
-        <div class="row" style="margin-top:4px">
+        <div class="row edit-only" style="margin-top:4px">
           <input type="text" id="roomName" placeholder="教室名，如：BY08" style="min-width:140px">
           <button class="btn" onclick="Schedule.addRoom()">加入教室</button>
         </div>
       </div>
-      <div class="card wide">
+      <div class="card wide edit-only">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grid"></use></svg> 排课台</h2>
         <div class="row" style="flex-wrap:wrap;gap:10px;align-items:flex-end">
           <label class="hint" style="margin:0">开始 <input type="date" id="ppFrom" style="max-width:160px"></label>
@@ -4434,7 +4439,7 @@ var Icon = {
         <p class="hint" style="margin-top:4px">确认无误后可<b>一键写入系统课表</b>（学生端、老师端的首页课表用的就是它）—— 写入前会自动把现在的课表存进「往期课表」，写的是<b>整表替换</b>，弹窗里会再问你一次。</p>
         <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
           <button class="btn" onclick="document.getElementById('hrsFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
-          <button class="btn ghost" onclick="Hours.clear()">清空</button>
+          <button class="btn ghost edit-only" onclick="Hours.clear()">清空</button>
         </div>
         <input type="file" id="hrsFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.txt,.csv,.doc,.docx,.xls,.xlsx,.pdf" style="display:none" onchange="Hours.onFile(this)">
         <p class="hint" id="hrsStat" style="margin:8px 0 0"></p>
@@ -4468,7 +4473,7 @@ var Icon = {
         </section>
 
         <!-- 右：布置作业（纯表单，不加插图） -->
-        <section class="hw-card hw-form" aria-label="布置作业">
+        <section class="hw-card hw-form edit-only" aria-label="布置作业">
           <div class="sec-h">布置作业</div>
           <p class="sec-meta">纯表单 · 不加装饰插图</p>
           <label>发给哪些班（可多选，点「全部」一次选上所有班）</label>
@@ -4525,10 +4530,10 @@ var Icon = {
         <div class="row" style="margin-top:12px">
           <input id="qCustomLabel" placeholder="名目，如：清理公共区域卫生" style="flex:1.4;min-width:0">
           <input id="qCustomDelta" type="number" placeholder="分值" step="1" style="max-width:90px">
-          <button class="btn" onclick="Quant.addCustom()">记一笔</button>
+          <button class="btn edit-only" onclick="Quant.addCustom()">记一笔</button>
         </div>
         <p class="hint" style="margin-top:6px">考勤里标了 <b>迟到 / 病假 / 事假</b>，会按「量化细则」里的考勤分值自动记进下面的记录，不用再来这里点一遍。</p>
-        <button class="btn ghost" style="margin-top:10px;white-space:normal" onclick="Quant.syncAllFromAtt()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-refresh"></use></svg>  按考勤重算本班（补历史 / 改了细则后）</button>
+        <button class="btn ghost edit-only" style="margin-top:10px;white-space:normal" onclick="Quant.syncAllFromAtt()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-refresh"></use></svg>  按考勤重算本班（补历史 / 改了细则后）</button>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-scroll"></use></svg> 加扣分记录 <span class="hint" id="qLogMeta" style="display:inline;margin:0 0 0 auto"></span></h2>
@@ -4572,7 +4577,7 @@ var Icon = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pen"></use></svg> 手动出题</h2>
         <textarea id="examManual" placeholder="自己粘贴或编写题目，每题一行"></textarea>
         <div class="row" style="margin-top:8px">
-          <button class="btn ghost" onclick="Exam.saveManual()">存入题库</button>
+          <button class="btn ghost edit-only" onclick="Exam.saveManual()">存入题库</button>
         </div>
       </div>
       <div class="card wide">
@@ -4583,7 +4588,7 @@ var Icon = {
         </div>
         <div class="row" style="margin-top:8px;flex-wrap:wrap">
           <input type="text" id="exSheetName" placeholder="新场次名，如：9月第3周模考" style="min-width:190px">
-          <button class="btn ghost" onclick="Exam.newSheet()">新建这一场</button>
+          <button class="btn ghost edit-only" onclick="Exam.newSheet()">新建这一场</button>
         </div>
         <div id="exSheet" style="margin-top:12px"></div>
       </div>
@@ -4602,7 +4607,7 @@ var Icon = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-dice"></use></svg> 抽签</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="text" id="drName" placeholder="这次抽签的名字，如：9月第3周模考" style="min-width:210px">
-          <button class="btn" onclick="Exam.newDraw()">开抽 / 重新抽</button>
+          <button class="btn edit-only" onclick="Exam.newDraw()">开抽 / 重新抽</button>
           <button class="btn ghost" onclick="Exam.copyDraw()">复制名单</button>
         </div>
         <p class="hint" id="drStat"></p>
@@ -4912,7 +4917,8 @@ var Icon = {
           「自动计分」按考勤 / 作业 / 晚自习的登记记录自动算，不用手动点。
         </p>
         <div id="rulesList"></div>
-        <div class="row" style="margin-top:10px">
+        <!-- ==5.27== 授课老师只读：加一条 / 保存 / 识别导入都不给（识别卡整张也只对教务） -->
+        <div class="row edit-only" style="margin-top:10px">
           <select id="ruleSrc" style="max-width:130px">
             <option value="cls">班级名目</option>
             <option value="att">考勤状态</option>
@@ -4925,15 +4931,15 @@ var Icon = {
           <input type="number" id="ruleDelta" placeholder="分值" step="1" style="max-width:95px">
           <button class="btn ghost" onclick="Settings.addRule()">加一条</button>
         </div>
-        <div class="row" style="margin-top:10px">
+        <div class="row edit-only" style="margin-top:10px">
           <button class="btn" onclick="Settings.saveRules()">保存细则</button>
         </div>
-        <p class="hint" style="margin-bottom:0">
+        <p class="hint edit-only" style="margin-bottom:0">
           改完名称或分值记得点「保存细则」，不然量化统计还是按老规则算。
         </p>
       </div>
 
-      <div class="card wide">
+      <div class="card wide edit-only">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 照细则图片识别</h2>
         <p class="hint" style="margin-top:0">开会定的细则拍了照？传上来识别，自动拆成规则。</p>
         <div class="row">
@@ -5081,7 +5087,7 @@ var Icon = {
             <p class="hint" style="margin:0 0 10px">学生在「给老师发消息」里发来的。回一句，学生那边就能看到。</p>
             <div id="coopStuMsg"></div>
           </div>
-          <div class="card">
+          <div class="card edit-only">
             <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 发通知</h2>
             <textarea id="noticeText" placeholder="写一条通知，选好发给谁，发出后自己可以改"></textarea>
             <!-- ==5.26== 走查 G2：加「发给谁」的范围选择 + 已发通知可编辑（作者本人） -->
@@ -5095,6 +5101,9 @@ var Icon = {
               <button class="btn" id="noticeSendBtn" onclick="Coop.addNotice()">发出</button>
               <button class="btn ghost" id="noticeCancelBtn" onclick="Coop.cancelEdit()" style="display:none">取消编辑</button>
             </div>
+          </div>
+          <div class="card">
+            <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 通知</h2>
             <div id="noticeList" style="margin-top:12px"></div>
           </div>
         </div>
@@ -5105,7 +5114,7 @@ var Icon = {
     <!-- ==== 功能：限时征集 START ====（教务端发起，学生端接收完成，过期即收） -->
     <section class="page" id="page-gather">
       <div class="page-title">限时征集</div>
-      <div class="card">
+      <div class="card edit-only">
         <h2>发起一次征集</h2>
         <input type="text" id="gTitle" placeholder="标题，如：艺考服装定制登记">
         <textarea id="gDesc" placeholder="说明（学生端会看到）" style="margin-top:8px"></textarea>
@@ -5534,14 +5543,15 @@ var Icon = {
       <div class="page-title">打卡</div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-gear"></use></svg> 打卡设置</h2>
-        <div class="row" style="flex-wrap:wrap">
+        <!-- ==5.27== 授课老师只读：设置行与位置按钮藏掉，规则现状（sgStat）与动态码照常看 -->
+        <div class="row edit-only" style="flex-wrap:wrap">
           <span class="hint" style="margin:0;min-width:76px">上课时间</span>
           <input type="time" id="sgStart" onchange="Sign.saveRules()" style="max-width:150px">
           <span class="hint" style="margin:0">宽限</span>
           <input type="number" id="sgLate" min="0" max="60" onchange="Sign.saveRules()" style="max-width:88px">
           <span class="hint" style="margin:0">分钟（<b>0 = 到点就迟到</b>，一分钟都不给）</span>
         </div>
-        <div class="row" style="flex-wrap:wrap;margin-top:8px">
+        <div class="row edit-only" style="flex-wrap:wrap;margin-top:8px">
           <span class="hint" style="margin:0;min-width:76px">打卡时段</span>
           <select id="sgPid" onchange="Sign.saveRules()" style="max-width:150px"></select>
           <span class="hint" style="margin:0">课前</span>
@@ -5550,11 +5560,11 @@ var Icon = {
           <input type="number" id="sgAfter" min="0" max="240" onchange="Sign.saveRules()" style="max-width:88px">
           <span class="hint" style="margin:0">分钟</span>
         </div>
-        <div class="row" style="flex-wrap:wrap;margin-top:10px">
+        <div class="row edit-only" style="flex-wrap:wrap;margin-top:10px">
           <button class="btn ghost" onclick="Sign.pickHere()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 采集当前位置为校区</button>
           <button class="btn ghost" onclick="Sign.clearPos()">清除位置</button>
         </div>
-        <div class="row" style="flex-wrap:wrap;margin-top:8px">
+        <div class="row edit-only" style="flex-wrap:wrap;margin-top:8px">
           <span class="hint" style="margin:0;min-width:76px">允许半径</span>
           <input type="number" id="sgRadius" min="20" max="2000" onchange="Sign.saveRules()" style="max-width:110px">
           <span class="hint" style="margin:0">米</span>
@@ -5576,7 +5586,7 @@ var Icon = {
           </div>
         </div>
       </div>
-      <div class="card wide">
+      <div class="card wide edit-only">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pin"></use></svg> 位置密钥</h2>
         <!-- v51 起定位不再是关卡：定位飘了照样打得上，只是记「待核」。
              密钥的意义因此变成「当场就把它改对」—— 学生手里有码，等于教务当面确认
@@ -6930,24 +6940,24 @@ const App = {
   routes: [
     /* ── 教务端 ── */
     { id:'home',      icon:'target', name:'今日',     roles:['super','office','admin','both'], tab:1, onShow: () => Home.render() },
-    { id:'att',       icon:'clipboard', name:'考勤',     roles:['super','office','admin','both'], tab:2, onShow: () => Att.render() },
-    { id:'homework',  icon:'memo', name:'作业',     roles:['super','office','admin','both'], tab:3, onShow: () => Homework.render() },
-    { id:'roster',    icon:'users', name:'名册',     roles:['super','office','admin','both'], tab:4, onShow: () => Roster.render() },
+    { id:'att',       icon:'clipboard', name:'考勤',     roles:['super','office','admin','teacher','both'], tab:2, onShow: () => Att.render() },
+    { id:'homework',  icon:'memo', name:'作业',     roles:['super','office','admin','teacher','both'], tab:3, onShow: () => Homework.render() },
+    { id:'roster',    icon:'users', name:'名册',     roles:['super','office','admin','teacher','both'], tab:4, onShow: () => Roster.render() },
     { id:'profile',   icon:'card', name:'学员档案', roles:['super','office','admin','teacher','both'], onShow: () => Student.render() },
-    { id:'timetable', icon:'calendar', name:'课表',     roles:['super','office','admin','both'], onShow: () => Schedule.render() },
+    { id:'timetable', icon:'calendar', name:'课表',     roles:['super','office','admin','teacher','both'], onShow: () => Schedule.render() },
     /* 课时统计：独立页，四种教务都能用（用户 2026-10-08 定）。阶段一只做「识别 + 人工确认」，
        不写课表 —— 落库是阶段二。桌面在侧栏「课表」下面，手机上不进底栏（TAB_ORDER 不动）。 */
-    { id:'hours',     icon:'clock',    name:'课时统计', roles:['super','office','admin','both'], onShow: () => Hours.render() },
-    { id:'night',     icon:'moon', name:'晚自习',   roles:['super','office','admin','both'], onShow: () => Night.render() },
-    { id:'quant',     icon:'chart', name:'量化',     roles:['super','office','admin','both'], onShow: () => Quant.render() },
-    { id:'exam',      icon:'mic', name:'模考',     roles:['super','office','admin','both'], onShow: () => Exam.render() },
-    { id:'coop',      icon:'inbox', name:'协作',     roles:['super','office','admin','both'], onShow: () => Coop.render() },
-    { id:'gather',    icon:'megaphone', name:'限时征集', roles:['super','office','admin','both'], onShow: () => Gather.render() },
+    { id:'hours',     icon:'clock',    name:'课时统计', roles:['super','office','admin','teacher','both'], onShow: () => Hours.render() },
+    { id:'night',     icon:'moon', name:'晚自习',   roles:['super','office','admin','teacher','both'], onShow: () => Night.render() },
+    { id:'quant',     icon:'chart', name:'量化',     roles:['super','office','admin','teacher','both'], onShow: () => Quant.render() },
+    { id:'exam',      icon:'mic', name:'模考',     roles:['super','office','admin','teacher','both'], onShow: () => Exam.render() },
+    { id:'coop',      icon:'inbox', name:'协作',     roles:['super','office','admin','teacher','both'], onShow: () => Coop.render() },
+    { id:'gather',    icon:'megaphone', name:'限时征集', roles:['super','office','admin','teacher','both'], onShow: () => Gather.render() },
     { id:'teachers',  icon:'teacher', name:'老师管理', roles:['super','office'],         onShow: () => Teachers.render() },
     /* 量化细则：有 route、**不进 NAV_ORDER** —— 侧栏 / 底栏 / 全部功能抽屉都不出现，
        入口只在设置页那张「打开量化细则」的卡上。表太长（近 30 条可编辑的加减分），
        摆进导航反而多一个菜单；放这里既好找又不会被误点。 */
-    { id:'rules',     icon:'calc', name:'量化细则', roles:['super','office','admin','both'], onShow: () => Settings.renderRules() },
+    { id:'rules',     icon:'calc', name:'量化细则', roles:['super','office','admin','teacher','both'], onShow: () => Settings.renderRules() },
     /* 看板端：同上，有 route 但**不进 NAV_ORDER / TAB_ORDER** —— 它是给办公室那台
        电脑挂的一块只读屏，不是给人当功能用的。入口只有设置页那张卡，
        或网址带 ?board=1（Windows 桌面快捷方式写死这个参数，开机就落在看板上）。 */
@@ -6955,7 +6965,7 @@ const App = {
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
        名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
        区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
-    { id:'students',  icon:'grad', name:'学生账号', roles:['super','office','admin','both'], onShow: () => StuAcct.render() },
+    { id:'students',  icon:'grad', name:'学生账号', roles:['super','office','admin','teacher','both'], onShow: () => StuAcct.render() },
     /* 巡检只给首位教务：系统通不通是站长的事，教务老师、授课老师、学生都不该看到这一页 */
     { id:'health',    icon:'pulse', name:'巡检',     roles:['super','office'],         onShow: () => Health.render() },
     { id:'settings',  icon:'gear', name:'设置',     roles:['super','office','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
@@ -6983,7 +6993,7 @@ const App = {
     { id:'stuGather', icon:'megaphone', name:'限时征集', roles:['student'], onShow: () => StuGather.render() },
 
     /* ── 教务端：学生打卡的收口 ── */
-    { id:'sign',      icon:'pin', name:'打卡管理', roles:['super','office','admin','both'], tab:3, onShow: () => Sign.render() }
+    { id:'sign',      icon:'pin', name:'打卡管理', roles:['super','office','admin','teacher','both'], tab:3, onShow: () => Sign.render() }
   ],
 
   /* 可建的身份 + 学生。both = 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在。
@@ -6992,7 +7002,7 @@ const App = {
         （见 sync.js 的 ASSIGNABLE 注释：建号与改身份是两条不同的路）。 */
   ROLE_KIND: {
     teacher: { icon:'mic', name:'授课老师',
-      desc:'只管自己带的班：今天上什么课、录入今日情况、我带的班、学员档案（只读）、上报与申请。' },
+      desc:'全功能只读视角（5.27 起）：教务那摊的板块都正常展示，但没有修改权限 —— 考勤/作业/课表等由教务操作。另加自己的授课那摊：今天、录入今日、我带的班、上报与申请。' },
     office:  { icon:'school', name:'总教务',
       desc:'教务那摊全管，另加账号管理（建号 / 改密码 / 停用 / 删号）—— 唯独首位教务那个号动不了。看不到演示与看板那一套，也改不了 AI 密钥。全系统只能有一个。' },
     admin:   { icon:'clipboard', name:'教务老师',
@@ -7025,7 +7035,10 @@ const App = {
     /* 教务兼授课：两套合一套，只留教务的「今日」（不再单列老师的「今天」，那是同一个东西）。
        教务那摊排完，再接自己班的授课那摊。 */
     both:    ['home','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','news','record','myclass','tickets','health','settings'],
-    teacher: ['today','news','record','myclass','profile','tickets','settings'],
+    /* ==5.27== 授课老师升级「全功能只读视角」：教务板块按 admin 的顺序全开（去掉
+       老师管理 / 巡检 / 看板 / 设置管理员卡，路由里本来就没给 teacher），
+       自己的授课那摊跟在后面；「today」仍是老师的首屏，与教务的「home」并存。 */
+    teacher: ['today','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','news','record','myclass','tickets','settings'],
     student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings']
   },
 
@@ -7096,6 +7109,9 @@ const App = {
       document.body.classList.toggle('role-admin', rk === 'admin');
       document.body.classList.toggle('role-super', rk === 'super' || rk === 'office');
       document.body.classList.toggle('role-both', rk === 'both');
+      /* ==5.27== 只读视角总开关：授课老师进教务板块只能看 —— 带 .no-edit 的
+         写操作控件统一藏掉（CSS 里 body.no-edit .edit-only） */
+      document.body.classList.toggle('no-edit', !Auth.canEdit());
       document.body.setAttribute('data-role', rk);
       Port.syncChrome();
     } catch(e){}
@@ -7153,11 +7169,10 @@ const App = {
 
   go(id){
     if (!this.can(id)){
-      /* ==5.26== 走查 R4：授课老师点教务专属入口时，不再只闪一句 toast 停在原地 ——
-         送回他自己的「今天」页，并说清楚为什么（只改提示与去向，不改权限本身）。
-         其他角色维持原样：留在当前页提醒一句。 */
+      /* ==5.26== 走查 R4：授课老师点进不去的入口（5.27 后只剩「老师管理 / 巡检 /
+         看板端」这几块）时，送回他自己的「今天」页并说明。其他角色维持原样。 */
       if (Auth.role() === 'teacher'){
-        UI.toast('授课老师为只读视角，考勤 / 作业等由教务老师操作');
+        UI.toast('这个板块仅教务可用，授课老师进不去');
         return this.go('today');
       }
       return UI.toast('这个功能你的账号看不到');
@@ -7839,7 +7854,7 @@ const Roster = {
       return `<div class="item">
         <span class="grow">${Util.esc(c.name)}</span>
         <span class="cls-count">${n} 人</span>
-        <button class="del" onclick="Roster.delCls('${c.id}')">✕</button>
+        ${Auth.canEdit() ? `<button class="del" onclick="Roster.delCls('${c.id}')">✕</button>` : ''}
       </div>`;
     }).join('')
       : '<div class="empty">还没有班级，先建一个</div>';
@@ -7874,7 +7889,7 @@ const Roster = {
           return `<div class="item">
             <span class="grow">${Util.esc(s.name)}${o
               ? ` <span class="chip" style="pointer-events:none">${Util.esc(o.title)}</span>` : ''}</span>
-            <button class="del" onclick="Roster.delStu('${s.id}')">✕</button>
+            ${Auth.canEdit() ? `<button class="del" onclick="Roster.delStu('${s.id}')">✕</button>` : ''}
           </div>`;
         }).join('')
       : '<div class="empty">这个班还没有学员</div>';
@@ -7890,7 +7905,7 @@ const Roster = {
   renderOfficers(){
     const box = document.getElementById('officerBox');
     if (!box) return;
-    if (!this._offOpen){ box.innerHTML = ''; return; }
+    if (!this._offOpen || !Auth.canEdit()){ box.innerHTML = ''; return; }   // ==5.27== 只读视角不开班干部编辑
     const clsId = Store.get('_rosterCls');
     if (!clsId){ box.innerHTML = '<p class="hint" style="margin:0">先建一个班级</p>'; return; }
     const stu = Store.list('students', Util.byName).filter(s => s.classId === clsId && !Util.isDemoObj(s));
@@ -7941,6 +7956,7 @@ const Roster = {
   pickCls(v){ Store.set('_rosterCls', v); this.render(); },
 
   addClass(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
     const el = document.getElementById('clsIn');
     const name = el.value.trim();
     if (!name) return UI.toast('填一下班级名');
@@ -7952,6 +7968,7 @@ const Roster = {
   },
 
   addStudent(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
     const el = document.getElementById('stuIn');
     const name = el.value.trim();
     const clsId = Store.get('_rosterCls');
@@ -8000,6 +8017,7 @@ const Roster = {
   },
 
   delCls(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
     const n = Store.list('students').filter(s => s.classId === id).length;
     if (n && !confirm(`班里还有 ${n} 名学员，删班级会连学员一起删，确定？`)) return;
     Store.list('students').filter(s => s.classId === id).forEach(s => Store.softDelete('students', s.id));
@@ -8009,6 +8027,7 @@ const Roster = {
   },
 
   delStu(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
     if (!confirm('删除这名学员？TA 的历史记录会保留，但不再出现在名单里。')) return;
     Store.softDelete('students', id);
     this.render();
@@ -8019,6 +8038,7 @@ const Roster = {
      用户名 = 姓名，撞名就加学号后 4 位（学员档案里没有手机号这个字段）。
      已经有了的自动跳过，不会建重。建完把「网址 + 用户名 + 密码」发给学生。 */
   async genAccounts(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，建号由教务老师操作');
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，建不了学生账号');
     /* 选班：批量建号卡片自己的下拉（缺省回退到顶部学员卡片选中的班） */
     const clsId = (document.getElementById('batchCls') || {}).value || Store.get('_rosterCls');
@@ -8369,6 +8389,8 @@ const Att = {
       再点一下同一个 = 取消登记，回到「未登记」。 */
   pickStamp(btn){
     if (!btn) return;
+    /* ==5.27== 授课老师只读：印章本来就不渲染成按钮，这里再兜一道 */
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
     const sid  = btn.getAttribute('data-sid');
     const want = btn.getAttribute('data-s');
     if (!sid || !want) return;
@@ -8380,6 +8402,7 @@ const Att = {
 
   /** 把一个人的状态写进当前时段（原 mark() 的按钮版改成印章版）；写完重画并重算量化 */
   write(sid, st){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
     const date = Store.get('_attDate') || Util.today();
     const pid = this.curPid();
     if (pid === '*') return UI.toast('先在上面选一个具体时段');
@@ -8405,6 +8428,7 @@ const Att = {
      右下角小徽标闪 1.2 秒，不用点任何东西，也不打断连着点章的节奏 */
   _sfT: null,
   _saveFlash(){
+    if (!Auth.canEdit()) return;   // ==5.27== 只读视角没有「保存」这回事，不闪徽标
     let b = document.getElementById('attSavedFlash');
     if (!b){
       b = document.createElement('div');
@@ -8474,7 +8498,10 @@ const Att = {
     const head = '<div class="rrow head" aria-hidden="true">'
       + '<span class="h-idx">#</span><span class="h-who">姓名</span>'
       + '<span class="h-slot">今日时段</span><span class="h-st">'
-      + '<span class="only-desk">状态（点一下就改，再点一下取消）</span>'
+      + /* ==5.27== 只读视角的表头别再教人「点一下就改」 */
+        (Auth.canEdit()
+          ? '<span class="only-desk">状态（点一下就改，再点一下取消）</span>'
+          : '<span class="only-desk">状态（只读 · 由教务登记）</span>')
       + '<span class="only-mob">状态</span></span></div>';
 
     box.innerHTML = head + students.map((s, i) => {
@@ -8494,6 +8521,18 @@ const Att = {
         const bad = mine[sl.id] && mine[sl.id] !== '正常';
         return '<span class="sl"><i class="' + (bad ? 'bad' : '') + '"></i>' + Util.esc(sl.name) + '</span>';
       }).join('');
+      /* ==5.27== 授课老师只读：不渲染点章按钮，改放「当前状态」的纯展示章 ——
+         看得见每个人的登记结果，但点不动 */
+      if (!Auth.canEdit()){
+        const roStat = '<button class="stamp ro-stamp" type="button" aria-pressed="' + (cur !== 'none' ? 'true' : 'false') + '"'
+          + ' aria-label="' + nm + ' 当前状态：' + (cur === 'none' ? '未登记' : cur) + '" tabindex="-1">' + (cur === 'none' ? '未登记' : cur) + '</button>';
+        return '<div class="rrow" role="listitem" data-cur="' + cur + '">'
+          + '<span class="idx">' + idx + '</span>'
+          + '<span class="who">' + nm + '</span>'
+          + '<span class="slot" aria-hidden="true">' + slotCell + '</span>'
+          + '<span class="mini" role="group" aria-label="' + nm + ' · ' + Util.esc(this.slotName(pid)) + ' 状态（只读）">'
+          + roStat + '</span></div>';
+      }
       /* 一行 5 个方块，每个方块 data-s 就是「它自己代表的状态」；
          行上带 data-cur（当前状态或 none），供判断与测试选择器用。
          未选中的一律中性，选中的那一块 aria-pressed=true 才上色。 */
@@ -8527,20 +8566,22 @@ const Att = {
     if (!list.length){ box.innerHTML = '<div class="empty">还没有学生请假</div>'; return; }
     box.innerHTML = list.slice(0, 12).map(t => {
       const done = t.status === 'done' || t.status === 'rejected';
+      /* ==5.27== 授课老师只读：请假看得见，批准 / 驳回 / 删除是教务的动作 */
+      const acts = Auth.canEdit() ? `
+          <div class="row" style="margin-top:8px;flex-wrap:wrap">
+            <button class="btn" onclick="Att.leave('${t.id}', true)">批准（写进考勤）</button>
+            <button class="btn ghost" onclick="Att.leave('${t.id}', false)">驳回</button>
+          </div>` : '';
       return `<div class="item" style="flex-direction:column;align-items:stretch">
         <div class="row" style="justify-content:space-between">
           <b style="font-weight:500">${Util.esc(Util.stuName(t.studentId) || '学生')} 请假
             <span class="hint" style="display:inline;margin:0;font-weight:400"> · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span></b>
           <span class="chip ${t.status === 'done' ? 'chip-on' : (t.status === 'rejected' ? 'chip-no' : '')}" style="pointer-events:none">${
             t.status === 'done' ? '已批准' : t.status === 'rejected' ? '已驳回' : '待批'}</span>
-          <button class="del" onclick="Att.delLeave('${t.id}')" title="删除这条请假">✕</button>
+          ${Auth.canEdit() ? `<button class="del" onclick="Att.delLeave('${t.id}')" title="删除这条请假">✕</button>` : ''}
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
-        ${done ? '' : `
-          <div class="row" style="margin-top:8px;flex-wrap:wrap">
-            <button class="btn" onclick="Att.leave('${t.id}', true)">批准（写进考勤）</button>
-            <button class="btn ghost" onclick="Att.leave('${t.id}', false)">驳回</button>
-          </div>`}
+        ${done ? '' : acts}
       </div>`;
     }).join('');
   },
@@ -8553,6 +8594,7 @@ const Att = {
 
   /* 删除一条学生请假：软删除工单；若已批准，一并撤销当天写进考勤的那条记录，量化跟着回算 */
   delLeave(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，请假由教务老师处理');
     const t = Store.list('tickets').find(x => x.id === id);
     if (!t) return;
     const approved = t.status === 'done';
@@ -8651,6 +8693,7 @@ const Att = {
   },
 
   allNormal(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
     const date = Store.get('_attDate') || Util.today();
     const pid = this.curPid();
     if (pid === '*') return UI.toast('先在上面选一个具体时段');
@@ -8971,6 +9014,7 @@ const Schedule = {
     this.render();
   },
   addRuleSeg(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作息由教务老师管理');
     const ps = this.periods();
     const last = ps[ps.length - 1];
     const start = last ? this._tmin(last.end) + (last.gap != null ? last.gap : 10) : 8 * 60;
@@ -8979,6 +9023,7 @@ const Schedule = {
     this.recalcPeriods(); this.render();
   },
   setMorning(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作息由教务老师管理');
     const tEl = document.getElementById('ruleMorning');
     const t = tEl ? tEl.value : '';
     const ps = this.periods();
@@ -9015,6 +9060,7 @@ const Schedule = {
     document.body.appendChild(div);
   },
   perSave(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作息由教务老师管理');
     const p = Store.list('periods').find(q => q.id === id);
     if (!p) return;
     const o = Object.assign({}, p);
@@ -9129,10 +9175,11 @@ const Schedule = {
     if (!box) return;
     const rs = this.rooms();
     box.innerHTML = rs.length
-      ? rs.map(r => `<span class="chip">${Util.esc(r.name)} <b onclick="Schedule.delRoom('${r.id}')" title="删除">✕</b></span>`).join('')
+      ? rs.map(r => `<span class="chip">${Util.esc(r.name)}${Auth.canEdit() ? ` <b onclick="Schedule.delRoom('${r.id}')" title="删除">✕</b>` : ''}</span>`).join('')
       : '<span class="hint" style="margin:0">还没有教室，先加几间</span>';
   },
   addRoom(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理');
     const n = document.getElementById('roomName').value.trim();
     if (!n) return UI.toast('填一下教室名');
     if (this.rooms().some(x => x.name === n)) return UI.toast('已经有这间了');
@@ -9233,7 +9280,11 @@ const Schedule = {
         }
         const nm = p.name || ('第' + (ps.indexOf(p) + 1) + '节');
         const noRep = nm === p.start + '-' + p.end || nm === p.start + '\u2013' + p.end;
-        html += `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(p.start) + '\u2013' + Util.esc(p.end) + '</span>'}</td>`;
+        /* ==5.27== 只读视角：格子和节次头都不可点编辑 */
+        const ro = !Auth.canEdit();
+        html += ro
+          ? `<td class="ctime"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(p.start) + '\u2013' + Util.esc(p.end) + '</span>'}</td>`
+          : `<td class="ctime" onclick="Schedule.perEdit('${p.id}')" title="点这里改这一节的时间"><b>${Util.esc(nm)}</b>${noRep ? '' : '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(p.start) + '\u2013' + Util.esc(p.end) + '</span>'}</td>`;
         cols.forEach(c => {
           /* v78：绝不吃课——失联的课一律显示（未排节次盒），同名也不再隐藏 */
           const ad = allday[c.date] || [];
@@ -9250,11 +9301,13 @@ const Schedule = {
             if (plains.length && rits.length && freeIdx.length >= 2){
               /* 拆两格：普通失联课占第一空闲行（在考试/休息上面），整格事占其余行 */
               if (fi === 0){
-                html += `<td rowspan="1" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${plains.map(plainBox).join('')}</td>`;
+                html += ro ? `<td rowspan="1">${plains.map(plainBox).join('')}</td>`
+                  : `<td rowspan="1" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${plains.map(plainBox).join('')}</td>`;
               } else if (ri === freeIdx[1]){
                 const isBreak = rits.some(x => /休息/.test(x.title || ''));
                 const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
-                html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length - 1}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('')}</td>`;
+                html += ro ? `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length - 1}">${rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('')}</td>`
+                  : `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length - 1}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('')}</td>`;
               }
               return;
             }
@@ -9262,14 +9315,17 @@ const Schedule = {
             const isBreak = rits.some(x => /休息/.test(x.title || ''));
             const isExam = rits.some(x => /考试|模拟/.test(x.title || ''));
             const lines = rits.map(x => `<div class="ln big">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
-            html += `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
+            html += ro ? `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length}">${lines}</td>`
+              : `<td class="allday${isBreak ? ' allbreak' : ''}${isExam ? ' allexam' : ''}" rowspan="${freeIdx.length}" title="点击编辑" onclick="Schedule.cellOpen('${c.date}','','','${Util.esc(cls || '')}')">${lines}</td>`;
             return;
           }
           const cell = dayL.filter(L => L.p === p).map(L => L.x);
           let inner = this.cellInner(cell);
           if (ad.length && !freeIdx.length && ri === 0)     /* 两个时段都有课还塞了全天件：兜底塞首行，不许消失 */
             inner += rits.map(x => `<div class="ln all">${Util.esc(x.title || '')}</div>`).join('') + plains.map(plainBox).join('');
-          html += `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${inner}<div class="add">＋</div></td>`;
+          html += ro
+            ? `<td>${inner}</td>`
+            : `<td onclick="Schedule.cellOpen('${c.date}','${p.id}','','${Util.esc(cls || '')}')">${inner}<div class="add">＋</div></td>`;
         });
         html += '</tr>';
       });
@@ -9282,7 +9338,13 @@ const Schedule = {
   },
   cellInner(cell){
     if (!cell.length) return '';
-    return cell.map(x => `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
+    const ro = !Auth.canEdit();   // ==5.27== 只读视角：课条不可点开编辑
+    return cell.map(x => ro
+      ? `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}">
+        <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
+        <div class="sch">${[x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : ''), x.room ? Util.esc(x.room) : ''].filter(Boolean).join(' @')}</div>
+      </div>`
+      : `<div class="sc ${x.room ? '' : 'noroom'}${x.merge ? ' merge' : ''}" onclick="event.stopPropagation();Schedule.cellOpen('${x.date}','${x.periodId||''}','${x.id}')">
         <div class="sct">${Util.esc(x.title||'')}${x.merge ? '<span class="ml">合练</span>' : ''}</div>
         <div class="sch">${[x.teacherId ? Util.esc(Staff.name(x.teacherId)) : (x._tname ? Util.esc(x._tname) : ''), x.room ? Util.esc(x.room) : ''].filter(Boolean).join(' @')}</div>
       </div>`).join('');
@@ -9333,6 +9395,7 @@ const Schedule = {
     if (m) m.remove();
   },
   cellSave(date, periodId, editId){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理');
     const title = document.getElementById('cmTitle').value.trim();
     if (!title) return UI.toast('填一下上课内容');
     const cls   = document.getElementById('cmCls').value.trim();
@@ -9346,7 +9409,7 @@ const Schedule = {
     Store.upsert('schedule', obj);
     this.cellClose(); this.renderGrid(); UI.toast('已保存');
   },
-  gridDel(id){ Store.softDelete('schedule', id); this.cellClose(); this.renderGrid(); },
+  gridDel(id){ if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理'); Store.softDelete('schedule', id); this.cellClose(); this.renderGrid(); },
 
   /* ══════════ 排课台：定一次模板，一次铺满整期 ══════════
      三件事：① 时间段（开始/结束）② 上课日（周几多选）
@@ -9576,6 +9639,7 @@ const Schedule = {
 
   /* ── 生成 ── */
   ppGenerate(clearFirst){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，排课由教务老师操作');
     const { from, to } = this.ppCollect();
     const plan = this.ppPlan();
     if (!plan.length){ this.ppPreview(); return UI.toast('还没有可生成的课，先看下面的提示'); }
@@ -9652,7 +9716,7 @@ const Schedule = {
             one.map(x => `<div class="item">
               <span class="mono" style="flex-shrink:0;width:96px">${Util.esc(this.timeOf(x) || '--:--')}<br><span class="hint" style="display:inline;margin:0">${Util.esc(this.periodLabel(x))}</span></span>
               <span class="grow">${Util.esc(x.title)}${x.cls ? `<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.cls)}</span>` : ''}${x.stu ? `<br><span class="hint" style="display:inline;margin:0">学员：${Util.esc(x.stu)}</span>` : ''}${x.teacherId && Staff.name(x.teacherId) ? `<br><span class="hint" style="display:inline;margin:0">老师：${Util.esc(Staff.name(x.teacherId))}</span>` : ''}</span>
-              <button class="del" onclick="Schedule.del('${x.id}')">✕</button>
+              ${Auth.canEdit() ? `<button class="del" onclick="Schedule.del('${x.id}')">✕</button>` : ''}
             </div>`).join('');
         }).join('')
       : `<div class="empty">${emptyText}</div>`;
@@ -9912,6 +9976,7 @@ const Schedule = {
   },
 
   impImport(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理');
     const rows = (this._impRows || []).filter(r => r.date && r.title);
     if (!rows.length){ UI.toast('表里没有可导入的课（日期和内容都要有）'); return false; }
     const exist = Store.list('schedule').length;
@@ -9986,6 +10051,7 @@ const Schedule = {
   },
 
   addMini(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理');
     const day    = document.getElementById('miniDay').value;
     const time   = document.getElementById('miniTime').value.trim();
     const stu    = document.getElementById('miniStu').value.trim();
@@ -12127,6 +12193,7 @@ const Hours = {
     return '';
   },
   toSchedule(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，写课表由教务老师操作');
     const rows = this._draft || [];
     if (!rows.length) return UI.toast('先点「确认无误」，再写入系统课表');
     const yEl = document.getElementById('hrsYear');
@@ -12218,6 +12285,12 @@ const Homework = {
   _pick: [],     // 这次要布置给哪些班（多选）
 
   render(){
+    /* ==5.27== 只读视角：页副标题别再指「布置作业」（那块对 teacher 是藏掉的） */
+    const sub = document.querySelector('#page-homework .page-sub');
+    if (sub && !Auth.canEdit()){
+      const want = '<span class="only-desk">「今日检查」与作业布置由教务操作，这里看结果</span><span class="only-mob">作业检查与布置由教务操作，这里看结果</span>';
+      if (sub.dataset.ro !== '1'){ sub.dataset.ro = '1'; sub.innerHTML = want; }
+    }
     const dEl = document.getElementById('hwDate');
     if (!dEl.value) dEl.value = Util.today();
     this.renderPick();
@@ -12266,6 +12339,16 @@ const Homework = {
       `<p class="hint" style="margin:0 0 8px">${Util.esc(Util.clsName(clsId))} · ${date} · 未交 <b class="num">${miss}</b> · 未登记 <b class="num">${students.length - done - miss}</b></p>` +
       students.map(s => {
         const v = chk[s.id];
+        /* ==5.27== 授课老师只读：检查结果看得见，「已交 / 未交」点不动 */
+        if (!Auth.canEdit()){
+          const done = v === 1 || v === true;            /* done 存储有数字也有布尔（与 flow 同口径） */
+          const st = done ? '已交' : (v === 0 || v === false) ? '未交' : '未登记';
+          const cls = done ? 'chip-on' : (v === 0 || v === false) ? 'chip-no' : '';
+          return `<div class="item" role="listitem">
+            <span class="grow">${Util.esc(s.name)}</span>
+            <span class="chip ${cls}" style="pointer-events:none">${st}</span>
+          </div>`;
+        }
         return `<div class="item" role="listitem">
           <span class="grow">${Util.esc(s.name)}</span>
           <button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Homework.markChk('${s.id}',1)">已交</button>
@@ -12275,6 +12358,7 @@ const Homework = {
   },
 
   markChk(sid, done){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作业检查由教务老师操作');
     const s = Store.list('students').find(x => x.id === sid);
     if (!s) return;
     const date = this.chkDate(), key = 'hwchk:' + date;
@@ -12357,23 +12441,24 @@ const Homework = {
 
   renderList(){
     const list = Store.list('homework', (a,b) => a.date < b.date ? 1 : -1).slice(0, 40);
+    const canEdit = Auth.canEdit();   // ==5.27== 只读视角：登记 / 删除按钮不渲染
     document.getElementById('hwBody').innerHTML = list.length ? list.map(h => {
       const cls = Store.list('classes').find(c => c.id === h.clsId);
       const total = Store.list('students').filter(s => s.classId === h.clsId).length;
       const subs = Store.list('hw:' + h.id);
       const done = subs.filter(x => x.done).length;
       const no = subs.filter(x => x.done === 0).length;
-      const open = this._open === h.id;
+      const open = canEdit && this._open === h.id;
       return `<div class="item" style="flex-direction:column;align-items:stretch">
         <div style="display:flex;gap:10px;align-items:flex-start">
           <span class="grow"><b>${Util.esc(h.text)}</b><br>
             <span class="hint" style="display:inline;margin:0">${h.date} · ${cls ? Util.esc(cls.name) : ''} · 已交 ${done} · 未交 ${no}</span></span>
-          <button class="btn ghost" style="padding:7px 12px;font-size:13px" onclick="Homework.toggle('${h.id}')">${open ? '收起' : '登记'}</button>
-          <button class="del" onclick="Homework.del('${h.id}')">✕</button>
+          ${canEdit ? `<button class="btn ghost" style="padding:7px 12px;font-size:13px" onclick="Homework.toggle('${h.id}')">${open ? '收起' : '登记'}</button>
+          <button class="del" onclick="Homework.del('${h.id}')">✕</button>` : ''}
         </div>
         ${open ? this.renderSubs(h) : ''}
       </div>`;
-    }).join('') : '<div class="empty">还没有作业，在上面布置一条</div>';
+    }).join('') : '<div class="empty">' + (Auth.canEdit() ? '还没有作业，在上面布置一条' : '还没有作业') + '</div>';
   },
 
   renderSubs(h){
@@ -12389,6 +12474,8 @@ const Homework = {
         const st = subs[s.id];
         const rec = recs.find(x => x && x.studentId === s.id);
         const cls = st === 1 ? 'chip-on' : st === 0 ? 'chip-no' : '';
+        /* ==5.27== 只读视角：交没交看得见，点不动 */
+        if (!Auth.canEdit()) return `<span class="chip ${cls}" style="pointer-events:none">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</span>`;
         return `<button class="chip ${cls}" title="${rec && rec.by ? '由 ' + Util.esc(rec.by) + ' 登记' : ''}" onclick="Homework.mark('${h.id}','${s.id}')">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</button>`;
       }).join('') +
       `</div><p class="hint">点一下 = 已交，再点 = 未交，第三下 = 清除。未登记的不计分。${
@@ -12401,6 +12488,7 @@ const Homework = {
   },
 
   mark(hid, sid){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作业检查由教务老师操作');
     const key = 'hw:' + hid;
     const rec = Store.list(key).find(x => x.studentId === sid);
     let next;
@@ -12413,6 +12501,7 @@ const Homework = {
   },
 
   add(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，布置作业由教务老师操作');
     const text = document.getElementById('hwText').value.trim();
     const date = document.getElementById('hwDate').value || Util.today();
     const targets = this._pick.filter(id => Store.list('classes').some(c => c.id === id));
@@ -12425,6 +12514,7 @@ const Homework = {
   },
 
   del(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作业由教务老师管理');
     if (!confirm('删除这条作业？它的提交登记也会一起删。')) return;
     Store.softDelete('homework', id);
     Store.get('hw:' + id, []).forEach(x => Store.softDelete('hw:' + id, x.id));
@@ -12460,6 +12550,13 @@ const Night = {
 
     body.innerHTML = students.length ? students.map(s => {
       const cur = byStu[s.id];
+      /* ==5.27== 授课老师只读：过 / 未过看得见，点不动 */
+      if (!Auth.canEdit()){
+        return `<div class="item">
+          <span class="grow" style="min-width:64px;flex-shrink:0">${Util.esc(s.name)}</span>
+          <span class="chip ${cur === '过' ? 'chip-on' : cur === '未过' ? 'chip-no' : ''}" style="pointer-events:none">${cur || '未登记'}</span>
+        </div>`;
+      }
       return `<div class="item">
         <span class="grow" style="min-width:64px;flex-shrink:0">${Util.esc(s.name)}</span>
         <span style="display:flex;gap:5px">` +
@@ -12475,6 +12572,7 @@ const Night = {
   },
 
   mark(sid, st){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，晚自习由教务老师操作');
     const date = Store.get('_nightDate') || Util.today();
     const key = 'night:' + date;
     const rec = Store.list(key).find(r => r.studentId === sid);
@@ -12505,8 +12603,8 @@ const Quant = {
   },
 
   render(){
-    this.fillRange();                 // 日历区间：没值时默认今天
-    this.migrateAtt();                // 首次打开：把已有考勤补进量化
+    this.fillRange();
+    if (Auth.canEdit()) this.migrateAtt();   // ==5.27== 只读视角不补写量化（写不进去也没必要写）
     this.renderScore();
     this.renderBtns();
     this.renderLog();
@@ -12557,12 +12655,20 @@ const Quant = {
       return;
     }
     const sorted = rules.slice().sort((a, b) => (a.delta - b.delta) || (a.label > b.label ? 1 : -1));
+    /* ==5.27== 授课老师只读：快捷加减分按钮不渲染，看得到名目与分值 */
+    if (!Auth.canEdit()){
+      el.innerHTML = sorted.map(r =>
+        `<span class="chip" style="pointer-events:none;margin:0 8px 8px 0">${Util.esc(r.label)} ${r.delta > 0 ? '+' : ''}${r.delta}</span>`
+      ).join('');
+      return;
+    }
     el.innerHTML = sorted.map(r =>
       `<button class="btn ${r.delta > 0 ? '' : 'ghost'}" style="margin:0 8px 8px 0" onclick="Quant.quick('${r.id}')">${Util.esc(r.label)} ${r.delta > 0 ? '+' : ''}${r.delta}</button>`
     ).join('');
   },
 
   quick(rid){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，量化由教务老师操作');
     const clsId = this._cls();
     if (!clsId) return UI.toast('先去「名册」建班级');
     const r = Store.list('quant_rules').find(x => x.id === rid);
@@ -12583,6 +12689,7 @@ const Quant = {
   },
 
   addCustom(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，量化由教务老师操作');
     const clsId = this._cls();
     if (!clsId) return UI.toast('先去「名册」建班级');
     const label = document.getElementById('qCustomLabel').value.trim();
@@ -12595,6 +12702,7 @@ const Quant = {
   },
 
   add(label, delta){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，量化由教务老师操作');
     const clsId = this._cls();
     Store.upsert('quant_log', { id: Util.uid(), clsId, date: Util.today(), label, delta, _u: Date.now() });
     UI.toast(`已记：${label} ${delta > 0 ? '+' : ''}${delta} 分`);
@@ -12602,6 +12710,7 @@ const Quant = {
   },
 
   del(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，量化由教务老师操作');
     Store.softDelete('quant_log', id);
     UI.toast('已撤销这一笔');
     this.render();
@@ -12672,7 +12781,7 @@ const Quant = {
         <span class="hint num" style="margin:0;width:48px;flex-shrink:0">${x.date.slice(5)}</span>
         <span class="grow">${Util.esc(x.label)}${x._src === 'att' ? ' <span class="hint" style="display:inline;margin:0">考勤</span>' : ''}</span>
         <b class="num" style="font-size:18px;flex-shrink:0;color:${x.delta > 0 ? '#c25650' : '#2e7d4f'}">${x.delta > 0 ? '+' : ''}${x.delta}</b>
-        ${x._src === 'att'
+        ${x._src === 'att' || !Auth.canEdit()
           ? ''
           : `<button class="del" onclick="Quant.del('${x.id}')" title="撤销这一笔">✕</button>`}
       </div>`).join('')
@@ -12962,6 +13071,7 @@ const Exam = {
   },
 
   async newDraw(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，抽签由教务开');
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，抽不了签（需要服务端存种子）');
     const name = (document.getElementById('drName').value || '').trim();
     if (!name) return UI.toast('给这次抽签起个名字');
@@ -13055,6 +13165,7 @@ const Exam = {
   },
 
   save(text){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，题库由教务老师管理');
     Store.upsert('exams', { date: Util.today(), content: text });
     UI.toast('已存入题库');
   },
@@ -13069,7 +13180,7 @@ const Exam = {
           <span class="grow pre" style="margin-top:-2px">${Util.esc(x.content)}</span>
           <span style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
             <button class="chip" onclick="Exam.copy('${x.id}')">复制</button>
-            <button class="del" onclick="Exam.del('${x.id}')">✕</button>
+            ${Auth.canEdit() ? `<button class="del" onclick="Exam.del('${x.id}')">✕</button>` : ''}
           </span>
         </div>
       </div>`).join('') : '<div class="empty">还没有存过题。每周模考前出一组，存进来方便回看。</div>';
@@ -13789,15 +13900,16 @@ const Coop = {
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         <p class="hint" style="margin:4px 0 0">${t.createdAt ? new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
-        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
+        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : Auth.canEdit() ? `
           <input type="text" class="smReply" data-tid="${t.id}" placeholder="回一句，学生那边能看到" style="margin-top:8px">
           <div class="row" style="margin-top:6px">
             <button class="btn" onclick="Coop.replyStu('${t.id}')">回复</button>
             <button class="btn ghost" onclick="Coop.replyStu('${t.id}', true)">直接标已回</button>
-          </div>`}
+          </div>` : '<p class="hint" style="margin:6px 0 0">回复由教务老师操作</p>'}
       </div>`).join('') : '<div class="empty">学生还没有发来消息</div>';
   },
   replyStu(id, noText){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，回复由教务老师操作');
     const t = Store.list('tickets').find(x => x && x.id === id);
     if (!t) return;
     const el = document.querySelector('.smReply[data-tid="' + id + '"]');
@@ -13829,27 +13941,28 @@ const Coop = {
                   t.studentId ? ` <span class="hint" style="display:inline;margin:0">${Util.esc(Util.stuName(t.studentId))}</span>` : ''}</b>
           <span class="chip ${t.status === 'done' ? '' : (t.status === 'rejected' ? 'chip-no' : 'chip-no')}" style="pointer-events:none">${
             t.status === 'done' ? '已处理' : t.status === 'rejected' ? '已驳回' : '待处理'}</span>
-          <button class="del" onclick="Coop.delTicket('${t.id}')" title="删除这条">✕</button>
+          ${Auth.canEdit() ? `<button class="del" onclick="Coop.delTicket('${t.id}')" title="删除这条">✕</button>` : ''}
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         <p class="hint" style="margin:4px 0 0" title="${Util.esc(t.userName || '')}">${Util.esc(Util.dispName(t.userId, t.userName))}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
-        ${t.type === '学生请假' && t.status !== 'done' && t.status !== 'rejected' ? `
+        ${t.type === '学生请假' && t.status !== 'done' && t.status !== 'rejected' ? (Auth.canEdit() ? `
           <div class="row" style="margin-top:6px">
             <button class="btn" onclick="Coop.leave('${t.id}', true)">批准（写进考勤）</button>
             <button class="btn ghost" onclick="Coop.leave('${t.id}', false)">驳回</button>
-          </div>` : t.type === '学生请假' && t.reply ? `<p class="hint" style="margin:6px 0 0">${Util.esc(t.reply)}</p>` : `
-        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
+          </div>` : '<p class="hint" style="margin:6px 0 0">审批由教务老师操作</p>') : t.type === '学生请假' && t.reply ? `<p class="hint" style="margin:6px 0 0">${Util.esc(t.reply)}</p>` : `
+        ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : Auth.canEdit() ? `
           <input type="text" class="tkReply" data-tid="${t.id}" placeholder="回一句，老师那边能看到" style="margin-top:8px">
           <div class="row" style="margin-top:6px">
             <button class="btn" onclick="Coop.reply('${t.id}')">处理并回复</button>
             <button class="btn ghost" onclick="Coop.reply('${t.id}', true)">直接标已处理</button>
-          </div>`}`}
+          </div>` : '<p class="hint" style="margin:6px 0 0">处理由教务老师操作</p>'}`}
       </div>`).join('') : '<div class="empty">老师们还没有上报</div>';
   },
 
   /* ── 学生请假：批准 = 写考勤 = 自动进量化，教务不用记第二遍 ──
      驳回也留一条痕迹，学生端能看到「已驳回」，不会一直等。 */
   leave(id, ok){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，请假由教务老师审批');
     const t = Store.list('tickets').find(x => x.id === id);
     if (!t) return;
     if (!ok){
@@ -13877,6 +13990,7 @@ const Coop = {
   },
 
   reply(id, noText){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，工单由教务老师处理');
     const t = Store.list('tickets').find(x => x.id === id);
     if (!t) return;
     const el = document.querySelector('.tkReply[data-tid="' + id + '"]');
@@ -13893,6 +14007,7 @@ const Coop = {
   _editNotice: null,
 
   addNotice(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，通知由教务老师发');
     const el = document.getElementById('noticeText');
     const text = (el.value || '').trim();
     if (!text) return UI.toast('先写点内容');
@@ -13950,16 +14065,20 @@ const Coop = {
       <div class="item">
         <span class="grow pre">${Util.esc(n.text)}
           <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}${n.scope && n.scope !== 'all' ? ' · 发给' + (this.SCOPE_LABEL[n.scope] || n.scope) : ''}</span></span>
-        ${mine ? `<button class="chip" onclick="Coop.editNotice('${n.id}')">编辑</button>` : ''}
-        <button class="del" onclick="Coop.delNotice('${n.id}')">✕</button>
+        ${mine && Auth.canEdit() ? `<button class="chip" onclick="Coop.editNotice('${n.id}')">编辑</button>` : ''}
+        ${Auth.canEdit() ? `<button class="del" onclick="Coop.delNotice('${n.id}')">✕</button>` : ''}
       </div>`;
     }).join('') : '<div class="empty">还没发过通知</div>';
   },
 
-  delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); },
+  delNotice(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，通知由教务老师管理');
+    Store.softDelete('notices', id); this.renderNotices();
+  },
 
   /* 删除一条协作工单（调课/异常等）：软删除留墓碑，老师端同步消失 */
   delTicket(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，工单由教务老师管理');
     if (!confirm('删除这条上报 / 申请？删除后老师端也会同步消失。')) return;
     Store.softDelete('tickets', id);
     this.renderList();
@@ -13986,14 +14105,15 @@ const Gather = {
         </div>
         ${g.desc ? `<div class="pre" style="margin-top:4px">${Util.esc(g.desc)}</div>` : ''}
         <div class="row" style="margin-top:8px;flex-wrap:wrap">
-          ${closed ? '' : `<button class="btn ghost" onclick="Gather.close('${g.id}')">提前结束</button>`}
-          <button class="del" onclick="Gather.del('${g.id}')" title="删除">✕</button>
+          ${!closed && Auth.canEdit() ? `<button class="btn ghost" onclick="Gather.close('${g.id}')">提前结束</button>` : ''}
+          ${Auth.canEdit() ? `<button class="del" onclick="Gather.del('${g.id}')" title="删除">✕</button>` : ''}
         </div>
       </div>`;
     }).join('') : '<div class="empty">还没有发起过征集</div>';
   },
 
   create(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，征集由教务老师发起');
     const title = (document.getElementById('gTitle').value || '').trim();
     if (!title) return UI.toast('填一下标题');
     const desc = (document.getElementById('gDesc').value || '').trim();
@@ -14009,11 +14129,13 @@ const Gather = {
   },
 
   close(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，征集由教务老师管理');
     const g = Store.list('gathers').find(x => x.id === id);
     if (g){ Store.upsert('gathers', Object.assign({}, g, { closed: true })); Sync.push(); this.render(); }
   },
 
   del(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，征集由教务老师管理');
     if (!confirm('删除这次征集？')) return;
     Store.softDelete('gathers', id);
     Sync.push();
@@ -14916,9 +15038,11 @@ const Ticket = {
     this.slotsOff();
     const el = document.getElementById('tkList');
     if (!el) return;
-    /* 只显示自己发的；学生请假是教务在考勤页处理的事，不进老师这一摊 */
+    /* ==5.27== 服务端 tickets 改为整份下发（老师只读看工单全景），
+       「上报与申请」页自己过滤：只显示自己发的；学生请假是教务在考勤页处理的事，不进老师这一摊 */
+    const myId = Auth.me() ? Auth.me().id : '';
     const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
-                      .filter(t => t && t.type !== '学生请假');
+                      .filter(t => t && t.type !== '学生请假' && (!Auth.canEdit() ? t.userId === myId : true));
     el.innerHTML = list.length ? list.map(t => `
       <div class="item" style="flex-direction:column;align-items:stretch">
         <div class="row" style="justify-content:space-between">
@@ -15058,7 +15182,8 @@ const Settings = {
        （「AI 密钥不给」）。服务端 SUPER_ONLY_WRITE 也把它从别人的数据里删掉，
        这里藏卡片只是别让人白填一遍。 */
     show('apiCard', Auth.isSuper());
-    show('rulesCard', staff);
+    /* ==5.27== 量化细则：授课老师也看（只读）—— 页里能看名目与分值，改不了 */
+    show('rulesCard', staff || Auth.role() === 'teacher');
     show('boardCard', staff && cloud);   // 看板端：给办公室那台电脑挂的只读屏
     show('bdNewAcct', Auth.isSuper() && cloud);   // 建看板专用账号只有首位教务能做（服务端也拦着）
     show('bdRelease', (Auth.isSuper() || Auth.isOffice()) && cloud);  // 释放看板设备登记：首位教务 + 总教务
@@ -15084,7 +15209,7 @@ const Settings = {
     this.renderAcct();
     this.renderDevKeys();
     this.renderDemo();
-    if (staff) this.renderRules();
+    if (staff || Auth.role() === 'teacher') this.renderRules();
     if (staff){
       const tip = document.getElementById('boardTip');
       if (tip) tip.innerHTML =
@@ -15328,11 +15453,12 @@ const Settings = {
       el.innerHTML = '<div class="empty">还没有细则，用下面那行加一条</div>';
       return;
     }
+    const ro = !Auth.canEdit();   // ==5.27== 只读视角：名目与分值看得见，改不了也删不了
     const row = r => `
       <div class="row" style="margin-bottom:8px" data-rid="${r.id}">
-        <input type="text" class="rule-label" value="${Util.esc(r.label)}" style="flex:1;min-width:0">
-        <input type="number" class="rule-delta" value="${r.delta}" step="1" style="max-width:95px">
-        <button class="del" onclick="Settings.delRule('${r.id}')">✕</button>
+        <input type="text" class="rule-label" value="${Util.esc(r.label)}" style="flex:1;min-width:0" ${ro ? 'disabled' : ''}>
+        <input type="number" class="rule-delta" value="${r.delta}" step="1" style="max-width:95px" ${ro ? 'disabled' : ''}>
+        ${ro ? '' : `<button class="del" onclick="Settings.delRule('${r.id}')">✕</button>`}
       </div>`;
     const legacy = rules.filter(r => (r.key || '').indexOf('cls:') !== 0);
     const cls = rules.filter(r => (r.key || '').indexOf('cls:') === 0);
@@ -15342,6 +15468,7 @@ const Settings = {
   },
 
   addRule(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，细则由教务老师改');
     const src   = document.getElementById('ruleSrc').value;
     const name  = document.getElementById('ruleName').value.trim();
     const delta = parseFloat(document.getElementById('ruleDelta').value);
@@ -15359,6 +15486,7 @@ const Settings = {
   },
 
   saveRules(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，细则由教务老师改');
     const rules = Store.list('quant_rules');
     document.querySelectorAll('#rulesList .row').forEach(row => {
       const rid = row.dataset.rid;
@@ -15420,6 +15548,7 @@ const Settings = {
   },
 
   parseRulesImport(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，细则由教务老师改');
     const raw = document.getElementById('rulesImpText').value.trim();
     if (!raw) return UI.toast('先传文件识别，或每行填一条「名目 分值」');
     let ok = 0, custom = [];
@@ -15541,6 +15670,11 @@ const Auth = {
   user(){ return this._me ? this._me.user : ''; },
   role(){ return this._me ? this._me.role : ''; },
   isStaff(){ return !!(this._me && this._me.isStaff); },
+  /* ==5.27== 「能不能改」的单一开关：教务四种（super/office/admin/both）能改，
+     授课老师与学生只读。5.27 起授课老师升级为「全功能只读视角」——板块正常展示、
+     写操作全部隐藏（body.no-edit + 各页 canEdit 分支），服务端写白名单本来就拦着，
+     这里是让界面与口径一致，别让人点了才知道会被拒。 */
+  canEdit(){ return this.isStaff(); },
   isSuper(){ return !!(this._me && this._me.isSuper); },
   /* 总教务：教务全管 + 账号管理，唯独动不了首位教务。老部署的 profile 里没有
      isOffice 这个字段，所以跟 isStudent 一样两头认（role 兜底）。 */
@@ -17266,6 +17400,7 @@ const Sign = {
     return out;
   },
   saveRules(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，打卡规则由教务老师设置');
     const num = (id, def) => { const v = Number(document.getElementById(id).value); return isNaN(v) ? def : v; };
     const old = this.rules();
     Store.set('sign_rules', Object.assign({}, old, {
@@ -17292,6 +17427,7 @@ const Sign = {
   },
 
   pickHere(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，校区位置由教务老师采集');
     if (!navigator.geolocation) return UI.toast('这台设备取不到位置 —— 请在教室里用手机点这个按钮');
     UI.toast('正在取位置…');
     navigator.geolocation.getCurrentPosition(
@@ -17306,6 +17442,7 @@ const Sign = {
     );
   },
   clearPos(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，校区位置由教务老师管理');
     const r = this.rules();
     delete r.lat; delete r.lng;
     Store.set('sign_rules', r);
@@ -17399,6 +17536,7 @@ const Sign = {
       .map(x => ({ id: x.studentId, name: Util.stuName(x.studentId), at: x.at }));
   },
   makeKey(){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，位置密钥由教务老师生成');
     const clsId = this.keyCls();
     if (!clsId) return UI.toast('先建一个班级');
     const el = document.getElementById('skCode');
@@ -19736,12 +19874,14 @@ const XF = {
      · 授课老师（teacher）7 项一排放得下：今日/每日新闻/录入今日/我带的班/学员档案/上报与申请/设置，不设下拉。
      · 学生（student）主排 8：学生首页/打卡/我的课表/我的作业/我的量化/模考/我的档案/设置；
        收纳：限时征集/通知/消息。 */
+    /* 授课老师（teacher）==5.27== 全功能只读视角：主排与教务一致（首屏换成自己的「today」），
+       收纳：学生账号/课时统计/晚自习/量化/模考/协作/限时征集/每日新闻/录入今日/我带的班/上报与申请。 */
   NAV_MAIN: {
     super:   ['home','att','sign','homework','roster','profile','timetable','settings'],
     office:  ['home','att','sign','homework','roster','profile','timetable','settings'],
     admin:   ['home','att','sign','homework','roster','profile','timetable','settings'],
     both:    ['home','att','sign','homework','roster','profile','timetable','settings'],
-    teacher: ['today','news','record','myclass','profile','tickets','settings'],
+    teacher: ['today','att','sign','homework','roster','profile','timetable','settings'],
     student: ['stuHome','stuSign','stuTable','stuHw','stuQuant','stuExam','stuProfile','settings'],
   },
   moreToggle(){

@@ -421,7 +421,7 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v106'; /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+VERSION = 'v107'; /* VoxOS 5.27：授课老师升级「全功能只读视角」——教务板块正常展示、写操作隐藏；服务端 TEACHER_READ 补 sign:/hwchk:/gresp:/tickets 全量/gathers/quant_log/officers，sign_rules 公开字段 */ /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

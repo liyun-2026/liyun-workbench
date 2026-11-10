@@ -130,18 +130,28 @@ const TEACHER_READ = {
   exam_sheets:      'clsId',
   weights:          'studentId',
   records:          'studentId',
-  tickets:          'own',
+  /* ==5.27== 工单整份下发（含学生请假与别人上报的）：授课老师升级「全功能只读视角」，
+     协作页工单全景只读看，审批 / 回复仍是教务的活（写回白名单 TEACHER_WRITE 没动 ——
+     老师推上来的工单仍然只认自己那条，且状态 / 回复由服务端保留教务的处理结果） */
+  tickets:          null,
   periods:          null,
   schedule:         null,
   schedule_archive: null,
   rooms:            null,
   exams:            null,
+  exam_draws:       null,   // ==5.27== 只读看抽签结果（种子无个人隐私）
   quant_rules:      null,
   notices:          null,
+  /* ==5.27== 只读视角新增的三样：班级量化流水（按班，本就无姓名）、限时征集、班干部名单 */
+  quant_log:        'clsId',
+  gathers:          null,
+  officers:         'clsId',
 };
 /* 按天 / 按次分片的键（att:2026-09-18、night:2026-09-18、hw:{作业id}）。
-   这些键里只存 studentId 不存班级，所以统一按「自己班的学员」过滤。 */
-const TEACHER_PREFIX_READ = ['att:', 'night:', 'hw:'];
+   这些键里只存 studentId 不存班级，所以统一按「自己班的学员」过滤。
+   ==5.27== 只读视角补三样：sign:（打卡记录，实到一览用）、hwchk:（作业交没交登记）、
+   gresp:（限时征集的回执，老师看「已回几人」）—— 全部仍只发本班学员的条目。 */
+const TEACHER_PREFIX_READ = ['att:', 'night:', 'hw:', 'sign:', 'hwchk:', 'gresp:'];
 /* 授课老师能写回哪些：自己的工单 + 自己录的今日情况 + 作业提交登记（hw: 前缀） */
 const TEACHER_WRITE = ['tickets', 'records'];
 /* 只有首位教务能改的东西 */
@@ -410,12 +420,19 @@ function filterShared(shared, me) {
       out[k] = Array.isArray(v) ? v.filter(x => x && stuIds.has(x.studentId)) : v;
       continue;
     }
+    /* 打卡设置：跟学生一样只给公开字段（不给校区坐标）——老师只读看规则用 */
+    if (k === 'sign_rules') {
+      const r = v && typeof v === 'object' ? v : {};
+      const pub = {};
+      for (const f of SIGN_RULE_PUBLIC) if (r[f] !== undefined) pub[f] = r[f];
+      out[k] = pub;
+      continue;
+    }
     if (!(k in TEACHER_READ)) continue;
     const rule = TEACHER_READ[k];
     if (rule === null || !Array.isArray(v)) { out[k] = v; continue; }
     if (rule === 'self')            out[k] = v.filter(c => ids.has(c.id));
-    /* 自己的工单。学生请假一律不发给老师 —— 那是教务在考勤里批的事，
-       跟老师的调课/请假/异常上报不是一回事，不该混在同一张列表里 */
+    /* ==5.27== tickets 改为 null 整份下发（见 TEACHER_READ 注释），own 分支保留给别的键 */
     else if (rule === 'own')        out[k] = v.filter(t => t.userId === me.id && t.type !== '学生请假');
     else if (rule === 'classId')    out[k] = v.filter(x => ids.has(x.classId));
     else if (rule === 'clsId')      out[k] = v.filter(x => ids.has(x.clsId));
@@ -954,7 +971,10 @@ async function doDraw(s, me, body) {
       权限与首位教务基本齐平，但唯独动不了首位教务那个账号（见下面的 target.role 拦）。
    演示 / 看板账号仍然只有首位教务看得见（下面的 isDemoAcct 判断没动）。 */
 async function doUsers(s, me, body) {
-  if (!me.isStaff) return json({ error: '只有教务可以管理账号' }, 403);
+  /* ==5.27== 授课老师全功能只读：账号列表可以看（发账号 / 排课选老师都要用，
+     返回的字段本就不含密码）；list 之外的改动仍走下面的 canManage 拦 */
+  if (!me.isStaff && !(me.role === TEACHER && String(body.op || 'list') === 'list'))
+    return json({ error: '只有教务可以管理账号' }, 403);
   const op = String(body.op || 'list');
   const canManage = me.role === SUPER || me.role === OFFICE;
   if (op !== 'list' && !canManage) return json({ error: '账号只有首位教务和总教务能改' }, 403);
