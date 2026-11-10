@@ -198,8 +198,13 @@ try {
     return 'sync.js 零引用 · index.html 零残迹 · rules() 显式 delete code';
   });
   t('上一窗口的码也认（学生抄完到按下去可能刚跨过换码点）', () => {
-    assert(/for \(const q of \[slot, slot - 1\]\)/.test(SRC), 'codeOK 该同时认当前与上一窗口');
+    assert(/for \(const q of \[slot, slot - 1\]\)/.test(SRC), 'codeCheck 该同时认当前与上一窗口');
     return 'for (const q of [slot, slot - 1])';
+  });
+  t('==5.26== 输错与过期分开：2~5 分钟前的旧码判「过期」，更远的判「不对」', () => {
+    assert(/for \(const q of \[slot - 2, slot - 3, slot - 4, slot - 5\]\)/.test(SRC), '该往前多验 4 个窗口识别过期码');
+    assert(/code: 'BADCODE'/.test(SRC), '输错该回 BADCODE（不再冒充过期）');
+    return 'stale→EXPIRED · bad→BADCODE';
   });
 
   console.log('\n=== 4. 离开打卡页 → 秒表停掉 ===');

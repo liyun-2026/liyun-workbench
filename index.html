@@ -439,6 +439,16 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   border-radius:8px;padding:13px 16px;font-size:16px;color:var(--text);width:100%;
 }
 .gate .g-form input::placeholder{color:var(--text-dim)}
+/* ==5.26== 走查 Y5：密码可见性切换（小眼睛）—— 密码框包一层放绝对定位的眼睛 */
+.gate .g-pwwrap{position:relative}
+.gate .g-pwwrap input{padding-right:46px}
+.gate .pw-eye{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:32px;height:32px;border:none;background:transparent;cursor:pointer;
+  color:var(--text-dim);display:flex;align-items:center;justify-content:center;padding:0;border-radius:8px;
+}
+.gate .pw-eye:hover{color:var(--text)}
+.gate .pw-eye svg{width:19px;height:19px;pointer-events:none}
 .gate .g-form .btn{
   padding:13px;font-size:16px;margin-top:6px;
   background:var(--gold);border:none;color:#fff;
@@ -2939,6 +2949,15 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   transition:background-color var(--dur-quick) var(--ease-quick),color var(--dur-quick) var(--ease-quick),
              border-color var(--dur-quick) var(--ease-quick)}
 .stamp[data-s="正常"]{--c:var(--stamp-ok)}
+/* ==5.26== 走查 G1：点章后的「已自动保存」轻反馈徽标（右下角，1.2s 自动隐去） */
+#attSavedFlash{
+  position:fixed;right:14px;bottom:74px;z-index:80;
+  font-size:12px;letter-spacing:.03em;color:#2e7d4f;
+  background:var(--card,#fff);border:1px solid #7fb894;border-radius:20px;
+  padding:5px 12px;box-shadow:0 2px 10px rgba(0,0,0,.08);
+  opacity:0;transform:translateY(6px);transition:opacity .18s,transform .18s;pointer-events:none;
+}
+#attSavedFlash.on{opacity:1;transform:translateY(0)}
 .stamp[data-s="迟到"]{--c:var(--stamp-late)}
 .stamp[data-s="病假"]{--c:var(--stamp-sick)}
 .stamp[data-s="事假"]{--c:var(--stamp-leave)}
@@ -4311,8 +4330,9 @@ var Icon = {
           <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 小课 / 加课 <span class="hint" style="display:inline;font-weight:400">只进相关师生课表 · 时间自由填</span></h2>
           <div class="row">
             <select id="miniDay" style="max-width:100px"></select>
-            <input type="text" id="miniTime" placeholder="时间自由填，如 13:00-14:00" style="max-width:200px">
+            <input type="text" id="miniTime" placeholder="时间自由填，如 13:00-14:00" style="max-width:200px" oninput="Schedule.miniClashLive()">
           </div>
+          <p class="hint" id="miniClashTip" style="display:none;margin:8px 0 0;color:#c25650"></p>
           <div class="row" style="margin-top:8px">
             <input type="text" id="miniStu" list="stuSuggestions" placeholder="学员，如：张三">
             <datalist id="stuSuggestions"></datalist>
@@ -5063,9 +5083,17 @@ var Icon = {
           </div>
           <div class="card">
             <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-megaphone"></use></svg> 发通知</h2>
-            <textarea id="noticeText" placeholder="写一条通知，老师打开「今天」就能看到"></textarea>
-            <div class="row" style="margin-top:8px">
-              <button class="btn" onclick="Coop.addNotice()">发出</button>
+            <textarea id="noticeText" placeholder="写一条通知，选好发给谁，发出后自己可以改"></textarea>
+            <!-- ==5.26== 走查 G2：加「发给谁」的范围选择 + 已发通知可编辑（作者本人） -->
+            <div class="row" style="margin-top:8px;align-items:center">
+              <span class="hint" style="margin:0;flex-shrink:0">发给</span>
+              <select id="noticeScope" style="max-width:150px">
+                <option value="all">全体</option>
+                <option value="teachers">老师们</option>
+                <option value="students">学生</option>
+              </select>
+              <button class="btn" id="noticeSendBtn" onclick="Coop.addNotice()">发出</button>
+              <button class="btn ghost" id="noticeCancelBtn" onclick="Coop.cancelEdit()" style="display:none">取消编辑</button>
             </div>
             <div id="noticeList" style="margin-top:12px"></div>
           </div>
@@ -5632,7 +5660,7 @@ var Icon = {
     <input type="text" id="devKeyIn" placeholder="教务给的密钥" autocapitalize="off" spellcheck="false">
     <div class="row" style="margin-top:12px">
       <button class="btn" onclick="StuDev.submit()">登记这台</button>
-      <button class="btn ghost" onclick="Auth.logout()">换个账号</button>
+      <button class="btn ghost" id="devGateSwitch" onclick="Auth.logout()">换个账号</button>
     </div>
     <p class="hint" id="devKeyErr" style="margin:10px 0 0"></p>
   </div>
@@ -5734,7 +5762,15 @@ var Icon = {
         </div>
         <div class="g-form">
           <input type="text" id="gUser" placeholder="请输入账号" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
-          <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
+          <div class="g-pwwrap">
+            <input type="password" id="gPass" placeholder="密码" autocomplete="current-password">
+            <button type="button" class="pw-eye" id="gPwEye" onclick="Auth.togglePw()" aria-label="显示密码">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/>
+                <circle cx="12" cy="12" r="2.6"/>
+              </svg>
+            </button>
+          </div>
           <button class="btn" id="gBtn" onclick="Auth.submit()">登 录</button>
         </div>
         <div class="g-err" id="gErr"></div>
@@ -7116,7 +7152,16 @@ const App = {
   },
 
   go(id){
-    if (!this.can(id)) return UI.toast('这个功能你的账号看不到');
+    if (!this.can(id)){
+      /* ==5.26== 走查 R4：授课老师点教务专属入口时，不再只闪一句 toast 停在原地 ——
+         送回他自己的「今天」页，并说清楚为什么（只改提示与去向，不改权限本身）。
+         其他角色维持原样：留在当前页提醒一句。 */
+      if (Auth.role() === 'teacher'){
+        UI.toast('授课老师为只读视角，考勤 / 作业等由教务老师操作');
+        return this.go('today');
+      }
+      return UI.toast('这个功能你的账号看不到');
+    }
     document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
     document.getElementById('page-' + id)?.classList.add('on');
     // 侧边栏、底部标签栏、抽屉三处的高亮一起跟
@@ -8345,6 +8390,7 @@ const Att = {
     /* 读屏器播报：写在 #roster 之外的常驻 live region 里，render 重画名单抹不掉它 */
     const nm = (Util.stuName ? Util.stuName(sid) : '') || '该学生';
     this._say(nm + (st === null ? ' 已取消登记' : ' 已标为 ' + st));
+    if (st !== null) this._saveFlash();
     this.render();
     this.syncQuant(date);      // 迟到/病假/事假 立刻反映到量化；未到没有对应细则，syncAtt 会安全跳过
   },
@@ -8353,6 +8399,23 @@ const Att = {
   _say(t){
     const el = document.getElementById('attLive');
     if (el) el.textContent = t;
+  },
+
+  /* ==5.26== 走查 G1：点章即存没有保存按钮，补一个不碍事的「已自动保存」轻反馈 ——
+     右下角小徽标闪 1.2 秒，不用点任何东西，也不打断连着点章的节奏 */
+  _sfT: null,
+  _saveFlash(){
+    let b = document.getElementById('attSavedFlash');
+    if (!b){
+      b = document.createElement('div');
+      b.id = 'attSavedFlash';
+      b.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(b);
+    }
+    b.textContent = '✓ 已自动保存';
+    b.classList.add('on');
+    clearTimeout(this._sfT);
+    this._sfT = setTimeout(() => b.classList.remove('on'), 1200);
   },
 
   /* 印章点击用一次文档级委托绑上 —— render 会被反复调用，绑在 render 里会越绑越多 */
@@ -9927,15 +9990,84 @@ const Schedule = {
     const time   = document.getElementById('miniTime').value.trim();
     const stu    = document.getElementById('miniStu').value.trim();
     const title  = document.getElementById('miniTitle').value.trim();
+    const teacherId = document.getElementById('miniTeacher').value;
     /* v73 用户定：小课/加课不占全局节次，时间自由填——只进相关师生的课表，不同步全体作息 */
     if (!time) return UI.toast('填一下时间，如 13:00-14:00（小课不占全局节次）');
     if (!title) return UI.toast('填一下上课内容');
-    const teacherId = document.getElementById('miniTeacher').value;
+    /* ==5.26== 走查 G3：与已有课的时段重叠时先提醒（红字 + 可强制提交）。
+       只提醒真正相关的：学员同名 / 带课老师相同 / 都没填（时段公开课）。 */
+    const clash = this.miniClashes(day, time, stu, teacherId);
+    if (clash.length){
+      this.paintMiniClash(clash);
+      const sure = confirm('这个时间和已有课重叠：\n\n' + clash.join('\n') +
+        '\n\n仍要加入吗？（排课不拦人 —— 确实要插课就点「确定」）');
+      if (!sure) return;
+    }
+    this.clearMiniClash();
     Store.upsert('schedule', { day, periodId: '', time, stu, title, teacherId, kind: 'small' });
     document.getElementById('miniTime').value = '';
     document.getElementById('miniStu').value = '';
     document.getElementById('miniTitle').value = '';
     this.render();
+  },
+
+  /* 时间输入时实时给红字提醒（==5.26== 走查 G3） */
+  miniClashLive(){
+    const day  = (document.getElementById('miniDay') || {}).value;
+    const time = ((document.getElementById('miniTime') || {}).value || '').trim();
+    const stu  = ((document.getElementById('miniStu') || {}).value || '').trim();
+    const teacherId = (document.getElementById('miniTeacher') || {}).value;
+    if (!time){ this.clearMiniClash(); return; }
+    const clash = this.miniClashes(day, time, stu, teacherId);
+    if (clash.length) this.paintMiniClash(clash);
+    else this.clearMiniClash();
+  },
+
+  /* ==5.26== 走查 G3：时间段解析（"13:00-14:00" / "13:00—14:30" / "13点到14点" 宽松处理）*/
+  _parseRange(t){
+    const m = String(t || '').replace(/[—–~～]/g, '-').match(/(\d{1,2})\s*[:：点]?\s*(\d{1,2})?\s*[-到]\s*(\d{1,2})\s*[:：点]?\s*(\d{1,2})?/);
+    if (!m) return null;
+    const toMin = (h, mm) => (Number(h) || 0) * 60 + (Number(mm) || 0);
+    const a = toMin(m[1], m[2]), b = toMin(m[3], m[4]);
+    if (isNaN(a) || isNaN(b) || b <= a) return null;
+    return { a, b };
+  },
+
+  /** 新小课与哪些已有课重叠：同一天 + 时间区间相交（小课对区间，大课对节次起止） */
+  miniClashes(day, time, stu, teacherId){
+    const rng = this._parseRange(time);
+    if (!rng) return [];
+    const hit = (r) => r && Math.max(r.a, rng.a) < Math.min(r.b, rng.b);
+    const who = (x) => [x.stu ? '学员 ' + x.stu : '', x.cls ? x.cls + ' ' : '', x.title].filter(Boolean).join(' · ');
+    const out = [];
+    Store.list('schedule').filter(x => x && !x._d && x.day === day).forEach(x => {
+      let r = null;
+      if ((x.kind || 'big') === 'small') r = this._parseRange(x.time);
+      else if (x.periodId){
+        const p = this.periods().find(q => q.id === x.periodId);
+        if (p && p.start && p.end){
+          const pa = p.start.match(/(\d{1,2}):(\d{1,2})/), pb = p.end.match(/(\d{1,2}):(\d{1,2})/);
+          if (pa && pb) r = { a: Number(pa[1])*60+Number(pa[2]), b: Number(pb[1])*60+Number(pb[2]) };
+        }
+      }
+      if (!hit(r)) return;
+      /* 只提醒真正相关的：学员同名、或带课老师相同、或没填学员老师（时段公开课） */
+      const stuClash = stu && x.stu && x.stu.indexOf(stu) >= 0;
+      const tClash = teacherId && x.teacherId === teacherId;
+      if (stuClash || tClash || (!stu && !teacherId)) out.push(`${day} ${x.time || this.slotLabel(x)} —— ${who(x)}`);
+    });
+    return out.slice(0, 4);
+  },
+
+  paintMiniClash(clashes){
+    const el = document.getElementById('miniClashTip');
+    if (!el) return;
+    el.textContent = '⚠️ 与已有课重叠：' + clashes.join('；');
+    el.style.display = '';
+  },
+  clearMiniClash(){
+    const el = document.getElementById('miniClashTip');
+    if (el){ el.textContent = ''; el.style.display = 'none'; }
   },
 
   /* ── 本地排课冲突检查（不依赖 AI key）── */
@@ -12152,21 +12284,36 @@ const Homework = {
     this.renderChk();
   },
 
-  /** 一人一份的作业流水：同一天以「今日作业检查」为准，没检查才按各条作业的登记算（不重复计分） */
+  /** 一人一份的作业流水（==5.26== 走查 R2 重做：以「布置」为准）。
+      旧版两个毛病：① 以检查为准的日子 text 写死「今日作业」，学生看不到作业内容；
+      ② 没登记过检查的日子整条消失（没登记=没人交=学生端看不见）。
+      现在：每条布置的作业都出现，内容用原文；
+      状态三态 —— 已交 / 未交（检查登记过）· 待检查（没人登记，以布置为准先摆出来）；
+      教务布置时填了截止日期就带出去（due）。 */
   flow(sid, clsId){
-    const byDate = {};
-    Store.list('homework').filter(h => h.clsId === clsId).forEach(h => {
-      const sub = Store.list('hw:' + h.id).find(x => x.studentId === sid);
-      if (sub) (byDate[h.date] = byDate[h.date] || []).push({ date: h.date, text: h.text, done: sub.done });
+    const hws = Store.list('homework')
+      .filter(h => h && !h._d && (!clsId || h.clsId === clsId))
+      .sort((a,b) => (a.date||'') < (b.date||'') ? -1 : 1);
+    const out = hws.map(h => {
+      const chk = Store.list('hwchk:' + h.date)
+        .find(x => x && !x._d && x.studentId === sid && (!x.classId || !clsId || x.classId === clsId));
+      const sub = Store.list('hw:' + h.id).find(x => x && !x._d && x.studentId === sid);
+      /* done 三态：true 已交 / false 未交（检查说了算）· null 还没检查（布置先摆出来）。
+         ⚠️ done 存储有布尔也有数字（markChk 写 1/0，手造数据可能写 true）—— 两种都认 */
+      const truthy = v => v === 1 || v === true;
+      const done = chk ? truthy(chk.done) : (sub ? truthy(sub.done) : null);
+      return { date: h.date, text: h.text || '', due: h.due || h.deadline || '',
+               done, src: chk ? 'chk' : (sub ? 'hw' : 'plan') };
     });
+    /* 兼容：检查记录的日子可能比现存 homework 还早（作业条目删过）—— 那天检查过就留一条 */
     let dates = [];
     try { dates = Object.keys(Store.dump()).filter(k => k.indexOf('hwchk:') === 0).map(k => k.slice(6)); } catch(e){}
-    const out = [];
-    [...new Set(Object.keys(byDate).concat(dates))].sort().forEach(d => {
-      const c = Store.list('hwchk:' + d).find(x => x.studentId === sid && (!clsId || x.classId === clsId));
-      if (c) out.push({ date: d, text: '今日作业', done: c.done, src: 'chk' });
-      else (byDate[d] || []).forEach(x => out.push(Object.assign({ src: 'hw' }, x)));
+    [...new Set(dates)].sort().forEach(d => {
+      if (hws.some(h => h.date === d)) return;
+      const c = Store.list('hwchk:' + d).find(x => x && !x._d && x.studentId === sid && (!clsId || x.classId === clsId));
+      if (c) out.push({ date: d, text: '今日作业', due: '', done: c.done === 1, src: 'chk' });
     });
+    out.sort((a,b) => (a.date||'') < (b.date||'') ? -1 : 1);
     return out;
   },
 
@@ -12397,6 +12544,7 @@ const Quant = {
     el.innerHTML = `
       <div class="hero num" style="display:flex;align-items:baseline;gap:10px">${total}<span class="unit" style="margin-left:0">${Util.esc(cls ? cls.name : '')} · 总分</span></div>
       <p class="hint" style="margin:2px 0 10px">起始 100 分 · ${from} ~ ${to} 这段${delta ? `变化 <b style="color:${delta > 0 ? '#c25650' : '#2e7d4f'}">${delta > 0 ? '+' : ''}${delta}</b> 分` : '没有加减分'}</p>
+      <p class="hint" style="margin:2px 0 10px">这个总分只算老师手动加减分；学生档案里的个人量化另含考勤折算（迟到 / 请假按细则自动算），两边口径不同。</p>
       ${reasons ? `<p style="margin:0;line-height:1.8"><b style="font-weight:500">加扣分原因：</b>${reasons}</p>` : ''}`;
   },
 
@@ -13426,13 +13574,16 @@ const Student = {
       if (r.st === '过') nightOk++; else if (r.st === '未过') nightNo++;
     });
 
-    /* ── 作业：各条作业的登记 + 「今日作业检查」合成一份流水（同一天以检查为准） ── */
-    let hwDone = 0, hwMiss = 0;
+    /* ── 作业：==5.26== 走查 Y6 —— 与学生作业同口径（以布置为准）。
+       三态：已交 / 未交 / 待检查（没人登记检查也算数，不再「整条消失」） */
+    let hwDone = 0, hwMiss = 0, hwPending = 0;
     const hwRows = Homework.flow(sid, s.classId)
       .sort((a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
       .map(x => {
-        if (x.done) hwDone++; else hwMiss++;
-        return { date: x.date, text: x.text, st: x.done ? '已交' : '未交', src: x.src };
+        if (x.done === true) hwDone++;
+        else if (x.done === false) hwMiss++;
+        else hwPending++;
+        return { date: x.date, text: x.text, due: x.due, st: x.done === true ? '已交' : x.done === false ? '未交' : '待检查', src: x.src };
       });
 
     /* ── 模考成绩（对标河南省播音与主持类统考：三科各100、总分300、五等制） ── */
@@ -13498,6 +13649,7 @@ const Student = {
           ${this.metric('考勤次数', attTotal)}
           ${this.metric('作业已交', hwDone)}
           ${this.metric('作业未交', hwMiss)}
+          ${hwPending ? this.metric('待检查', hwPending) : ''}
           ${this.metric('晚自习过关', nightOk + (nightNo ? '/' + (nightOk + nightNo) : ''))}
           ${this.metric('量化分', quant === null ? '—' : quant)}
         </div>
@@ -13516,7 +13668,7 @@ const Student = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg> 作业</h2>
         ${hwRows.length ? hwRows.slice(0, 12).map(h =>
           `<div class="item">
-             <span class="grow">${h.src === 'chk' ? '<b>今日作业检查</b>' : Util.esc(h.text)}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
+             <span class="grow">${Util.esc(h.text || '今日作业')}${h.due && h.due !== h.date ? ` <span class="hint" style="display:inline;margin:0">截止 ${Util.esc(h.due)}</span>` : ''}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
              <span class="chip ${h.st === '未交' ? 'chip-no' : (h.st === '已交' ? 'chip-on' : '')}" style="pointer-events:none">${h.st}</span>
            </div>`).join('')
           : '<div class="empty">这个班还没布置过作业</div>'}
@@ -13661,11 +13813,12 @@ const Coop = {
   renderList(){
     const el = document.getElementById('coopList');
     if (!el) return;
-    /* 学生请假不在这儿处理 —— 它是考勤的事，统一在「考勤 → 学生请假」批。
-       两摊分开摆：协作页只收老师的调课/请假/异常，不跟学生的事混在一起。
-       学生消息另有自己那一栏（renderStuMsgs），这里一并排掉，免得同一条出现两遍。 */
+    /* ==5.26== 走查 R3：学生请假也进协作待处理区（主理人拍板）。
+       考勤页的「待批请假」照旧（Att.leave / Coop.leave 是同一个批准函数，
+       两处批准都安全：都是写同一条工单 + 同一天考勤）。
+       学生消息另有自己那一栏（renderStuMsgs），这里照旧排掉。 */
     const list = Store.list('tickets', (a,b) => (a.createdAt || 0) < (b.createdAt || 0) ? 1 : -1)
-                      .filter(t => t && t.type !== '学生请假' && t.type !== '学生消息');
+                      .filter(t => t && t.type !== '学生消息');
     const open = list.filter(t => t.status === 'open' || t.status === undefined);
     const cnt = document.getElementById('coopCount');
     if (cnt) cnt.textContent = open.length ? open.length + ' 条待处理' : '';
@@ -13680,12 +13833,17 @@ const Coop = {
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         <p class="hint" style="margin:4px 0 0" title="${Util.esc(t.userName || '')}">${Util.esc(Util.dispName(t.userId, t.userName))}${t.createdAt ? ' · ' + new Date(t.createdAt).toLocaleString('zh-CN') : ''}</p>
+        ${t.type === '学生请假' && t.status !== 'done' && t.status !== 'rejected' ? `
+          <div class="row" style="margin-top:6px">
+            <button class="btn" onclick="Coop.leave('${t.id}', true)">批准（写进考勤）</button>
+            <button class="btn ghost" onclick="Coop.leave('${t.id}', false)">驳回</button>
+          </div>` : t.type === '学生请假' && t.reply ? `<p class="hint" style="margin:6px 0 0">${Util.esc(t.reply)}</p>` : `
         ${t.reply ? `<p class="hint" style="margin:6px 0 0">回复：${Util.esc(t.reply)}</p>` : `
           <input type="text" class="tkReply" data-tid="${t.id}" placeholder="回一句，老师那边能看到" style="margin-top:8px">
           <div class="row" style="margin-top:6px">
             <button class="btn" onclick="Coop.reply('${t.id}')">处理并回复</button>
             <button class="btn ghost" onclick="Coop.reply('${t.id}', true)">直接标已处理</button>
-          </div>`}
+          </div>`}`}
       </div>`).join('') : '<div class="empty">老师们还没有上报</div>';
   },
 
@@ -13730,26 +13888,72 @@ const Coop = {
     this.renderList();
   },
 
+  /* ==5.26== 走查 G2：通知带「发给谁」（scope: all/teachers/students）；
+     发出后作者本人可以改（回填 composer，保存走同一条 upsert）。 */
+  _editNotice: null,
+
   addNotice(){
     const el = document.getElementById('noticeText');
     const text = (el.value || '').trim();
     if (!text) return UI.toast('先写点内容');
-    Store.upsert('notices', { date: Util.today(), text, by: Auth.name(), byId: Auth.me() ? Auth.me().id : '', at: Date.now() });
-    el.value = '';
-    UI.toast('已发出，老师打开「今天」就能看到');
+    const scope = (document.getElementById('noticeScope') || {}).value || 'all';
+    if (this._editNotice){
+      const n = Store.list('notices').find(x => x && x.id === this._editNotice);
+      if (n) Store.upsert('notices', Object.assign({}, n, { text, scope, _u: Date.now() }));
+      this.cancelEdit();
+      UI.toast('已修改');
+    } else {
+      Store.upsert('notices', { date: Util.today(), text, scope, by: Auth.name(), byId: Auth.me() ? Auth.me().id : '', at: Date.now() });
+      el.value = '';
+      UI.toast(scope === 'students' ? '已发出，学生打开「今日」就能看到' : '已发出，老师打开「今天」就能看到');
+    }
     this.renderNotices();
   },
+
+  editNotice(id){
+    const n = Store.list('notices').find(x => x && x.id === id);
+    if (!n) return;
+    /* 只许作者本人改（系统通知没有作者，谁都不能改——要改就删掉重发） */
+    if (n.byId && n.byId !== (Auth.me() ? Auth.me().id : '')) return UI.toast('只能改自己发的通知');
+    if (!n.byId) return UI.toast('系统通知不能改，需要的话删掉重发一条');
+    this._editNotice = id;
+    document.getElementById('noticeText').value = n.text || '';
+    const sel = document.getElementById('noticeScope');
+    if (sel) sel.value = n.scope || 'all';
+    const btn = document.getElementById('noticeSendBtn');
+    if (btn) btn.textContent = '保存修改';
+    const cancel = document.getElementById('noticeCancelBtn');
+    if (cancel) cancel.style.display = '';
+    try { document.getElementById('noticeText').focus(); } catch(e){}
+  },
+
+  cancelEdit(){
+    this._editNotice = null;
+    const ta = document.getElementById('noticeText');
+    if (ta) ta.value = '';
+    const btn = document.getElementById('noticeSendBtn');
+    if (btn) btn.textContent = '发出';
+    const cancel = document.getElementById('noticeCancelBtn');
+    if (cancel) cancel.style.display = 'none';
+  },
+
+  SCOPE_LABEL: { all: '全体', teachers: '老师们', students: '学生' },
 
   renderNotices(){
     const el = document.getElementById('noticeList');
     if (!el) return;
     const list = Store.list('notices', (a,b) => (a.at || 0) < (b.at || 0) ? 1 : -1);
-    el.innerHTML = list.length ? list.slice(0, 8).map(n => `
+    const myId = Auth.me() ? Auth.me().id : '';
+    el.innerHTML = list.length ? list.slice(0, 8).map(n => {
+      const mine = n.byId && n.byId === myId;
+      return `
       <div class="item">
         <span class="grow pre">${Util.esc(n.text)}
-          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}</span></span>
+          <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}${n.scope && n.scope !== 'all' ? ' · 发给' + (this.SCOPE_LABEL[n.scope] || n.scope) : ''}</span></span>
+        ${mine ? `<button class="chip" onclick="Coop.editNotice('${n.id}')">编辑</button>` : ''}
         <button class="del" onclick="Coop.delNotice('${n.id}')">✕</button>
-      </div>`).join('') : '<div class="empty">还没发过通知</div>';
+      </div>`;
+    }).join('') : '<div class="empty">还没发过通知</div>';
   },
 
   delNotice(id){ Store.softDelete('notices', id); this.renderNotices(); },
@@ -13884,7 +14088,7 @@ const StuGather = {
     const sid = Auth.me() ? Auth.me().studentId : '';
     const now = Date.now();
     const all = Store.list('gathers', (a,b) => (b.createdAt || 0) - (a.createdAt || 0)).filter(g => !g._d);
-    const myResp = id => (Store.list('gresp:' + id) || []).find(r => !r._d && r.studentId === sid);
+    const myResp = id => (Store.list('gresp:' + id) || []).find(r => !r._d && (r.studentId === sid || r.id === sid));
     const active = all.filter(g => !g.closed && (!g.deadline || new Date(g.deadline).getTime() >= now) && !myResp(g.id));
     const done   = all.filter(g => myResp(g.id));
     let html = active.length ? active.map(g => this._card(g, myResp(g.id))).join('')
@@ -13932,7 +14136,10 @@ const StuGather = {
     const qs = g.questions || [];
     const answers = qs.map((q,i) => { const el = document.getElementById('ga_' + id + '_' + i); return el ? el.value.trim() : ''; });
     if (qs.length && answers.some(a => !a)) return UI.toast('还有没填的');
-    Store.upsert('gresp:' + id, { id: Auth.me().studentId, gatherId: id, answers });
+    /* ==5.26== 走查 R1：以前只存 id、render 却查 studentId —— 字段名对不上，
+       交过的征集永远显示「进行中」，学生只能反复重交。现在两个字段都写，
+       读的时候两边都认（上面 myResp 兼容存量脏数据）。 */
+    Store.upsert('gresp:' + id, { id: Auth.me().studentId, studentId: Auth.me().studentId, gatherId: id, answers });
     Sync.push();
     UI.toast('已提交');
     this.render();
@@ -15537,6 +15744,22 @@ const Auth = {
         : window.__gRole === '学生' ? '学 生 登 录' : '登 录');
   },
 
+  /* ==5.26== 走查 Y5：密码可见性切换 —— 输密码时最常见的「我到底打了啥」 */
+  togglePw(){
+    const i = document.getElementById('gPass');
+    if (!i) return;
+    const show = i.type === 'password';
+    i.type = show ? 'text' : 'password';
+    const eye = document.getElementById('gPwEye');
+    if (eye){
+      eye.setAttribute('aria-label', show ? '隐藏密码' : '显示密码');
+      eye.innerHTML = show
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/><path d="M4 4l16 16"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg>';
+    }
+    try { i.focus(); } catch(e){}
+  },
+
   async submit(){
     const user = canonUser(document.getElementById('gUser').value);
     const pass = document.getElementById('gPass').value || '';
@@ -15565,6 +15788,9 @@ const Auth = {
           g.classList.remove('reveal');
         }
       }
+      /* 登录成功记住用户名（==5.26== 走查 G4：以前只有「切换账号」才记，
+         正常登录不记 —— 清过令牌再回来，用户名就得重新打一遍） */
+      Store.set('_lastLoginUser', user);
       this.hide();
       document.getElementById('gPass').value = '';
       UI.toast(j.created
@@ -15591,9 +15817,14 @@ const Auth = {
           ? `这台电脑上的账号是「${exist}」，用那个用户名登录；想换一个就点下面的「重置本地数据」。`
           : '没有这个账号。请让教务老师在「老师管理」里创建。';
       }
-      /* 「密码不对」多半是自己随手填的密码忘了 —— 直接指路，别让人来回猜 */
-      if (msg.indexOf('密码不对') !== -1 && (IS_LOCAL_PREVIEW || local))
-        msg += '　忘了的话，点下面那行「重置本地数据」。';
+      /* 「密码不对」多半是自己随手填的密码忘了 —— 直接指路，别让人来回猜。
+         ==5.26== 走查 Y5：只有本机预览才指「重置本地数据」；
+         云端账号重置密码是教务的事，指路改成「找教务老师」。
+         （本地预览 IS_LOCAL_PREVIEW 的指路保留，那个重置按钮真管用。） */
+      if (msg.indexOf('密码不对') !== -1){
+        if (local || IS_LOCAL_PREVIEW) msg += '　忘了的话，点下面那行「重置本地数据」。';
+        else msg += '　忘了的话，找教务老师重置密码。';
+      }
       this.err(msg);
     }
   },
@@ -15993,7 +16224,11 @@ const StuDev = {
     }
   },
 
-  /** 门上的话按是哪一道没过来说：换设备 / 换账号，两句话都得说清楚 */
+  /** 门上的话按是哪一道没过来说：新设备 / 换账号，两句话都得说清楚。
+      ==5.26== 走查 Y4：以前只看 switchAccount —— 全新设备第一次登录自己的账号
+      也会被说成「这台设备上登过别的学生账号」，与事实不符。
+      现在服务端的 newDevice 优先说「新设备」；只有确实是同台设备换账号
+      才说「换账号」，「换个账号」按钮也只在那种场景出现。 */
   open(j){
     /* ==5.25== 体检 🟡12：看板是公共屏，设备密钥门绝不上看板；
        打卡页也只收窄成底部贴边小卡（见 CSS），不盖住打卡大圆钮 */
@@ -16002,12 +16237,16 @@ const StuDev = {
     if (!g) return;
     const t = document.getElementById('devGateTitle');
     const w = document.getElementById('devGateWhy');
-    if (j && j.switchAccount){
+    const sw = document.getElementById('devGateSwitch');
+    const isSwitch = !!(j && j.switchAccount && !j.newDevice);   // 真·同台设备换账号
+    if (isSwitch){
       if (t) t.textContent = '换账号要密钥';
       if (w) w.textContent = '这台设备上登过别的学生账号。要让这个号也能在这儿登，找教务要一个密钥（每个密钥只能用一次）。';
+      if (sw) sw.style.display = '';
     } else {
       if (t) t.textContent = '这台设备还没登记';
-      if (w) w.textContent = '一个学生账号最多登两台设备。要让这台也能用，找教务要一个密钥（每个密钥只能用一次）。';
+      if (w) w.textContent = '新设备首次登录，需要教务给的密钥（一个学生账号最多登两台设备，每个密钥只能用一次）。';
+      if (sw) sw.style.display = 'none';
     }
     g.classList.add('on');
   },
@@ -16074,10 +16313,13 @@ const StuHome = {
       }
     }
 
-    /* ── 通知 ── */
+    /* ── 通知（==5.26== 走查 Y2：系统运维提醒不进学生公告 —— 教务端各处照旧） ── */
     const nb = document.getElementById('stuNotices');
     if (nb){
-      const list = Store.list('notices', (a,b) => (a.at||0) < (b.at||0) ? 1 : -1).slice(0, 5);
+      const list = Store.list('notices', (a,b) => (a.at||0) < (b.at||0) ? 1 : -1)
+        .filter(n => n && n.id !== 'sys-backup-notice' && n.by !== '系统')
+        .filter(n => n.scope !== 'teachers')     /* 「发给老师们」的不进学生公告 */
+        .slice(0, 5);
       nb.innerHTML = list.length ? list.map(n => `
         <div class="item"><span class="grow pre">${Util.esc(n.text)}
           <br><span class="hint" style="display:inline;margin:0">${n.date} · ${Util.esc(Util.dispName(n.byId, n.by))}</span></span></div>`).join('')
@@ -16099,7 +16341,8 @@ const StuHome = {
         ? Homework.flow(Stu.sid(), Stu.clsId()).filter(x => x.date === d) : [];
       hb.innerHTML = rows.length ? rows.map(x => `
         <div class="item"><span class="grow">${Util.esc(x.text || '')}</span>
-          <span class="chip ${x.done ? 'chip-on' : 'chip-no'}" style="pointer-events:none">${x.done ? '已交' : '未交'}</span></div>`).join('')
+          <span class="chip ${x.done === true ? 'chip-on' : (x.done === false ? 'chip-no' : '')}" style="pointer-events:none">${
+            x.done === true ? '已交' : x.done === false ? '未交' : '待检查'}</span></div>`).join('')
         : '<div class="empty">今天没有作业</div>';
     }
 
@@ -16569,10 +16812,21 @@ const StuSign = {
         UI.toast('现在没网，已记下打卡时间 ' + this.hm(payload.at) + '，联网后自动提交（就按这个时间算迟到）');
         this.render();
       } else if (e.code === 'EXPIRED'){
-        /* 码在定位那几秒里过期了：回第 1 步重取一枚 —— 打卡时刻也跟着重算 */
+        /* 码在定位那几秒里过期了：回第 1 步重取一枚 —— 打卡时刻也跟着重算。
+           ==5.26== 走查 Y3：手输的路就别说「去扫码」——按来源说话 */
         this._stage = 'code';
         this._scanned = ''; this._code = ''; this._codeAt = 0;
-        UI.toast('那个码过期了 —— 对着面前屏幕上的二维码再扫一次');
+        UI.toast(this._manual
+          ? '那个码过期了 —— 看一眼屏幕上现在的 6 位数字再输一次'
+          : '那个码过期了 —— 对着面前屏幕上的二维码再扫一次');
+        this.render();
+      } else if (e.code === 'BADCODE'){
+        /* ==5.26== 走查 Y3：输错了就说输错，别再冒充「过期」、更别把人支去扫码 */
+        this._stage = 'code';
+        this._scanned = ''; this._code = ''; this._codeAt = 0;
+        UI.toast(this._manual
+          ? '码不对 —— 请核对屏幕上的数字再输一次'
+          : '扫到的码不对 —— 看一眼现在屏幕上的 6 位数字');
         this.render();
       } else if (e.code === 'GEOFAR' || e.code === 'BADKEY' || e.code === 'KEYFULL'){
         /* 密钥不对 / 名额满了（更正那条路上才会碰到）—— 把更正框留着，别让学生自己猜 */
@@ -16755,6 +17009,7 @@ const StuQuant = {
             <div class="hero">${total}</div>
             <span class="hint" style="margin:0">分 · ${Util.esc(Util.clsName(clsId))}（起始 100）</span>
           </div>
+          <p class="hint">班分是老师手动加减分的累计；下面「我的加扣分」含考勤折算（迟到 / 请假按细则自动算），两边对不上是正常的。</p>
           <p class="hint">${recent.length ? '最近：' + recent.map(x => `${x.date.slice(5)} ${Util.esc(x.label)} ${x.delta > 0 ? '+' : ''}${x.delta}`).join(' · ') : '这个班还没有加减分记录'}</p>`;
       }
     }
@@ -16851,11 +17106,15 @@ const StuProfile = {
     const tot = attRows.length;
     const pct = tot ? Math.round(cnt['正常'] / tot * 100) : null;
 
-    /* 作业 */
-    let hwDone = 0, hwMiss = 0;
+    /* 作业（==5.26== 与学生端同口径：以布置为准，三态） */
+    let hwDone = 0, hwMiss = 0, hwPending = 0;
     const hwRows = (typeof Homework !== 'undefined' && Homework.flow)
       ? Homework.flow(sid, clsId).sort((a,b) => (a.date||'') < (b.date||'') ? 1 : -1) : [];
-    hwRows.forEach(x => { if (x.done) hwDone++; else hwMiss++; });
+    hwRows.forEach(x => {
+      if (x.done === true) hwDone++;
+      else if (x.done === false) hwMiss++;
+      else hwPending++;
+    });
 
     /* 模考三科强弱 */
     const mine = Store.list('exam_scores').filter(x => x.studentId === sid);
@@ -16884,6 +17143,7 @@ const StuProfile = {
           ${this.metric('未到', cnt['未到'] + ' 次')}
           ${this.metric('作业已交', hwDone + ' 次')}
           ${this.metric('作业未交', hwMiss + ' 次')}
+          ${hwPending ? this.metric('待检查', hwPending + ' 次') : ''}
         </div>
       </div>
       <div class="card wide">
@@ -16922,11 +17182,15 @@ const StuHw = {
     if (!el) return;
     const rows = (typeof Homework !== 'undefined' && Homework.flow)
       ? Homework.flow(Stu.sid(), Stu.clsId()).sort((a,b) => (a.date||'') < (b.date||'') ? 1 : -1) : [];
+    /* ==5.26== 走查 R2：显示作业内容原文 + 截止日期（就是布置时填的那个日期）+
+       三态 chip（已交/未交/待检查）—— 以前没登记检查的作业整条看不见 */
     el.innerHTML = rows.length ? rows.map(x => `
       <div class="item">
         <span class="hint num" style="margin:0;width:56px;flex-shrink:0">${(x.date||'').slice(5)}</span>
-        <span class="grow">${Util.esc(x.text || '')}</span>
-        <span class="chip ${x.done ? 'chip-on' : 'chip-no'}" style="pointer-events:none">${x.done ? '已交' : '未交'}</span>
+        <span class="grow">${Util.esc(x.text || '')}
+          ${x.due && x.due !== x.date ? `<br><span class="hint" style="display:inline;margin:0">截止 ${Util.esc(x.due)}</span>` : ''}</span>
+        <span class="chip ${x.done === true ? 'chip-on' : (x.done === false ? 'chip-no' : '')}" style="pointer-events:none">${
+          x.done === true ? '已交' : x.done === false ? '未交' : '待检查'}</span>
       </div>`).join('') : '<div class="empty">这个班还没有作业</div>';
   },
 

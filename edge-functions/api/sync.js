@@ -732,12 +732,19 @@ async function codeAt(sec, slot) {
   return String(parseInt(h.slice(0, 8), 16) % Math.pow(10, CODE_LEN)).padStart(CODE_LEN, '0');
 }
 async function codeOK(sec, code, ts) {
+  return (await codeCheck(sec, code, ts)) === 'ok';
+}
+/* ==5.26== 走查 Y3：把「输错了」和「过期了」分开 ——
+   当前窗 / 上一窗都认（codeOK 原语义）；再往前 4 个窗（2~5 分钟前的旧码）认得出是过期；
+   全都对不上才是真的输错。学生看到的提示从此不再是含糊的一句「过期了」。 */
+async function codeCheck(sec, code, ts) {
   const want = String(code == null ? '' : code).trim();
-  if (!want) return false;
-  if (!new RegExp('^\\d{' + CODE_LEN + '}$').test(want)) return false;
+  if (!want) return 'bad';
+  if (!new RegExp('^\\d{' + CODE_LEN + '}$').test(want)) return 'bad';
   const slot = Math.floor(ts / CODE_WINDOW_MS);
-  for (const q of [slot, slot - 1]) if ((await codeAt(sec, q)) === want) return true;
-  return false;
+  for (const q of [slot, slot - 1]) if ((await codeAt(sec, q)) === want) return 'ok';
+  for (const q of [slot - 2, slot - 3, slot - 4, slot - 5]) if ((await codeAt(sec, q)) === want) return 'stale';
+  return 'bad';
 }
 
 /** 打卡产生的考勤要不要写进量化：与前端 Quant.syncAtt 同一口径（按当天最重的一次），幂等 */
@@ -823,8 +830,11 @@ async function doSign(s, me, body) {
      人确实在教室、只是手机定位飘的，找教务要一枚位置密钥，输进来当场算正常。 */
   let way = 'self', dist = null, geoNone = false, geoFar = false;
   if (body.code != null && String(body.code) !== '') {
-    if (!(await codeOK(sec, body.code, now)))
-      return json({ error: '这个码已经过期了，扫一下屏幕上的二维码，或看一眼现在那 6 位数字', code: 'EXPIRED' }, 400);
+    const codeVerdict = await codeCheck(sec, body.code, now);
+    if (codeVerdict === 'stale')
+      return json({ error: '那个码过期了 —— 看一眼现在屏幕上的 6 位数字再输一次', code: 'EXPIRED' }, 400);
+    if (codeVerdict !== 'ok')
+      return json({ error: '码不对 —— 请核对屏幕上的数字再试一次', code: 'BADCODE' }, 400);
     way = 'code';
   }
   const hasGeo = body.lat != null && body.lng != null;
