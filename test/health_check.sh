@@ -7,8 +7,13 @@
 #   规则：周一~周五 且 北京时间已过 12:00，查当日 sign:{日期} 记录数，为 0 则输出
 #     ALERT 类型=当日打卡异常 原因=...
 #   （简单规则不辨节假日/开学安排，报不报警由看的人自己判断。）
-#   凭据：环境变量 LIYUN_HEALTH_TOKEN（教务类账号的登录令牌，action=pull 只读）。
-#         未配置则跳过这项检查（输出 [跳过] 行，不告警也不失败）。
+#   凭据（==5.28 补== 无人值守巡检的令牌链，三级兜底）：
+#     ① 环境变量 LIYUN_HEALTH_TOKEN（教务类账号的登录令牌，action=pull 只读）；
+#     ② 本地凭据文件 ~/Desktop/砺蕴教务系统/.health-credentials.json
+#        （格式 {"user":"…","pass":"…"}，chmod 600，**在仓库目录外**、不进 git；
+#        脚本用它调 login 换令牌 —— 令牌只在内存里用，不落盘、不打印）；
+#     ③ 都没有才跳过这项检查（输出 [跳过] 行，不告警也不失败）；
+#        文件在但登录失败 → [警告]（多半是口令改了，提示人去看文件）。
 #   automation 消费口径：grep 'ALERT' 抓报警行，行内带「类型=」与「原因=」两个字段。
 #   ALERT 只做业务提醒，不改变 OVERALL（服务本身活着与否仍由前面几项决定）。
 #   DOMAIN 可用 LIYUN_HEALTH_DOMAIN 覆盖（dev 演练用）。
@@ -66,12 +71,41 @@ fi
 DOW=$(TZ=Asia/Shanghai date +%u)            # 1=周一 … 7=周日
 HM=$(TZ=Asia/Shanghai date +%H%M)
 TODAY=$(TZ=Asia/Shanghai date +%F)
-if [ "${LIYUN_HEALTH_TOKEN:-}" = "" ]; then
-  out+=("[跳过] 当日打卡检查 原因=未配置 LIYUN_HEALTH_TOKEN")
+
+# 令牌三级兜底：env → 本地凭据文件 login → 都没有才跳过
+TOKEN="${LIYUN_HEALTH_TOKEN:-}"
+CRED_FILE="$HOME/Desktop/砺蕴教务系统/.health-credentials.json"
+TOKEN_SRC="环境变量"
+if [ "$TOKEN" = "" ] && [ -f "$CRED_FILE" ]; then
+  # 凭据文件在仓库目录外（repo 根是 砺蕴教务系统/砺蕴工作台/），git 追不到；
+  # login 换来的令牌只进内存变量，不落盘、不打印 —— 这里所有输出都重定向丢弃。
+  TOKEN=$(HC_FILE="$CRED_FILE" HC_DOMAIN="$DOMAIN" python3 -c '
+import json, os, sys, urllib.request
+try:
+    d = json.load(open(os.environ["HC_FILE"]))
+    body = json.dumps({"action": "login", "user": d["user"], "pass": d["pass"]}).encode()
+    req = urllib.request.Request(os.environ["HC_DOMAIN"] + "/api/sync", data=body,
+                                 headers={"content-type": "application/json"})
+    print(json.load(urllib.request.urlopen(req, timeout=20)).get("token", ""))
+except Exception:
+    pass' 2>/dev/null)
+  if [ -n "$TOKEN" ]; then
+    TOKEN_SRC="本地凭据文件"
+  else
+    TOKEN_SRC="本地凭据文件（登录失败）"
+  fi
+fi
+
+if [ "$TOKEN" = "" ]; then
+  if [ "$TOKEN_SRC" = "本地凭据文件（登录失败）" ]; then
+    out+=("[警告] 当日打卡检查跳过 原因=凭据文件在但登录取不到令牌（口令可能改了，检查 ${CRED_FILE}）")
+  else
+    out+=("[跳过] 当日打卡检查 原因=未配置 LIYUN_HEALTH_TOKEN 且无凭据文件")
+  fi
 elif [ "$DOW" -le 5 ] && [ "$HM" -ge 1200 ]; then
   sign_json=$(curl -s --max-time 20 -X POST "$DOMAIN/api/sync" \
     -H 'content-type: application/json' \
-    -d "{\"action\":\"pull\",\"token\":\"${LIYUN_HEALTH_TOKEN}\"}")
+    -d "{\"action\":\"pull\",\"token\":\"${TOKEN}\"}")
   nsign=$(printf '%s' "$sign_json" | TODAY="$TODAY" python3 -c '
 import sys, json, os
 try:
@@ -84,10 +118,10 @@ except Exception:
   elif [ "$nsign" = "0" ]; then
     out+=("ALERT 类型=当日打卡异常 原因=工作日已过12:00但当日($TODAY)无任何打卡记录")
   else
-    out+=("[正常] 当日打卡 ${nsign} 人")
+    out+=("[正常] 当日打卡 ${nsign} 人（令牌来自${TOKEN_SRC}）")
   fi
 else
-  out+=("[跳过] 当日打卡检查 原因=非工作日或未到北京时间12:00（周$DOW $HM）")
+  out+=("[跳过] 当日打卡检查 原因=非工作日或未到北京时间12:00（周${DOW} ${HM}）")
 fi
 
 printf '%s\n' "${out[@]}"
