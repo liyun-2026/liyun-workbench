@@ -142,6 +142,8 @@ const TEACHER_READ = {
   exam_draws:       null,   // ==5.27== 只读看抽签结果（种子无个人隐私）
   quant_rules:      null,
   notices:          null,
+  /* ==5.30== 统考日期：单标量、无隐私，老师端倒计时（今天页轮播卡）要读它 */
+  examDate:         null,
   /* ==5.27== 只读视角新增的三样：班级量化流水（按班，本就无姓名）、限时征集、班干部名单 */
   quant_log:        'clsId',
   gathers:          null,
@@ -179,6 +181,8 @@ const STUDENT_READ = {
   rooms:        null,
   exams:        null,          // 考试安排（题库是公开的练声材料）
   notices:      null,          // 公告本来就给大家看
+  /* ==5.30== 统考日期：单标量、无隐私，学生端首页轮播卡倒计时要读它 */
+  examDate:     null,
   news_cache:   null,          // 每日新闻（教务端拉好，学生只读这一份）
   quant_rules:  null,          // 量化名目（学生端靠它把自己的考勤折成分数）
   /* quant_log 是「班级级」流水：只有 clsId/日期/名目/分值，不含任何姓名，
@@ -261,8 +265,9 @@ function mergeList(a, b) {
 /* 配置类单值：客户端传了就以客户端为准。
    打卡设置是教务在「打卡管理」里改的，改完必须立刻生效；
    走「服务端没有才写入」的老规矩的话，第一次存进去之后就再也改不动了。
-   ⚠️ 学生的写白名单里没有 sign_rules，所以这条路只有教务走得通。 */
-const OVERWRITE_KEYS = ['sign_rules'];
+   ⚠️ 学生的写白名单里没有这些，所以这条路只有教务走得通。
+   ==5.30== examDate（统考日期）加入：教务在「考试/模考」页改，全端倒计时跟着同步。 */
+const OVERWRITE_KEYS = ['sign_rules', 'examDate'];
 
 function mergeAll(server, client) {
   const out = Object.assign({}, server || {});

@@ -887,6 +887,17 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
     display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
     gap:var(--gap);align-content:start;
   }
+  /* ==5.30== 页面进场动画（桌面 ≥1100 专属）：恢复 5.19 删掉的 rise 级联 ——
+     老师端 / 教务端 / 学生端完全同一套（同一令牌 var(--ease)、同一节拍，不新造动画）。
+     手机端不套：2026-10-30「手机观感尤甚」的定稿继续有效，m390 基线零变化；
+     看板仍被 body.board-mode 的 animation:none 压掉（2609 行），一屏数字照旧直出。 */
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .page.on > *{animation:rise .26s var(--ease) both}
+  .page.on > *:nth-child(1){animation-delay:0s}
+  .page.on > *:nth-child(2){animation-delay:.03s}
+  .page.on > *:nth-child(3){animation-delay:.06s}
+  .page.on > *:nth-child(4){animation-delay:.09s}
+  .page.on > *:nth-child(n+5){animation-delay:.12s}
   .page.on > .page-title,
   .page.on > .page-sub,
   .page.on > .banner,
@@ -4559,6 +4570,17 @@ var Icon = {
     <!-- ==== 功能：模考 START ==== -->
     <section class="page" id="page-exam">
       <div class="page-title">每周模考</div>
+      <!-- ==5.30== 统考日期编辑窗口：日期原来写死在代码常量里，教务找不到改的地方。
+           改这里一处，手机端轮播卡（学生/教师/教务）、桌面首页倒计时卡全部同步。 -->
+      <div class="card" id="examDateCard">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-db"></use></svg> 统考倒计时</h2>
+        <p class="hint" style="margin-top:0">统考日期以前写死在代码里，这里就是改它的窗口。<b>改了以后学生端、手机端、看板上的统考倒计时全部同步更新</b>，不用重启。日期过了当天，各端倒计时卡自动隐藏。</p>
+        <div class="row" style="flex-wrap:wrap" id="examDateEdit">
+          <input type="date" id="examDateIn" style="max-width:190px">
+          <button class="btn" onclick="Exam.saveDate()">保存</button>
+        </div>
+        <p class="hint" id="examDateNow"></p>
+      </div>
       <div class="card" style="font-size:13px">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-ruler"></use></svg> 评分标准 · 河南省播音与主持类统考</h2>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -6128,6 +6150,11 @@ const Store = (() => {
       if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.schedule();
     },
     mergeList,
+    /* ==5.30== 「远端赢」的单值键：教务权威配置，改了以后所有端必须跟上。
+       默认语义是单值本地优先（防远端旧值覆盖刚改的设置），但这两样不一样：
+       只有教务能写（服务端白名单），别的端全靠 pull 拿 —— 本地留旧值反而把
+       新配置挡在门外（教务改了统考日期，学生端轮播卡永远不动）。 */
+    REMOTE_WINS: ['examDate', 'sign_rules'],
     /** 把远端整包数据合并进本地。数组型逐条合并，单值取时间新的 */
     mergeRemote(remote){
       if (!remote || typeof remote !== 'object') return 0;
@@ -6138,10 +6165,10 @@ const Store = (() => {
         if (Array.isArray(rv)) {
           const merged = mergeList(Array.isArray(lv) ? lv : [], rv);
           if (JSON.stringify(merged) !== JSON.stringify(lv)) { driver.set(NS + key, merged); changed++; }
-        } else if (lv === null || lv === undefined) {
+        } else if (lv === null || lv === undefined || this.REMOTE_WINS.includes(key)) {
           driver.set(NS + key, rv); changed++;
         }
-        // 单值且两边都有：保守起来保留本地，避免远端旧值覆盖刚改的设置
+        // 其余单值两边都有：保守起来保留本地，避免远端旧值覆盖刚改的设置
       }
       return changed;
     },
@@ -6266,6 +6293,15 @@ const Util = {
     return d.getFullYear() + '-' +
            String(d.getMonth()+1).padStart(2,'0') + '-' +
            String(d.getDate()).padStart(2,'0');
+  },
+  /* ==5.30== 统考日单一来源：Store 键 examDate（组织同步，教务在「考试/模考」页顶改）
+     > 原代码常量兜底。以前日期写死在 MOBILE-V1 的 EXAM_DATE 常量里，用户找不到改的窗口 ——
+     现在所有消费点（手机轮播三张卡 / 桌面首页倒计时卡）都从这里读。
+     过期与否各消费点自己判（过期整卡隐藏的口径不变）。 */
+  EXAM_DATE_FALLBACK: '2027-01-09',
+  examDate(){
+    const v = String(Store.get('examDate') || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : this.EXAM_DATE_FALLBACK;
   },
   uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); },
   dateOf(d){
@@ -7303,6 +7339,9 @@ const App = {
     const r = this.routes.find(x => x.id === id);
     if (r && r.roles.includes(Auth.role())) r.onShow?.();
     this.refreshDots();
+    /* ==5.30== 手机端 V1 展示卡（含统考倒计时轮播卡）跟着数据刷新 ——
+       同步轮询拉回新 examDate 后不用切页/重启，当前页的卡就地更新 */
+    try { if (typeof V1 !== 'undefined' && V1.sync) V1.sync(); } catch(e){}
   },
 
 };
@@ -7518,19 +7557,21 @@ const Home = {
 
   render(){
     this.bind();
-    /* ── 轴首：倒计时 ── */
+    /* ── 轴首：倒计时 ──
+       ==5.30== 日期改读统一数据源 Util.examDate()（examDate 配置 > 常量兜底）——
+       以前这里读本机 cd_date（就地改的天数），跟手机端常量是两套数，改了一边另一边不动。 */
     const label = Store.get('cd_label', '统考') || '目标日';
-    const date  = Store.get('cd_date', '');
+    const date  = (typeof Util.examDate === 'function') ? Util.examDate() : Store.get('cd_date', '');
     const lb = document.getElementById('cdLabel'); if (lb) lb.textContent = label;
     const dt = document.getElementById('cdDate');  if (dt) dt.textContent = date || '----';
     const daysEl = document.getElementById('cdDays');
     if (daysEl){
       const days = date ? Math.ceil((new Date(date) - new Date(Util.today())) / 864e5) : null;
       daysEl.textContent = days === null ? '--' : String(Math.max(0, days));
-      daysEl.title = date ? ('点一下就地修改倒数天数（目标日 ' + date + '）') : '点一下设定倒数天数';
+      daysEl.title = '统考日期在「考试/模考」页顶部配置';
     }
     const edit = document.getElementById('cdEdit');
-    if (edit) edit.textContent = date ? '就地修改天数' : '设定倒数天数';
+    if (edit) edit.textContent = '修改统考日期';
 
     /* ── 主轴 ── */
     this.renderAxis();
@@ -7542,36 +7583,12 @@ const Home = {
     if (hs) hs.textContent = Store.list('classes').length ? '' : '还没有班级';
   },
 
-  /* ── 就地修改倒计时（替代原来的 cdLabelIn / cdDateIn 两个输入框）──
-     点大数字改天数（改完目标日 = 今天 + N 天）；点目标名改名字。两条都写回 Store。 */
+  /* ── 首页倒计时卡的「改日期」入口（==5.30== 改跳统一编辑窗口）──
+     以前点这里就地改天数（写本机 cd_date），跟手机端各读各的 —— 改了一边另一边不动。
+     现在日期唯一编辑窗口在「考试/模考」页顶部的「统考倒计时」卡，点这里直接送过去。 */
   editDays(){
-    const span = document.getElementById('cdDays');
-    if (!span || span.dataset.editing === '1') return;
-    const inp = document.createElement('input');
-    inp.type = 'number'; inp.min = '0'; inp.max = '9999'; inp.className = 'cd-input';
-    inp.value = String(parseInt(span.textContent, 10) || 0);
-    inp.setAttribute('aria-label', '倒计时天数');
-    span.dataset.editing = '1'; span.hidden = true;
-    span.parentNode.insertBefore(inp, span.nextSibling);
-    inp.focus(); inp.select();
-    let done = false;
-    const finish = ok => {
-      if (done) return; done = true;
-      if (ok){
-        let v = parseInt(inp.value, 10); if (isNaN(v) || v < 0) v = 0; if (v > 9999) v = 9999;
-        const nd = new Date(); nd.setDate(nd.getDate() + v);
-        const ds = nd.getFullYear() + '-' + String(nd.getMonth() + 1).padStart(2, '0')
-                 + '-' + String(nd.getDate()).padStart(2, '0');
-        Store.set('cd_date', ds);
-      }
-      inp.remove(); span.hidden = false; delete span.dataset.editing; span.focus();
-      this.render();
-    };
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter'){ e.preventDefault(); finish(true); }
-      if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
-    });
-    inp.addEventListener('blur', () => finish(true));
+    if (Auth.canEdit()){ UI.toast('统考日期在「考试/模考」页顶部配置'); App.go('exam'); }
+    else UI.toast('统考日期由教务老师在「考试/模考」页配置');
   },
 
   editLabel(){
@@ -13059,10 +13076,41 @@ const Exam = {
   PROMPT: '你是播音与主持艺术艺考的命题老师。请基于最近一周的时事热点和热点事件，出 5 道即兴评述考题。每题一行，格式为「1. 题目（后面括号里给一句评述角度提示）」。只输出 5 道题，不要任何其他说明。',
 
   render(){
+    this.renderDate();
     this.renderAI();
     this.renderList();
     this.renderSheet();
     this.renderDraw();
+  },
+
+  /* ══ 统考倒计时卡（==5.30==）══
+     日期唯一编辑窗口：admin+ 可改（Store examDate → Sync.push 组织同步）；
+     teacher 只读看当前值。学生端 / 手机端轮播卡 / 桌面首页卡都从 Util.examDate() 读，
+     各端 15 秒同步轮询回来后自动刷新，不用重启。 */
+  renderDate(){
+    const card = document.getElementById('examDateCard');
+    if (!card) return;
+    const d = Util.examDate();
+    const inp = document.getElementById('examDateIn');
+    const editable = Auth.canEdit();
+    const box = document.getElementById('examDateEdit');
+    if (box) box.style.display = editable ? '' : 'none';
+    if (inp && editable && !inp.value) inp.value = d;
+    const days = Math.ceil((new Date(d) - new Date(Util.today())) / 864e5);
+    const now = document.getElementById('examDateNow');
+    if (now) now.textContent = days < 0
+      ? `当前统考日 ${d} —— 已经过期，各端倒计时卡现在是隐藏状态`
+      : `当前统考日 ${d} · 距今 ${days} 天`;
+  },
+  saveDate(){
+    if (!Auth.canEdit()) return UI.toast('统考日期只有教务能改');
+    const inp = document.getElementById('examDateIn');
+    const v = ((inp && inp.value) || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return UI.toast('先选一个日期（YYYY-MM-DD）');
+    Store.set('examDate', v);
+    Sync.push();
+    UI.toast('统考日期已改为 ' + v + '，各端倒计时会随后续同步自动更新');
+    this.renderDate();
   },
 
   /* ══ 抽签 ══
@@ -16207,7 +16255,12 @@ const Sync = {
   },
 
   async push(){
-    if (!this.on() || this._busy) return;
+    if (!this.on()) return;
+    /* ==5.30== 忙时排队而不是丢弃：以前 _busy（上一次 pull/push 还没回来）时
+       这次 push 直接 return —— 教务改统考日期这类「单标量小改动」如果正好撞上
+       一轮 15 秒轮询，云端就永远收不到，别的端也永远看不到。排进 schedule，
+       400ms 后自动重发，改动只晚一点，不会丢。 */
+    if (this._busy) return this.schedule();
     this._busy = true;
     this.status('同步中');
     try {
@@ -19751,7 +19804,8 @@ M2Pages.init();
    统考倒计时天数（LIYUN_EXAM_DATE 单一来源）/ 首页概览卡填充。
    只读现有数据与已渲染 DOM，不加任何写操作；全部 try-catch，失败静默不碍业务。 */
 const V1 = {
-  /* 统考日单一来源（用户 2026-10 定案）。已过 / 未配置 → 倒计时整卡隐藏 */
+  /* 统考日常量兜底：==5.30== 起真源在 Util.examDate()（examDate 配置 > 此常量），
+     本字段保留只为兜底引用不悬空。已过 / 未配置 → 倒计时整卡隐藏 */
   EXAM_DATE: '2027-01-09',
 
   _set(id, v){
@@ -19819,11 +19873,13 @@ const V1 = {
     else if (cur.id === 'page-home') this.adm();
   },
 
-  /* 倒计时卡：EXAM_DATE 常量实算天数；已过 / 未配置 → 整卡隐藏（圆点收到 1 枚） */
+  /* 倒计时卡：==5.30== 改读统一数据源 Util.examDate()（examDate 配置 > 常量兜底）——
+     以前读本模块写死的 EXAM_DATE 常量，教务改不了。已过 / 未配置 → 整卡隐藏（圆点收到 1 枚） */
   cd(suf){
     const card = document.getElementById('v1CdCard' + suf);
     if (!card) return;
-    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(this.EXAM_DATE || '');
+    const ED = (typeof Util !== 'undefined' && Util.examDate) ? Util.examDate() : (this.EXAM_DATE || '');
+    const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(ED || '');
     const days = m ? Math.ceil((new Date(+m[1], m[2] - 1, +m[3]) - new Date(new Date().setHours(0, 0, 0, 0))) / 864e5) : NaN;
     if (!isFinite(days) || days < 0){
       card.style.display = 'none';
@@ -19835,7 +19891,7 @@ const V1 = {
     }
     card.style.display = '';
     this._set('v1CdDays' + suf, String(days));
-    this._set('v1CdDate' + suf, '目标日 ' + this.EXAM_DATE.split('-').join('.'));
+    this._set('v1CdDate' + suf, '目标日 ' + ED.split('-').join('.'));
   },
 
   /* ① 学生首页：概览卡 = 今日课程（Stu.todayLessons 真数据 + 下一节） */
