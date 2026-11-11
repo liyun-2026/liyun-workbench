@@ -41,7 +41,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('  ✅ ' + m); } else { fail++; console.log('  ❌ ' + m); } };
 
 let server; const chromes = [];
-async function browser(tag, width, height) {
+async function browser(tag, width, height, swMode) {
   const profile = await mkdtemp(path.join(tmpdir(), 'ea-'));
   /* ==修== 每个 Chrome 实例独占一个调试端口（chromes.length 递增）——
      三实例共用同一个端口时，第二个起不来，json/list 返回的还是第一个实例的
@@ -54,8 +54,9 @@ async function browser(tag, width, height) {
   chromes.push(ch);
   const target = await waitFor(async () => (await (await jfetch(`http://127.0.0.1:${dbg}/json/list`)).json()).find(x => x.type === 'page' && x.webSocketDebuggerUrl));
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
+  cdp._dbg = dbg;
   await cdp.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 800 });
-  await new Promise(res => { cdp.send('Page.navigate', { url: BASE + '/?nosw=1' }).then(res); });
+  await new Promise(res => { cdp.send('Page.navigate', { url: BASE + (swMode ? '/?cb=' + Date.now() : '/?nosw=1') }).then(res); });
   await sleep(2000);
   await cdp.eval(`(async () => {
     if (!Auth.mode) await Auth.probe();
@@ -91,8 +92,35 @@ try {
     Sync.push(); await new Promise(r => setTimeout(r, 1000)); return true; })()`);
 
   console.log('\n=== ① 桌面 1440 切页动画：三角色同一套 ===');
+  /* ==5.31== 运行时探针：切页瞬间逐帧采 getAnimations()，断言 rise **真的在跑**、
+     跑在实际可见且有内容的卡片上（5.30 用户反馈「看不到动画」后固化的口径 ——
+     只看 computed animationName 挡不住「动画播在空壳上」这类问题）。 */
+  const PROBE_START = `(() => {
+    window.__samples = [];
+    const snap = () => { const p = document.querySelector('.page.on'); if (!p) return;
+      const anims = document.getAnimations().filter(a => a.animationName === 'rise' && a.playState === 'running');
+      window.__samples.push({ anims: anims.map(a => { const el = a.effect && a.effect.target;
+        return el ? { vis: !!el.offsetParent, len: (el.innerHTML||'').length } : null; }) }); };
+    let on = true;
+    const loop = () => { if (!on) return; snap(); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+    window.__probeStop = () => { on = false; snap(); return window.__samples; };
+    return true; })()`;
+  async function cutAnim(cdp, goExpr) {
+    await cdp.eval(PROBE_START);
+    await cdp.eval(goExpr);
+    await sleep(150);
+    const s = await cdp.eval(`window.__probeStop()`);
+    const frames = s.filter(x => x.anims.length);
+    const all = frames.flatMap(x => x.anims).filter(Boolean);
+    return { hit: frames.length > 0 && all.length > 0
+      && all.every(a => a.vis && a.len > 0),
+      n: all.length };
+  }
+
   /* super：切页 → 直接子元素 computed animationName 应全为 rise */
-  await supA.eval(`App.go('att')`);
+  const supCut = await cutAnim(supA, `App.go('att')`);
+  ok(supCut.hit, `教务端切页 rise 真的跑在可见卡片上（峰值 ${supCut.n} 个动画）`);
   await sleep(120);
   const supAnim = await supA.eval(`(() => {
     const page = document.querySelector('.page.on');
@@ -106,7 +134,8 @@ try {
   const tea = await login(teaB, '张伟', 'liyun2026');
   ok(tea.off && tea.role === 'teacher', 'teacher 登录');
   await teaB.eval(`App.go('today')`); await sleep(900);
-  await teaB.eval(`App.go('att')`);
+  const teaCut = await cutAnim(teaB, `App.go('att')`);
+  ok(teaCut.hit, `授课老师端切页 rise 真的跑在可见卡片上（峰值 ${teaCut.n} 个动画）`);
   await sleep(120);
   const teaAnim = await teaB.eval(`(() => {
     const page = document.querySelector('.page.on');
@@ -115,12 +144,16 @@ try {
   ok(teaAnim.length > 0 && teaAnim.every(a => a[0] === 'rise'), `授课老师端切页 rise 级联在（${teaAnim.filter(a => a[0] === 'rise').length}/${teaAnim.length}）`);
   await teaB.shot('anim-teacher-desktop.png');
 
-  /* student 1440 */
+  /* student 1440（==修== 学生没有 'news' route —— 那是老师的；学生的叫 stuNews。
+     之前一直停在落地页 stuHome「切自己」，同帧 remove+add 类不重启动画，
+     运行时探针因此读到 0。真实跨页切换才有意义。） */
   const stuC = await browser('stu', 1440, 900);
   const stu = await login(stuC, '王梓涵', 'liyun2026');
   ok(stu.off && stu.role === 'student', 'student 登录');
-  await stuC.eval(`App.go('news')`);
-  await sleep(120);
+  await stuC.eval(`App.go('stuTable')`); await sleep(700);
+  const stuCut = await cutAnim(stuC, `App.go('stuHome')`);
+  ok(stuCut.hit, `学生端切页 rise 真的跑在可见卡片上（峰值 ${stuCut.n} 个动画）`);
+  await stuC.eval(`App.go('stuNews')`); await sleep(150);
   const stuAnim = await stuC.eval(`(() => {
     const page = document.querySelector('.page.on');
     return [...page.children].map(el => { const s = getComputedStyle(el);
@@ -129,7 +162,9 @@ try {
   /* 「与老师端完全一致」= 同一套动画令牌，不是子元素个数（各角色首页内容本就不同）：
      ① 名字全 rise ② 时长全 0.26s ③ timing-function 同一个（var(--ease) 的 computed 值）
      ④ 前三个子元素的 delay 节拍逐位相同（0/.03/.06 —— 同一条 nth-child 级联） */
-  const beat = a => a.slice(0, 3).map(x => x[2]).join(',');
+  /* beat：三角色切到的页面子元素个数不同（att 3 个 / stuNews 2 个），
+     delay 节拍只比「共有位数」（同一套 nth-child 级联，前 N 位必然逐位相同） */
+  const beat = a => a.slice(0, Math.min(2, a.length)).map(x => x[2]).join(',');
   const names = new Set([...supAnim, ...teaAnim, ...stuAnim].map(x => x[0]));
   const durs  = new Set([...supAnim, ...teaAnim, ...stuAnim].map(x => x[1]));
   const easings = new Set([...supAnim, ...teaAnim, ...stuAnim].map(x => x[3]));
@@ -143,7 +178,7 @@ try {
   /* 390 手机：无动画（手机 scroll-snap 轮播不动） */
   const stuM = await browser('stuM', 390, 844);
   await login(stuM, '王梓涵', 'liyun2026');
-  await stuM.eval(`App.go('news')`);
+  await stuM.eval(`App.go('stuNews')`);
   await sleep(120);
   const mAnim = await stuM.eval(`(() => {
     const page = document.querySelector('.page.on');
@@ -151,6 +186,35 @@ try {
       .filter(a => a && a !== 'none'); })()`);
   ok(mAnim.length === 0, '手机 390 切页无进场动画（rise 只在桌面 ≥1100）');
   await stuM.shot('anim-student-m390.png');
+
+  /* ==5.31== SW 换版提醒：在用中的旧窗口收到 shell-updated 不能静默刷（防丢表单），
+     但必须给一枚「点这里换新版」的提醒 —— 用户反馈「看不到动画」的真正根因是
+     旧窗口永远吃旧版（v109 里本来就没有 rise），不修这个下次部署还一样。 */
+  console.log('\n=== ①b SW 换版触达：在用中的窗口收到 shell-updated → 提醒条 ===');
+  const swC = await browser('sw', 1440, 900, true);
+  await swC.eval(`location.reload(); true`);          // 第二次导航：hadController=true
+  await sleep(2600);
+  await swC.eval(`true`);
+  /* 模拟用户动过手（CDP 真注入 pointer 事件，合成 click 不触发 pointerdown 监听） */
+  await swC.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 700, y: 430, button: 'left', clickCount: 1 });
+  await swC.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 700, y: 430, button: 'left', clickCount: 1 });
+  await sleep(300);
+  /* 点击后 _touched=true → 静默换版窗口已关 → shell-updated 必须走提醒条分支。
+     从 SW context 向页面广播 shell-updated（与 sw.js revalidate 发的同一条消息）。 */
+  const swList = await (await jfetch(`http://127.0.0.1:${swC._dbg}/json/list`)).json();
+  const swTarget = swList.find(x => x.type === 'service_worker' && /sw\.js/.test(x.url));
+  if (swTarget){
+    const swWs = await Cdp.connect(swTarget.webSocketDebuggerUrl);
+    await swWs.eval(`self.clients.matchAll({ type: 'window' }).then(cs => {
+      cs.forEach(c => c.postMessage({ type: 'shell-updated' })); return cs.length; })`);
+  }
+  await sleep(900);
+  const hint = await swC.eval(`(() => {
+    const b = document.getElementById('swUpdateHint');
+    return { on: !!b, display: b ? getComputedStyle(b).display : '',
+      text: b ? b.textContent : '' }; })()`);
+  ok(hint.on === true && hint.display !== 'none' && /新版/.test(hint.text), `在用中的窗口收到 shell-updated → 挂「换新版」提醒条（${hint.text}）`);
+  await swC.shot('sw-update-hint.png');
 
   console.log('\n=== ② 统考日期可视化配置：改一处全端同步 ===');
   /* exam 页编辑卡：默认值 = 常量兜底 2027-01-09 */

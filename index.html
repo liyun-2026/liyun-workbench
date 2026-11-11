@@ -20437,10 +20437,31 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
     if (_boardMode() && !_editingNow() && Date.now() - _lastAct > IDLE_GAP) return true;
     return false;
   };
+  /* ==5.31== 换版触达补漏（用户实测反馈「学生端还是没有翻页动画」的根因）：
+     旧窗口里跑的还是旧版页面 —— 旧规矩「用户动过手就不静默刷」本身没错（防丢表单），
+     但重度用户「打开就开干」，永远凑不满 30 秒的静默窗口，新版就一直进不来。
+     所以：收到 shell-updated 又不能静默刷的页面，挂一枚小提醒，用户点一下立刻换版。
+     提示条不挡任何操作，点之前正在填的东西不受影响。 */
+  const _updateHint = () => {
+    if (window._swReloading) return;
+    if (document.getElementById('swUpdateHint')) return;
+    const b = document.createElement('button');
+    b.id = 'swUpdateHint';
+    b.textContent = '系统已更新 · 点这里换到新版';
+    b.title = '先把手头没提交的内容保存一下，再点更新更稳妥';
+    b.style.cssText = 'position:fixed;top:14px;right:14px;z-index:99999;border:0;cursor:pointer;'
+      + 'padding:9px 15px;border-radius:999px;font:13px/1 -apple-system,BlinkMacSystemFont,sans-serif;'
+      + 'background:#1f2937;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.22)';
+    b.onclick = () => {
+      try { sessionStorage.setItem(KEY_DONE, '1'); } catch (e) {}
+      location.reload();
+    };
+    document.body.appendChild(b);
+  };
   const _onShellReady = () => {
     if (window._swReloading) return;                 // 同一趟里只认一次
     if (!hadController) return;                      // 首次安装，没有「旧版」要换掉
-    if (!_mayQuietReload()) return;                  // 用户已经在用了：留到下次打开
+    if (!_mayQuietReload()){ _updateHint(); return; } // 用户已经在用：不硬刷，给一枚提醒
     let done = false;
     try { done = sessionStorage.getItem(KEY_DONE) === '1'; } catch (e) {}
     if (done) return;                                // 本会话已经刷过一次，不再刷
