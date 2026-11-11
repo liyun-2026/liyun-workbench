@@ -10,7 +10,7 @@
  *   2. 落上去之后侧栏 / 顶栏 / 底栏全隐，屏上只剩数字；底是米白不是正白
  *   3. 应到 / 实到 两个大数算得对 —— 含「请假不算未到」这条口径，
  *      以及「演示班 / 演示学员一个字都不许上屏」
- *   4. 时钟在走；打卡码是 **6 位、60 秒一换**，底下带「N 秒后换码」倒计时
+ *   4. 时钟在走；打卡码是 **6 位、30 秒一换**（==5.28== 主理人拍板 60→30），底下带「N 秒后换码」倒计时
  *      （固定码这条岔路已拆：源码里逐条验过）
  *   5. 迟到 / 请假 / 未到**三个数放大**（原来一行 19px 小字，站远了看不见）
  *   6. 二维码**放中间且够大**，编的是那串数字本身（不是网址），且与数字码是同一枚
@@ -226,14 +226,14 @@ try {
   t('看板真的能从服务端取到 6 位动态码（不是写死的假值）', () => {
     assert(/^\d{6}$/.test(live.code), '服务端该给 6 位码，实际「' + live.code + '」');
     assert(live.shown === live.code, '屏上显示的该与服务端一致，实际屏上「' + live.shown + '」');
-    assert(live.until > 0 && live.until <= 60000, '该带回「这一枚还剩多久」用于倒计时，实际 ' + Math.round(live.until) + 'ms');
+    assert(live.until > 0 && live.until <= 30000, '该带回「这一枚还剩多久」用于倒计时（30 秒窗），实际 ' + Math.round(live.until) + 'ms');
     return live.code + '（还剩 ' + Math.round(live.until / 1000) + ' 秒）';
   });
 
-  /* ⚠️ 固定码这条路已经拆了 —— 现在**只有**「6 位、60 秒一换」一种形态，
+  /* ⚠️ 固定码这条路已经拆了 —— 现在**只有**「6 位、30 秒一换」一种形态，
      底下必须挂着倒计时（用户点名要的那个「还有几秒换」）。 */
   const code = await cdp.eval(`(() => {
-    Board._code = '317204'; Board._until = Date.now() + 30000; Board.paintCode();
+    Board._code = '317204'; Board._until = Date.now() + 15000; Board.paintCode();   // 30 秒窗的半程
     const a = {
       txt: document.getElementById('bdCode').textContent,
       bar: document.getElementById('bdBar').style.width,
@@ -242,12 +242,12 @@ try {
       soon: document.getElementById('bdLeft').classList.contains('soon'),
     };
     /* 走到最后 10 秒：秒数该转朱砂（soon）催一下 */
-    Board._until = Date.now() + 6000; Board.paintCode();
+    Board._until = Date.now() + 3000; Board.paintCode();   // 30 秒窗的尾巴
     const b = { left: document.getElementById('bdLeft').textContent,
                 soon: document.getElementById('bdLeft').classList.contains('soon'),
                 bar: document.getElementById('bdBar').style.width };
-    /* 还剩 30 秒 → 进度条该在半程附近；6 秒 → 该掉到尾巴上 */
-    Board._until = Date.now() + 30000; Board.paintCode();
+    /* 还剩 15 秒 → 进度条该在半程附近；3 秒 → 该掉到尾巴上 */
+    Board._until = Date.now() + 15000; Board.paintCode();
     return { a: a, b: b, early: document.getElementById('bdBar').style.width };
   })()`);
   t('打卡码画得出来：6 位数字 + 进度条 + 「N 秒后换码」倒计时', () => {
@@ -257,18 +257,18 @@ try {
     /* ⚠️ CSSOM 会归一化：设进去的 "50.0%" 读回来是 "50%"。别把小数位写进判据。 */
     assert(/^\d+(\.\d+)?%$/.test(code.a.bar), '进度条该有具体宽度，实际 ' + code.a.bar);
     const w30 = parseFloat(code.early), w6 = parseFloat(code.b.bar);
-    assert(w30 > 40 && w30 < 60, '剩 30 秒时进度条该在半程（约 50%），实际 ' + code.early);
-    assert(w6 < 15, '剩 6 秒时进度条该快走完了，实际 ' + code.b.bar);
-    assert(!code.a.soon, '剩 30 秒不该转红');
-    assert(code.b.soon, '剩 6 秒该转朱砂催一下，实际没转');
-    return code.a.left + ' 秒后换码 · 进度 ' + code.a.bar + '（30s ' + code.early + ' → 6s ' + code.b.bar + '，末 10 秒转红）';
+    assert(w30 > 40 && w30 < 60, '剩 15 秒时进度条该在半程（约 50%），实际 ' + code.early);
+    assert(w6 < 15, '剩 3 秒时进度条该快走完了，实际 ' + code.b.bar);
+    assert(!code.a.soon, '剩 15 秒不该转红');
+    assert(code.b.soon, '剩 3 秒该转朱砂催一下，实际没转');
+    return code.a.left + ' 秒后换码 · 进度 ' + code.a.bar + '（15s ' + code.early + ' → 3s ' + code.b.bar + '，末 10 秒转红）';
   });
   /* 码到底多久换一次、一位是几位 —— 这两件事以前是「教务自己设」，4/6/8 位混着来。
-     现在只认服务端派生的 6 位 / 60 秒，代码里不许再出现第二种形态。 */
-  t('动态码只有一种形态：6 位、60 秒一换（没有「教务自设固定码」这条岔路）', () => {
+     现在只认服务端派生的 6 位 / 30 秒，代码里不许再出现第二种形态。 */
+  t('动态码只有一种形态：6 位、30 秒一换（==5.28== 主理人拍板 60→30；没有「教务自设固定码」这条岔路）', () => {
     assert(!/localCode|saveCode|randCode|_fixed/.test(BOARD_SRC), 'index.html 里不该再有固定码的残迹');
     const m = SYNC_SRC.match(/const CODE_WINDOW_MS = (\d+)/);
-    assert(m && Number(m[1]) === 60000, '服务端的换码窗口该是 60000ms，实际 ' + (m ? m[1] : '找不到'));
+    assert(m && Number(m[1]) === 30000, '服务端的换码窗口该是 30000ms（==5.28== 30 秒口径），实际 ' + (m ? m[1] : '找不到'));
     const n = SYNC_SRC.match(/const CODE_LEN = (\d+)/);
     assert(n && Number(n[1]) === 6, '服务端的码长该钉在 6 位，实际 ' + (n ? n[1] : '找不到'));
     assert(!/sign_rules\.code|rules\.code/.test(SYNC_SRC), '服务端不该再读教务自设的固定码了');

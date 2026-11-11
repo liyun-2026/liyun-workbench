@@ -729,20 +729,23 @@ function distM(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/* ── 动态码：**只有一种**，6 位、60 秒一换 ──
-   码由服务端密钥派生（HMAC），学生端算不出下一分钟的码，
+/* ── 动态码：**只有一种**，6 位、30 秒一换 ──
+   码由服务端密钥派生（HMAC），学生端算不出下一个半分钟的码，
    所以「人在宿舍让同学代打」这条堵在这里。
 
    为什么把「教务自设的固定码」去掉了（2026-09-29）：
    固定码一节课不变，只要有一个学生把码发到群里，别人在宿舍也能打。
-   现在两样东西都是动态的 —— 屏幕上的数字和二维码里编的数，同一枚、60 秒一换，
+   现在两样东西都是动态的 —— 屏幕上的数字和二维码里编的数，同一枚、30 秒一换，
    二维码下面带倒计时。学生要打卡只有两条路：当场扫、或是当场抄。
    （顺带把位数钉死成 6 位：以前固定码可长可短，4/6/8 位混着来，
      字号要跟着伸缩、学生也不知道该输几位。）
 
+   ==5.28== 换码周期 60 秒 → 30 秒（主理人 2026-11-11 拍板）：
+   截屏/拍视频转发的窗口再砍一半 —— 前一秒截的图，后半分钟就作废。
+
    码只是「第二道」—— 第一道是定位。人在校区外打了也只会记成「待核」。
    向前兼容：上一窗口的码也认（学生抄完到按下去可能刚好跨过换码点）。 */
-const CODE_WINDOW_MS = 60000;
+const CODE_WINDOW_MS = 30000;
 const CODE_LEN = 6;
 async function codeAt(sec, slot) {
   const h = await hmacHex(sec, 'signcode|' + slot);
@@ -752,8 +755,9 @@ async function codeOK(sec, code, ts) {
   return (await codeCheck(sec, code, ts)) === 'ok';
 }
 /* ==5.26== 走查 Y3：把「输错了」和「过期了」分开 ——
-   当前窗 / 上一窗都认（codeOK 原语义）；再往前 4 个窗（2~5 分钟前的旧码）认得出是过期；
-   全都对不上才是真的输错。学生看到的提示从此不再是含糊的一句「过期了」。 */
+   当前窗 / 上一窗都认（codeOK 原语义）；再往前 4 个窗（1~2.5 分钟前的旧码）认得出是过期；
+   全都对不上才是真的输错。学生看到的提示从此不再是含糊的一句「过期了」。
+   （==5.28== 换码窗缩到 30 秒后，「往前 4 个窗」覆盖的是 60~150 秒前。） */
 async function codeCheck(sec, code, ts) {
   const want = String(code == null ? '' : code).trim();
   if (!want) return 'bad';
@@ -787,8 +791,67 @@ function syncAttQuant(data, clsId, date) {
   });
 }
 
+/* ==5.28== 待核结算规矩（主理人 2026-11-11 拍板，写进系统）：
+   ① 定位取不到 / 偏差超限 → 记「待核」，不算缺卡（v51 起的老口径，这里成文）；
+   ② 待核 24 小时内可在学生端（位置密钥重打，见 doSign 的 KEYLATE 拦）或教务端核销；
+   ③ 跨日仍未核销（超过 24 小时）→ 结算计「缺卡」。
+   KV 没有定时器，结算靠「谁来读谁结」：pull（次日首次读取该日考勤）时顺手落账 ——
+   只动 sign:{date} 里 status 仍是「待核」的记录：status 改「缺卡」、盖 settledAt，
+   并补一条 att:{date}（请假优先：已有病假/事假的不覆盖），量化照 syncAttQuant 走。
+   ⚠️ 只有真结算了才写回 org/data —— 平常一次 pull 不多出一次写。 */
+function settlePendingSigns(data, now) {
+  const today = cnParts(now).date;
+  let changed = false;
+  for (const [k, arr] of Object.entries(data)) {
+    if (k.indexOf('sign:') !== 0 || !Array.isArray(arr)) continue;
+    const date = k.slice(5);
+    if (date >= today) continue;                      // 今天与未来的不动
+    const students = Array.isArray(data.students) ? data.students : [];
+    const slots = Array.isArray(data.att_slots) ? data.att_slots : [];
+    const rules = data.sign_rules || {};
+    for (const rec of arr) {
+      if (!rec || rec.status !== '待核') continue;
+      if (now - (Number(rec.at) || 0) <= 24 * 3600 * 1000) continue;   // 24 小时核销窗未关
+      rec.status = '缺卡';
+      rec.settledAt = now;
+      rec.settleNote = '待核跨日未核销（超 24 小时），自动结算为缺卡';
+      changed = true;
+      const stu = students.find(x => x && x.id === rec.studentId);
+      const clsId = stu ? stu.classId : '';
+      const pid = rules.pid || (slots[0] && slots[0].id) || 'am';
+      const akey = 'att:' + date;
+      const aarr = Array.isArray(data[akey]) ? data[akey] : [];
+      const old = aarr.find(x => x && x.studentId === rec.studentId && (x.pid || 'am') === pid);
+      if (old && (old.status === '病假' || old.status === '事假')) continue;   // 假是教务批的，不覆盖
+      data[akey] = aarr.filter(x => !(x && x.studentId === rec.studentId && (x.pid || 'am') === pid))
+                       .concat([{ id: old ? old.id : 'a' + rec.studentId + date + pid,
+                                  studentId: rec.studentId, status: '缺卡', pid, _u: now }]);
+      syncAttQuant(data, clsId, date);
+    }
+  }
+  return changed;
+}
+
+/* ==5.28== 打卡并发写保护（压测发现：30 个学生同时打卡会互相冲掉记录）。
+   doSign 是「读 org/data → 改 → 写回」，中间隔着 secret()/codeCheck() 的 await ——
+   两个请求一交错，后写回的那个就会把先写回的整份覆盖掉（丢写）。
+   两道保险：
+   ① 本隔离体互斥：同一进程里的打卡请求排队串行 —— dev / 同隔离体并发直接根治；
+   ② 写后核对：写完立刻回读，自己那条不在就说明被另一个隔离体的并发写冲了 ——
+      把「我这一条」重新叠到最新数据上（最多 5 次），跨隔离体并发也不丢。 */
+const SIGN_WRITE_QUEUE = new Map();
+function withDataLock(key, fn) {
+  const run = (SIGN_WRITE_QUEUE.get(key) || Promise.resolve()).catch(() => {}).then(fn);
+  SIGN_WRITE_QUEUE.set(key, run);
+  return run.finally(() => { if (SIGN_WRITE_QUEUE.get(key) === run) SIGN_WRITE_QUEUE.delete(key); });
+}
+
 async function doSign(s, me, body) {
   if (me.role !== STUDENT || !me.studentId) return json({ error: '这个账号不是学生，打不了卡' }, 403);
+  return withDataLock('org/data', () => doSignInner(s, me, body));
+}
+
+async function doSignInner(s, me, body) {
   const data = (await s.get('org/data', { type: 'json' })) || {};
   const rules = data.sign_rules || null;
   const sid = me.studentId;
@@ -804,10 +867,10 @@ async function doSign(s, me, body) {
   if (at > now + 120000) at = now;
   const offline = !!body.offline && at < now - 20000;
   /* v51：客户端现在会带「**取到码那一刻**」上来（先码后定位：定位跑完才提交，
-     不这样的话定位慢几秒就把准时拖成迟到了）。码的有效期就是两个 60 秒窗口，
-     所以联网这条路最多允许往回 150 秒；再早的就不认了 ——
+     定位慢几秒不会把准时拖成迟到了）。码的有效期就是两个 30 秒窗口，
+     所以联网这条路最多允许往回 90 秒；再早的就不认了 ——
      别让改过的客户端拿一个很旧的时刻来报到。（断网那条路照旧不限，见上。） */
-  if (!offline && at < now - 150000) at = now;
+  if (!offline && at < now - 90000) at = now;
   const p = cnParts(at);
   const date = String(body.date || p.date);
 
@@ -821,7 +884,7 @@ async function doSign(s, me, body) {
      ⚠️ v51 起定位**不再是拦路虎**（见下面 way 那段）：定位不过照样打得上，
         只是记待核。密钥的意义从「唯一的补救」变成「当场就把它改对」。 */
   const keys = Array.isArray(data.sign_keys) ? data.sign_keys : [];
-  let keyHit = null;
+  let keyHit = null, keyTarget = null;
   if (body.key != null && String(body.key).trim() !== '') {
     const stu = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
     const stuCls = stu ? stu.classId : '';
@@ -835,6 +898,21 @@ async function doSign(s, me, body) {
     const limit = Number(keyHit.limit) || 5;
     if (!used.some(x => x && x.studentId === sid) && used.length >= limit)
       return json({ error: '这枚位置密钥的 ' + limit + ' 个名额已经用完了，找教务老师再要一枚', code: 'KEYFULL' }, 400);
+    /* ==5.28== 待核核销窗（主理人 2026-11-11 拍板）：待核记录 24 小时内可用位置密钥
+       核销（学生端重打当场改对）。超窗的要么已被惰性结算成「缺卡」、要么马上会被 ——
+       再输密钥也不放行，请找教务老师处理。
+       核销目标认「今天 + 昨天」里这条学生最新的「待核」：
+       昨天半夜打的卡今天早上核销，重打落的是今天的键 —— 老记录由下面的核销分支补改。 */
+    /* keyTarget 在外层函数作用域声明（跨日核销回写要用） */
+    for (const d of [date, cnParts(now - 86400000).date]) {
+      const rec = (Array.isArray(data['sign:' + d]) ? data['sign:' + d] : []).find(x => x && x.id === sid);
+      if (rec && rec.status === '待核') {
+        if (now - (Number(rec.at) || 0) > 24 * 3600 * 1000)
+          return json({ error: '那条待核已经超过 24 小时，不能再核销了 —— 请找教务老师处理', code: 'KEYLATE' }, 400);
+        keyTarget = d;
+        break;
+      }
+    }
   }
 
   /* ── v51：先码、后定位 ──
@@ -915,7 +993,7 @@ async function doSign(s, me, body) {
 
   /* 只有「正常 / 迟到」才写进考勤 —— 考勤是量化的源头，
      「待核」还没定性，不能先替教务扣了分 */
-  let wrote = null;
+  let wrote = null, wroteCls = null, wrotePid = null;
   if (status === '正常' || status === '迟到') {
     const stu = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
     const clsId = stu ? stu.classId : '';
@@ -932,11 +1010,65 @@ async function doSign(s, me, body) {
                        .concat([{ id: old ? old.id : 'a' + sid + date + pid, studentId: sid, status, pid, _u: now }]);
       if (clsId) syncAttQuant(data, clsId, date);
       wrote = 'att';
+      wroteCls = clsId; wrotePid = pid;
+    }
+  }
+
+  /* ==5.28== 跨日核销：密钥重打落的是今天，但核销目标在昨天 ——
+     老记录一并改对（status/way/keyId + redeemedAt 留痕给教务回查），
+     那一天的考勤与量化跟着补（请假优先，病假/事假不覆盖）。 */
+  let redeemed = null;
+  if (keyHit && keyTarget && keyTarget !== date && (status === '正常' || status === '迟到')) {
+    const oldArr = Array.isArray(data['sign:' + keyTarget]) ? data['sign:' + keyTarget] : [];
+    const oldRec = oldArr.find(x => x && x.id === sid);
+    if (oldRec) {
+      oldRec.status = status; oldRec.way = 'key'; oldRec.keyId = keyHit.id;
+      oldRec.redeemedAt = now;
+      oldRec.redeemNote = '位置密钥核销（24 小时窗内）';
+      data['sign:' + keyTarget] = oldArr;
+      redeemed = keyTarget;
+      const stu2 = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
+      const clsId2 = stu2 ? stu2.classId : '';
+      const slots2 = Array.isArray(data.att_slots) ? data.att_slots : [];
+      const pid2 = (rules && rules.pid) || (slots2[0] && slots2[0].id) || 'am';
+      const akey2 = 'att:' + keyTarget;
+      const aarr2 = Array.isArray(data[akey2]) ? data[akey2] : [];
+      const old2 = aarr2.find(x => x && x.studentId === sid && (x.pid || 'am') === pid2);
+      if (!(old2 && (old2.status === '病假' || old2.status === '事假'))) {
+        data[akey2] = aarr2.filter(x => !(x && x.studentId === sid && (x.pid || 'am') === pid2))
+                         .concat([{ id: old2 ? old2.id : 'a' + sid + keyTarget + pid2,
+                                    studentId: sid, status, pid: pid2, _u: now }]);
+        syncAttQuant(data, clsId2, keyTarget);
+      }
     }
   }
 
   await s.setJSON('org/data', data);
-  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote, at, offline: !!offline });
+
+  /* ==5.28== ② 写后核对（跨隔离体保险）：rec.recvAt === now 是本请求的指纹。
+     回读后自己那条不在 = 被另一个隔离体的并发写冲掉 —— 把打卡记录、
+     考勤（请假优先的口径照旧）与量化重新叠到最新数据上，最多重试 5 次。 */
+  let verified = false;
+  for (let i = 0; i < 5 && !verified; i++) {
+    const back = (await s.get('org/data', { type: 'json' })) || {};
+    const arr2 = Array.isArray(back['sign:' + date]) ? back['sign:' + date] : [];
+    verified = arr2.some(x => x && x.id === sid && x.recvAt === now);
+    if (verified) break;
+    back['sign:' + date] = arr2.filter(x => x && x.id !== sid).concat([rec]);
+    if (wrote === 'att') {
+      const akey2 = 'att:' + date;
+      const aarr2 = Array.isArray(back[akey2]) ? back[akey2] : [];
+      const old2 = aarr2.find(x => x && x.studentId === sid && (x.pid || 'am') === wrotePid);
+      if (!(old2 && (old2.status === '病假' || old2.status === '事假'))) {
+        back[akey2] = aarr2.filter(x => !(x && x.studentId === sid && (x.pid || 'am') === wrotePid))
+                         .concat([{ id: old2 ? old2.id : 'a' + sid + date + wrotePid, studentId: sid, status, pid: wrotePid, _u: now }]);
+        syncAttQuant(back, wroteCls, date);
+      }
+    }
+    await s.setJSON('org/data', back);
+  }
+
+  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote, at, offline: !!offline, redeemed: redeemed || undefined, retried: verified ? undefined : true });
 }
 
 /* ══ 考试抽签 ══
@@ -962,6 +1094,81 @@ async function doDraw(s, me, body) {
   data.exam_draws = arr.filter(x => !(x && x.name === name)).concat([item]);
   await s.setJSON('org/data', data);
   return json({ ok: true, draw: item });
+}
+
+/* ══ 数据备份 / 恢复（==5.28==，仅首位教务）══
+   主理人拍板的上线前整改五件套之最优先项：换设备 / 数据出事时能整库导出、整库还原。
+   键位一览（与全库其余读写同一套命名）：
+     org/data          机构共享区（名册、考勤、作业、量化、打卡、课表、通知……全在这一个键里）
+     org/owner         首位教务身份卡
+     sys/secret        令牌签名密钥（跟着备份走：恢复后老令牌仍然有效）
+     sys/users         账号索引（uid 列表）
+     sys/bddev         看板设备登记
+     auth/{uid}        每个账号的凭据与角色
+     data/{uid}        每个人的私有区
+     devmap/{uid}      学生设备绑定
+     rate/{uid}        登录限流计数
+   devacct/{设备} 没法枚举（键里是设备指纹）—— 不进备份；丢了只是学生要重绑一次设备，自愈。 */
+const BACKUP_VERSION = 1;
+const BACKUP_STATIC_KEYS = ['org/owner', 'org/data', 'sys/secret', 'sys/users', 'sys/bddev'];
+const BACKUP_PER_UID_PREFIX = ['auth/', 'data/', 'devmap/', 'rate/'];
+
+async function doBackupDump(s, me) {
+  if (me.role !== SUPER) return json({ error: '只有首位教务能导出备份' }, 403);
+  const idx = await uidIndex(s);
+  const keys = [...BACKUP_STATIC_KEYS];
+  for (const uid of idx.ids)
+    for (const p of BACKUP_PER_UID_PREFIX) keys.push(p + uid);
+  const out = [];
+  let bytes = 0;
+  for (const k of keys) {
+    const v = await s.get(k, { type: 'json' });
+    if (v === undefined || v === null) continue;
+    bytes += JSON.stringify(v).length + k.length;
+    out.push({ key: k, value: v });
+  }
+  return json({
+    ok: true, kind: 'liyun-backup', version: BACKUP_VERSION,
+    exportedAt: Date.now(), count: out.length, bytes, keys: out,
+  });
+}
+
+async function doBackupRestore(s, me, body) {
+  if (me.role !== SUPER) return json({ error: '只有首位教务能恢复备份' }, 403);
+  const b = body.backup;
+  if (!b || b.kind !== 'liyun-backup' || !Array.isArray(b.keys))
+    return json({ error: '这不是砺蕴导出的备份文件（格式不对）' }, 400);
+  if (Number(b.version) > BACKUP_VERSION)
+    return json({ error: `备份文件版本比当前系统新（${b.version} > ${BACKUP_VERSION}），请先升级系统再恢复` }, 400);
+  if (JSON.stringify(b).length > 900 * 1024)
+    return json({ error: '备份文件太大了（超过 900KB），边缘函数收不下 —— 联系开发者处理' }, 413);
+
+  /* 恢复点先行：把恢复范围内现有的值全部快照进 backup:restorePoint。
+     KV 没有事务 —— 万一恢复写到一半烂尾，首位教务可以从这份快照兜底回来。
+     快照里没值的键记 null，恢复回来时跳过即可（等于没这个键）。 */
+  const scope = b.keys.map(x => x && x.key).filter(Boolean);
+  const snap = [];
+  for (const k of scope) {
+    if (k === 'backup:restorePoint') continue;
+    const v = await s.get(k, { type: 'json' });
+    snap.push({ key: k, value: v === undefined ? null : v });
+  }
+  await s.setJSON('backup:restorePoint', {
+    savedAt: Date.now(),
+    from: { version: b.version, exportedAt: b.exportedAt || null, count: b.count || null },
+    keys: snap,
+  });
+
+  let restored = 0, skipped = 0;
+  for (const it of b.keys) {
+    if (!it || !it.key || it.key === 'backup:restorePoint' || it.value === undefined || it.value === null) { skipped++; continue; }
+    await s.setJSON(it.key, it.value);
+    restored++;
+  }
+  return json({
+    ok: true, restored, skipped, total: scope.length,
+    restorePoint: true, exportedAt: b.exportedAt || null,
+  });
 }
 
 /* ── 账号管理 ──
@@ -1168,6 +1375,12 @@ export async function onRequestPost(context) {
     /* 考试抽签：教务开抽存种子，各端本地算序号（见 doDraw） */
     if (action === 'draw') return await doDraw(s, me, body);
 
+    /* ==5.28== 数据备份 / 恢复：仅首位教务（见 doBackupDump / doBackupRestore）。
+       teacher / student 走到这儿会被里面的角色校验拦成 403 ——
+       这两个是写类 action，必须和其余写 action 一样把 role 校验钉死在服务端。 */
+    if (action === 'backupDump') return await doBackupDump(s, me);
+    if (action === 'backupRestore') return await doBackupRestore(s, me, body);
+
     /* ── 学生设备绑定 ──
        一个学生账号最多两台设备；第一台登进去的那台是「认证设备」。
        在这两台之外登录，必须拿教务给的一次性密钥 —— 否则学生之间互相
@@ -1251,7 +1464,7 @@ export async function onRequestPost(context) {
       return json({ ok: true, bound: true, replaced,
                     switchAccount: !knownAcct, devs: map.devs.length });
     }
-    /* 屏幕（看板 / 打卡管理）上要显示的动态码：6 位、60 秒一换，由服务端密钥派生，
+    /* 屏幕（看板 / 打卡管理）上要显示的动态码：6 位、30 秒一换，由服务端密钥派生，
        学生端算不出来，所以码不下发给学生端（学生只能在屏幕前当场看/当场扫）。
        顺便把 serverNow 和 left 一起给回去 —— 客户端拿它校时，倒计时跟服务端是同一个。 */
     if (action === 'code') {
@@ -1268,6 +1481,8 @@ export async function onRequestPost(context) {
 
     if (action === 'pull') {
       const shared = (await s.get('org/data', { type: 'json' })) || {};
+      /* ==5.28== 惰性结算：跨日未核销的「待核」在首次读取时落成「缺卡」（见 settlePendingSigns） */
+      if (settlePendingSigns(shared, Date.now())) await s.setJSON('org/data', shared);
       const personal = (await s.get(`data/${me.id}`, { type: 'json' })) || {};
       /* serverNow：客户端拿它校正本地时钟偏差，学生看到的倒计时和办公室的钟是同一个 */
       const out = Object.assign({}, filterShared(shared, me));   // 拷一层：filterShared 对教务是原样返回，别把 owner 写进真数据

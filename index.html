@@ -2858,7 +2858,7 @@ body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:
 .scan-frame::after{right:-3px;bottom:-3px;border-left:0;border-top:0;border-radius:0 0 10px 0}
 .scan-tip{text-align:center;font-size:13px;opacity:.72;margin:10px 0 0}
 
-/* ══════════ 打卡管理页：动态码（只读 · 60 秒一换）══════════════
+/* ══════════ 打卡管理页：动态码（只读 · 30 秒一换）══════════════
    二维码里的数和下面那 6 位数字是**同一枚码**：学生当场扫、或当场抄，
    两样都过一分钟就作废。这里没有任何可编辑的地方 —— 固定码已经取消。
    ⚠️ 二维码托盘必须纯白 + 带 4 格静默区（静默区由 QRLib.svg 自带），少了手机扫不出。 */
@@ -4884,6 +4884,22 @@ var Icon = {
            （连授课老师、连学生）都露着这个按钮。用户 2026-10-02 的口径是
            「总教务不能删系统的东西」，顺手把它收成首位教务专属。 -->
 
+      <!-- ==5.28== 云端备份（全库）：仅首位教务。上面那张 backupCard 是「本机数据」的备份导出；
+           这张是云端整个数据库（账号 + 机构共享区 + 各人私有区）的整库备份与恢复。 -->
+      <div class="card" id="cloudBackupCard" style="display:none">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-db"></use></svg> 云端备份（全库）</h2>
+        <p class="hint" style="margin-top:0;margin-bottom:12px">
+          把<b>云端整个数据库</b>（账号、名册、考勤、作业、量化、打卡、课表……全部）导出成一个 JSON 文件；
+          恢复时整库覆盖回去。恢复前系统会自动把当前云端数据存一份「恢复点」，恢复出错可以从那里兜底。
+          只有首位教务看得到这张卡。</p>
+        <div class="row">
+          <button class="btn" onclick="Settings.cloudDump()">导出云端备份</button>
+          <button class="btn ghost" onclick="document.getElementById('cloudRestoreFile').click()">恢复云端备份</button>
+        </div>
+        <input type="file" id="cloudRestoreFile" accept=".json" style="display:none" onchange="Settings.cloudRestore(this)">
+        <p class="hint" id="cloudBackupInfo">正在读取云端数据量…</p>
+      </div>
+
       <div class="card" id="dangerCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-warn"></use></svg> 危险操作</h2>
         <button class="btn danger" onclick="Store.wipe()">清空所有数据</button>
@@ -5574,8 +5590,8 @@ var Icon = {
         <h2 style="margin:18px 0 0"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-hash"></use></svg> 这个时段的打卡码</h2>
         <!-- 动态码：**只读**。以前这里能自己设一个「固定码」，一节课不变 ——
              但固定码一旦被学生转进群里，别人在宿舍也能打。
-             现在数字与二维码是同一枚、60 秒一换，下面带倒计时，没有可改的地方。 -->
-        <p class="hint" style="margin:0 0 10px">6 位动态码，<b>每 60 秒自动换一次</b>。
+             现在数字与二维码是同一枚、30 秒一换，下面带倒计时，没有可改的地方。 -->
+        <p class="hint" style="margin:0 0 10px">6 位动态码，<b>每 30 秒自动换一次</b>。
           学生要么<b>当场扫</b>这块二维码，要么<b>当场抄</b>这 6 位 —— 两样都过一分钟就作废。</p>
         <div class="row" style="flex-wrap:wrap;gap:22px;align-items:flex-start;margin-top:0">
           <div class="code-qr" id="signCodeQr" role="img" aria-label="打卡二维码"></div>
@@ -15193,6 +15209,9 @@ const Settings = {
        🔴 原来这张卡**没有任何显隐控制** —— 连授课老师、连学生的设置页里都露着它。
        用户 2026-10-02 要总教务「不能删系统的东西」，顺手把它也收成首位教务专属。 */
     show('dangerCard', Auth.isSuper());
+    /* ==5.28== 云端备份（全库）：只有首位教务。服务端 backupDump/backupRestore 也只认 super */
+    show('cloudBackupCard', Auth.isSuper() && cloud);
+    if (Auth.isSuper() && cloud) this.refreshCloudBackupInfo();
     show('syncNowBtn', cloud);
     show('syncCard', true);
     /* 🔴 2026-10-02 修：原来给的是 staff —— 教务老师看得见这张卡，
@@ -15220,6 +15239,63 @@ const Settings = {
       const el = document.getElementById('key_' + k);
       if (el) el.value = Store.getSecret(k) || '';
     });
+  },
+
+  /* ════════ 云端备份 / 恢复（==5.28==，仅首位教务）════════
+     服务端 backupDump 遍历全库（机构共享区 org/data + 账号 auth/* + 各人私有区
+     data/* + 系统键），backupRestore 整库覆盖、覆盖前把现状存进 backup:restorePoint
+     当「恢复点」—— 恢复一半烂尾时可以从那里兜底。 */
+  async refreshCloudBackupInfo(){
+    const el = document.getElementById('cloudBackupInfo');
+    if (!el) return;
+    try {
+      const j = await Auth.call('backupDump');
+      this.cloudBackupInfo(j);
+    } catch(e){
+      el.textContent = '云端数据量读不到：' + e.message;
+    }
+  },
+  cloudBackupInfo(j){
+    const el = document.getElementById('cloudBackupInfo');
+    if (!el || !j) return;
+    el.textContent = `云端共 ${j.count} 个键 · 约 ${(Number(j.bytes) / 1024).toFixed(0)} KB` +
+      (j.exportedAt ? ` · 导出时间 ${new Date(j.exportedAt).toLocaleString('zh-CN')}` : '');
+  },
+  async cloudDump(){
+    if (!Auth.isSuper()) return UI.toast('只有首位教务能导出云端备份');
+    try {
+      UI.toast('正在打包云端数据…');
+      const j = await Auth.call('backupDump');
+      const blob = new Blob([JSON.stringify(j, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a');
+      const d = new Date(), p2 = n => String(n).padStart(2, '0');
+      a.href = URL.createObjectURL(blob);
+      a.download = `砺蕴备份-${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      this.cloudBackupInfo(j);
+      UI.toast('备份已下载：' + j.count + ' 个键');
+    } catch(e){ UI.toast('导出失败：' + e.message); }
+  },
+  async cloudRestore(inp){
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try {
+      const b = JSON.parse(await f.text());
+      if (!b || b.kind !== 'liyun-backup' || !Array.isArray(b.keys))
+        return UI.toast('这不是砺蕴导出的云端备份文件，没法恢复');
+      /* 二次确认（红色警示级）：这一步会覆盖云端全部数据 */
+      if (!confirm('⚠️ 恢复备份将【覆盖云端全部数据】—— 现在云端的一切都会被备份文件里的内容替换掉！\n\n' +
+        `备份导出时间：${b.exportedAt ? new Date(b.exportedAt).toLocaleString('zh-CN') : '未知'} · ${(b.keys || []).length} 个键\n\n` +
+        '确定要恢复吗？此操作不可自动撤销（恢复前系统会存一份「恢复点」，出问题找首位教务从恢复点兜底）。')) { inp.value = ''; return; }
+      UI.toast('正在恢复，请勿关闭页面…');
+      const j = await Auth.call('backupRestore', { backup: b });
+      UI.toast(`恢复完成：写入 ${j.restored} 个键${j.restorePoint ? '（恢复点已存）' : ''}`);
+      this.cloudBackupInfo({ count: j.restored, bytes: JSON.stringify(b).length, exportedAt: b.exportedAt });
+      Sync.pull(true);          // 拉回来的就是恢复后的云端，本地直接对齐
+    } catch(e){
+      UI.toast('恢复失败：' + e.message);
+    } finally { inp.value = ''; }
   },
 
   /* ════════ 学生换设备的一次性密钥 ════════
@@ -15969,7 +16045,7 @@ const Auth = {
     Store.setSecret('token', '');
     Store.setSecret('me', '');
     this._me = null;
-    location.reload();
+    this.softReset('已退出登录');
   },
 
   /* 切换账号 = 退出 + 登录页会自动带上上次的用户名。
@@ -15980,7 +16056,22 @@ const Auth = {
     Store.setSecret('token', '');
     Store.setSecret('me', '');
     this._me = null;
-    location.reload();
+    this.softReset('换一个账号登录 —— 用户名已经帮你填好');
+  },
+
+  /* ==5.28== 软登出：不再整页 reload。
+     整页 reload 在 headless / 部分 WebView 上会被 Service Worker 接管后的
+     自动重载撞死（v106 起无头实测挂死，v106 之前就有）。登录门 gate
+     （z-index 80）本来就整屏盖住全部界面 —— 清凭据后把门摆回来、
+     停掉常驻定时器，就是最干净的登出；重新登录时 App.boot() 会整套重摆。 */
+  softReset(msg){
+    try { Sync.stop(); } catch(e){}        // 停 15s 轮询与在途 push，重置 _inited（重登后重新接上）
+    try { Board.stop(); } catch(e){}       // 看板屏：时钟/轮询/唤醒锁/Escape 监听
+    try { Sign.stopCode(); } catch(e){}    // 打卡页动态码秒表
+    try { if (typeof StuSign !== 'undefined' && StuSign._tk){ clearInterval(StuSign._tk); StuSign._tk = null; } } catch(e){}
+    try { Staff.reset(); } catch(e){}
+    document.body.classList.remove('no-edit', 'role-super', 'role-office', 'role-admin', 'role-teacher', 'role-both', 'role-student');
+    this.show(msg || '');
   },
 
   _rememberUser(){
@@ -16170,6 +16261,15 @@ const Sync = {
     });
     window.addEventListener('focus', () => this.pull());
     window.addEventListener('online', () => this.push());
+  },
+
+  /* ==5.28== 软登出配套：停掉轮询与在途的延迟推送，并重置 _inited ——
+     重新登录后 init() 才会重新接上。不做清空，本机数据照旧保留。 */
+  stop(){
+    clearInterval(this._poll); this._poll = null;
+    clearTimeout(this._timer); this._timer = null;
+    this._busy = false;
+    this._inited = false;
   }
 };
 /* ==== 身份与同步 END ==== */
@@ -16684,7 +16784,9 @@ const StuSign = {
     if (!rec || rec.status !== '待核') return '';
     return `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--rule,#e8e3d9)">
       <p class="hint" style="margin:0 0 8px">这条已经记上了（<b>待核</b>，教务会核对 —— 不算缺卡）。<br>
-        人就在教室里、只是手机定位飘？找教务老师要一枚 <b>4 位位置密钥</b>填进来，当场就能算正常。</p>
+        人就在教室里、只是手机定位飘？找教务老师要一枚 <b>4 位位置密钥</b>填进来，当场就能算正常。<br>
+        代打卡没用：打卡码<b>每 30 秒更换一次</b>，且需位置校验。
+        待核 <b>24 小时内</b>可用位置密钥核销；跨日仍未核销的，系统自动结算为<b>缺卡</b>。</p>
       <div class="row" style="flex-wrap:wrap">
         <input type="text" id="stuKey" inputmode="numeric" autocomplete="off" maxlength="4"
                placeholder="4 位数字" style="max-width:130px" value="${Util.esc(this._key)}">
@@ -17381,7 +17483,7 @@ const StuHw = {
    教务端 / 老师端：打卡管理
    ──────────────────────────────────────────────────────────────────
    三件事收在一个页面上：动态码、打卡规则、今天谁打了谁有问题。
-   动态码每 60 秒换一次，由服务端密钥派生 —— 学生端算不出下一分钟的码，
+   动态码每 30 秒换一次，由服务端密钥派生 —— 学生端算不出下一个半分钟的码，
    所以「人在宿舍让同学代打」这条路堵在这里。
    ══════════════════════════════════════════════════════════════════ */
 const Sign = {
@@ -17393,7 +17495,7 @@ const Sign = {
     const r = Store.get('sign_rules');
     const out = Object.assign({}, this.DEF, r && typeof r === 'object' ? r : {});
     /* ⚠️ 老数据里可能留着教务当年设的「固定码」（sign_rules.code）。
-       现在码一律由服务端每 60 秒派生，本地这个字段必须无视 ——
+       现在码一律由服务端每 30 秒派生，本地这个字段必须无视 ——
        否则一台老设备会把「8866」这种永不过期的码一直认下去。
        （不清掉，只是不再读：万一要回看历史设置还在。） */
     delete out.code;
@@ -17455,18 +17557,19 @@ const Sign = {
     try { if (typeof Sync !== 'undefined' && Sync.push) Sync.push(); } catch(e){}
   },
 
-  /* ── 打卡码：**只读**，60 秒一换 ──
+  /* ── 打卡码：**只读**，30 秒一换 ──
      以前这里能自己设一个固定码（一节课不变）—— 现在没了。
      固定码最大的问题是「一次泄漏管一节课」：一个学生拍下来发群里，
-     全班在宿舍都能打。改成服务端派生、60 秒轮换之后，截屏也追不上。
+     全班在宿舍都能打。改成服务端派生、30 秒轮换之后，截屏也追不上。
      屏幕上这枚码同时喂两处：二维码里编的就是它，数字也是它 —— 同一个值。 */
   async refreshCode(){
     try {
       const j = await Auth.call('code');
       this._code = j.code || '';
       /* left = 服务端算的「这一枚还剩多少毫秒」。倒计时以服务端为准，
-         学生手机上看到的时间和这台电脑是同一个。 */
-      this._until = this._code ? Date.now() + (Number(j.left) || 60000) : 0;
+         学生手机上看到的时间和这台电脑是同一个。窗口宽窄（30 秒）也以服务端 window 为准。 */
+      this._win = Number(j.window) || 30000;
+      this._until = this._code ? Date.now() + (Number(j.left) || this._win) : 0;
       if (j && j.serverNow) StuSign.syncClock(j.serverNow);
     } catch(e){
       /* 断网就留着上一枚，别把这块屏弄成空白；下面的倒计时会停在 0 并继续每秒重试 */
@@ -17496,7 +17599,7 @@ const Sign = {
     /* 倒计时：条形 + 数字。每秒被 tick 叫一次 */
     const bar = document.getElementById('signCodeBar');
     const left = this._until ? Math.max(0, this._until - Date.now()) : 0;
-    if (bar) bar.style.width = (left / 60000 * 100).toFixed(1) + '%';
+    if (bar) bar.style.width = (left / (this._win || 30000) * 100).toFixed(1) + '%';
     const lab = document.getElementById('signCodeLeft');
     if (lab){
       const txt = !code ? ''
@@ -17650,7 +17753,16 @@ const Sign = {
     const done = students.filter(s => bySid[s.id]).length;
     if (meta) meta.textContent = `${date} · ${done}/${students.length} 人已打卡`;
 
-    box.innerHTML = students.length ? students.map(s => {
+    /* ==5.28== 待核规矩（主理人 2026-11-11 拍板）挂在待核区最上面：
+       有「待核 / 需核对」条目的时候才出现 —— 规矩要写在用得上的地方。 */
+    const pendN = signs.filter(s => s && (s.status === '待核' || s.status === '缺卡')).length;
+    const ruleHint = pendN
+      ? `<div class="hint" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--rule,#e8e3d9);border-radius:8px">
+           <b>待核规矩</b>：代打卡没用 —— 打卡码每 <b>30 秒</b>更换一次，且需位置校验。
+           待核 <b>24 小时内</b>可在学生端（位置密钥）或教务端核销；跨日仍未核销的，系统自动结算为<b>缺卡</b>。</div>`
+      : '';
+
+    box.innerHTML = (ruleHint + (students.length ? students.map(s => {
       const rec = bySid[s.id];
       const att = byAtt[s.id];
       const shared = rec && rec.dev && devN[rec.dev] > 1;
@@ -17678,7 +17790,7 @@ const Sign = {
           <button class="chip" onclick="Sign.markLeave('${s.id}')" title="记成请假，并备注请假多少分钟">请假…</button>
         </div>
       </div>`;
-    }).join('') : '<div class="empty">这个班还没有学员</div>';
+    }).join('') : '<div class="empty">这个班还没有学员</div>'));
   },
 
   /* ── 教务端两个补正按键（v51）──
@@ -18866,16 +18978,17 @@ const Board = {
 
   /* ── 取数 ── */
   async refresh(){
-    /* 打卡码：服务端派生的那枚，6 位、60 秒一换。没有「固定码」这条路了 ——
+    /* 打卡码：服务端派生的那枚，6 位、30 秒一换。没有「固定码」这条路了 ——
        固定码一次泄漏管一节课，现在这块屏上的数字和二维码里编的数都是这一枚，
-       过一分钟就换，截屏也追不上。
+       过半分钟就换，截屏也追不上。
        顺手拿 serverNow 校正本机时钟 —— 打卡这件事上，时间只能以服务端为准。 */
     try {
       const j = await Auth.call('code');
       if (j && j.code){
         this._code = String(j.code);
         if (j.serverNow) this._off = j.serverNow - Date.now();
-        this._until = Date.now() + (Number(j.left) || 60000);
+        this._win = Number(j.window) || 30000;
+        this._until = Date.now() + (Number(j.left) || this._win);
       }
     } catch(e){ /* 断网时留着上一枚码，顶带那行「数据停留于」会亮出来提醒 */ }
 
@@ -18982,7 +19095,7 @@ const Board = {
        进度条从满走到空，走到头立刻去要新码，不等下一趟半分钟。 */
     const left = this._until ? Math.max(0, this._until - Date.now()) : 0;
     const bar = document.getElementById('bdBar');
-    if (bar) bar.style.width = (left / 60000 * 100).toFixed(1) + '%';
+    if (bar) bar.style.width = (left / (this._win || 30000) * 100).toFixed(1) + '%';
     const cd = document.getElementById('bdLeft');
     if (cd){
       const txt = this._code ? (left ? String(Math.ceil(left / 1000)) : '换') : '—';
@@ -18995,7 +19108,7 @@ const Board = {
   /* ── 二维码：只在「码真的变了」时重画 ──
      paintCode() 每秒都被 tick() 叫一次，而编一次二维码要跑 8 张掩码的评分，
      不能每秒重来（这块屏是常开的，白烧 CPU）。
-     60 秒换一次码 = 一分钟才重编一次，这点开销可以忽略。 */
+     30 秒换一次码 = 半分钟才重编一次，这点开销可以忽略。 */
   paintQr(){
     const box = document.getElementById('bdQr');
     if (!box) return;

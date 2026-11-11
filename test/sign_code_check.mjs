@@ -11,7 +11,7 @@
  *   1. 这块码是**只读**的：页面上再也找不到能改码的输入框 /「随机一个」按钮
  *      （以前教务能自设一个「固定码」，一节课不变 —— 一次泄漏管一节课，已拆）
  *   2. 显示的是 6 位数字，来自服务端派生（`SIGN` 的 CODE_LEN / CODE_WINDOW_MS 都在源码里验）
- *   3. 底下挂着倒计时：秒数在递减、进度条在收缩，60 秒一换
+ *   3. 底下挂着倒计时：秒数在递减、进度条在收缩，30 秒一换（==5.28== 主理人拍板 60→30）
  *   4. 旁边那块二维码编的**就是同一枚数字**（不是网址，也不是别的什么）
  *   5. 老数据里残留的 `sign_rules.code`（比如 8866）既不显示也不认 —— 前端也不读它
  *   6. 离开打卡页 → 秒表停掉（不能切走了还每秒去要一次码）
@@ -159,7 +159,7 @@ try {
   });
   t('底下挂着「N 秒后换码」的倒计时（用户点名要的）', () => {
     assert(/秒后换码/.test(first.label), '倒计时该写「N 秒后换码」，实际「' + first.label + '」');
-    assert(first.left > 0 && first.left <= 60, '剩余秒数该在 1~60 之间，实际 ' + first.left);
+    assert(first.left > 0 && first.left <= 30, '剩余秒数该在 1~30 之间（==5.28== 30 秒口径），实际 ' + first.left);
     return first.label + '（进度条 ' + first.bar + '）';
   });
   t('二维码跟数字是同一枚，且真的画出来了（编的不是网址）', () => {
@@ -184,11 +184,11 @@ try {
   console.log('\n=== 3. 换码的规矩是写死在服务端的（源码级核对）===');
   const SRC = await (await import('node:fs/promises')).readFile(path.join(dir, 'edge-functions', 'api', 'sync.js'), 'utf8');
   const HTML = await (await import('node:fs/promises')).readFile(path.join(dir, 'index.html'), 'utf8');
-  t('服务端钉死：CODE_LEN = 6、CODE_WINDOW_MS = 60000', () => {
+  t('服务端钉死：CODE_LEN = 6、CODE_WINDOW_MS = 30000（==5.28== 主理人拍板 60→30）', () => {
     const len = SRC.match(/const CODE_LEN = (\d+)/);
     const win = SRC.match(/const CODE_WINDOW_MS = (\d+)/);
     assert(len && Number(len[1]) === 6, '码长该是 6 位，实际 ' + (len ? len[1] : '找不到'));
-    assert(win && Number(win[1]) === 60000, '换码窗口该是 60000ms，实际 ' + (win ? win[1] : '找不到'));
+    assert(win && Number(win[1]) === 30000, '换码窗口该是 30000ms，实际 ' + (win ? win[1] : '找不到'));
     return 'CODE_LEN=' + len[1] + ' · CODE_WINDOW_MS=' + win[1];
   });
   t('服务端与前端都不再读「教务自设的固定码」', () => {
@@ -201,7 +201,7 @@ try {
     assert(/for \(const q of \[slot, slot - 1\]\)/.test(SRC), 'codeCheck 该同时认当前与上一窗口');
     return 'for (const q of [slot, slot - 1])';
   });
-  t('==5.26== 输错与过期分开：2~5 分钟前的旧码判「过期」，更远的判「不对」', () => {
+  t('==5.26== 输错与过期分开：往前多验 4 窗的旧码判「过期」（==5.28== 30 秒口径即 60~150 秒前），更远的判「不对」', () => {
     assert(/for \(const q of \[slot - 2, slot - 3, slot - 4, slot - 5\]\)/.test(SRC), '该往前多验 4 个窗口识别过期码');
     assert(/code: 'BADCODE'/.test(SRC), '输错该回 BADCODE（不再冒充过期）');
     return 'stale→EXPIRED · bad→BADCODE';
