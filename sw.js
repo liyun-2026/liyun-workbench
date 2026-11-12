@@ -421,7 +421,10 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v111'; /* VoxOS 5.31：换版触达补漏 —— 学生端「没有翻页动画」实测根因是旧窗口驻留旧版页面（v97 换版规矩：动过手的窗口不静默刷，重度用户永远吃旧版）；shell-updated 时给在用中的页面挂「点这里换到新版」提醒条，用户主动点才刷；动画本身实测无时机问题（student/teacher 同拍跑在可见卡片上），rise 级联不动 */ /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
+VERSION = 'v112'; /* VoxOS 5.32：全站「页面状态与交互」体检整改 —— 34 页×三角色×双端四专项普查（弹窗遮挡/死点击/假板块/文字嵌死）；
+   修复：① Schedule 两张动态弹窗（perEdit/cellOpen）结构写反（.picker 默认 display:none 且没挂 .on，内容拼好了但永远看不见——用户说的「点窗口没反应」），改回 .picker.on > .sheet 正规结构 + cellClose 用 closest('.sheet') 判内层；② applyRange 重画区间加 toast 反馈、Hours.clear 空态提示；③ timetable 卡头 h2 nowrap（1100px 下 hint 长句把标题挤折行）。
+   体检 0🔴 0🟡 62 通过（test/audit_interact.mjs 三档死点击终审）；报告 docs/audit-interact-2026-11-12/REPORT.md。index.html 变了 → VERSION 加一 */
+   /* VoxOS 5.31：换版触达补漏 —— 学生端「没有翻页动画」实测根因是旧窗口驻留旧版页面（v97 换版规矩：动过手的窗口不静默刷，重度用户永远吃旧版）；shell-updated 时给在用中的页面挂「点这里换到新版」提醒条，用户主动点才刷；动画本身实测无时机问题（student/teacher 同拍跑在可见卡片上），rise 级联不动 */ /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——
                        ① `App.routes` 加 `hours`（roles 四种教务：super/office/admin/both）、
                           `App.NAV_ORDER` 的 super/office/admin/both 四串在 'timetable' 后插 'hours'，
                           `TAB_ORDER` 与 teacher/student 一律不动；② 新页 `#page-hours` + `Hours` 模块：

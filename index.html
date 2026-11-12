@@ -4343,7 +4343,8 @@ var Icon = {
           <div id="rulePanel" style="display:none;margin-top:12px"></div>
         </div>
         <div class="card" style="flex:1;min-width:340px;margin:0">
-          <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 小课 / 加课 <span class="hint" style="display:inline;font-weight:400">只进相关师生课表 · 时间自由填</span></h2>
+          <h2 style="white-space:nowrap"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 小课 / 加课 <span class="hint" style="display:inline;font-weight:400">只进相关师生课表 · 时间自由填</span></h2>
+          <!-- ==5.32== 卡头嵌死：hint 长句在 1100px 会把标题挤折行（48px→82px），nowrap 锁单行 -->
           <div class="row">
             <select id="miniDay" style="max-width:100px"></select>
             <input type="text" id="miniTime" placeholder="时间自由填，如 13:00-14:00" style="max-width:200px" oninput="Schedule.miniClashLive()">
@@ -9072,7 +9073,12 @@ const Schedule = {
     this._migratePeriods();
     const p = Store.list('periods').find(q => q.id === id);
     if (!p) return;
-    const html = `<div class="mask" onclick="Schedule.cellClose(event)"><div class="picker" style="max-width:340px" onclick="event.stopPropagation()">
+    /* ==5.32== 体检 🔴1：旧结构 <div class="mask"><div class="picker"> 是反的 ——
+       .picker 默认 display:none 且这里没有 .on，弹窗内容拼好了却永远不显示，
+       点时间格「毫无反应」（.mask 裸类也没有全屏定位和暗背景）。
+       改用正确的 <div class="picker on"> 全屏容器 + .sheet 内容卡：
+       居中、max-height:86%、内部可滚动，遮罩背景直接给容器。 */
+    const html = `<div class="picker on" onclick="Schedule.cellClose(event)" style="background:rgba(0,0,0,.42)"><div class="sheet" style="width:min(340px,92vw)" onclick="event.stopPropagation()">
       <div class="page-title" style="font-size:18px">改这一节的时间</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
         <input type="text" id="peName" placeholder="名称（如：早功 / 第1节）" value="${Util.esc(p.name || '')}">
@@ -9251,6 +9257,8 @@ const Schedule = {
     if (s) Store.set('_schStart', s);
     if (d) Store.set('_schDays', d);
     this.renderGrid();
+    /* ==5.32== 体检：数据没变时重画完界面纹丝不动，教务点「刷新」像点了空气 */
+    UI.toast('课表已按当前区间重画');
   },
   /** 大课表的班级块顺序：按课表里首次出现；没写班级的课进「未分班」块 */
   gridBlocks(items){
@@ -9393,7 +9401,7 @@ const Schedule = {
     const perOpts = ['<option value="">全天 / 不占节次（休息·考试·仪式）</option>']
       .concat(ps.map((p, i) => `<option value="${p.id}">${Util.esc(p.name || ('第' + (i + 1) + '节'))} ${Util.esc(p.start)}–${Util.esc(p.end)}</option>`)).join('');
     const perSel = e.periodId || periodId || (slot ? ((ps.find(p => this._slotOf(p) === slot) || {}).id || '') : '');
-    const html = `<div class="mask" onclick="Schedule.cellClose(event)"><div class="picker" style="max-width:360px" onclick="event.stopPropagation()">
+    const html = `<div class="picker on" onclick="Schedule.cellClose(event)" style="background:rgba(0,0,0,.42)"><div class="sheet" style="width:min(360px,92vw)" onclick="event.stopPropagation()">
       <div class="page-title" style="font-size:18px">${date} 周${this.dayOfDate(date)}${pName ? ' · '+Util.esc(pName) : ''}</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
         <input type="text" id="cmTitle" placeholder="上课内容，如：即兴评述" value="${Util.esc(e.title||'')}">
@@ -9423,7 +9431,9 @@ const Schedule = {
     if (perEl) perEl.value = perSel || '';
   },
   cellClose(ev){
-    if (ev && ev.target && ev.target.className !== 'mask') return;
+    /* ==5.32== 点在内容卡（.sheet）里不关，点遮罩/卡片外面才关 —— 以前认死
+       className === 'mask'，换过容器结构后就谁也关不掉了 */
+    if (ev && ev.target && ev.target.closest && ev.target.closest('.sheet')) return;
     const m = document.getElementById('cellMask');
     if (m) m.remove();
   },
@@ -12092,6 +12102,8 @@ const Hours = {
   },
 
   clear(){
+    /* ==5.32== 体检：空态下点「清空」界面纹丝不动，像点了空气 —— 如实说一句 */
+    if (!this._model) return UI.toast('还没有识别结果，不用清');
     this._model = null; this._draft = null;
     const box = document.getElementById('hrsBody'); if (box) box.innerHTML = this._emptyHtml();
     const stat = document.getElementById('hrsStat'); if (stat) stat.textContent = '';
