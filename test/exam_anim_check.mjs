@@ -209,7 +209,7 @@ try {
   /* 点击后 _touched=true → 静默换版窗口已关 → shell-updated 必须走提醒条分支。
      从 SW context 向页面广播 shell-updated（与 sw.js revalidate 发的同一条消息）。 */
   const swList = await (await jfetch(`http://127.0.0.1:${swC._dbg}/json/list`)).json();
-  const swTarget = swList.find(x => x.type === 'service_worker' && /sw\.js/.test(x.url));
+  const swTarget = swList.find(x => x.type === 'service_worker' && /sw\.js/.test(x.url)) || swList.find(x => x.type === 'service_worker');
   if (swTarget){
     const swWs = await Cdp.connect(swTarget.webSocketDebuggerUrl);
     await swWs.eval(`self.clients.matchAll({ type: 'window' }).then(cs => {

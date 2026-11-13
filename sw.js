@@ -427,7 +427,7 @@ VERSION = 'v115'; /* VoxOS 5.35：全端口浅色化 + 遗留清理（主理人�
    ③ 遗留清理：Schedule 旧「文字导入」死链 13 个方法（importFile/clearImport/parseRows/parseLocal/renderImpPreview/impEdit/impDel/impCancel/archiveText/renderBig/addPeriod/_kindText + compressImage，词频实锤全文仅定义处）+ 尸体 DOM（schFile/impText/impStat）；impImport 尾部（课时统计写入链复用的活函数）就地清状态替代已删调用；死资源 assets/splash/ 28 张启动图（3MB，无引用）+ brand-lock-alpha 两张。
    ④ docs 归档：17 个旧 shots/preview/audit 目录 trash（约 145MB），近期交付物保留。
    测试：m_full_shots before(dark)/after(light) 35 张全页 + 13 页对比图 docs/light-switch-2026-11-13/对比图/；xf_check 深色段改写为 dark pref 恒浅色断言；九套件全量回归。index.html 变了 → VERSION 加一 */
-VERSION = 'v114'; /* VoxOS 5.34：建号体验修复（用户实测三问题）——
+  /* VoxOS 5.34：建号体验修复（用户实测三问题）——
    ① 给老师分班「一直跳」选不了：根因实锤 = Store.mergeRemote 对 REMOTE_WINS 键（examDate/sign_rules）每 15s 盲写盲计 changed（不比较值），n 恒 ≥1 → 每轮 pull 触发 App.refresh → Teachers.render 开头 closeCls() 把打开中的带班编辑器冲掉。修：REMOTE_WINS 键 JSON.stringify 值比较，值变了才 set/changed；Teachers.render 删 closeCls()。
    ② 账号列表「一直重复刷新」：Teachers.render 数据指纹幂等（id/role/active/classIds/name/user + demoHidden 没变就跳过 paint），「正在读取…」只在无数据时显示；App.refresh 三层收敛（120ms 去抖 → 交互保护：.picker.on 弹层/tClsCard 编辑卡/输入焦点时只记 _pendingRefresh 只刷红点 → MutationObserver 监弹层/编辑卡关闭后补刷欠下的那次）。
    ③ 「已删除账号的历史」栏移除（#tHistoryCard 卡片 + renderHistory 函数 + 调用点/文案）；staff_history KV 留档 archive() 照写，数据不动只删 UI。

@@ -7113,7 +7113,11 @@ const App = {
     if (!cur) return;
     const ae = document.activeElement;
     const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT');
-    const modal = document.querySelector('.picker.on');
+    /* ==5.34b== 豁免 #devGate：设备密钥门是「系统级门」不是数据编辑弹层，
+       新设备学生会开着它等密钥（可能几分钟），这期间轮询刷新照常走 ——
+       它不承载任何会被刷新打断的表单输入。5.34 首发没豁免它，
+       学生端登录后整站轮询刷新瘫痪（exam_anim ② 学生卡三项挂的根因）。 */
+    const modal = document.querySelector('.picker.on:not(#devGate)');
     const clsCard = document.getElementById('tClsCard');
     const editing = !!clsCard && clsCard.style.display !== 'none';
     if (typing || modal || editing){
@@ -7140,7 +7144,7 @@ const App = {
   const check = () => {
     raf = 0;
     if (!App._pendingRefresh) return;
-    const modal = document.querySelector('.picker.on');
+    const modal = document.querySelector('.picker.on:not(#devGate)');   /* ==5.34b== 设备密钥门豁免（同上） */
     const clsCard = document.getElementById('tClsCard');
     const editing = !!clsCard && clsCard.style.display !== 'none';
     const ae = document.activeElement;
