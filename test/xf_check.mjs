@@ -398,7 +398,7 @@ try {
       panelBg: getComputedStyle(document.querySelector('.xf-more-panel')).backgroundColor,
     };
   })()`);
-  ok('dark pref --paper 仍浅纸 #f6f5f2', /^#f6f5f2$/i.test(dark.paper), dark.paper);
+  ok('dark pref --paper 仍浅纸 #f7f6f2', /^#f7f6f2$/i.test(dark.paper), dark.paper);
   ok('dark pref body 底色未翻深（暖纸）', !/25,\s*29,\s*39|19,\s*22/.test(dark.bg), dark.bg);
   ok('dark pref --ink 仍墨色未翻浅', !/^#e7e9f0$/i.test(dark.ink), dark.ink);
   ok('dark pref --line 未翻学府深线', !/^#343b4d$/i.test(dark.line), dark.line);
