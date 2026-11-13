@@ -1,0 +1,37 @@
+<Slide style={{ width: 1280, height: 720, padding: '60px 60px 30px', background: '#f6f5f2', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column' }}>
+        <Text style={{ fontFamily: "'Songti SC'", fontSize: 40, fontWeight: 'bold', color: '#2a2a2a' }}>关键数字</Text>
+        <Box style={{ width: '100%', height: 1, background: '#dccdb0', marginTop: 14 }} />
+    </Box>
+    <Box style={{ flex: 1, flexDirection: 'column', justifyContent: 'center' }}>
+        <Box style={{ flexDirection: 'row', gap: 70 }}>
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 64, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>34</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#8d877b', paddingBottom: 5 }}>个功能页</Text>
+            </Box>
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 64, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>6</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#8d877b', paddingBottom: 5 }}>种角色</Text>
+            </Box>
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 64, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>30</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#8d877b', paddingBottom: 5 }}>秒动态码</Text>
+            </Box>
+        </Box>
+        <Box style={{ flexDirection: 'row', gap: 70, marginTop: 56, alignItems: 'flex-end' }}>
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 140, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>251</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 22, color: '#8d877b', paddingBottom: 12 }}>项检测全过</Text>
+            </Box>
+            <Box style={{ flex: 1 }} />
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 64, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>0.017s</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#8d877b', paddingBottom: 5 }}>并发响应</Text>
+            </Box>
+            <Box style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 64, fontWeight: 'bold', color: '#a8895a', lineHeight: 1 }}>0</Text>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#8d877b', paddingBottom: 5 }}>数据丢失</Text>
+            </Box>
+        </Box>
+    </Box>
+</Slide>

@@ -1,0 +1,13 @@
+<!DOCTYPE html><meta charset="utf-8">
+<iframe src="/index.html" style="width:1440px;height:900px;border:0"></iframe>
+<script>
+const f=document.querySelector('iframe');
+f.onload=()=>{
+  const d=f.contentDocument;
+  const t=d.querySelector('#page-today'); if(t) d.querySelector('.xf-more')?.classList.add('open');
+  setTimeout(()=>{
+    const img=new Image();
+    fetch('/__shot?x=1');
+  },300);
+};
+</script>

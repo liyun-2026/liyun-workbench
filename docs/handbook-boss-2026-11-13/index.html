@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砺蕴教务系统 · 使用指南与亮点</title>
+<style>
+/* ══════════ 品牌令牌：暖纸 / 古铜金 / 墨字（与上手卡 D 风格同源） ══════════ */
+@font-face{font-family:'Noto Serif SC Titles';src:url('../../assets/NotoSerifSC-Titles-400.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Noto Serif SC Titles';src:url('../../assets/NotoSerifSC-Titles-500.woff2') format('woff2');font-weight:500 700;font-display:swap}
+:root{
+  --paper:#f6f5f2; --gold:#c9ab7c; --gold-deep:#a8895a; --ink:#2a2a2a; --ink-2:#8d877b;
+  --serif:'Noto Serif SC Titles','Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC',serif;
+  --sans:'PingFang SC','Helvetica Neue',sans-serif;
+  --card-shadow:0 2px 6px rgba(42,42,42,.05),0 12px 34px rgba(42,42,42,.10),0 30px 70px rgba(168,137,90,.16);
+  --card-border:1px solid rgba(201,171,124,.5);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(720px 520px at 88% -4%,rgba(201,171,124,.13),transparent 70%),radial-gradient(560px 420px at -6% 30%,rgba(201,171,124,.08),transparent 70%),var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+img{display:block;max-width:100%}
+
+/* ══════════ 头版 ══════════ */
+.hero{text-align:center;padding:72px 0 46px}
+.hero .brand{font-family:var(--serif);font-size:13px;letter-spacing:.62em;color:var(--gold-deep);text-indent:.62em}
+.hero .seal{width:96px;height:96px;margin:22px auto 18px;filter:drop-shadow(0 6px 16px rgba(168,137,90,.32))}
+.hero h1{font-family:var(--serif);font-size:52px;font-weight:700;letter-spacing:.12em;line-height:1.25}
+.hero .pos{max-width:760px;margin:20px auto 0;font-size:16.5px;color:#5a564d}
+.bar{width:72px;height:8px;border-radius:999px;margin:26px auto 0;background:linear-gradient(90deg,var(--gold),var(--gold-deep));box-shadow:0 2px 6px rgba(168,137,90,.3)}
+.roles{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;margin:42px 0 0}
+.role{background:#fff;border:var(--card-border);border-radius:20px;box-shadow:var(--card-shadow);padding:26px 30px 24px;width:300px;text-align:left}
+.role .tag{font-family:var(--serif);font-size:21px;font-weight:700;letter-spacing:.14em}
+.role .sub{margin-top:3px;font-size:12px;color:var(--gold-deep);letter-spacing:.16em}
+.role p{margin-top:12px;font-size:13.5px;color:#5a564d;line-height:1.7}
+.story{margin:34px auto 0;display:inline-flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;background:rgba(201,171,124,.14);border:1px solid rgba(201,171,124,.45);border-radius:999px;padding:13px 30px;font-family:var(--serif);font-size:16px;letter-spacing:.2em;color:var(--gold-deep)}
+.story b{color:var(--ink);font-weight:700}
+.story i{font-style:normal;color:rgba(168,137,90,.55)}
+
+/* ══════════ 分区标题 ══════════ */
+section{padding:52px 0 10px}
+.sec-head{text-align:center;margin-bottom:38px}
+.sec-head .kicker{font-family:var(--serif);font-size:12px;letter-spacing:.5em;color:var(--gold-deep);text-indent:.5em}
+.sec-head h2{font-family:var(--serif);font-size:34px;font-weight:700;letter-spacing:.14em;margin-top:10px}
+.sec-head .bar{margin-top:18px}
+
+/* ══════════ 六大亮点 ══════════ */
+.hl-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.hl{background:#fff;border:var(--card-border);border-radius:26px;box-shadow:var(--card-shadow);padding:30px 30px 26px;display:flex;flex-direction:column}
+.hl.full{grid-column:1/-1}
+.hl .no{display:inline-flex;width:38px;height:38px;border-radius:50%;color:#fff;background:linear-gradient(135deg,var(--gold),var(--gold-deep));font-family:var(--serif);font-size:18px;font-weight:700;align-items:center;justify-content:center;box-shadow:0 3px 9px rgba(168,137,90,.38)}
+.hl h3{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.08em;margin-top:14px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hl h3 small{font-family:var(--sans);font-size:12.5px;font-weight:400;color:var(--gold-deep);letter-spacing:.06em}
+.hl ul{margin:12px 0 18px;list-style:none}
+.hl li{font-size:13.5px;color:#5a564d;padding-left:18px;position:relative;margin-top:7px}
+.hl li::before{content:'';position:absolute;left:2px;top:.72em;width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-deep))}
+.hl .shot{margin-top:auto;border:1px solid rgba(201,171,124,.45);border-radius:14px;overflow:hidden;box-shadow:0 4px 18px rgba(42,42,42,.10);background:#fff}
+.hl .shot img{width:100%;height:auto}
+.hl .shot .cap{font-size:11.5px;color:var(--ink-2);letter-spacing:.06em;padding:8px 14px;border-top:1px solid rgba(201,171,124,.25);background:#faf9f6}
+.hl .duo{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-top:auto}
+.hl .duo .shot{margin-top:0}
+
+/* ══════════ 快速上手 ══════════ */
+.qs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;align-items:start}
+.qs{background:#fff;border:var(--card-border);border-radius:26px;box-shadow:var(--card-shadow);padding:28px 28px 24px;display:flex;flex-direction:column}
+.qs .tag{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:.12em}
+.qs .sub{font-size:12px;color:var(--gold-deep);letter-spacing:.08em;margin-top:4px}
+.qs ol{list-style:none;margin:16px 0 18px;flex:1}
+.qs li{display:flex;gap:13px;padding:10px 0;border-bottom:1px solid rgba(201,171,124,.22);align-items:flex-start}
+.qs li:last-child{border-bottom:0}
+.qs .num{flex:none;width:26px;height:26px;border-radius:50%;color:#fff;background:linear-gradient(135deg,var(--gold),var(--gold-deep));font-family:var(--serif);font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.qs .act{font-size:13px;line-height:1.55;font-weight:600}
+.qs .where{margin-top:2px;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+.qs .thumb{margin-top:auto;border:1px solid rgba(201,171,124,.4);border-radius:12px;overflow:hidden;box-shadow:0 4px 14px rgba(42,42,42,.10)}
+.qs .thumb img{width:100%;height:auto}
+.qs .ft{margin-top:14px;border-top:1px solid rgba(201,171,124,.45);padding-top:12px;font-size:11.5px;color:var(--gold-deep);letter-spacing:.04em;text-align:center}
+
+/* ══════════ 底版 ══════════ */
+.bottom{padding:56px 0 40px}
+.nums{display:flex;flex-wrap:wrap;background:#fff;border:var(--card-border);border-radius:24px;box-shadow:var(--card-shadow);overflow:hidden}
+.num-cell{flex:1 1 150px;text-align:center;padding:26px 10px;border-right:1px solid rgba(201,171,124,.3)}
+.num-cell:last-child{border-right:0}
+.num-cell b{display:block;font-family:var(--serif);font-size:26px;font-weight:700;color:var(--gold-deep);letter-spacing:.04em}
+.num-cell span{display:block;margin-top:5px;font-size:12px;color:var(--ink-2);letter-spacing:.08em}
+.limits{margin-top:30px;background:rgba(201,171,124,.10);border:1px solid rgba(201,171,124,.4);border-radius:18px;padding:22px 28px}
+.limits h4{font-family:var(--serif);font-size:15px;letter-spacing:.2em;color:var(--gold-deep)}
+.limits p{margin-top:10px;font-size:13px;color:#5a564d;line-height:1.75}
+.limits p b{color:var(--ink)}
+footer{margin-top:44px;text-align:center;padding:26px 0 40px;border-top:1px solid rgba(201,171,124,.35)}
+footer .brand{font-family:var(--serif);font-size:12px;letter-spacing:.62em;color:var(--gold-deep);text-indent:.62em}
+footer p{margin-top:8px;font-size:11.5px;color:var(--ink-2)}
+
+@media (max-width:960px){
+  .hl-grid{grid-template-columns:1fr}
+  .qs-grid{grid-template-columns:1fr}
+  .hero h1{font-size:36px}
+  .role{width:100%}
+  .hl .duo{grid-template-columns:1fr}
+  .num-cell{flex:1 1 46%}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ 头版 ══════════ -->
+<header class="hero wrap">
+  <p class="brand">砺 蕴 教 务 系 统</p>
+  <img class="seal" src="mark-liyun-gold.png" alt="砺蕴品牌金印">
+  <h1>使用指南与亮点</h1>
+  <p class="pos">把点名、打卡、作业、量化、新闻、备份搬进一个系统：教务总控全局，授课老师只读协同，学生自助服务——界面即册页，数据随时可备份、可恢复。</p>
+  <div class="bar"></div>
+  <div class="roles">
+    <div class="role">
+      <div class="tag">教务</div>
+      <div class="sub">全权总控</div>
+      <p>考勤点章、作业布置、批假批工单、量化规则、云端备份——一条线管到底。</p>
+    </div>
+    <div class="role">
+      <div class="tag">授课教师</div>
+      <div class="sub">只读协同</div>
+      <p>教务板块都能看、都不能改；只写「录入今日」与「上报与申请」，求改动走工单。</p>
+    </div>
+    <div class="role">
+      <div class="tag">学生</div>
+      <div class="sub">自助服务</div>
+      <p>打卡、课表、作业、请假、量化、新闻自己办，不用再来回找老师。</p>
+    </div>
+  </div>
+  <div class="story"><b>一个系统</b><i>·</i><b>三端协同</b><i>·</i><b>教师只读</b><i>·</i><b>学生自助</b></div>
+</header>
+
+<!-- ══════════ 六大亮点 ══════════ -->
+<section class="wrap">
+  <div class="sec-head">
+    <p class="kicker">亮 点</p>
+    <h2>六大亮点，张张都是真界面</h2>
+    <div class="bar"></div>
+  </div>
+  <div class="hl-grid">
+
+    <div class="hl full">
+      <span class="no">一</span>
+      <h3>智能化打卡 <small>杜绝代打卡 · 动态码 + 位置校验 + 待核机制</small></h3>
+      <ul>
+        <li>6 位动态码每 30 秒自动更换，扫码 / 手输双通道，截图转发也没用</li>
+        <li>位置校验：要站在教室半径内才算数（半径可配），配合一次性「位置密钥」处理特殊情况</li>
+        <li>待核机制：定位偏差、同设备多学生、断网补传自动挂「需核对」黄标，教务改判全程留痕</li>
+      </ul>
+      <div class="duo">
+        <div class="shot"><img src="shots/01-sign.png" alt="打卡管理页 · 真实界面"><div class="cap">打卡管理页（桌面 1440）· 位置校验规则（校区坐标 · 半径 150 米可配）</div></div>
+        <div class="shot"><img src="shots/02-sign-code.png" alt="6 位动态码卡 · 真实渲染"><div class="cap">动态码卡真实渲染 · 码每 30 秒一换</div></div>
+      </div>
+    </div>
+
+    <div class="hl">
+      <span class="no">二</span>
+      <h3>考勤数字化 <small>印章式点章改章</small></h3>
+      <ul>
+        <li>正常 / 迟到 / 事假 / 病假印章式一键点章，误记直接改章，改完自动保存</li>
+        <li>当日出勤自动小结，不用再手抄统计</li>
+        <li>左选班、右看册页，册页式排版一眼看全，还能整册重排</li>
+      </ul>
+      <div class="shot"><img src="shots/03-att.png" alt="考勤页 · 真实界面"><div class="cap">考勤页（桌面 1440）· 点章 / 改章 / 自动小结</div></div>
+    </div>
+
+    <div class="hl">
+      <span class="no">三</span>
+      <h3>每日新闻自动播报 <small>来源：央视新闻官方接口</small></h3>
+      <ul>
+        <li>直连央视新闻官方接口（news.cctv.com），教务端一键拉取当日要闻</li>
+        <li>按日缓存、全端共享：教务拉一次，老师和学生直接看，不重复请求</li>
+        <li>时间轴条目 + 原文链接，出话题评述先看这里</li>
+      </ul>
+      <div class="shot"><img src="shots/04-news.png" alt="每日新闻页 · 真实界面"><div class="cap">每日新闻页（桌面 1440）· 来源：央视新闻 · 时间轴条目</div></div>
+    </div>
+
+    <div class="hl">
+      <span class="no">四</span>
+      <h3>量化精细管理 <small>班分 / 个人分双口径</small></h3>
+      <ul>
+        <li>班级分、个人分两条线都算得清，考勤结果自动进分</li>
+        <li>常用事项一键快捷加减，课堂当场就能记</li>
+        <li>加减分项与分值细则可配，按自己机构的规则来</li>
+      </ul>
+      <div class="shot"><img src="shots/05-quant.png" alt="量化页 · 真实界面"><div class="cap">量化页（桌面 1440）· 双口径记分 + 快捷加减</div></div>
+    </div>
+
+    <div class="hl">
+      <span class="no">五</span>
+      <h3>作业与征集闭环 <small>布置 → 检查 → 档案留痕</small></h3>
+      <ul>
+        <li>按班按日布置作业，上交打勾登记，登记人自动留痕</li>
+        <li>历史作业档案随时翻，谁交没交一目了然</li>
+        <li>配套「征集」页收作品材料，一条链路不散落</li>
+      </ul>
+      <div class="shot"><img src="shots/06-homework.png" alt="作业页 · 真实界面"><div class="cap">作业页（桌面 1440）· 布置 / 检查 / 档案</div></div>
+    </div>
+
+    <div class="hl full">
+      <span class="no">六</span>
+      <h3>数据安全 <small>备份能演练 · 异常有提醒</small></h3>
+      <ul>
+        <li>一键导出全量数据备份；恢复演练走「导出 → 破坏 → 恢复 → 逐键比对」真实路径，数据零丢失（验收 9/9 全过）</li>
+        <li>每 3 小时自动健康巡检，异常推送到手机</li>
+        <li>手机 PWA 常驻，教务不在电脑前也能第一时间收到告警</li>
+      </ul>
+      <div class="duo">
+        <div class="shot"><img src="shots/07-backup.png" alt="云端备份卡 · 真实界面"><div class="cap">设置 · 云端备份卡（一键导出 / 恢复点）</div></div>
+        <div class="shot"><img src="shots/08-health.png" alt="系统健康巡检页 · 真实界面"><div class="cap">系统健康巡检页 · 每 3 小时自动体检</div></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════ 快速上手 ══════════ -->
+<section class="wrap">
+  <div class="sec-head">
+    <p class="kicker">快 速 上 手</p>
+    <h2>三张上手卡：教务六步 · 老师五步只读 · 学生五步</h2>
+    <div class="bar"></div>
+  </div>
+  <div class="qs-grid">
+
+    <div class="qs">
+      <div class="tag">教务 · 六步</div>
+      <div class="sub">点名、布置、审批、备份一条线</div>
+      <ol>
+        <li><span class="num">1</span><div><p class="act">登录教务账号</p><p class="where">浏览器打开 liyun2026.top</p></div></li>
+        <li><span class="num">2</span><div><p class="act">点名、点章，误记直接改章</p><p class="where">「考勤」页 · 改完自动保存</p></div></li>
+        <li><span class="num">3</span><div><p class="act">布置作业、检查上交；发通知选好范围</p><p class="where">「作业」页 ·「通知」页发布前可编辑</p></div></li>
+        <li><span class="num">4</span><div><p class="act">批假、批工单</p><p class="where">「协作」页 · 批完考勤自动联动</p></div></li>
+        <li><span class="num">5</span><div><p class="act">改统考 / 模考倒计时日期</p><p class="where">「考试 / 模考」页</p></div></li>
+        <li><span class="num">6</span><div><p class="act">一键导出全量数据备份</p><p class="where">「设置」→「云端备份」</p></div></li>
+      </ol>
+      <div class="thumb"><img src="shots/card-office.png" alt="教务上手卡缩略图"></div>
+      <div class="ft">系统每 3 小时自动体检，异常会推手机提醒。</div>
+    </div>
+
+    <div class="qs">
+      <div class="tag">老师 · 五步只读</div>
+      <div class="sub">五步看全 · 只读视角，看得全、改不了</div>
+      <ol>
+        <li><span class="num">1</span><div><p class="act">登录授课老师账号</p><p class="where">浏览器打开 liyun2026.top</p></div></li>
+        <li><span class="num">2</span><div><p class="act">教务板块都能看：考勤 / 作业 / 课表 / 量化 / 打卡记录</p><p class="where">左侧栏各页直接翻</p></div></li>
+        <li><span class="num">3</span><div><p class="act">只能看、不能改——点章 / 布置 / 审批都没有</p><p class="where">这些由教务老师操作</p></div></li>
+        <li><span class="num">4</span><div><p class="act">你能写的只有两处：录入今日、上报与申请</p><p class="where">「今日」页 ·「上报与申请」页</p></div></li>
+        <li><span class="num">5</span><div><p class="act">有问题提工单，等教务处理</p><p class="where">「上报与申请」页</p></div></li>
+      </ol>
+      <div class="thumb"><img src="shots/card-teacher.png" alt="老师上手卡缩略图"></div>
+      <div class="ft">授课老师 = 只读视角，看得全、改不了，求改动走工单。</div>
+    </div>
+
+    <div class="qs">
+      <div class="tag">学生 · 五步</div>
+      <div class="sub">打卡、课表、作业、请假都在系统里</div>
+      <ol>
+        <li><span class="num">1</span><div><p class="act">用浏览器打开 liyun2026.top，输入学校发的账号密码登录</p><p class="where">首次换设备要输入教务给的「设备密钥」</p></div></li>
+        <li><span class="num">2</span><div><p class="act">上课打卡：扫码或输 6 位数字码</p><p class="where">「打卡」页 · 码每 30 秒一换，要站在教室位置打</p></div></li>
+        <li><span class="num">3</span><div><p class="act">看课表与作业完成情况</p><p class="where">「今日 / 我的课表」看安排 ·「作业」页看内容和交没交</p></div></li>
+        <li><span class="num">4</span><div><p class="act">请假 / 调课申请提交后等批准</p><p class="where">「上报与申请」页 · 批准后课表自动更新</p></div></li>
+        <li><span class="num">5</span><div><p class="act">忘了密码不用慌</p><p class="where">找教务老师重置</p></div></li>
+      </ol>
+      <div class="thumb"><img src="shots/card-student.png" alt="学生上手卡缩略图"></div>
+      <div class="ft">代打卡没用——码 30 秒一换，还要位置校验。</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════ 底版 ══════════ -->
+<section class="bottom wrap">
+  <div class="nums">
+    <div class="num-cell"><b>34</b><span>个功能页</span></div>
+    <div class="num-cell"><b>6</b><span>种角色</span></div>
+    <div class="num-cell"><b>三端</b><span>+ 手机 PWA</span></div>
+    <div class="num-cell"><b>双模式</b><span>大屏看板</span></div>
+    <div class="num-cell"><b>251 项</b><span>检测全过</span></div>
+    <div class="num-cell"><b>2026-11-13</b><span>验收报告日期</span></div>
+  </div>
+  <div class="limits">
+    <h4>已知限制（如实说明）</h4>
+    <p><b>① 首次加载耗时</b>：站点托管在境外 CDN 节点，冷访问首屏需 5–15 秒（服务端接口响应正常）。二期迁移国内服务器并启用静态资源预热后，可降至 1 秒内——技术方案已备，不涉及业务改动。</p>
+    <p><b>② HTTPS 证书</b>：当前证书 2026-12-16 到期，按周期自动续期（0 元），到期前 30 天系统巡检会提前预警，无需人工干预。</p>
+  </div>
+  <footer>
+    <p class="brand">砺 蕴 教 务 系 统</p>
+    <p>本手册所有界面截图均来自本地开发环境真实页面渲染（dev-server + CDP 截屏）· 数据依据《验收检测报告 2026-11-13》（commit 2afebb0 · v112）</p>
+  </footer>
+</section>
+
+</body>
+</html>

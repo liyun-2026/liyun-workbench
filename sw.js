@@ -421,6 +421,12 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
+VERSION = 'v115'; /* VoxOS 5.35：全端口浅色化 + 遗留清理（主理人拍板三条线）——
+   ① 深色模式整体移除：删 17 处 @media (prefers-color-scheme: dark) 块（桌面 ：root/五端皮肤/gate/mtabbar/手机端 5 处令牌翻转/学府深色翻转/hours 深色/卡片阴影）、深色 theme-color meta、Port.syncChrome 的深色监听 —— 系统深色 pref 下也恒为浅色（暖纸 #f6f5f2 + 古铜金 #c9ab7c）。
+   ② 手机版浅色对比度重审：浅色文字金 --gold-deep #a8895a（3.0:1 不达标）→ #7E6637（纸上 5.01 / 白卡 5.46 / tint 4.88，全 ≥4.5:1），浅色下金作文字的 8 处引用（clock/角色对勾/门头座右铭/看板签字/页脚 hover）改引 gold-deep；金渐变卡本就白字压金底不动。
+   ③ 遗留清理：Schedule 旧「文字导入」死链 13 个方法（importFile/clearImport/parseRows/parseLocal/renderImpPreview/impEdit/impDel/impCancel/archiveText/renderBig/addPeriod/_kindText + compressImage，词频实锤全文仅定义处）+ 尸体 DOM（schFile/impText/impStat）；impImport 尾部（课时统计写入链复用的活函数）就地清状态替代已删调用；死资源 assets/splash/ 28 张启动图（3MB，无引用）+ brand-lock-alpha 两张。
+   ④ docs 归档：17 个旧 shots/preview/audit 目录 trash（约 145MB），近期交付物保留。
+   测试：m_full_shots before(dark)/after(light) 35 张全页 + 13 页对比图 docs/light-switch-2026-11-13/对比图/；xf_check 深色段改写为 dark pref 恒浅色断言；九套件全量回归。index.html 变了 → VERSION 加一 */
 VERSION = 'v114'; /* VoxOS 5.34：建号体验修复（用户实测三问题）——
    ① 给老师分班「一直跳」选不了：根因实锤 = Store.mergeRemote 对 REMOTE_WINS 键（examDate/sign_rules）每 15s 盲写盲计 changed（不比较值），n 恒 ≥1 → 每轮 pull 触发 App.refresh → Teachers.render 开头 closeCls() 把打开中的带班编辑器冲掉。修：REMOTE_WINS 键 JSON.stringify 值比较，值变了才 set/changed；Teachers.render 删 closeCls()。
    ② 账号列表「一直重复刷新」：Teachers.render 数据指纹幂等（id/role/active/classIds/name/user + demoHidden 没变就跳过 paint），「正在读取…」只在无数据时显示；App.refresh 三层收敛（120ms 去抖 → 交互保护：.picker.on 弹层/tClsCard 编辑卡/输入焦点时只记 _pendingRefresh 只刷红点 → MutationObserver 监弹层/编辑卡关闭后补刷欠下的那次）。

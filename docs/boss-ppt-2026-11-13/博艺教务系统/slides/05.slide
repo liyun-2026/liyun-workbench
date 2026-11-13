@@ -1,0 +1,13 @@
+<Slide style={{ width: 1280, height: 720, padding: '60px', background: '#f6f5f2', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <Box style={{ flexDirection: 'column', alignItems: 'center' }}>
+        <Box style={{ width: 96, height: 96, borderRadius: 48, overflow: 'hidden' }}>
+            <Image src="assets/boyi-logo.png" style={{ width: 96, height: 96, objectFit: 'cover' }} />
+        </Box>
+        <Text style={{ fontFamily: "'PingFang SC'", fontSize: 16, color: '#a8895a', letterSpacing: 8, marginTop: 20 }}>博 艺 教 务 系 统</Text>
+        <Text style={{ fontFamily: "'Songti SC'", fontSize: 56, fontWeight: 'bold', color: '#2a2a2a', letterSpacing: 6, marginTop: 16 }}>让每一天的教学都有迹可循</Text>
+        <Box style={{ width: 64, height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #c9ab7c, #a8895a)', marginTop: 22 }} />
+        <Text style={{ fontFamily: "'PingFang SC'", fontSize: 18, color: '#2a2a2a', textAlign: 'center', lineHeight: 1.6, marginTop: 24 }}>
+            9 类检测 251 项全过 · 2026-11-13
+        </Text>
+    </Box>
+</Slide>

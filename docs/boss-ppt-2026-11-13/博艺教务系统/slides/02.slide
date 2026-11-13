@@ -1,0 +1,42 @@
+<Slide style={{ width: 1280, height: 720, padding: '60px 60px 30px', background: '#f6f5f2', flexDirection: 'column' }}>
+    <Box style={{ flexDirection: 'column' }}>
+        <Text style={{ fontFamily: "'Songti SC'", fontSize: 40, fontWeight: 'bold', color: '#2a2a2a' }}>一个系统，三端协同</Text>
+        <Box style={{ width: '100%', height: 1, background: '#dccdb0', marginTop: 14 }} />
+    </Box>
+    <Box style={{ flex: 1, flexDirection: 'column', justifyContent: 'center' }}>
+        <Text style={{ fontFamily: "'PingFang SC'", fontSize: 22, color: '#2a2a2a', lineHeight: 1.5 }}>教务管全程、老师教得顺、学生自己动手。</Text>
+        <Box style={{ flexDirection: 'row', gap: 20, marginTop: 26 }}>
+            <Box style={{ width: 460, background: '#ffffff', border: '1px solid #dccdb0', borderRadius: 10, padding: 28, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 16, color: '#a8895a', letterSpacing: 3 }}>教务端 · 全功能管理</Text>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 26, fontWeight: 'bold', color: '#2a2a2a', marginTop: 10 }}>日常教务，一条线走完</Text>
+                <Box style={{ flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 考勤排课，一键完成</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 审批发布，一条线走完</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 数据备份，自动巡检</Text>
+                </Box>
+            </Box>
+            <Box style={{ width: 328, background: '#ffffff', border: '1px solid #dccdb0', borderRadius: 10, padding: 28, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 16, color: '#a8895a', letterSpacing: 3 }}>授课老师端 · 教学好帮手</Text>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 26, fontWeight: 'bold', color: '#2a2a2a', marginTop: 10 }}>教学事务，一手掌握</Text>
+                <Box style={{ flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 课表考勤作业一目了然</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 每日情况随手录入</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 申请与上报在线提交</Text>
+                </Box>
+            </Box>
+            <Box style={{ width: 328, background: '#ffffff', border: '1px solid #dccdb0', borderRadius: 10, padding: 28, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: "'PingFang SC'", fontSize: 16, color: '#a8895a', letterSpacing: 3 }}>学生端 · 手机自助</Text>
+                <Text style={{ fontFamily: "'Songti SC'", fontSize: 26, fontWeight: 'bold', color: '#2a2a2a', marginTop: 10 }}>自己能办的自己办</Text>
+                <Box style={{ flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 打卡签到，扫码输码都行</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 课表作业随时查</Text>
+                    <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', lineHeight: 1.5 }}>· 请假申请自助提交</Text>
+                </Box>
+            </Box>
+        </Box>
+        <Box style={{ flexDirection: 'row', alignItems: 'center', background: '#f3ecdd', border: '1px solid #e2d5b8', borderRadius: 8, marginTop: 26 }}>
+            <Box style={{ width: 4, height: 56, background: '#c9ab7c' }} />
+            <Text style={{ fontFamily: "'PingFang SC'", fontSize: 20, color: '#2a2a2a', padding: '15px 20px', lineHeight: 1.4 }}>手机端免装 App，开学即用。</Text>
+        </Box>
+    </Box>
+</Slide>

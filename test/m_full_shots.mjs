@@ -23,7 +23,9 @@ const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 5491;
 const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const OUT = MODE === 'pre' ? '/tmp/m-pre' : path.join(dir, 'docs', 'mobile-v1-full-shots');
+/* ==5.35== OUT_DIR 可覆盖输出目录；FORCE_SCHEME=light/dark 模拟系统深浅色
+   （全端口浅色化 5.35 用：before=dark 真机现状，after=light 终态） */
+const OUT = process.env.OUT_DIR || (MODE === 'pre' ? '/tmp/m-pre' : path.join(dir, 'docs', 'mobile-v1-full-shots'));
 const SUPER = { user: '李老师', pass: 'liyun2026' };
 const TEACHER = { user: '张伟', pass: 'liyun2026' };
 const STUDENT = { user: '王梓涵', pass: 'liyun2026' };
@@ -182,6 +184,8 @@ try {
   const cdp = await Cdp.connect(target.webSocketDebuggerUrl);
   await cdp.send('Runtime.enable'); await cdp.send('Page.enable');
   await view(cdp, { width: 390, height: 844, dsf: 2, mobile: true });
+  if (process.env.FORCE_SCHEME)
+    await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: process.env.FORCE_SCHEME }] });
   await cdp.send('Page.navigate', { url: BASE + '/' });
   await sleep(2600);
   await cdp.eval(`try{ localStorage.clear(); sessionStorage.clear(); }catch(e){} 'ok'`);

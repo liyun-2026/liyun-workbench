@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>砺蕴上手卡 · 风格探针</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#e8e6e1}
+.page{width:595px;height:842px;overflow:hidden;position:relative;margin:0 auto}
+
+.page{background:#fffdf8;font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2a2a2a;display:flex;flex-direction:column}
+.band{height:268px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#c9ab7c 0%,#b9995f 52%,#a8895a 100%)}
+.band::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(300px 220px at 18% 8%,rgba(255,253,248,.20),transparent 70%),
+             radial-gradient(340px 240px at 88% 96%,rgba(90,64,28,.18),transparent 70%)}
+.band::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:rgba(90,64,28,.35)}
+.seal{position:relative;width:58px;height:58px;border-radius:50%;overflow:hidden;
+  box-shadow:0 3px 12px rgba(90,64,28,.35)}
+.seal img{width:100%;height:100%;object-fit:cover;display:block}
+.band .brand{position:relative;margin-top:12px;font-family:'Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC',serif;font-size:11px;letter-spacing:.52em;color:rgba(255,253,248,.85)}
+.band h1{position:relative;margin-top:8px;font-family:'Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC',serif;font-size:35px;font-weight:700;letter-spacing:.16em;white-space:nowrap;color:#fffdf8}
+.band .sub{position:relative;margin-top:8px;font-size:12.5px;color:rgba(255,253,248,.9);letter-spacing:.1em}
+.body{flex:1;padding:26px 54px 0;position:relative}
+.step{display:flex;gap:16px;padding:13px 2px;align-items:flex-start;border-bottom:1px solid rgba(201,171,124,.3)}
+.step:last-child{border-bottom:0}
+.num{flex:none;width:30px;height:30px;border:1.5px solid #b9995f;border-radius:50%;color:#a8895a;
+  font-family:'Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC',serif;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.act{font-size:15px;line-height:1.55;font-weight:600;color:#2a2a2a}
+.where{margin-top:4px;font-size:12.5px;line-height:1.5;color:#8d877b}
+.ft{border-top:1px solid rgba(201,171,124,.45);margin:0 54px;padding:14px 0 24px;position:relative}
+.ft p{font-size:12px;color:#8d877b;letter-spacing:.05em;line-height:1.5;padding-right:104px}
+.stamp{position:absolute;right:16px;bottom:10px;width:84px;height:84px;border-radius:50%;
+  border:2.5px solid #b08050;color:#b08050;display:flex;align-items:center;justify-content:center;
+  transform:rotate(-12deg);opacity:.6}
+.stamp::before{content:'';position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%}
+.stamp span{font-family:'Songti SC','STSong','Source Han Serif SC','Noto Serif CJK SC',serif;font-size:17px;font-weight:700;line-height:1.3;letter-spacing:.2em;text-indent:.2em;text-align:center;display:block}
+
+</style></head><body><div class="page">
+  <div class="band">
+    <div class="seal"><img src="file:///Users/xielihui/Desktop/砺蕴教务系统/品牌运营/assets/appicon_seal_light/icon-512.png" alt=""></div>
+    <div class="brand">砺 蕴 教 务 系 统</div>
+    <h1>学生上手卡</h1>
+    <div class="sub">五步上手 · 打卡、课表、作业、请假都在系统里</div>
+  </div>
+  <ol class="body">
+    <li class="step"><span class="num">1</span><div><p class="act">用浏览器打开 liyun2026.top，输入学校发的账号密码登录</p><p class="where">首次换设备要输入教务给的「设备密钥」</p></div></li>
+    <li class="step"><span class="num">2</span><div><p class="act">上课打卡：扫码或输 6 位数字码</p><p class="where">「打卡」页 · 码每 30 秒一换，要站在教室位置打</p></div></li>
+    <li class="step"><span class="num">3</span><div><p class="act">看课表与作业完成情况</p><p class="where">「今日 / 我的课表」看安排 ·「作业」页看内容和交没交</p></div></li>
+    <li class="step"><span class="num">4</span><div><p class="act">请假 / 调课申请提交后等批准</p><p class="where">「上报与申请」页 · 批准后课表自动更新</p></div></li>
+    <li class="step"><span class="num">5</span><div><p class="act">忘了密码不用慌</p><p class="where">找教务老师重置</p></div></li>
+  </ol>
+  <div class="ft"><p>代打卡没用——码 30 秒一换，还要位置校验。</p></div>
+  <div class="stamp"><span>砺蕴<br>教务</span></div>
+</div></body></html>

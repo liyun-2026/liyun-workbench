@@ -1,0 +1,11 @@
+<Slide style={{ width: 1280, height: 720, padding: '60px', background: '#f6f5f2', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <Box style={{ flexDirection: 'column', alignItems: 'center' }}>
+        <Box style={{ width: 128, height: 128, borderRadius: 64, overflow: 'hidden' }}>
+            <Image src="assets/boyi-logo.png" style={{ width: 128, height: 128, objectFit: 'cover' }} />
+        </Box>
+        <Text style={{ fontFamily: "'Songti SC'", fontSize: 72, fontWeight: 'bold', color: '#2a2a2a', letterSpacing: 4, marginTop: 28 }}>博艺教务系统</Text>
+        <Box style={{ width: 64, height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #c9ab7c, #a8895a)', marginTop: 24 }} />
+        <Text style={{ fontFamily: "'PingFang SC'", fontSize: 24, color: '#8d877b', letterSpacing: 3, marginTop: 26 }}>教务数字化工作台</Text>
+        <Text style={{ fontFamily: "'PingFang SC'", fontSize: 14, color: '#b3ab9c', letterSpacing: 1, marginTop: 36 }}>2026-11</Text>
+    </Box>
+</Slide>

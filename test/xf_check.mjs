@@ -8,7 +8,7 @@
  *   2) 顶栏像素校验：每张截图 (720,15) = 深蓝门户条 #384a74（容差 ±14/通道）；
  *   3) 骨架断言：门户条端口按身份、导航条真实页数 + 当前页金下划线、侧栏退场、页脚在；
  *   4) 关键交互抽查：导航条点击跳转、考勤点章、大课表格子渲染（截图取证）；
- *   5) 深色 3 页（令牌翻转可读）+ 手机 390 抽 home/settings/stuHome 与 HEAD 基线逐像素零差异。
+ *   5) ==5.35== dark pref 恒浅色断言（深色已移除）+ 手机 390 抽 home/settings/stuHome 与 HEAD 基线逐像素零差异。
  *
  * 说明：样张 _qa.html 回归不在本脚本（样张文件本阶段零改动，desktop_v2_check 已覆盖）。
  */
@@ -381,8 +381,8 @@ try {
   ok('大课表格子渲染（#gridWrap 有课节格）', tt.has && tt.cells > 0, JSON.stringify(tt));
   await goShot(cdp, 'timetable', path.join(OUT, 'page-timetable-grid.png'));
 
-  /* ═══ 3) 深色 3 页（≥1100 学府翻转）═══ */
-  console.log('\n── 深色模式（1440 · 3 页）──');
+  /* ═══ 3) ==5.35== 全端口浅色：dark pref 下断言**恒浅色**（深色模式已整体移除）═══ */
+  console.log('\n── 深色 pref 恒浅色（1440 · 3 页）──');
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
   await sleep(500);
   const dark = await cdp.eval(`(() => {
@@ -398,18 +398,18 @@ try {
       panelBg: getComputedStyle(document.querySelector('.xf-more-panel')).backgroundColor,
     };
   })()`);
-  ok('深色 --paper = #191d27', /^#191d27$/i.test(dark.paper), dark.paper);
-  ok('深色 body 底色已翻转（rgb 25,29,39）', /25,\s*29,\s*39/.test(dark.bg), dark.bg);
-  ok('深色 --ink 变浅（#e7e9f0）', /^#e7e9f0$/i.test(dark.ink), dark.ink);
-  ok('深色 --line 变深（#343b4d）', /^#343b4d$/i.test(dark.line), dark.line);
-  ok('深色校名头翻深（#1f2431）', /31,\s*36,\s*49/.test(dark.headBg), dark.headBg);
-  ok('深色导航条仍为蓝渐变', dark.navBg);
-  ok('深色下拉面板随令牌翻深（#222735）', /34,\s*39,\s*53/.test(dark.panelBg), dark.panelBg);
+  ok('dark pref --paper 仍浅纸 #f6f5f2', /^#f6f5f2$/i.test(dark.paper), dark.paper);
+  ok('dark pref body 底色未翻深（暖纸）', !/25,\s*29,\s*39|19,\s*22/.test(dark.bg), dark.bg);
+  ok('dark pref --ink 仍墨色未翻浅', !/^#e7e9f0$/i.test(dark.ink), dark.ink);
+  ok('dark pref --line 未翻学府深线', !/^#343b4d$/i.test(dark.line), dark.line);
+  ok('dark pref 校名头仍浅色', !/31,\s*36,\s*49/.test(dark.headBg), dark.headBg);
+  ok('dark pref 导航条仍为蓝渐变', dark.navBg);
+  ok('dark pref 下拉面板仍浅色', !/34,\s*39,\s*53/.test(dark.panelBg), dark.panelBg);
   await switchUser(cdp, SUPER);
   for (const id of ['home','att','settings']) {
-    await goShot(cdp, id, path.join(OUT, `dark-${id}.png`));
+    await goShot(cdp, id, path.join(OUT, `dark-pref-${id}.png`));
   }
-  console.log('  （深色 3 页截图已存 docs/xf-production-shots/dark-*.png）');
+  console.log('  （dark pref 截图已存 ' + OUT + '/dark-pref-*.png，应为浅色画面）');
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
 
   /* ═══ 4) 手机 390 零回归（硬门槛：与 HEAD 基线逐像素 0 差异）═══ */

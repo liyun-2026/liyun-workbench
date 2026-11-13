@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>砺蕴教务系统 · 验收检测报告 · 2026-11-13</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f6f5f2;font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2a2a2a;line-height:1.7}
+.sheet{max-width:880px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(42,42,42,.08);padding:56px 64px 72px}
+.brand{font-family:'Songti SC','STSong',serif;font-size:12px;letter-spacing:.5em;color:#a8895a;text-align:center}
+h1{font-family:'Songti SC','STSong',serif;font-size:32px;font-weight:700;letter-spacing:.12em;text-align:center;margin-top:14px;white-space:nowrap}
+.meta{text-align:center;font-size:12.5px;color:#8d877b;margin-top:12px;letter-spacing:.04em}
+.rule{width:64px;height:4px;border-radius:999px;background:linear-gradient(90deg,#c9ab7c,#a8895a);margin:22px auto 0}
+h2{font-family:'Songti SC','STSong',serif;font-size:21px;letter-spacing:.1em;margin:44px 0 14px;color:#2a2a2a;
+  border-top:1px solid rgba(201,171,124,.55);padding-top:26px}
+h2::before{content:'◆ ';color:#c9ab7c;font-size:15px}
+p{margin:8px 0;font-size:14.5px}
+ul{margin:8px 0 8px 22px}
+li{font-size:14.5px;margin:5px 0}
+.verdict{background:linear-gradient(135deg,rgba(201,171,124,.14),rgba(168,137,90,.08));border:1px solid rgba(201,171,124,.55);
+  border-radius:14px;padding:20px 26px;margin:20px 0}
+.verdict p{font-size:15px}
+.verdict b{color:#a8895a}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th{background:rgba(201,171,124,.16);color:#5c4a2e;font-weight:600;text-align:left;padding:9px 12px;letter-spacing:.04em}
+td{border-bottom:1px solid rgba(201,171,124,.28);padding:9px 12px;vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{font-family:'Songti SC',serif;color:#a8895a;font-weight:700;white-space:nowrap}
+.ok{color:#2e7d54;font-weight:600;white-space:nowrap}
+.note{font-size:12.5px;color:#8d877b}
+.final{border-top:2px solid #c9ab7c;margin-top:44px;padding-top:24px;text-align:center}
+.final p{font-family:'Songti SC',serif;font-size:16.5px;letter-spacing:.05em}
+.foot{margin-top:30px;text-align:center;font-size:11.5px;color:#b3ab9c;letter-spacing:.1em}
+</style></head><body><div class="sheet">
+
+<div class="brand">砺 蕴 教 务 系 统</div>
+<h1>验收检测报告</h1>
+<div class="meta">验收日期 2026-11-13 · 生产站 liyun2026.top · commit 2afebb0 · Service Worker v112 · VoxOS 5.32<br>
+检测执行：全套自动化工具链（无头 Chrome + CDP + dev 种子环境）· 生产侧全程只读探针</div>
+<div class="rule"></div>
+
+<h2>一页结论</h2>
+<div class="verdict">
+<p>本轮共执行 <b>9 类检测，251 项检查/断言全部通过</b>，<b>0 个未修复问题</b>，系统具备验收条件。</p>
+<p>dev 全量回归（7 套件）242 项全过 · 备份恢复演练 9 项全过 · 生产只读探针全绿。</p>
+</div>
+
+<h2>检测方法与覆盖范围</h2>
+<ul>
+<li><b>页面覆盖</b>：34 个功能页 × 三角色（教务 / 授课老师 / 学生）× 双端（桌面 1440 / 1280 / 1100 + 手机 390×844）</li>
+<li><b>方法</b>：每套件在隔离 dev 环境（种子数据 + 无头浏览器真实操作）跑全量断言；生产环境只做无副作用读取探针（绝不写 action、绝不建号）</li>
+<li><b>交互体检器</b>：死点击采用三档时序终审（长序列初筛 → 单点复测 → 全新会话终审），杜绝状态污染误报</li>
+</ul>
+
+<h2>本轮各套件结果明细</h2>
+<table>
+<tr><th style="width:44px">#</th><th style="width:150px">套件</th><th>检测内容</th><th style="width:150px">结果</th></tr>
+<tr><td>1</td><td>board_check</td><td>大屏看板端：排课展示、扫码打卡取景窗、双分辨率</td><td class="ok"><span class="num">68/68</span></td></tr>
+<tr><td>2</td><td>teacher_ro_check</td><td>授课老师只读权限边界 + 教务端功能完整</td><td class="ok"><span class="num">39/39</span></td></tr>
+<tr><td>3</td><td>sign_code_check</td><td>6 位动态码打卡：双通道、倒计时、位置校验规则</td><td class="ok"><span class="num">10/10</span> ※</td></tr>
+<tr><td>4</td><td>exam_anim_check</td><td>学生端切页动画运行时探针 + SW 换版触达 + 统考日期</td><td class="ok"><span class="num">19/19</span></td></tr>
+<tr><td>5</td><td>audit_interact</td><td>四专项体检：弹窗遮挡 / 死点击 / 假板块 / 文字嵌死</td><td class="ok">🔴0 · 🟡0 · <span class="num">✅62</span></td></tr>
+<tr><td>6</td><td>xf_check</td><td>学府门户桌面 + 深色模式令牌翻转 + 手机 390 逐像素基线</td><td class="ok"><span class="num">32/32</span> + 零回归</td></tr>
+<tr><td>7</td><td>sign_load</td><td>30 人全班并发打卡压测</td><td class="ok"><span class="num">12/12</span></td></tr>
+<tr><td>8</td><td>备份恢复演练</td><td>云端备份关键路径（导出 → 破坏 → 恢复 → 逐键比对）</td><td class="ok"><span class="num">9/9</span></td></tr>
+<tr><td>9</td><td>生产探针</td><td>版本一致性 / 可用性 / 登录门渲染（只读）</td><td class="ok">全绿</td></tr>
+</table>
+<p class="note">※ 首轮 9/10：「倒计时在走」一项因多套件并行执行造成计时抖动误判，单独复跑 10/10 全过（5 秒 → 3 秒、进度条 16.6% → 9.9%，实测正常），已如实记录。</p>
+
+<p><b>sign_load 压测明细</b>：30 并发登录成功率 30/30（p50=10ms / p95=14ms）；打卡成功率 30/30；无丢写（打卡记录恰好 30 条、id 唯一）；无重复写（一人一条）；考勤汇总 30 条全「正常」；扫码 / 手输双通道各 15 条全部落账。</p>
+
+<p><b>备份恢复演练明细</b>：① 导出全库 13 键、标记数据确认进备份 → ② 服务端 + 本地双重破坏、确认数据消失 → ③ 整库恢复 13 键、自动存「恢复点」 → ④ 逐键比对：缺键 0、值不一致 0（仅系统启动时自动刷新的通知时间戳属元数据刷新，内容零变化）→ ⑤ 页面端重新拉取，演练班与标记作业完整回来。<b>结论：备份 / 恢复机制在真实操作路径上数据零丢失。</b></p>
+
+<h2>生产环境只读探针</h2>
+<table>
+<tr><th style="width:190px">项目</th><th>结果</th></tr>
+<tr><td>版本一致性（md5 双验）</td><td>index.html <span class="num">f936616a…</span> · sw.js <span class="num">df0e6485…</span> —— 本地与生产<b>完全一致</b>（v112 已触达 CDN）</td></tr>
+<tr><td>HTTP 状态</td><td>主文档 / sw.js / 后端接口全部 <span class="ok">200</span></td></tr>
+<tr><td>响应耗时</td><td>首访（CDN 冷）4.8–6.3s、二访 4.5–6.3s、首字节 1.4–2.7s（主文档 1.45MB）；后端接口 1.4s；说明见「已知限制①」</td></tr>
+<tr><td>后端探活</td><td>hello 正常（1.7s）；标题标记、CNAME 解析正常</td></tr>
+<tr><td>登录门渲染（720 矮窗）</td><td class="ok">一屏完整放下、表单可见（probe-gate-720.png）</td></tr>
+<tr><td>登录门渲染（390 手机）</td><td class="ok">表单可见（y=524）、无横向溢出（probe-gate-390.png）</td></tr>
+<tr><td>health_check 总评</td><td>3 正常 + 2 警告（均为已知项，见下方说明）</td></tr>
+</table>
+
+<h2>历史检测与修复记录摘要</h2>
+<table>
+<tr><th style="width:190px">轮次</th><th>发现与修复</th><th style="width:180px">验证方式</th></tr>
+<tr><td>UX 全站走查（2026-11-10）</td><td><span class="num">15 处</span>交互 / 文案 / 布局缺陷修复</td><td>逐条复测 + 全量回归</td></tr>
+<tr><td>上线前整改（5.28）</td><td>打卡链路 30 并发压测上线；云端备份全库上线</td><td>sign_load 套件固化</td></tr>
+<tr><td>VoxOS 5.30</td><td>学生端桌面切页动画补齐；统考日期可视化配置</td><td>新增 19 断言回归套件</td></tr>
+<tr><td>VoxOS 5.31</td><td>旧窗口驻留旧版根因修复（更新提醒条）</td><td>SW 换版触达断言固化</td></tr>
+<tr><td>VoxOS 5.32（本轮前）</td><td>全站交互体检 <span class="num">5 处</span>修复（弹窗结构×2、按钮反馈×2、标题嵌死×1）</td><td>audit_interact 62 项体检</td></tr>
+<tr><td><b>本轮验收终检</b></td><td class="ok">0 新增问题</td><td>—</td></tr>
+</table>
+<p>累计：近 5 轮共发现并修复 <b>20 处缺陷</b>（走查 15 + 体检 5），另有 3 项功能补齐与机制修复，全部经回归复测确认闭环。</p>
+
+<h2>已知限制（如实说明）</h2>
+<ul>
+<li><b>首次加载耗时</b>：站点托管在境外 CDN 节点，冷访问首屏需 5–15 秒（服务端接口响应正常，1.4–1.7s）。二期迁移国内服务器并启用静态资源预热后，可降至 1 秒内——技术方案已备，不涉及业务改动。</li>
+<li><b>HTTPS 证书</b>：当前证书 2026-12-16 到期，按周期自动续期（0 元），到期前 30 天系统巡检会提前预警，无需人工干预。</li>
+</ul>
+
+<div class="final">
+<p><b>liyun2026.top（commit 2afebb0 · v112）经 9 类检测、251 项检查全部通过，无未修复问题；<br>
+数据备份恢复机制经实战演练验证零丢失；两处已知限制均有明确方案与时间表。<br>
+建议通过验收。</b></p>
+</div>
+
+<div class="foot">砺蕴教务系统 · 验收检测报告 · 2026-11-13 · 检测明细存档于 docs/acceptance-2026-11-13/</div>
+</div></body></html>

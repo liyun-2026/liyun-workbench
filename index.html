@@ -27,8 +27,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="砺蕴">
 <meta name="theme-color" content="#f6f5f2">
-<!-- 深色模式那一枚。登录后由 Port.syncChrome() 按当前端口改写这两枚。 -->
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141311">
+<!-- ==5.35== 全端口浅色：深色模式已整体移除，theme-color 只剩浅色一枚，登录后由 Port.syncChrome() 按端口改写。 -->
 <!-- 字体已内嵌，无需再 preload（preload 一个用不上的字体会被浏览器警告） -->
 
 <style>
@@ -87,26 +86,6 @@
   src:url(data:font/woff2;base64,d09GMgABAAAAACl4AA0AAAAAQ/QAACkkAAIAxQAAAAAAAAAAAAAAAAAAAAAAAAAAG4NuHG4GYACCHBEICvcE2GkBNgIkA4FMC2gABCAFg14HIBuMMyMDwcYBIFB4dYq/SjDGmPhDvWquUggRmhZpCC0KT5OP9TON68HdxE+vI08pfX+EJLMDtM3uuOSoNhDBSFSMadNiJGaiLqxau1Dnwlq5spf/ry4i3kXVxzIHc1pJX/krcOwZtpM0HTgoLBA48cDyAZG895O/suXGpek4idOUbttOUxjgzgKdEx3wfDCGe/9u89iW5qEsmaMZGk0sRXIgqpzfq7P/v0X/gKH6FbaEHTZtfH63aWfmytIuCxw7WUzihTxmxaKQ3ROkmvkJbpBaEPyf7H3dwIIkhohP73T9QVZJEgXaG1hH05rd+e/un6VW5TG+CX23+ZLZ/ZKEls1RckvLJyqhNFuqU0jUl5YcNUdLjpqndQlWIDzOYTQOJVEZU94I+qvraonsIV0PeccGVg89JQACAIINL6Td/cgEgP74sroUoIMBABAf7Ee3lQ7itUICrnejWYi4RXArDteEwM1kIcZ/d4s/6vejOWYhQcRUmwQCQ2HIKKhoRwapxxGARAAUAkAcC0CggNqD6NFBQkSfLgZBzQUkfJKrHHce68Z8QnlFqAcf6XydmAvwMri2l909LSkQYBvgAUDTp7DDRMfYGmFh4+Di4RMQEjHjwpUcyUqQlqQbD+XDfTfttaqS3lRKGohoXRN4RhH35sbgSqq0Q50GOETyvBoqn1cA6ENqzgRLwN/1RUqQIpAAQu5dgH0B3w6DKQkT5y/rTsGHhk6YSDHiJUqWemA0piXQ0u/Sl6SfyK5n78ybcBVV4/Bkaj1Yv/HsblPjvOrfAxAC6q1nECHaYM/86/b/fJ+Dc3dGsz1bszHDGUz//amlI0vMwV2D7YNpvePzk9b8N3Nd/Gzd3GLX/CqInD7SuBMAbS4A5zdGq9kTTKS4g7veyb+BWa0t+yDgkmmSQ+usd3Uz0GwZoYwQ9pBQrpMoRNjxAaLVO/nnBYCuFJ5zVKpPghwNtaAzQinhEVgSJyLSkcO860BmtVpIstnMcE1UcgabRY9Jctlgx2dxxVJhHFPENPIWNUWUM0RROoZQxTGrUQkSuEpJPkuQJ4qROgrcaXx2Oodpb88397GlZpuqRdEXcRw34QiMSDKqr/LCG9dzwOuLncCeCXyJgzk2O5rq2RC9QdOcpLMhsB42ROB4xFwNgY2cG/2g5RXIBxqI9hFGEZmIg5CMAU8hadOYTE5EoJ60Pz7fMtaO0VcAcoJuZRtZH4/MLr8cakhTFCJg6zoc8GpENpYCrf0G8ug93QtHYFQqYxchc9/Yx8Xa+Zvhi4t+CpAbwDLH8SVCWmItBXZxQvcGvPC+0eGgGYRkE/TFeQjvAfLTDEc+4NN59d3At2MNX7lorsBP4PvFG8G7mVjiM7xYQy6uLAb6tJaVgVQaZsHIawFnFPJzepfqYDVcDlN78f/wykG8JPyjQaoQuptAUeB7/jJLdmbUjfrFEGD8vsmDUm6kjHjyqRgOLS2WaOQzPBc1oXoBUFY9491980h3+wI/sXzns0iswPec0ZMIgQNzojESQ8huWH+k/38xPPnnKcGNvrOX98UNiA39/+MTgagyL7wpcSOw17XuhaQKB0CB05swWuZFMc+NdFjgHwm5SO9CzqfD8T/ef/y16N1H1pohxDdG968buXeAI5dnGllT5GYEBkYsef5zay2wI6/nRvajd0+GlRQOBry47703BocbPQgj4LECOYSXrCblE8CPgaRvGwIJu8PFwHPyZ9OA9nMRx7SEvJ8NhUPcSz5+Ej80Yp/8rNTjIK8sDIeWKg7s+C6thUDrQORLyRpW4qNgNPk7O2G0GbVIzuf/430mZOm8gaeM4ZOQ/2T8obeCbMwMKRVmF1krj+lmMDd3cW49XWfmdPSssD4mKWPNsyLEjc6LEahNjmOtK4fTP4vuvBcfOkX+pQ2e5ZkIjPeSGi0DXhdJtwKfri1VR6Imw0Bre9kHRPQl3sn3+qJNJajgC7XLao+oFoUZ/+L++6pe5bvSk/Iz/KTutCJMQjqPnY1aWUHQqaNFOOxiiqKw8mx8oBiMPSIuIiwxSbr1zLDA5MUEq1wsUplrNFTQNhbv60tMiztUAmb8oJU9ex6EjRta7sAfdSebhG19UMdwXUCaEdOSKh6JC0uoFE5/A1NMfdPS1rGPGAhvMTy7u9GooO4voRcmgfdYcbwlrMiXO3NhBpgMWhmrvWwjZbu/A+UOIsAkSeUKldTo3bYig2VT7S4uVg0owoSnwESVEEZGLYBwgndMXCp7iQk0PjjJBRDRjnG0SB5V3xakzGl2sAXeIOGSi0TwPEfGkEbZpKIIj99kvbljC1Syp77Mxixo2X1bDvDUA37h+KL/CxJSSGRMRbFs12iL7YYlsVPaeWQ+YvVJ5liN2aRMaacweT+yL/xQOX1sIRaxBBJkANJcS/NwWkghuyw8CGsCk9zgmD5m0M+ehvBsM4jLXoLcFmlJbAXwevcvJItJgCRiMFJ2apieRFClUs8EL58yE0wMy1HVH9BS2y3CM5hekvzF5EnGJfAYFXtRJWi3zeC6TbLTTCTP8R65x/EOt5HIJlxt0Ymh89ghWvAXhCneiVkWq+Hs7Kyovkfy/SLrx85zSNh7MOlHq5s92v46V6h8Ed1uGWkGez0tSwxRZ2WIybNIGU2VpnmXRx2GcGs1GDX6HfSMvUs4AiSmvSplhcCUScijVcCgfxBuEy7lS9UzhPjtTcLTmMp+iKk0b5IZqwTsOYVz4pEr8Qpk3LknR3u6MeHYAtNG2SvK3PargVBk0tlm1s00VZvq3mTdaWBzhCOSY5JIIxiZ9SeIe9CU5V2BxD4nCV9g9P4W2YsG7vhpy2d6jsvK3rGxvUz98KlYVDvHKQBcLB6aUTe1YClS2/eoJ79B7/QXy5DfhFKvSsmXPI+MOpXAEFPdFMpo+2WeAZYwtcslxCNc4L5n7SRtPMvQMxr9BFEqXW0gDZdJviblUQPh1hSmHFn2rSoBKWopkSDyFWlSgcmx+/GjSfvJRoCUMbZlWUnVZF05bafMnMNtICQFyBSNuwHhCiLC7osST38qdmTRjx+tVuPhuJtLKjkhdh7fRzLJpqdnkj4FvbhZSM+IQTOQnQ9u3WUYUv0d3Cvx1JE5wloRjiKWWQtWaYdk4L7XkZyTHiCSPeoXaRZji8wwcWxrko09rhbIRWXNVLBurxuRO9/okjbDZN2B6EilV3t4CtMRlWA+9axt0vclvhKkkeu2CZtK4hMfYFxNzEmPtMrAB+FYO261wCRxJEycBiHdbGCJcvk6J52jB51sLE5I2YenvP0+phiiA6oXGCKSk72jvSC0z6ca0tjtJnFdoMSRO37eGQ2604VnqrgfZwPSC5QlMX3ZuIWTjIrsvI2lI1PJbyLVgm0MBpPLrghXXj0LRfUpOQ+jkwxEDBGmAhROXvs9Y+X0a9K0oVjQj56n8edUn68HxF2ekViZFMl52dJKb7XCiPSqlD3TeF86B2ciBj1aKeKAaBrTxj62IzzSGYy7e4Tzsn+O2lrNsfjIzyVy+ui4cEhQsZZqZfC0Y9DQifjY0Iwpn2mOIQh7La2VYm0FsQ2amArHikVGfOBK0IR5aGfw3kaLyBxLxZ79BVweAGTngWKMsB1ODIe1c01LOuTzy087XYFqWkvN90ycPKKYAZujwHhkU82N/oKBt7uXqIhLJGbmO9g0oVOnZdYO2jtty7Hwc5NlKIHqDfJv7ggxLf2Ka1ZXa6Rj0jVMPM+rP476XLV1pFrdTFXQU+xy2oDuhV1M1C3sKslYQAE5/eg7iFqEpw4cefbZptvBdqLZMJVz4tlnt90nIxH1J+dLwDU8qkmMHBb9Ni0rUPBv1PskUGy/ipGOldTb6EzW6nA6m8VI/BjTMic7mVqvS1kkmBMkMblMnGJQzNiIPT2L7IMtMRBVgvpLcLlbys09bqtzj/AJxU8UEp6CZLm5jy5hSoACUyHzRHDJq6MCCXnzHqR3+nKqjc1Kx0Nf+s4nHWWVh0TV5RamWxlWBeHOs3VHpWr9L2Dcwk0OTkdexE/1PMdm4g/H+pL7QQJ3Sy3H4h1HL0T84DziGxlvHW+USYsBFdYmHDIoGzpgvP++xHQfZXnWF7nA1EcCgspoCHbVrqpUo6i8e7NK4bNJpbjv+Skds+rZcPduZ/L24bnjs+onXJNZL+dYxHWIsahYaV1DSC/cZUiPZx2jiPCFaIBYY2OFlJhmCG9VgsviN0Od4qemzXiii4tjQmeGtqGS5aIs0pxbOqF49f4YcYEthCE4fc/G+uHj1hMHSf3QqY9vEyZuCpRaRTEfDWYGplpC4pasmBNDVngNiFMhaFKMD+7Wif3/46eiZzG1pWimMNuoBdJiXEebRVzukrx6q8kwRYQ1w8B1KTBGlmU4FguTRE3HMJg+zsnhRK5QmTMa4Rat4JKHj25ftp+Kjq1JMDtUFFGpWahjNS4Px0gCM4S1jy3iZqqJXIzRsvElhqNST4ZG3VEkbvLETTT8cU3Kp2+rpUMAq7yW9sbbp2KDVVft6t+YVcI2v1JsDkOi5dB+d5ePsNQs5Qx+zXCPMJdYFZXG7iX7NunUNyPC24BEG57cx0RlSGWnVg4tEZDJP6SbdcAixMW5p0L9m5rwQZa4KPux+JxF7lBJWdDfN0bbuud7aGfayDhGGJjGxGViqoOMKaOyb3iebM8ea7L5Zf6QEulftqxKRyl7ua7HLO6WuJT7GYM6uHhuW3fMp/xRWdkXiamHvfjfqVV0T2cx8wWXeIcRDjZdjohYnorV3TmXHjLPqkt+espqLgY7tZKh1doMe0ank3+YxmVpjz3ev8+aqDDeAjP+IiQNoynsTdoyUnTGN4cPOxtV26Ypavs3SBXuc1ORtoHUTzgx47XX3iMP6UeWGF7mSn3Vh70/aVWRrxXgz+lLv1qIjmg/KSMDtu0Dp7rULcfGEkzx7IPa5aiU99FXTucc75Go49WacLQG85KbhU24suxvFZGoyoAPuF/2MTXHX04By6MPmxhNbHcsUZ2trcqzM3IHU8bl0XkuQDbf53ow94MUEjdlqmzCIzccQnLSAe8AmfEA8QTH4qWiQI7i9C+P2P7U3r/qz+q5NLin9IVBf+fhJXhs9JzNdFoqGmJpjzD1+9tbnfAH9fhguaqQeR65466pPLXGyByBydK/j11OJnK0HMynStxy3WDylb18eNFopiCdAyp34q1G84AfWmv+bHDYKAbCNl5EZ3Q56FEZs1R6dYnjylSgyh153ChPAgFS7XlO2pO37fTQDJ7E9hwUJQgviRzTHr++CGncOq5To0YzRKSTVAvgIUoeikaV2nVVAvKOfVFB0fRuFTP0+EP5uu05ezTtcaPYPQ0Jv2Na95/FiUPJnlk8dCk+OZ/pI/hBuO1y1wb5HvHPdIDW5kvT2/WxrmzfhBgdnSb50VxiJTH5Ypx+o5nw7dpHiD4NDYklpluOzahvMvivzmGT5C8VJ6XVVqoVKjG2lyxRu0bK0tZMPTkgL0EhlpKUaAWkysSwQKKxpIBoVgUM35lZVAuqrx17jQrlspYqqPwVBuNPTnZMmscUuU9KOd7xzNOJpwQkwKqmY7Krb5Vtpxqyfu+6rkKdxhmmLifse7rLLEwVGWu8M8xFtT/2dEwh1QXCJbZZxfAcetSMY4vHX4/Bf+TCInwfcGp782k3cvZA4URsR455z/3MNmYE/nbEq0VUeTbSMdVTlhDZOh3dfHaPyj49HR8OX78/fMrKUh5pBOI7Wa0feybO7ne9hOysdESp72fqkTRydPpgzs2HCrcNWclR2qDSZDhvQksvpGHdpEGPuPstru4IEjdJPkYTw5juwq+NHIqziJ5+9INW4Y2eqsyD6E5SxY697BVBHojABY5cHNReJ5zBkj/rfxOC52GEmqsMNoL4jLSpF+bcqyb2dIaIQV5NR3C3+y/uvWDyzu/grvZt/WqI9gDkHBiJsmS9vfriJcpJNNYzJN7A/xav9Wkshx2u5EpsK7U6wAlAzEUEySPDtnChV/KljIS0aJ9hhWVZPK/2ilO9Isl2pySfktR+lleI6mZR1/fT6FpJ9ANHXOeB16XJeiNkj+aYxFtp8cxsvPqxGMHObfEzVwAm86b8Yp1t4JRQn6EpyW81+auI488l4nQ2synZslIl0czGkHVWKryYcZUevHFrPk+nDMzaxs8SRAPtn6RtrD8xlp0NlQYjnWXe98M1exKudEX5GCsd7Gm7zFticdakQ5l+Jn1AlF9gzOaJirg9sR6V8X5Kfo44Y8K13BmGDzYTRxFBVyVqsyIwjoSy1jDWnJ0WBwQVCNm9/YJM23YJQf2XwB7SwKi8s8sJ/iJ+OWL/VqcrCt/t5O6Q7MGItZxDsAfkQzxKB5lSsEBEdTabSl8Zy5/LRG8H8joRlQcjyXwrDT9zuhBLfh4pKjcja5ghore2oNSfiHy/Ts4Bzm2XWpxmrnKz7lbSKaRCf2nQAsMFlMpCqti3Up8kOLMigJso9NzbUcfiWI1LDz4QTzZrZUY7N7o7hwEXNyMIzSdjctV1MkstO5xYYdIFed5fGiw2S+Jr+T9URc1rPeOGRQxiw7/01PCNm7ezIIaUun+CJLZ7OQP9CjEiemyt/bR+m5s2Wqnf0HWJRu5uc+9xMjtIECVdaZUjX+TA5gNPb/vC6OXW7SXP/kCpUQRGt1dhmzwmbhNmH22jsT17XrVkursFZWZZMq0dNDwaY42zfBp7/5heAPFwGPCMY/HoLv/wRKdRynSFUyEhlLE4Qu9ZHk2PFVOd89pCam10btwKO6XSPtaCXEyLffZyE9c1L5M1yXZwUAHhyolUjka81DdKQFyTQrqgIBd2dkH49HghfwzYdDpup13HhETARfAwXmE+L+xA9skdNNLh1igHed8C+eSZFSWDrNdmtlt90+dY2+jFSIV7p/rIc9+9qWmZTin3hXGLOLS+zQD2oIriPcm6IddGF5NhY6C2R9qqpCmEzsa27DSEU2W711q7+ue6czWqDcJf1JwAIMmWh3/5zCuCIbKlsh0is4JJPbyhSckU0sRXgqNbpIF8r3mlohS+Zo5zBaWgzkVXnQ48PTphU6kFql2FRHAJ9yRts7Ow5g4RS873n2g7sN4s3d+iPXznGpv1do18Inn81cH0O65DclJIqLb+lolyxe/YNJ8dPiMxYjyKzKJmh21NgIzEFMrQt2aJNfDla2xHdPrqT/4hAkMvNVo006HgZpi9ZaEsjORmkZz/dqxo38bwcxOU2jCR3rkjODI02zFK7eHImCKJDR0TmAQMTJxKLybThB4cdgFRHcuYzmI8UXeah9X9xRDqVclqAtjEploDkgGOik9e0njNCicSpSwqbISwhRRLuQnlwlUrblvubqjv1bSk3W+1iUx1yHUMf77LPzEVpbtVJIuoAuk0hUNYZmCZNfPlqaNrdZeczKXRphUv7PTRbNYXnlylco045pNhJcKkwJjl5He/p/ql4i3u1n+ya/J5TYQyol9RoqvD6oUI55FwVt5jztuEFv6bbX/Tv7sKwjbevfiynktqAxSt4AgQGlLWlMIoCo9cBNYAFR4AaXZlAr5NvCETvIh561H90VDerl28Ahsf+NSYTErh3Qvh5Vsf5VtYMIqfJwjliTR2KfHb4AdQaceHpbqeFC2M3EWwLbrmKMlDFRh/XWTnO3LL5Zph8tRLZmk+WyvCPr/c+A4wAOHLOatOW2PoVk8N7febuT+fXHnG3mhZmMsn3KrKP0BU1xINe7uN7enIUtdyVzlwZbXPaLn6ukA4e/rzS3FV573YKPKxEv51WPOw1bj72HuLapkf9pfo7KWU4qLxGg6h7SpwCqVTxATmoZYmlfjwHir7vEu4HHUibBaOPEUB1eFefuyJaQPk4rYnlx+rIXgCwYZIPHpxL3sDFa/FyRuTYXwQIpT+Nz0mpM4Z2qkLPc9fKIvU+rxz+ikrW3UKxePfas7owY6oXXJ6J48P9pBWU6mrORFm3M7QkrU4Foyhr/q6wsMFVUcunseEVe/DbSJwhyFefJetQ7y7VJ1PmkQydA9FMxO+vAAAnfWKATF/JgKR49S1kw2O5oDyZAAMS3o5vZVWkjdvTHcoxmYzc2G42NzGxbVNqVJXq1mnmMzmWgek9moYmYrH09haFHcj6OUi6y718AYKsciHltqeiOV8vCvlrFoFKJk0ssKazXa0qFQ17zo+Rwds3jN70gavL2dugee2oFg5jHH/s2Ieg9Fh6YRIjuLriyT6LA9ZyWsh9ed/Gu/dFJ+UqzPqKRvWJ5k2JqN2/l4rDYcqA0UVT4llA9vzaSyTsclssQhtC+Wq73wzoJ5KHMVCQuU+N2antJIhrHlNmMfiygWrxmKsPZ2IBUJ71fayFSjsFZbB+XY4TVBpT2fpc6+R4iGmtE6gJaNeVH38GSqDV/WlMIHZcBnBv9iF32DOaAOVW4vqo/iShneH3gCbSzXe6Eqj6DIJW9hDds8Pnwjc//fD9d1DXBv+vnOv/s8BojQL/1h8Jfda/izAi525e5O/lIgcWAahdpY5INjQ6HAFIe6fjvfg/MHQgnph/NEUQc1w2gTTbRphV7t6Jrdm61EazZztUNk/rXeILY2m7HJQhquOrjQ8u/MhffH8u2ss2Blh+QTzVZ530uoVEuHFJ237Anm82TRaCh0/fSd88HVqsf9ZDClLTRwrNGJQNONvaQeO5YuD1OOHH3y4lHq14MX9/yhnwmgqXuxyBBGmcxl3jf+LWQusNmfZb+5kc6rXD9WYy2wP/7x6c4yLA66e2hvAsv92zsA2mlzEWsGWwgKksVdLfs3lptBMHygMomiTNfWFpa0mCARWVAgNUO9oyybP5OUZmQlkYpIDGR6IfiKJeGf3Dhlt7PiTQ9ZSLjfvazHfKRQmYAi6ORI/8hHBd1vtxr1nzUWxhLkw1L+ooPDk8HTzfTZgampyo2OGNHq7HkbQ3x+eW5gnIMBzs1c7lhYXGzZ4mRffJcPEqY2f+Ny0WYcbKXFKz9F2bcuPeYMTmkLZscsSgQovZs+plcv55qwu38qC7j3LR/tqNwxtXe8w93RnR01up4nK2gGC4yR4ssFNVSRd0Xro4C5rGRIbUgQMPl1uO9bmKmWqNeHIcy04OgsEZlzp0fro0KfUHQHBI2QfnRkXjwX64AMMTHUYCnFVJLViAwK8LQHeM2eIjgPhNa9mLj++ACXgJHwOaRZJ0qSx4WAolBfsktR0+xyMBBt3nPCes4WHUoKKa57fE9/KmEq+dKmAlVuUJLOZ+JRfuWVdjyfIZr9iUU68qScPWm4Ot4PQXoy5Wr9oautfCo09qU+WAHmuB8BP5Ae/Q5MePyDXe8KC9EnvUrEtjyf65u7biFBjq+Y+QjGTiVy2I7FEF7/pwatDHBkF3S4fs1bD8PLHE5tb4mr+JUEfVg+DZVSbBiZLKfQWHoDRqQTFbN2CbTDkT2kBqUU3zAzQ6JQm8ttLN6bqZ0F7JPnui9T1i3qfzZ03x9kChpyMCHQ0ZK2sdS4/1puggqHA14IWkc/LNWRM3f92OHWSNm3lbfLZDQsh0D973QsiZb9JLU7dus8YpDUtHf5THtB/8l0O/ARJki5wddzlE9ngneGcTTmaCjpuNPdrm2erfXuxnaTCn5HE9NbDR3Xy5aqdeQeYlKq2RFNW2aCh7uznGzme02rdGtdlceIfPfH6v7mzPX+pJvgMhnlDQJhF1pbj5KHPl2tWnbdN3VqxDUuc1hPvrqKS+orM6xTVGxld2zqebcUZ7V79FlnU7kMdiDedq5tJBiT5etKdvVw7i9jLTRMbo5Dj1zGKMwC6OAWAHlV++6o+p9QCT0524/MKCmFszxkdpvN6t9UwkbDMTNZT5SchOng79mvKHCUAXZ7c9svLpCCNKNVm+kKy4QkfAjkjS+u3EPe2vLFfXJGaL8nMPPR9w0onAf6rJ4DmxZP1X36yd37WLVFgCSajBRxqFIZGTIAKlfML/TniACdgiZ+f4262+HFfV8v+tgRqZBw6rKdE+P6/atNmrdDb6EneP3mTWmniIye7mSj5uCE7Yt2tDVjZTF/JS/7MBBeNHvn3upwIvRnl9d/Aj+WRwT/nMYkT7sZt7KsDLUksxKaPpaMNv6INxVNJy+fJrTzUdwe07kW64hJyJYSBd8BpxQMcoRJIMgNuLGCNx+eTdC0O6IUWRmtImoCDktsc2reP507YXbRLVkQxBliSYBDuCzUgENPBce+Kl5PBAeSIEgOrFgXGfdRJ3D12v+2ondxkHWB3KezpbhLMhZT7MqnUQX5dJCB9LCLvfK+58Q9J2ju64mrNK+el5OVmWRoTbXJoE6uFcWOQpbddiCEsTVmELCIQm4MzzqBTphRmU3ESww1HSdOt626IQ53Wcih6TgTIDm44n9B/VT+SzqA4LOjhPHz3aJPQ3JOYJCUNlv2fimEb5lEA6y7HQXdKJxnfzyBZlF+pYc5ggNGwe0feqQ3fM4gdmhxybHmV78Q9gOUzeO8eFuBdK5mGVx/QQTjDOHtr3pdr1Xj8sXYk55G6v2nhPH9SM2kGhC18lXrrX7P/hrdyfSjvMTbUjuMwJGQnH3GhvNiIyco+N/9yE+1N6CWbU9yPDTqrXr044lLTjcn21S8fWi/04wtCgNhTZ0DoIQRdqfxbVzdRprcwg/kkLYvF30pst6RAt/CujjwbiGnJY3XpS+zVKmDnMnz6EqdKe5YRD6J7WPt8rOxNTDEXHmEbgaIiSM2fygBUXPsSwWwzeiT4l6ujSrOMSRce32q6To3YiTonWn7CaWdCyHBRMr3T6rzfMs1BP1TvyYxOcJh+IffB0lRABfj42n5y6GfzkluRONLLFVpo4Uw4bF7FHQiG4fOF8f4EfhOFtnGoU1nNL0/9RhphAiwibePVxXAj8Jqz+Y0R0OGXWkxXI7mb0cgyW2BT/VyNS1P1juI0rY/lTTuvJC/FZu6A2rGl9e4MGNbJwLgcJfx+VInzdH+waBF3Xx1OGZgFdqdgyfx3yUTDm4VUxryvoazZlys5IBciQcHRaSj+SGPkxsW5RMIoDCLRxr7uPqmRtNhPcB5/xIitQmENSh0qy5mUcE86u2PzsUIU2yH1NLCo79Xt7/JcNJtGj7zhFj69NvrfinCC1RhUrR77NlUbfXjuvSj7VmMVMQ1BbPQNs3gz2B7B/8sOwyg9CTMV670gaOWG076xbx8mnT2Lv9nJ8bXD6s8OYhMmyvSgUQtut0mGofi3nfP/trB8GGIOCfbdWbqgUc+bbOPtsWeT9bwZs4PUFjdKYN7MAqMpy7Ow0Cs/7fFHZxwfp7SPUJtkCVf6031l7D/rQV1ax1QaDRfnV/hcXBG+zZ2HwlXd1OhTRTzXW6hXBHCJPqa4waSZJQM/ENUS8gERirfY+p949vOYrFm+nIS0mlrQ8BovCRntE184dppGXM6zFmycPPI0ycI04UZf5zGMIqEdi9leQdGh0OurLHYQRE5rWi8Sti1wnnrezdBpvcrr3EhippjSfaZlJ4XiH7mkykqZSL1+IWesxRRB5xMXRiZZLCUkFKeTyQTjx4t8hf64temw5bppzGxZppOTUBjD3J52ZY9fWZwRaTDjRbUmETPIW1GoESE5hbePvHgKmYkyKdYJnqqKkrxQn8swPcJSDevF+/bWfexzzx0TBrm7+7f+v27tZzy9lEG/Qyuwh+0zNK8JjEdNFDakc2TxXXnyBUKqfugEMNIV04exWv9g70p0p0bwSvg37aNKvOgGK+8Ua5uFmfCHgu7uZZ3DZKY+GGL9vTv3zDiC3LCemLgpZlDJAn03qCoqD/u7RJimlJEULNZhPm++hXF1lh7+yh9JmTTnSLb9Hli7bZWHL1txwVecRkzZmUbGYh9AieCcLn+pNr+eMRpwtk7eWjugnn3L5J294kdrEi1aQGpleeHLf1NWg7NebceJ5k3OhQUqHM05IttTC+3aaH88b5vI2tOjwqOaO9fGAiFxbMAVy28IZs3L0cN2H3zW6/VVU5Nig5Oou3GElGxrTfwtjyYbP6YTQ1PEem3GEkW4G4KHeZ5UJ+8pO9ddeQDnlBYwIuPa6Si8UsCvHU+mARHbhyW2We9aZ66hp2b8W1eAIn8l1Yc4CZPbyLOn+HnOjSBE1wVJhaG+h2B4WTFrUMNs/j3EiFDl2Y739AjMBfhwVfnybwIHijtBsaFueVJM3fzHCczv/cm0+VtR6BEpyVc+LcasMEJwLRopx58Jlf79b/H86FoXekjC8PwXD1Z9uWaJtKPpijrqyyz/MzFHFDj7aTNHZCEW8JP31xkcD3OfI2QHPwdPQCAnga5BNbUeTHfQw/+bvPH9iblhKLqUPD11ih5KadDBcM6uroSdlAE3bWvPhbPxUMoimGxYmeOsSybQ+Zs2bZ60CkbWjT76j9yQGtc6H0HGnIOSUCj82tx6mNSDBUD4l5tx/gKUlSPJbpVO6aTguH1i+Q2KIuav6d9y4UthJ5tDPb2iHdUU1Co8Ggfmn5X2kYfNyNB9CAvs+t+7YcDZZkXN6BU1qCfFk193Kew4GPN9n/dFD6HlwtGb2loOBYnpQaJJRJ2T17kIS6tWcbZYhcKzLxq3uy2JVHw07P37jlokS9IUmAmLcxPv6wIWBsCzNQXSyOD4Dy3pGov73ggtMDkjbttnOU2zn2D3VKQ65xunk9HZOb3J93ravKd1a1U0Gh5j+Ky6RICwVPmnGdW6Cigvfk5CD2LIqiGXrOjDIo/P4yt3LW7p/p184XID6crTQ8CvKa/Ty0riCt2AVfsqm7THlxFTrjslvis7bB/g8I5KdoVwM5HKljGhvC/cMmSLPRWYsaTgoSJvkqOqq97AGb1oj0b+czJMYO7iq0apZdWvcLzwuC3fHCVP8dYfW+hTF7i4SeFFjfy0bPo8qmg02FKr58isDqkUvsk+orn0+bqmjwVqwLIgEjbqa63qV6hP7HyUvDqFIXfhjo/3UWMa0N9nx3EQcEjKbNBu7xR5xkqD1lvW6UV2q0grsXv3OmLLn02yni8UavV6XQ1rT/DycamUrRUJmV3FCyPSrCwmMnJMrKyCnr5yTpaTqagyflPcn1D7o6oTsVWquSWMuEwDTqahGBMbrvLY2tQQpvulgGyUOSYJ7b2P/2y73HfSgKmTiewCaqidzDH9X9qTQ8DjnrPjkv/sVGy+s+bHGkug+Xd95KOosOUyASk1v6co/H2w9iIGxlOk7LRiz9hF0ewCjH/IOjXG6SQTp1BmhKXTk/Qz+NiBSUulB5KBf58Pmsv5rPCYct7azdOlLZFhpoVioy8vaEMN5P5Onnwn5R8ql2cw9zW4WFFhIy/apfDErpnRliqf+pT8iSAG5OMMl2FPM4Nh7t4sroOXwZFCG6ms0kdkF5DUkcOloVsN6b6nPXTBNiop1NHYMlrH5BB1DHXeUlpCel3oYQEAA4Zli5KioFAEFA5CkeRR1DWKJY7iTlFymJQIh1LcplTnW2nULdbUPbJuj1ithuYBegZwBaDWg/qWWOa1slmhAcK63STgu5v9vybAWkRVNdc1oma3ZXg861LDwCXUFlDvTs6h9jYIkgF53W8EuC2o6aSvvqBvUYucny1t1q4J4VkbmwEahFZvfY/GJEO9/wfEHP+4pDwnmxH4DYegF051/uHG31tjPnuxzfw3838b9H93JYoiEbDvS+8S0zlJl3vRQk87bm7uzefMIs6x+ZQbt3hb3OICwHfzuFIR2UyQ8VB5AkjXkS+KNYNHiCU003cFtXANeHAJ5ZGQO91uPQ/NkAdJMA1yYTWkgg+MQQUsAx7YgDv4wwZS1ZkQMNxMk07iTGObHjaufMl+PZ4lwTQJ8q13b9PBpG2bC+QEO3qmG0BmdmwgobuwARLo3gaYU8w2IMyibQRllywaZco1qFSiSLFqEop/BdA3Y4INhV6UXMZcvstSaYBCLHIxdliWmWiK/KlUqVFY7MhKVVk4iC0Byy3pz02cIiXnlemRPHL5EFOOYZmEi0xWyKSxlJRV3AjMVT25tzcKx1INS/oXS/oYr0pV1pjshyspyLmL9BRAeql0NPps6nQZVwFnm9PlJP1KksJai5LyXyTJ+3zktw2y2NTv1RQAAAA=) format('woff2'),
       url(assets/liyun-xingshu.woff2) format('woff2');
   font-display:block;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#141311;
-    --sidebar-active:#332f2a;
-    --card:#1c1a18;
-    --text:#efe9df;
-    --text-dim:#9aa3b8;
-    --accent:#c9ab7c;
-    --btn-text:#141311;
-    --line:#302d29;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-    --tint:#1a1815;
-    --rail:#2b2721;
-    --rail-text:#e9e3d8;
-    --rail-on:rgba(255,255,255,.14);
-    --rail-on-text:#ffffff;
-    --rail-art:#cfc7b8;
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
 }
 
 /* ==== 基础 ==== */
@@ -189,7 +168,7 @@ body.no-edit .stamp.ro-stamp{pointer-events:none;cursor:default}
 }
 @media (min-width:700px), ((hover:hover) and (pointer:fine)){ .only-mob{display:none !important} }
 /* 「今日」旁边的实时时钟：24 时制，tabular-nums 让秒数跳动时不抖 */
-.clock{font-size:.6em;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
+.clock{font-size:.6em;font-weight:400;color:var(--gold-deep);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
 
 /* ==== 卡片 ==== */
 .card{
@@ -419,7 +398,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .role-opt .r-ico{font-size:22px;line-height:1.1;flex-shrink:0}
 .role-opt .r-name{font-size:15px;font-weight:500}
 .role-opt .r-desc{font-size:13px;color:var(--text-dim);line-height:1.55;margin-top:4px}
-.role-opt .r-check{margin-left:auto;flex-shrink:0;color:var(--gold);font-size:15px}
+.role-opt .r-check{margin-left:auto;flex-shrink:0;color:var(--gold-deep);font-size:15px}
 
 /* ── 登录门：没登录前挡在一切前面（方案 B · 鎏金牌匾） ── */
 .gate{
@@ -519,28 +498,6 @@ body.role-teacher{
   --shadow:0 1px 4px rgba(60,50,35,.07);
   --shadow-lg:0 10px 28px rgba(60,50,35,.14);
 }
-@media (prefers-color-scheme: dark){
-  body.role-teacher{
-    /* ==5.25== 深色面板统一学府深蓝系（--paper #191d27 同族）——
-       旧暖褐(#141311/#1c1a18)叠在学府深蓝门户上是两套色系打架，看着发脏 */
-    --bg:#191d27;
-    --tint:#1e2330;
-    --rail:#252b3a;
-    --rail-text:#e7e9f0;
-    --rail-on:rgba(255,255,255,.14);
-    --rail-on-text:#FFFFFF;
-    --rail-art:#dfe3ee;
-    --sidebar-active:#2a3140;
-    --card:#1f2431;
-    --text:#efe9df;
-    --text-dim:#9aa3b8;
-    --accent:#c9ab7c;
-    --btn-text:#141311;
-    --line:#323a4d;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
-}
 body.role-teacher .clock{color:var(--accent)}
 body.role-teacher .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 body.role-teacher .topbar::after{opacity:.72}
@@ -563,27 +520,6 @@ body.role-admin{
   --line:#E7EEF6;
   --shadow:0 2px 8px rgba(92,125,163,.09);
   --shadow-lg:0 10px 28px rgba(92,125,163,.15);
-}
-@media (prefers-color-scheme: dark){
-  body.role-admin{
-    /* ==5.25== 对齐学府深蓝系（#191d27/#1f2431），与全站深色一体 */
-    --bg:#191d27;
-    --tint:#1e2330;
-    --rail:#252b3a;
-    --rail-text:#E1EAF4;
-    --rail-on:rgba(255,255,255,.16);
-    --rail-on-text:#FFFFFF;
-    --rail-art:#DEE8F3;
-    --sidebar-active:#2a3140;
-    --card:#1f2431;
-    --text:#E4E9EE;
-    --text-dim:#9aa3b8;
-    --accent:#A6C0DE;
-    --btn-text:#141414;
-    --line:#323a4d;
-    --shadow:0 0 0 1px rgba(255,255,255,.05);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
 }
 body.role-admin .clock{color:var(--accent)}
 body.role-admin .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
@@ -608,27 +544,6 @@ body.role-super{
   --shadow:0 2px 8px rgba(163,142,92,.09);
   --shadow-lg:0 10px 28px rgba(163,142,92,.15);
 }
-@media (prefers-color-scheme: dark){
-  body.role-super{
-    /* ==5.25== 暖褐深色 → 学府深蓝系：小结卡/设置卡发脏的根因就是这组旧值 */
-    --bg:#191d27;
-    --tint:#1e2330;
-    --rail:#252b3a;
-    --rail-text:#F4EEE1;
-    --rail-on:rgba(255,255,255,.16);
-    --rail-on-text:#FFFFFF;
-    --rail-art:#F3EDDE;
-    --sidebar-active:#2a3140;
-    --card:#1f2431;
-    --text:#EEEBE4;
-    --text-dim:#9aa3b8;
-    --accent:#DECDA6;
-    --btn-text:#141414;
-    --line:#323a4d;
-    --shadow:0 0 0 1px rgba(255,255,255,.05);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
-}
 body.role-super .clock{color:var(--accent)}
 body.role-super .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 body.role-super .topbar::after{opacity:.72}
@@ -652,27 +567,6 @@ body.role-both{
   --shadow:0 1px 4px rgba(60,50,35,.07);
   --shadow-lg:0 10px 28px rgba(60,50,35,.14);
 }
-@media (prefers-color-scheme: dark){
-  body.role-both{
-    /* ==5.25== 暖褐深色 → 学府深蓝系（与 teacher 端同值） */
-    --bg:#191d27;
-    --tint:#1e2330;
-    --rail:#252b3a;
-    --rail-text:#e9e3d8;
-    --rail-on:rgba(255,255,255,.14);
-    --rail-on-text:#FFFFFF;
-    --rail-art:#cfc7b8;
-    --sidebar-active:#2a3140;
-    --card:#1f2431;
-    --text:#efe9df;
-    --text-dim:#9aa3b8;
-    --accent:#c9ab7c;
-    --btn-text:#141311;
-    --line:#323a4d;
-    --shadow:0 0 0 1px rgba(255,255,255,.04);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
-}
 body.role-both .clock{color:var(--accent)}
 body.role-both .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 body.role-both .topbar::after{opacity:.72}
@@ -695,29 +589,6 @@ body.stu{
   --line:#E7F6F0;
   --shadow:0 2px 8px rgba(92,163,134,.09);
   --shadow-lg:0 10px 28px rgba(92,163,134,.15);
-}
-@media (prefers-color-scheme: dark){
-  body.stu{
-    /* ==5.25== 深色绿黑 → 学府深蓝系：学生首页卡片发绿的根因。
-       学生端浅色仍是一整套绿皮；深色只把面板底统一进全站深蓝，
-       强调色保留青绿（绿 emphasis 在深蓝底上依旧成立，如同金色）。 */
-    --bg:#191d27;
-    --tint:#1e2330;
-    --rail:#252b3a;
-    --rail-text:#E1F4EC;
-    --rail-on:rgba(255,255,255,.16);
-    --rail-on-text:#FFFFFF;
-    --rail-art:#DEF3EA;
-    --sidebar-active:#2a3140;
-    --card:#1f2431;
-    --text:#E4EEEA;
-    --text-dim:#9aa3b8;
-    --accent:#A6DEC7;
-    --btn-text:#141414;
-    --line:#323a4d;
-    --shadow:0 0 0 1px rgba(255,255,255,.05);
-    --shadow-lg:0 10px 30px rgba(0,0,0,.45);
-  }
 }
 body.stu .clock{color:var(--accent)}
 body.stu .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
@@ -1213,9 +1084,6 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .gs-reveal .gr-bar{width:220px;height:2px;background:rgba(201,171,124,.22);margin-top:26px;overflow:hidden}
 .gs-reveal .gr-bar i{display:block;height:100%;width:0;background:var(--gold);transition:width 1s ease .3s}
 .gate.reveal .gs-reveal .gr-bar i{width:100%}
-@media (prefers-color-scheme: dark){
-  .gs-reveal{background:linear-gradient(180deg,#1a2236 0%,#222c47 100%)}
-}
 @media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   .gate{--serif:"Noto Serif SC","Songti SC","STSong",serif;background:#f7f6f2}
   .gate .g-mhero{display:none!important}   /* v83 双保险：手机端轮播绝不进桌面 */
@@ -1240,7 +1108,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .gs-brand b{display:block;font-family:var(--serif);font-size:29px;letter-spacing:7px;color:#f3efe6}
   .gs-brand small{display:block;font-size:10px;letter-spacing:3.5px;color:#93a3c4;margin-top:6px}
   .gs-mid .gs-motto{font-family:var(--serif);font-size:44px;letter-spacing:10px;color:#f3efe6;line-height:1.3}
-  .gs-mid .gs-motto span{color:var(--gold)}
+  .gs-mid .gs-motto span{color:var(--gold-deep)}
   .gs-mid .gs-rule{width:72px;height:2px;background:var(--gold);margin:26px 0 20px;position:relative}
   .gs-mid .gs-rule::after{content:'';position:absolute;right:-13px;top:-3px;width:8px;height:8px;background:var(--gold);transform:rotate(45deg)}
   .gs-mid .gs-sub{font-family:var(--serif);font-size:16px;letter-spacing:5px;color:#e8cd94}
@@ -1464,13 +1332,6 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   content:"";position:absolute;top:-5px;left:50%;transform:translateX(-50%);
   width:3px;height:3px;border-radius:50%;background:var(--gold);   /* 样张：选中项上方金点 */
 }
-/* ==5.17== 深色：bar 随令牌翻深（#18211E = 学生端深色 --paper 同值，mtabbar 在页作用域外拿不到令牌，硬编码同值）*/
-@media (prefers-color-scheme: dark){
-  .mtabbar{background:rgba(24,33,30,.78);border-color:rgba(255,255,255,.10);
-    box-shadow:0 10px 30px rgba(0,0,0,.45)}
-  .mtabbar button{color:#8f97ab}           /* 深底未选中：≥4.5:1 */
-  .mtabbar button.on{color:#b7c3f5}        /* 深底选中：亮化同族蓝（--m-blue 深底上只有 3.2:1） */
-}
 @media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   .mtabbar{display:flex}
   .tabbar{display:none!important}          /* 旧手机底栏退场 */
@@ -1505,7 +1366,7 @@ body.board-mode .mtabbar{display:none!important}
   #page-stuTable.on,
   #page-settings.on{
     --serif:"Noto Serif SC","Songti SC","STSong",serif;
-    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#7E6637;
     --paper:#f7f6f2;
     background:var(--paper);                   /* ==MOBILE-V1== 撤蓝头（v1 终稿）：浅底纸面 */
     position:relative; overflow:hidden;
@@ -1677,19 +1538,6 @@ body.board-mode .mtabbar{display:none!important}
   #page-settings.on .anchor-layout{margin-top:48px}
   #page-settings.on .anchor-layout > div > .card{margin:14px 0 0}
 
-  /* ── 深色模式适配：纸底/墨色翻深，蓝头带与白字不动（固定品牌面）── */
-  @media (prefers-color-scheme: dark){
-    #page-stuHome.on, #page-stuSign.on, #page-stuHw.on, #page-stuTable.on, #page-settings.on{
-      --paper:#18211E;          /* 跟随学生端深色底 --bg，页缘无缝 */
-      --blue-ink:#D9BE86;       /* 章节/天头墨色 → 生产深色金（--brand-ink 同值） */
-      --gold-deep:#D9BE86;
-    }
-    #page-stuHome.on .chip-no, #page-stuSign.on .chip-no, #page-stuHw.on .chip-no,
-    #page-stuTable.on .chip-no, #page-settings.on .chip-no{color:#E89286}
-    #page-stuSign.on #stuSignHint{
-      color:#d9be86; background:rgba(201,171,124,.10); border-color:rgba(201,171,124,.35);
-    }
-  }
 }
 /* ==TA-PAGES-MOBILE-END== */
 
@@ -1709,7 +1557,7 @@ body.board-mode .mtabbar{display:none!important}
    · timetable 高危保守处理：只加顶部蓝头带 + 白卡观感 + 头带文字，
      #gridWrap 横向滚动（overflow-x:auto）原样保留，格子布局零触碰；
    · hero 浮雕只挂教师今天 / 教务首页两页（样张只有这两页有 .bg-logo）；
-   · 深色模式跟 3a：--paper 深 #18211E、--blue-ink/--gold-deep 深 #D9BE86，
+   · ==5.35== 深色模式已整体移除（全端口浅色），本节只剩浅色一套值；
      蓝头带固定品牌面白字，深浅两套都可读；
    · 桌面 ≥1100 零影响：全部规则包在 <1100 媒体查询里（.bg-logo 全局已有
      display:none，本块不重复）。 */
@@ -1720,7 +1568,7 @@ body.board-mode .mtabbar{display:none!important}
   #page-today.on, #page-myclass.on, #page-tickets.on,
   #page-home.on, #page-att.on, #page-homework.on, #page-timetable.on{
     --serif:"Noto Serif SC","Songti SC","STSong",serif;
-    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#7E6637;
     --paper:#f7f6f2;
     background:var(--paper);
     position:relative; overflow:hidden;
@@ -1930,16 +1778,6 @@ body.board-mode .mtabbar{display:none!important}
     padding:14px; margin:16px 0 0;
   }
 
-  /* ── 深色模式：纸底/墨色翻深，蓝头带与白字不动（固定品牌面，跟 3a 同一做法）── */
-  @media (prefers-color-scheme: dark){
-    #page-today.on, #page-myclass.on, #page-tickets.on,
-    #page-home.on, #page-att.on, #page-homework.on, #page-timetable.on{
-      --paper:#18211E;          /* 跟随学生端深色底 --bg，页缘无缝 */
-      --blue-ink:#D9BE86;       /* 章节/天头墨色 → 生产深色金（--brand-ink 同值） */
-      --gold-deep:#D9BE86;
-    }
-    #page-today.on #tdAtt .chip-no{color:#E89286}
-  }
 }
 /* ==TA-PAGES-MOBILE-END== */
 
@@ -1952,8 +1790,7 @@ body.board-mode .mtabbar{display:none!important}
    · StuMark 水印一字不动；本块不引入任何更高层级内容；
    · 桌面 ≥1100 与 0c5f170 逐像素一致：所有新结构挂 .m2-only，全局 display:none，
      仅在 <1100 且对应页面 .on 时按 ID 权重放开（不用 !important）；
-   · 深色模式：沿用 v85 令牌翻转（--paper 深 #18211E、--blue-ink/--gold-deep 深
-     #D9BE86），蓝头带固定品牌面白字；
+   · ==5.35== 深色模式已移除（全端口浅色），蓝头带固定品牌面白字；
    · 搜索胶囊为装饰样式：生产无全局搜索功能，未接（元素 title 已注明）。 */
 .m2-only{display:none}
 @media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
@@ -2076,12 +1913,6 @@ body.board-mode .mtabbar{display:none!important}
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
   }
 
-  /* ── 深色：金点/金签跟 v85/v86 同一翻法（--gold 浅金在深底偏闷，翻生产深色金）── */
-  @media (prefers-color-scheme: dark){
-    #page-stuHome.on .m2-row .dot{background:#D9BE86}
-    #page-stuHome.on .m2-notice .date{border-right-color:#D9BE86}
-    #page-stuHome.on .m2-pill.gray{background:rgba(143,137,127,.16); color:#A9A296}
-  }
 }
 /* ==STU2-PAGES-MOBILE-END== */
 
@@ -2185,17 +2016,6 @@ body.board-mode .mtabbar{display:none!important}
     font-size:11px; color:var(--text-dim); line-height:1.2; text-align:center;
   }
 
-  /* ── 深色模式：数盘/宫格/胶囊翻深（蓝头带固定品牌面白字不动，跟 v85/v86 同一套）── */
-  @media (prefers-color-scheme: dark){
-    #page-home.on .m2-stat .num{color:#D9BE86}
-    #page-home.on .m2-stat.hot .num{color:#D9BE86}
-    #page-home.on .m2-grid4 .tile{background:rgba(217,190,134,.12); color:#D9BE86}
-    #page-home.on .m2-pill.red{background:rgba(196,74,58,.16); color:#E89286}
-    #page-home.on .m2-pill.blue{background:rgba(217,190,134,.12); color:#D9BE86}
-    #page-home.on .m2-row .dot{background:#D9BE86}
-    #page-home.on .m2-row .dot.bad{background:#E89286}
-    #page-home.on .m2-row .name.m2-reddot::before{background:#E89286}
-  }
 }
 /* ==HOME2-PAGES-MOBILE-END== */
 
@@ -2203,7 +2023,7 @@ body.board-mode .mtabbar{display:none!important}
    样张：docs/mobile-redesign-2026-10/v2-realapp/版本一全页/（用户逐页确认稿）。
    铁律：只动 <1100；业务 JS 零改动（本批 JS 收在文件尾 ==MOBILE-V1== 标记内，
    仅限轮播圆点 / 时段问候展示 / 统考倒计时天数 / 首页概览卡纯展示填充）；
-   StuMark 水印不动；深色走令牌（--paper #18211E、深金 #D9BE86）；mtabbar 不动；
+   StuMark 水印不动；==5.35== 深色模式已移除，全端口浅色一套令牌；mtabbar 不动；
    桌面 ≥1100 与 0c5f170 逐像素一致（新增 DOM 全挂 .m2-only，全局 display:none）。
    形态：
    · 撤蓝头：12 页改样张「浅底大标题」；唯一保留蓝头的是「我的」（settings）——
@@ -2389,7 +2209,7 @@ body.board-mode .mtabbar{display:none!important}
   #page-home.on > .tl-head{display:none}
 
   /* ── 深色：无需新规则 —— 大标题/概览卡/圆点走 --text/--card/--line/--gold-deep
-        （v85/v86 深色块已翻 --paper #18211E 与 --gold-deep #D9BE86），
+        （==5.35== 深色块已随全端口浅色化整体移除），
         C 卡与我的页蓝框为固定品牌面，白字两种模式都可读。 ── */
 }
 /* ==MOBILE-V1== END */
@@ -2413,7 +2233,7 @@ body.board-mode .mtabbar{display:none!important}
   #page-stuNews.on, #page-stuExam.on, #page-stuQuant.on, #page-stuProfile.on,
   #page-stuMsg.on, #page-stuGather.on{
     --serif:"Noto Serif SC","Songti SC","STSong",serif;
-    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#7E6637;
     --accent:var(--blue);
   }
   /* 撤 M1 雅金卡饰 + 卡面圆角对齐 V1 */
@@ -2541,25 +2361,6 @@ body.board-mode .mtabbar{display:none!important}
   #page-stuQuant.on .chip-no, #page-stuProfile.on .chip-no, #page-stuMsg.on .chip-no,
   #page-stuGather.on .chip-no{
     background:rgba(196,74,58,.10); border-color:transparent; color:#c4544a;
-  }
-  /* 深色：纸底墨色翻深（同 V1 深色翻法），蓝签金签翻生产深色金 */
-  @media (prefers-color-scheme: dark){
-    #page-roster.on, #page-profile.on, #page-hours.on, #page-night.on,
-    #page-quant.on, #page-exam.on, #page-coop.on, #page-gather.on,
-    #page-teachers.on, #page-rules.on, #page-board.on, #page-students.on,
-    #page-health.on, #page-news.on, #page-record.on, #page-sign.on,
-    #page-stuNews.on, #page-stuExam.on, #page-stuQuant.on, #page-stuProfile.on,
-    #page-stuMsg.on, #page-stuGather.on{
-      --paper:#18211E; --blue-ink:#D9BE86; --gold-deep:#D9BE86;
-    }
-    #page-roster.on .chip-no, #page-profile.on .chip-no, #page-hours.on .chip-no,
-    #page-night.on .chip-no, #page-quant.on .chip-no, #page-exam.on .chip-no,
-    #page-coop.on .chip-no, #page-gather.on .chip-no, #page-teachers.on .chip-no,
-    #page-rules.on .chip-no, #page-board.on .chip-no, #page-students.on .chip-no,
-    #page-health.on .chip-no, #page-news.on .chip-no, #page-record.on .chip-no,
-    #page-sign.on .chip-no, #page-stuNews.on .chip-no, #page-stuExam.on .chip-no,
-    #page-stuQuant.on .chip-no, #page-stuProfile.on .chip-no, #page-stuMsg.on .chip-no,
-    #page-stuGather.on .chip-no{color:#E89286}
   }
 }
 /* ==MOBILE-V2== END */
@@ -2750,7 +2551,7 @@ body.board-mode .page.on > *{animation:none}
 .bd-s2-w{font-size:clamp(10px,.68vw,13px);color:var(--dim);flex:none;white-space:nowrap}
 .bd-s2.on{border-color:rgba(201,171,124,.55);background:rgba(201,171,124,.12)}
 .bd-s2.on .bd-s2-n{color:var(--gold-lite);font-weight:600}
-.bd-s2.on .bd-s2-t{color:var(--gold)}
+.bd-s2.on .bd-s2-t{color:var(--gold-deep)}
 .bd-s2.dim{opacity:.45}
 .bd-live{font-size:clamp(9px,.57vw,11px);letter-spacing:.16em;color:#243049;background:var(--gold);
   border-radius:999px;padding:3px 11px;flex:none}
@@ -2788,7 +2589,7 @@ body.board-mode .page.on > *{animation:none}
 .bd-q{display:flex;align-items:center;gap:clamp(8px,.7vw,13px);min-width:0;
   padding:clamp(5px,.85vh,9px) clamp(9px,.75vw,14px);
   border:1px solid rgba(201,171,124,.14);border-radius:9px;background:rgba(243,239,230,.04)}
-.bd-q-k{font-family:var(--serif);font-size:clamp(11px,.73vw,14px);color:var(--gold);flex:none}
+.bd-q-k{font-family:var(--serif);font-size:clamp(11px,.73vw,14px);color:var(--gold-deep);flex:none}
 .bd-q-n{font-size:clamp(12px,.81vw,15.5px);letter-spacing:.06em;flex:1;min-width:0;
   color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bd-q-v{font-family:var(--serif);font-weight:600;font-size:clamp(15px,1.1vw,21px);
@@ -2798,7 +2599,7 @@ body.board-mode .page.on > *{animation:none}
 .bd-q.down .bd-q-v{color:var(--green)}
 .bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
 .bd-n{display:flex;gap:12px;min-width:0}
-.bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold);
+.bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold-deep);
   font-variant-numeric:tabular-nums;letter-spacing:.06em}
 .bd-n-x{font-size:clamp(11px,.76vw,14.5px);line-height:1.55;color:var(--dim);min-width:0;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -2810,7 +2611,7 @@ body.board-mode .page.on > *{animation:none}
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
 .bd-marq-in{display:inline-block;animation:bdMv 36s linear infinite}
 .bd-marq-in span{font-size:clamp(11px,.81vw,15.5px);letter-spacing:.1em;color:var(--dim);margin-right:70px}
-.bd-marq-in em{font-style:normal;color:var(--gold);margin-right:12px;font-variant-numeric:tabular-nums}
+.bd-marq-in em{font-style:normal;color:var(--gold-deep);margin-right:12px;font-variant-numeric:tabular-nums}
 @keyframes bdMv{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .bd-motto2{font-family:var(--serif);font-size:clamp(12px,.89vw,17px);letter-spacing:.35em;
   color:var(--gold-lite);flex:none}
@@ -3196,26 +2997,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
 /* ── ⑬ 深色模式：**每个新增令牌都给一个深色值**（生产深色是活的，不补就会「深底上看不见」）
    同一 :root 作用域、源码在本表之后 → 深色下后者胜出。实测值见 05-搬生产记录.md。 */
-@media (prefers-color-scheme: dark){
-  :root{
-    --brand:#B08A4F;            /* 填充/描边，门槛 3:1，实测最低 4.38（stu 卡）*/
-    --brand-ink:#D9BE86;        /* 金·作文字，实测最低 7.74:1 */
-    --brand-deco:#C9AB7C;
-    --accent-ink:#D9BE86;       /* accent 作文字（深色下 accent=#c9ab7c），最低 7.74:1 */
-    --cursor:#D98A5A;           /* 游标作文字，最低 5.13:1 */
-    --focus:var(--cursor);      /* P2-b 同源合并（原 #F2C99A）；#D98A5A 深底 5.13:1，非文字 3:1 过 */
-    --line-strong:#8F897F;      /* ==DESKTOP-V2== P2-13：深色 ghost 描边（#8A857C 深底对比不足） */
-    --stamp-ok:#7CC7A2; --stamp-late:#D9AF52; --stamp-sick:#7FBED2; --stamp-leave:#E89286;
-    --stamp-absent:#D6D1C6;   /* 深色下「未到」取浅中性，明度与上面四色对齐 */
-    --stamp-ink:#1E1C18;      /* 深色下填充都是浅色 → 字用深墨 */
-    /* 未选中方块（深色）。实测四套端口卡片：文字 5.48–6.83:1、描边 3.37–4.20:1 */
-    --stamp-off:#A8A294; --stamp-line:#857C69;
-  }
-  /* ⚠️ 游标胶囊 .tl-now-t 是「白字压 --cursor 底」的写法：浅色下 --cursor=#9C4E1F，
-     白字 5.96:1 没问题；**深色下 --cursor 变浅（#D98A5A），白字只剩 2.72:1** ——
-     所以深色单独把字色换成页底色（实测四套端口皮 6.06–6.84:1，全部过 4.5）。 */
-  .tl-now-t{color:var(--bg)}
-}
 
 /* ── ⑰ 全站手机端 · 排版收一档 + 两处版面修正 ──────────────────────────────
    背景：桌面那套字号阶梯（--fs-title 22 / --fs-h2 18 / --fs-small 14）是给 ≥1100px
@@ -3298,8 +3079,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
        免得在 390/360 上撑破 .main。
    ⚠️ 表内 input 固定 16px（iOS 聚焦不放大整页），小于 16px 会被 probe_mobile_layout 当场点名。 */
 #page-hours{ --hrs-low:#FBF1C6; --hrs-ph:#5C5850; --hrs-suspect-bg:#F7E1DC; --hrs-suspect-fg:#8A2417; --hrs-suspect-bd:#B23A2E; --hrs-non-bg:#EFEDE7; --hrs-non-fg:#6E685C; }
-@media (prefers-color-scheme: dark){ #page-hours{ --hrs-low:#4A3F1E; --hrs-ph:#CFC7AE; --hrs-suspect-bg:#3A1C16; --hrs-suspect-fg:#F4C9C0; --hrs-suspect-bd:#C4544A; --hrs-non-bg:#2E2C27; --hrs-non-fg:#A9A296; } }
-#page-hours .hrs-sum{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--text);margin-bottom:10px;line-height:1.7}
 #page-hours .hrs-sum b{font-variant-numeric:tabular-nums;font-weight:600}
 /* 「不像课表」横幅：朱砂族。新令牌只在本页作用域定义 —— body.role-* 覆盖的是 --text/--text-dim
    这类既有令牌，不会碰这两个新名字；fg 对 bg 的对比度明/暗两套都 ≥4.5:1（按 8 组合实测过）。 */
@@ -3351,7 +3130,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 @media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   /* ── ① 学府令牌（浅色）────────────────────────────────────────────── */
   :root{
-    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
+    --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#7E6637;
     --paper:#f7f6f2; --red:#c0392b;
     --ink:#2b3446; --ink-2:#6b7284; --ink-3:#9aa0ad;
     /* 换皮覆盖（生产既有令牌，桌面语义不变、只换值；<1100 不受影响） */
@@ -3470,7 +3249,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xf-foot h4::after{content:"";position:absolute;left:0;bottom:0;width:24px;height:2px;background:var(--gold)}
   .xf-foot a{display:block;font-size:12.5px;line-height:2.4;letter-spacing:1px;color:#aab6cf;cursor:pointer}
   #xfFootNav{display:grid;grid-template-columns:1fr 1fr;column-gap:26px}   /* 快速入口 8 项两列 4+4 */
-  .xf-foot a:hover{color:var(--gold)}
+  .xf-foot a:hover{color:var(--gold-deep)}
   .xf-foot .about{font-size:12px;line-height:2.4;letter-spacing:1px;color:#aab6cf}
   .xf-foot-bar{border-top:3px double rgba(255,255,255,.22)}
   .xf-foot-bar div{max-width:1280px;margin:0 auto;padding:15px 40px;display:flex;
@@ -3521,32 +3300,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
 /* ── ⑩ 学府深色翻转（≥1100 + 随系统深色）─────────────────────────────
    规格只给了浅色；生产深色是活的，不能砍 —— 深蓝加深、纸面变深、文字变浅。 */
-@media (min-width:1100px) and (prefers-color-scheme: dark), ((hover:hover) and (pointer:fine)) and (prefers-color-scheme: dark){
-  :root{
-    --paper:#191d27; --bg:#191d27;
-    --card:#222735;
-    --text:#e7e9f0; --ink:#e7e9f0; --ink-2:#a6adbf; --ink-3:#7b8296;
-    --text-dim:#a6adbf;
-    --line:#343b4d; --tint:#1e2230;
-    --blue:#5b6f9f; --blue-deep:#232c45; --blue-ink:#0f1526;
-    --gold-deep:#c8a869;
-    --accent:var(--blue); --accent-ink:#c9d2e6;
-    --shadow:0 1px 3px rgba(0,0,0,.35);
-  }
-  .xf-head{background:#1f2431;border-bottom-color:#0f1526}
-  .xf-head .xf-brand b{color:#d7def0}
-  .xf-search{border-color:var(--line);color:var(--ink-2)}
-  /* 页眉三层化下拉：深色随令牌翻 */
-  .xf-more-panel{background:#222735;border-color:#343b4d;box-shadow:0 16px 40px rgba(0,0,0,.5)}
-  .xf-more-panel a{color:#e7e9f0}
-  .xf-more-panel a:hover{background:#2a3145;color:#c9d2e6}
-  .xf-more-panel a.on{background:rgba(200,168,105,.14);color:#c8a869}
-  .xf-navstrip{background:linear-gradient(180deg,#3a4a75,var(--blue-deep))}
-  .xf-foot{background:#0f1526}
-  .imptbl th{background:#202534}
-  .imptbl td{border-bottom-color:#2c3242}
-  .imptbl tr:hover td{background:#242b3d}
-}
 
 /* ═══════════════════════════════════════════════════════════════════════
    ==XF2== 学府门户内容区深排（≥1100）── 来源：docs/preview-2026-10/page-home.html
@@ -3828,9 +3581,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   #page-home.on .hint,#page-att.on .hint,
   #page-home.on .page-sub,#page-att.on .page-sub{font-size:12px}
   #page-home.on .m2-stat .num,#page-home.on .v1-n b,#page-att.on .sumrow b{font-size:22px}
-  @media (prefers-color-scheme: dark){
-    .card{box-shadow:0 6px 20px rgba(0,0,0,.35)}
-  }
 }
 
 /* ==5.33== hero 横幅窄幅适配（VoxOS 5.33）==================================
@@ -4464,9 +4214,6 @@ var Icon = {
           <button class="btn" onclick="App.go('hours')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clock"></use></svg> 去「课时统计」上传</button>
           <button class="btn ghost" onclick="Schedule.renderArch();document.getElementById('archCard').scrollIntoView({behavior:'smooth'})">看往期课表</button>
         </div>
-        <input type="file" id="schFile" accept="image/*,.txt,.docx" style="display:none" onchange="Schedule.importFile(this)">
-        <p class="hint" id="impStat" style="margin:6px 0 0"></p>
-        <textarea id="impText" style="display:none"></textarea>
       </div>
       <div class="card wide" id="archCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-folder"></use></svg> 往期课表</h2>
@@ -6485,23 +6232,6 @@ const Util = {
   /** 数字转成好读的字符串，空值给占位符 */
   num(v, dash = '—'){ return (v === null || v === undefined || v === '' || isNaN(v)) ? dash : v; },
 
-  // 图片必须压缩后再存，否则几张手机原图就撑爆 localStorage
-  compressImage(file, maxW = 800, quality = .72){
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
-        const cv = document.createElement('canvas');
-        cv.width  = img.width  * scale;
-        cv.height = img.height * scale;
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        resolve(cv.toDataURL('image/jpeg', quality));
-        URL.revokeObjectURL(img.src);
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
-  }
 };
 
 
@@ -9843,7 +9573,6 @@ const Schedule = {
       : `<div class="empty">${emptyText}</div>`;
   },
 
-  renderBig(){ this.renderKind('big', 'schBigBody', '这周还没有大课'); },
   renderSmall(){ this.renderKind('small', 'schSmallBody', '这周还没有小课'); },
 
   /* ── 往期课表归档：日期 + 类别 + 可展开看全文 ── */
@@ -9881,40 +9610,9 @@ const Schedule = {
   },
 
   /** 手动把导入框里的原文存进往期 */
-  archiveText(){
-    const text = document.getElementById('impText').value.trim();
-    if (!text) return UI.toast('先在下面填点课表文字');
-    Store.upsert('schedule_archive', { date: Util.today(), kind: '原文', text });
-    this.clearImport();
-    this.renderArch();
-    UI.toast('已存入往期');
-  },
 
   delArch(id){ Store.softDelete('schedule_archive', id); this.renderArch(); },
 
-  /* ── 导入课表：识别 → 检查 → AI 解析替换 ── */
-  async importFile(input){
-    const f = input.files && input.files[0];
-    input.value = '';
-    if (!f) return;
-    const stat = document.getElementById('impStat');
-    stat.textContent = f.type.startsWith('image/') ? '正在识别课表图片，第一次要下识别包（约 1.7MB），等几秒…' : '正在读取文件…';
-    try {
-      const { text } = await readAnyFile(f, msg => { stat.textContent = msg; });
-      document.getElementById('impText').value = text;
-      stat.textContent = '识别完成，核对一下文字，然后点「AI 解析导入」';
-    } catch(e){
-      stat.textContent = e.message;
-      UI.toast(e.message);
-    }
-  },
-
-  clearImport(){
-    const t = document.getElementById('impText');
-    const s = document.getElementById('impStat');
-    if (t) t.value = '';
-    if (s) s.textContent = '';
-  },
 
   /* ══════════ 导入：本机规则解析（不联网、不花钱） ══════════
      把文字一行行拆开，抠出「日期 / 时间 / 班级 / 教室 / 老师 / 内容」。
@@ -9978,76 +9676,7 @@ const Schedule = {
   },
 
   /** 课表文字 → 条目数组（只返回，不落库） */
-  parseRows(text, year){
-    const out = [];
-    const known = Store.list('classes').map(c => (c.name || '').trim()).filter(Boolean);
-    const knownTeacher = (Staff.teachers() || []).map(u => u.name).filter(Boolean);
-    let colDates = null, curDate = '';
 
-    String(text || '').split(/\r?\n/).forEach(rawLine => {
-      const line = rawLine.replace(/\u3000/g, ' ').replace(/\s+$/, '');
-      if (!line.trim()) return;
-
-      const hasTab = line.indexOf('\t') >= 0;
-      const cells = hasTab ? line.split('\t').map(s => s.trim()) : [line.trim()];
-      const anyTime = cells.some(c => this._textTime(c));
-      const dateHits = cells.map(c => this._textDate(c, year));
-
-      // 整行都是日期、没有时间 → 列头。归一成「课程列 → 日期」：
-      // 从 Excel 复制时左上角那格常是空的，日期列天然和课程列对齐；
-      // 纯文字贴的则以日期开头，要往后错一位。统一成同一种索引，下面才好取。
-      if (!anyTime && dateHits.some(Boolean)){
-        colDates = dateHits.slice(dateHits[0] ? 0 : 1);
-        curDate = colDates.find(Boolean) || curDate;
-        return;
-      }
-
-      // 表格里第 0 格是「时间 / 节次」标签，它代表这一行的时间，不是一节课
-      let rowTime = null, start = 0;
-      if (hasTab && colDates && cells.length > 1){
-        rowTime = this._textTime(cells[0]);
-        if (rowTime || !dateHits[0]) start = 1;
-      }
-
-      for (let i = start; i < cells.length; i++){
-        const cell = cells[i];
-        if (!cell) continue;
-        let date = (colDates && colDates[i - start]) || '';
-        if (!date) date = this._textDate(cell, year) || curDate;
-        if (!date) continue;
-        const p = this.parseCell(cell, known, knownTeacher);
-        if (!p.time && rowTime) p.time = rowTime.start + '-' + rowTime.end;
-        if (!p.title && !p.cls) continue;
-        out.push({
-          date, time: p.time, cls: p.cls, title: p.title, room: p.room,
-          _tname: p.teacher, stu: p.stu, kind: p.small ? 'small' : 'big'
-        });
-      }
-
-      const own = dateHits.find(Boolean);
-      if (own) curDate = own;
-    });
-    return out;
-  },
-
-  parseLocal(){
-    const box = document.getElementById('impText');
-    const text = (box ? box.value : '').trim();
-    if (!text) return UI.toast('先把课表文字贴进来，或点「选文件识别」');
-    const y = (document.getElementById('impYear').value || '').trim();
-    const year = /^\d{4}$/.test(y) ? y : String(new Date().getFullYear());
-    const rows = this.parseRows(text, year);
-    const stat = document.getElementById('impStat');
-    if (!rows.length){
-      this.impCancel();
-      stat.textContent = '没能从这段文字里认出课来。可以按「日期 → 时间 内容 班级」一行一条整理后再试，或者直接用上面的「排课台」整段排。';
-      return;
-    }
-    this._impRows = rows;
-    stat.textContent = '本机解析完成：认出 ' + rows.length + ' 节课，分布在 ' +
-      [...new Set(rows.map(r => r.date))].length + ' 天。核对下面的表，改完再导入。';
-    this.renderImpPreview();
-  },
 
   /** 时间 → 已有节次；没有就顺手补一个，省得对不上 */
   matchPeriod(timeStr){
@@ -10059,42 +9688,6 @@ const Schedule = {
     return p.id;
   },
 
-  renderImpPreview(){
-    const box = document.getElementById('impPreview');
-    if (!box) return;
-    const rows = this._impRows || [];
-    if (!rows.length){ box.innerHTML = ''; return; }
-    box.innerHTML =
-      '<div style="overflow-x:auto"><table class="imptbl">' +
-      '<thead><tr><th>日期</th><th>时间</th><th>班级</th><th>内容</th><th>老师</th><th>教室</th><th></th></tr></thead><tbody>' +
-      rows.map((r, i) => '<tr>' +
-        '<td><input type="date" value="' + Util.esc(r.date) + '" onchange="Schedule.impEdit(' + i + ',\'date\',this.value)"></td>' +
-        '<td><input value="' + Util.esc(r.time) + '" placeholder="08:00-09:40" oninput="Schedule.impEdit(' + i + ',\'time\',this.value)"></td>' +
-        '<td><input value="' + Util.esc(r.cls) + '" oninput="Schedule.impEdit(' + i + ',\'cls\',this.value)"></td>' +
-        '<td><input value="' + Util.esc(r.title) + '" oninput="Schedule.impEdit(' + i + ',\'title\',this.value)"></td>' +
-        '<td><input value="' + Util.esc(r._tname || '') + '" oninput="Schedule.impEdit(' + i + ',\'_tname\',this.value)"></td>' +
-        '<td><input value="' + Util.esc(r.room) + '" oninput="Schedule.impEdit(' + i + ',\'room\',this.value)"></td>' +
-        '<td><button class="del" title="这节不要" onclick="Schedule.impDel(' + i + ')">✕</button></td>' +
-      '</tr>').join('') +
-      '</tbody></table></div>' +
-      '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap;align-items:center">' +
-        '<button class="btn" onclick="Schedule.impImport()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-check"></use></svg> 确认导入 ' + rows.length + ' 节</button>' +
-        '<button class="btn ghost" onclick="Schedule.impCancel()">取消</button>' +
-      '</div>';
-  },
-  impEdit(i, k, v){
-    if (this._impRows && this._impRows[i]) this._impRows[i][k] = v;
-  },
-  impDel(i){
-    if (!this._impRows) return;
-    this._impRows.splice(i, 1);
-    this.renderImpPreview();
-  },
-  impCancel(){
-    this._impRows = null;
-    const box = document.getElementById('impPreview');
-    if (box) box.innerHTML = '';
-  },
 
   impImport(){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，课表由教务老师管理');
@@ -10130,25 +9723,13 @@ const Schedule = {
       Store.set('_schDays', String(Math.min(62, Math.max(1, span))));
     }
 
-    this.impCancel();
-    this.clearImport();
+    /* ==5.35== 原 impCancel/clearImport（旧文字导入预览 UI）随死链一并移除，就地清状态 */
+    this._impRows = null;
     this.render();
-    const st = document.getElementById('impStat');
-    if (st) st.textContent = '导入完成：' + n + ' 节。原课表已存入「往期课表」。';
-    UI.toast('导入完成：' + n + ' 节');
+    UI.toast('导入完成：' + n + ' 节。原课表已存入「往期课表」。');
     return true;
   },
 
-  addPeriod(){
-    const name  = document.getElementById('perName').value.trim();
-    const start = document.getElementById('perStart').value;
-    const end   = document.getElementById('perEnd').value;
-    if (!name || !start || !end) return UI.toast('节次名和起止时间都要填');
-    if (end <= start) return UI.toast('结束时间要晚于开始时间');
-    Store.upsert('periods', { name, start, end });
-    document.getElementById('perName').value = '';
-    this.render();
-  },
 
   delPeriod(id){
     const used = Store.list('schedule').filter(x => x.periodId === id).length;
@@ -10886,7 +10467,6 @@ const Hours = {
      🔴 归了非授课**不标黄、不挂注记** —— 这是规则内的正常形态，不是「没认出来」；
         归属在下拉框里，用户可随时改回「授课」（改完老师格里的「/」他自己填）。 */
   KINDS: [['lesson','授课'],['practice','练声'],['exam','考试'],['rest','休息']],
-  _kindText(k){ const hit = this.KINDS.find(x => x[0] === k); return hit ? hit[1] : '授课'; },
   _kindOf(title){
     const s = String(title == null ? '' : title);
     if (/休息/.test(s)) return 'rest';
@@ -19468,11 +19048,6 @@ const Port = {
       if (!tint) return;
       document.querySelectorAll('meta[name="theme-color"]')
         .forEach(m => m.setAttribute('content', tint));
-      if (!Port._chromeHooked){
-        Port._chromeHooked = true;
-        matchMedia('(prefers-color-scheme: dark)')
-          .addEventListener('change', () => setTimeout(() => Port.syncChrome(), 60));
-      }
     } catch(e){}
   },
 };

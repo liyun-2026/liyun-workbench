@@ -1,0 +1,142 @@
+=== boot pid=45859 ts=2026-11-13 19:38:05.192 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js create 砺蕴教务系统-产品汇报.pptx ===
+[2026-11-13 19:38:05.184] [INFO ] [pid=45859] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+=== boot pid=46219 ts=2026-11-13 19:40:19.556 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/01.slide ===
+[2026-11-13 19:40:19.552] [INFO ] [pid=46219] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:40:19.598] [INFO ] [pid=46219] [slide-version] fileId=A8036A39 version=0 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46311 ts=2026-11-13 19:41:34.654 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/02.slide ===
+[2026-11-13 19:41:34.648] [INFO ] [pid=46311] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:41:34.679] [INFO ] [pid=46311] [slide-version] fileId=A8036A39 version=1 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46341 ts=2026-11-13 19:41:37.723 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/03.slide ===
+[2026-11-13 19:41:37.719] [INFO ] [pid=46341] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:41:37.746] [INFO ] [pid=46341] [slide-version] fileId=A8036A39 version=2 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46425 ts=2026-11-13 19:42:17.256 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/04.slide ===
+[2026-11-13 19:42:17.250] [INFO ] [pid=46425] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:42:17.283] [INFO ] [pid=46425] [slide-version] fileId=A8036A39 version=3 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46461 ts=2026-11-13 19:42:20.233 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/05.slide ===
+[2026-11-13 19:42:20.230] [INFO ] [pid=46461] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:42:20.258] [INFO ] [pid=46461] [slide-version] fileId=A8036A39 version=4 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46535 ts=2026-11-13 19:42:59.530 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/06.slide ===
+[2026-11-13 19:42:59.524] [INFO ] [pid=46535] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:42:59.584] [INFO ] [pid=46535] [slide-version] fileId=A8036A39 version=5 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46563 ts=2026-11-13 19:43:02.653 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/07.slide ===
+[2026-11-13 19:43:02.649] [INFO ] [pid=46563] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:43:02.678] [INFO ] [pid=46563] [slide-version] fileId=A8036A39 version=6 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46645 ts=2026-11-13 19:43:49.886 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/08.slide ===
+[2026-11-13 19:43:49.881] [INFO ] [pid=46645] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:43:49.909] [INFO ] [pid=46645] [slide-version] fileId=A8036A39 version=7 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46675 ts=2026-11-13 19:43:53.180 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/09.slide ===
+[2026-11-13 19:43:53.176] [INFO ] [pid=46675] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:43:53.206] [INFO ] [pid=46675] [slide-version] fileId=A8036A39 version=8 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46779 ts=2026-11-13 19:44:47.360 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/10.slide ===
+[2026-11-13 19:44:47.342] [INFO ] [pid=46779] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:44:47.384] [INFO ] [pid=46779] [slide-version] fileId=A8036A39 version=9 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46814 ts=2026-11-13 19:44:50.205 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/11.slide ===
+[2026-11-13 19:44:50.201] [INFO ] [pid=46814] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:44:50.226] [INFO ] [pid=46814] [slide-version] fileId=A8036A39 version=10 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=46864 ts=2026-11-13 19:45:11.657 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/12.slide ===
+[2026-11-13 19:45:11.653] [INFO ] [pid=46864] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:45:11.680] [INFO ] [pid=46864] [slide-version] fileId=A8036A39 version=11 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=47829 ts=2026-11-13 19:52:59.268 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/01.slide --page-index 0 ===
+[2026-11-13 19:52:59.264] [INFO ] [pid=47829] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:52:59.312] [INFO ] [pid=47829] [slide-version] fileId=A8036A39 version=12 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=47872 ts=2026-11-13 19:53:02.537 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/02.slide --page-index 1 ===
+[2026-11-13 19:53:02.533] [INFO ] [pid=47872] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:53:02.567] [INFO ] [pid=47872] [slide-version] fileId=A8036A39 version=13 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=47914 ts=2026-11-13 19:53:05.362 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/03.slide --page-index 2 ===
+[2026-11-13 19:53:05.358] [INFO ] [pid=47914] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:53:05.383] [INFO ] [pid=47914] [slide-version] fileId=A8036A39 version=14 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=47965 ts=2026-11-13 19:53:08.539 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/04.slide --page-index 3 ===
+[2026-11-13 19:53:08.533] [INFO ] [pid=47965] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:53:08.569] [INFO ] [pid=47965] [slide-version] fileId=A8036A39 version=15 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=48006 ts=2026-11-13 19:53:11.273 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 砺蕴教务系统-产品汇报.pptx --dsl-file slides/05.slide --page-index 4 ===
+[2026-11-13 19:53:11.270] [INFO ] [pid=48006] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 19:53:11.296] [INFO ] [pid=48006] [slide-version] fileId=A8036A39 version=16 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/砺蕴教务系统-产品汇报/砺蕴教务系统-产品汇报.pptx
+=== boot pid=49379 ts=2026-11-13 20:05:05.364 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/02.slide --page-index 1 ===
+[2026-11-13 20:05:05.360] [INFO ] [pid=49379] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:05.401] [ERROR] [pid=49379] [http] editorStatus http 404 url=http://127.0.0.1:39099/localapi/editor/status req={"file_path":"/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx"} resp={"code":-1,"message":"no editor open for file_path=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx"} ms=27
+[2026-11-13 20:05:05.408] [WARN ] [pid=49379] [slide-version] no editor for filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx, trigger reopen
+[2026-11-13 20:05:05.414] [ERROR] [pid=49379] [http] editorStatus http 404 url=http://127.0.0.1:39099/localapi/editor/status req={"file_path":"/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx"} resp={"code":-1,"message":"no editor open for file_path=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx"} ms=2
+[2026-11-13 20:05:05.417] [INFO ] [pid=49379] [open-file] open send url=http://127.0.0.1:39099/localapi/open filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+[2026-11-13 20:05:05.435] [INFO ] [pid=49379] [open-file] open ok fileId=5BA56585 fileType=slide filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx ms=13
+[2026-11-13 20:05:05.440] [INFO ] [pid=49379] [slide-version] fileId=5BA56585 version=0 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49420 ts=2026-11-13 20:05:27.697 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/02.slide --page-index 1 ===
+[2026-11-13 20:05:27.693] [INFO ] [pid=49420] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:27.721] [INFO ] [pid=49420] [slide-version] fileId=/Users/x version=0 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49465 ts=2026-11-13 20:05:46.911 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/06.slide ===
+[2026-11-13 20:05:46.907] [INFO ] [pid=49465] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:46.938] [INFO ] [pid=49465] [slide-version] fileId=/Users/x version=1 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49487 ts=2026-11-13 20:05:49.641 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/07.slide ===
+[2026-11-13 20:05:49.637] [INFO ] [pid=49487] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:49.663] [INFO ] [pid=49487] [slide-version] fileId=/Users/x version=2 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49499 ts=2026-11-13 20:05:52.299 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/08.slide ===
+[2026-11-13 20:05:52.295] [INFO ] [pid=49499] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:52.322] [INFO ] [pid=49499] [slide-version] fileId=/Users/x version=3 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49511 ts=2026-11-13 20:05:54.973 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/09.slide ===
+[2026-11-13 20:05:54.969] [INFO ] [pid=49511] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:54.995] [INFO ] [pid=49511] [slide-version] fileId=/Users/x version=4 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49538 ts=2026-11-13 20:05:57.665 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/10.slide ===
+[2026-11-13 20:05:57.662] [INFO ] [pid=49538] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:05:57.689] [INFO ] [pid=49538] [slide-version] fileId=/Users/x version=5 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49564 ts=2026-11-13 20:06:00.406 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/11.slide ===
+[2026-11-13 20:06:00.402] [INFO ] [pid=49564] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:06:00.428] [INFO ] [pid=49564] [slide-version] fileId=/Users/x version=6 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49587 ts=2026-11-13 20:06:09.484 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/03.slide --page-index 8 ===
+[2026-11-13 20:06:09.480] [INFO ] [pid=49587] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:06:09.508] [INFO ] [pid=49587] [slide-version] fileId=/Users/x version=7 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49720 ts=2026-11-13 20:06:44.438 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js inspect 博艺教务系统.pptx --out /tmp/boyi-inspect.md ===
+[2026-11-13 20:06:44.432] [INFO ] [pid=49720] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+=== boot pid=49859 ts=2026-11-13 20:07:58.798 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/02.slide ===
+[2026-11-13 20:07:58.793] [INFO ] [pid=49859] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:07:58.822] [INFO ] [pid=49859] [slide-version] fileId=B667BBDB version=0 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49895 ts=2026-11-13 20:08:01.582 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/06.slide ===
+[2026-11-13 20:08:01.578] [INFO ] [pid=49895] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:01.604] [INFO ] [pid=49895] [slide-version] fileId=/Users/x version=19 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49921 ts=2026-11-13 20:08:04.261 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/07.slide ===
+[2026-11-13 20:08:04.258] [INFO ] [pid=49921] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:04.284] [INFO ] [pid=49921] [slide-version] fileId=/Users/x version=20 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49947 ts=2026-11-13 20:08:06.943 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/08.slide ===
+[2026-11-13 20:08:06.940] [INFO ] [pid=49947] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:06.965] [INFO ] [pid=49947] [slide-version] fileId=/Users/x version=21 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=49984 ts=2026-11-13 20:08:09.584 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/09.slide ===
+[2026-11-13 20:08:09.580] [INFO ] [pid=49984] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:09.609] [INFO ] [pid=49984] [slide-version] fileId=/Users/x version=22 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50010 ts=2026-11-13 20:08:12.288 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/10.slide ===
+[2026-11-13 20:08:12.284] [INFO ] [pid=50010] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:12.309] [INFO ] [pid=50010] [slide-version] fileId=/Users/x version=23 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50037 ts=2026-11-13 20:08:14.947 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/11.slide ===
+[2026-11-13 20:08:14.943] [INFO ] [pid=50037] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:14.970] [INFO ] [pid=50037] [slide-version] fileId=/Users/x version=24 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50063 ts=2026-11-13 20:08:17.598 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/03.slide ===
+[2026-11-13 20:08:17.594] [INFO ] [pid=50063] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:17.622] [INFO ] [pid=50063] [slide-version] fileId=/Users/x version=25 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50101 ts=2026-11-13 20:08:20.579 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/04.slide ===
+[2026-11-13 20:08:20.576] [INFO ] [pid=50101] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:20.605] [INFO ] [pid=50101] [slide-version] fileId=/Users/x version=26 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50130 ts=2026-11-13 20:08:23.310 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/05.slide ===
+[2026-11-13 20:08:23.306] [INFO ] [pid=50130] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:08:23.334] [INFO ] [pid=50130] [slide-version] fileId=/Users/x version=27 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=50179 ts=2026-11-13 20:08:32.498 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js inspect 博艺教务系统.pptx --out /tmp/boyi-inspect2.md ===
+[2026-11-13 20:08:32.486] [INFO ] [pid=50179] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+=== boot pid=53435 ts=2026-11-13 20:38:39.716 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/06.slide --page-index 2 ===
+[2026-11-13 20:38:39.712] [INFO ] [pid=53435] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:39.765] [INFO ] [pid=53435] [slide-version] fileId=/Users/x version=28 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53483 ts=2026-11-13 20:38:42.951 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/07.slide --page-index 3 ===
+[2026-11-13 20:38:42.947] [INFO ] [pid=53483] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:43.001] [INFO ] [pid=53483] [slide-version] fileId=/Users/x version=29 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53513 ts=2026-11-13 20:38:46.006 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/08.slide --page-index 4 ===
+[2026-11-13 20:38:46.002] [INFO ] [pid=53513] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:46.030] [INFO ] [pid=53513] [slide-version] fileId=/Users/x version=30 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53540 ts=2026-11-13 20:38:48.753 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/09.slide --page-index 5 ===
+[2026-11-13 20:38:48.750] [INFO ] [pid=53540] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:48.776] [INFO ] [pid=53540] [slide-version] fileId=/Users/x version=31 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53573 ts=2026-11-13 20:38:51.445 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/10.slide --page-index 6 ===
+[2026-11-13 20:38:51.442] [INFO ] [pid=53573] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:51.471] [INFO ] [pid=53573] [slide-version] fileId=/Users/x version=32 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53603 ts=2026-11-13 20:38:54.347 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/11.slide --page-index 7 ===
+[2026-11-13 20:38:54.343] [INFO ] [pid=53603] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:54.370] [INFO ] [pid=53603] [slide-version] fileId=/Users/x version=33 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53630 ts=2026-11-13 20:38:57.106 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js upsert-dsl 博艺教务系统.pptx --dsl-file slides/05.slide --page-index 10 ===
+[2026-11-13 20:38:57.102] [INFO ] [pid=53630] [server-url] baseUrl=http://127.0.0.1:39099 source=env
+[2026-11-13 20:38:57.130] [INFO ] [pid=53630] [slide-version] fileId=/Users/x version=34 filePath=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统/博艺教务系统.pptx
+=== boot pid=53670 ts=2026-11-13 20:39:08.765 cwd=/Users/xielihui/Desktop/砺蕴教务系统/砺蕴工作台/docs/boss-ppt-2026-11-13/博艺教务系统 argv=/Users/xielihui/.workbuddy/binaries/node/versions/22.22.2-6/lib/node_modules/@tencent/slidep/dist/index.js inspect 博艺教务系统.pptx --out /tmp/boyi-inspect3.md ===
+[2026-11-13 20:39:08.755] [INFO ] [pid=53670] [server-url] baseUrl=http://127.0.0.1:39099 source=env
