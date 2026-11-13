@@ -421,7 +421,12 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v112'; /* VoxOS 5.32：全站「页面状态与交互」体检整改 —— 34 页×三角色×双端四专项普查（弹窗遮挡/死点击/假板块/文字嵌死）；
+VERSION = 'v113'; /* VoxOS 5.33：桌面锁版 + 全站大标题单行锁死（用户录屏实锤两问题）——
+   ① hero/横幅大标题窄窗折行：FitLine 桌面端 fit-text（nowrap + 测量缩放，字号字距按可用宽等比缩，行宽=同行片段求和），清单 .xf-stx h1/.ssub、.page-title、.chead h2(+small)；hero 右侧留白 right:620 是按 1200+ 横幅设计的固定值，窄幅被挤成 0 宽 → .xf-banner 加 container-type:inline-size，@container (max-width:900px) 拍立得退场、文字区收全宽。
+   ② 窄窗自动切手机版被误认为「变回旧版」：桌面输入特征（hover:hover+pointer:fine）恒锁桌面版 —— 手机块（max-width:1099.98/1099/699/374）加 and((hover:none) or (pointer:coarse))，桌面块（min-width:700/900/1100）加 or 特征支；真手机/平板（触屏）命中集合与旧版完全一致（m390 逐像素零差异）。JS 分支 5 处 matchMedia(min-width:1100) 统一 __desk()；desktop-lock 类跟随特征变化。
+   深色块/1100-1320 微调块的 AND 语境在批量改写时被 OR 破坏（浅色系统误入深色），已回补第一支条件。
+   测试：test/desk_lock_check.mjs 新增（桌面 1440/1100/900/800/700 五档恒桌面+标题单行、390 触屏=手机版，53/53）；xf_check/board_check 68/teacher_ro_check 39/exam_anim_check 19 全过（xf_check/exam_anim 的 390 段补触屏特征模拟对齐真机语义）。index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.32：全站「页面状态与交互」体检整改 —— 34 页×三角色×双端四专项普查（弹窗遮挡/死点击/假板块/文字嵌死）；
    修复：① Schedule 两张动态弹窗（perEdit/cellOpen）结构写反（.picker 默认 display:none 且没挂 .on，内容拼好了但永远看不见——用户说的「点窗口没反应」），改回 .picker.on > .sheet 正规结构 + cellClose 用 closest('.sheet') 判内层；② applyRange 重画区间加 toast 反馈、Hours.clear 空态提示；③ timetable 卡头 h2 nowrap（1100px 下 hint 长句把标题挤折行）。
    体检 0🔴 0🟡 62 通过（test/audit_interact.mjs 三档死点击终审）；报告 docs/audit-interact-2026-11-12/REPORT.md。index.html 变了 → VERSION 加一 */
    /* VoxOS 5.31：换版触达补漏 —— 学生端「没有翻页动画」实测根因是旧窗口驻留旧版页面（v97 换版规矩：动过手的窗口不静默刷，重度用户永远吃旧版）；shell-updated 时给在用中的页面挂「点这里换到新版」提醒条，用户主动点才刷；动画本身实测无时机问题（student/teacher 同拍跑在可见卡片上），rise 级联不动 */ /* v64：**新增「课时统计」页 · 阶段一（课表识别 + 归一化 + 人工确认预览）** ——

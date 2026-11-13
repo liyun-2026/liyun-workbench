@@ -415,6 +415,13 @@ try {
   /* ═══ 4) 手机 390 零回归（硬门槛：与 HEAD 基线逐像素 0 差异）═══ */
   console.log('\n── 手机 390 零回归（vs HEAD 基线，逐像素）──');
   await view(cdp, { width: 390, height: 844, dsf: 2, mobile: true });
+  /* ==5.33== 基线语义=真手机：桌面锁版后输入特征（hover/pointer）参与断点分流，
+     headless Chrome 默认 fine/fine 会被判成桌面 —— 显式模拟触屏特征对齐真机。 */
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await cdp.send('Emulation.setEmulatedMedia', { features: [
+    { name: 'hover', value: 'none' }, { name: 'pointer', value: 'coarse' },
+    { name: 'any-hover', value: 'none' }, { name: 'any-pointer', value: 'coarse' },
+  ]});
   const mshots = { A: {}, B: {} };
   const phoneShot = async (base, tag, key, who) => {
     try { await jfetch(`${base}/api/dev-reset`, { method: 'POST' }); } catch {}

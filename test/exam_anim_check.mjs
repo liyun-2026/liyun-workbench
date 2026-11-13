@@ -177,6 +177,13 @@ try {
 
   /* 390 手机：无动画（手机 scroll-snap 轮播不动） */
   const stuM = await browser('stuM', 390, 844);
+  /* ==5.33== 基线语义=真手机：桌面锁版后输入特征参与断点分流，headless 默认
+     fine/fine 会被判成桌面 —— 显式模拟触屏特征对齐真机。 */
+  await stuM.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await stuM.send('Emulation.setEmulatedMedia', { features: [
+    { name: 'hover', value: 'none' }, { name: 'pointer', value: 'coarse' },
+    { name: 'any-hover', value: 'none' }, { name: 'any-pointer', value: 'coarse' },
+  ]});
   await login(stuM, '王梓涵', 'liyun2026');
   await stuM.eval(`App.go('stuNews')`);
   await sleep(120);

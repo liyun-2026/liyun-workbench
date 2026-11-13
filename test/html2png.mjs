@@ -1,8 +1,9 @@
 /**
  * 整页截图：把一个本地 HTML 渲染成一张完整的长图（无头 Chrome + CDP）。
  *
- *   node test/html2png.mjs <输入.html> <输出.png> [CSS宽] [倍率]
+ *   node test/html2png.mjs <输入.html> <输出.png> [CSS宽] [倍率] [指定高度]
  *   例：node test/html2png.mjs ../安卓加到桌面教程/x.html out.png 540 2
+ *   例：node test/html2png.mjs card.html card.png 595 2 842   ← A5 卡按 842 出图，不被视口撑高
  *
  * 说明：
  *   · 窗口按 CSS 宽给（默认 540），倍率 2 → 出图 1080 宽，微信里看正合适；
@@ -21,7 +22,7 @@ for (const k of ['HTTP_PROXY','HTTPS_PROXY','http_proxy','https_proxy','ALL_PROX
 process.env.NO_PROXY = '*';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const [inFile, outFile, wArg, dsfArg] = process.argv.slice(2);
+const [inFile, outFile, wArg, dsfArg, hArg] = process.argv.slice(2);
 if (!inFile || !outFile) {
   console.error('用法：node test/html2png.mjs <输入.html> <输出.png> [CSS宽=540] [倍率=2]');
   process.exit(1);
@@ -82,7 +83,10 @@ try {
   })()`);
   await sleep(400);
 
-  const h = await cdp.eval(`Math.ceil(Math.max(document.body.scrollHeight, document.documentElement.scrollHeight))`);
+  /* 指定了高度就直接用（A5 卡这类定稿页面，避免文档高度被 1200 视口钳高）；
+     否则按内容实测。 */
+  const h = hArg ? Number(hArg)
+    : await cdp.eval(`Math.ceil(Math.max(document.body.scrollHeight, document.documentElement.scrollHeight))`);
   console.log(`尺寸 ${W} × ${h} CSS px  →  出图 ${W * DSF} × ${h * DSF} px`);
   if (h * DSF > 16000) console.log(`⚠️ 高度 ${h * DSF}px 超过 16000，Chrome 可能截不全，考虑拆成两张`);
 

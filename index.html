@@ -155,7 +155,7 @@ body{
   font-size:16px;line-height:1;align-items:center;justify-content:center;
   box-shadow:0 2px 10px rgba(0,0,0,.10);
 }
-@media (min-width:700px){
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){
   body.side-min .side{display:none}
   body.side-min .side-unfold{display:flex}
 }
@@ -175,7 +175,7 @@ body{
 /* ── 手机 / 桌面各写一句时的显隐开关 ──
    两个类**只在这两个断点里定义**，不写基准 display，
    免得把 <span> 变成块级、影响行内排版。 */
-@media (max-width:699px){ .only-desk{display:none !important} }
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){ .only-desk{display:none !important} }
 /* ==5.27== 授课老师只读视角：标 .edit-only 的写操作控件整体藏掉（body 类由
    App.renderChrome 按 Auth.canEdit() 挂）—— 比逐处 JS 判稳，深浅色都生效 */
 body.no-edit .edit-only{display:none !important}
@@ -183,11 +183,11 @@ body.no-edit .edit-only{display:none !important}
 body.no-edit .stamp.ro-stamp{pointer-events:none;cursor:default}
 /* ==5.25== 体检 🟡8：手机课表「大作息」卡头太挤 —— 标题孤字换行、
    右侧「已定死 · 全体同步」竖排三行。窄屏让 hint 独占一行、完整不竖排 */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   #page-timetable.on .card > h2{flex-wrap:wrap;row-gap:3px}
   #page-timetable.on .card > h2 .hint{display:block!important;flex:1 1 100%;white-space:normal}
 }
-@media (min-width:700px){ .only-mob{display:none !important} }
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){ .only-mob{display:none !important} }
 /* 「今日」旁边的实时时钟：24 时制，tabular-nums 让秒数跳动时不抖 */
 .clock{font-size:.6em;font-weight:400;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:.02em;margin-left:5px;vertical-align:2px}
 
@@ -345,7 +345,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .tabbar button.on{background:var(--rail-on);color:var(--rail-on-text)}
 
 /* ── M1 · 雅金卡片：手机端质感强化（只在 <700px 生效，电脑端不掺和） ── */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   .card{border-radius:16px;position:relative}
   .card::before{
     content:'';position:absolute;top:-1px;left:22px;right:22px;height:2px;
@@ -401,7 +401,7 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 @keyframes popIn{from{transform:translate(-50%,-46%) scale(.97);opacity:.4}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 /* ==5.25== 体检 🟡12：手机上设备密钥门贴底弹出（bottom sheet）——
    居中模态正好压在打卡大圆钮上，学生一进打卡页就被挡 */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   #devGate .sheet{
     left:0;right:0;bottom:0;top:auto;transform:none;width:100%;max-height:72%;
     border-radius:18px 18px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.3);
@@ -723,7 +723,7 @@ body.stu .clock{color:var(--accent)}
 body.stu .nav button.on{background:var(--rail-on);color:var(--rail-on-text)}
 body.stu .topbar::after{opacity:.72}
 body.stu .card{border-radius:16px}
-@media (min-width:700px){
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){
   body.stu .card{border-radius:14px;border-color:var(--line);box-shadow:var(--shadow)}
 }
 
@@ -736,7 +736,7 @@ body.stu .card{border-radius:16px}
       mask 必须是独立图层且压在内容之下，故用 ::before + z-index:-1，
       并把 .side 提升为层叠上下文（z-index:0 + isolation:isolate），
       否则 z-index:-1 会掉到侧栏底色背后，整幅画看不见。 */
-@media (min-width:700px){
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){
   .side{position:relative;z-index:0;isolation:isolate}
   .side::before{
     content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
@@ -769,7 +769,7 @@ body.stu .card{border-radius:16px}
 }
 
 /* ════════ 手机底栏胶囊：阴影跟着浅色栏一起变轻 ════════ */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   .tabbar{box-shadow:var(--shadow-lg)}
 }
 
@@ -843,7 +843,7 @@ body.stu .punch .p-ring{--r1:#9fd8c2;--r2:#5fae8f;--r3:#3f8f6f;--rs:rgba(63,143,
 body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 
 /* ════════ 平板与横屏：侧栏展开成图标配文字 ════════ */
-@media (min-width:700px){
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){
   :root{--fs-hero:48px;--fs-title:26px;--pad:24px;--gap:16px}
   .app{flex-direction:row}
   .side{display:flex;width:200px;padding-left:12px;padding-right:12px}
@@ -865,7 +865,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
       中间 700–819 是一段死区：侧栏已经出来了，内容还竖着堆，看着就是「网页上是手机版」。
       视觉升级 v57 把分栏门槛跟侧栏对齐到同一条 700 线，消灭死区（820/900/1400/1700 四档退役）。
       现在 700 起分栏，左栏自己滚，右栏跟着内容走。 */
-@media (min-width:700px){
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){
   .split{
     display:grid;grid-template-columns:236px minmax(0,1fr);
     gap:var(--gap);align-items:start;
@@ -879,7 +879,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    需要占满的重要卡片（英雄卡、长列表）加 class="card wide"。
    列表型页面（名册、学员档案、模考、协作）外面套一个 .split，
    左边是选择列表，右边是详情，不用来回跳页。 */
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   :root{--fs-hero:56px;--fs-title:30px;--pad:30px;--gap:20px}
   .side{width:236px}
   .main{padding:36px 44px 52px}
@@ -915,7 +915,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    容器自己是 .page.on 网格的一个格子 → 只占左半栏，卡片在里面一张压一张竖着堆，
    右边整片留白 —— 看着就是「手机版」。给它加 .cardflow：容器占满整行、内部再切两列。 */
 .cardflow{display:block}
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   .page.on > .cardflow{grid-column:1 / -1}
   .cardflow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap);align-content:start}
   .cardflow > .card.wide{grid-column:1 / -1}
@@ -976,7 +976,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    桌面课表靠 .sgrid 的 min-width:660px 排整周栅格，这里**不动它**；
    只在手机把外层 #gridWrap 变成可横滑容器，并给一行「左右滑动」提示。 */
 .grid-hint{display:none}
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   .grid-hint{display:block;font-size:12px;color:var(--text-dim);margin:var(--sp-3) 0 0}
   #gridWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 }
@@ -1099,7 +1099,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    它原先写在上面那段桌面媒体查询块里（.side{width:236px} 旁边），结果被
    下面这条 118px 盖掉 —— 宽屏侧栏上的融合标一直没长到 148，牌面空一大圈。
    现在挪到这里，宽屏（≥1100）牌面内容宽 186px，148px 的标居中后左右各留 19px。 */
-@media (min-width:1100px){ .side .brand .brand-lock{max-width:148px} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .side .brand .brand-lock{max-width:148px} }
 .side .brand .b-sys,.side .brand .b-port{text-align:center}
 /* 标与字之间：一条 46px 的短金线，正中嵌一枚小金点 */
 .side .brand .b-sys::before{
@@ -1133,7 +1133,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    · 机构名 30 号、字距 16，四个字稳稳压在中轴正中
    · 表单仍是 400 的窄栏：输入框拉宽反而不好填
    窄屏完全不受影响，还是原来那一条。 */
-@media (min-width:900px){
+@media (min-width:900px), ((hover:hover) and (pointer:fine)){
   /* ⚠️ 用 flex 居中 + 子项 margin:auto，不要用 align-items:center ——
      牌匾比屏幕高时（矮笔记本 / 横屏手机），align-items:center 会把顶部
      推到视口外且滚不上去；margin:auto 在空间不足时会自动塌成 0，正常滚动。 */
@@ -1216,7 +1216,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 @media (prefers-color-scheme: dark){
   .gs-reveal{background:linear-gradient(180deg,#1a2236 0%,#222c47 100%)}
 }
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   .gate{--serif:"Noto Serif SC","Songti SC","STSong",serif;background:#f7f6f2}
   .gate .g-mhero{display:none!important}   /* v83 双保险：手机端轮播绝不进桌面 */
   .gate .g-mfoot{display:none!important}   /* v83 双保险：手机端标语绝不进桌面 */
@@ -1294,7 +1294,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
    ⚠️ 老的 ≥900 牌匾块对 900–1099 区间还有残效（display:flex / wrap margin:auto /
       金晕 ::after / g-form 400 窄栏），本块在后，同权重规则依次掰回。
    ⚠️ Auth 的 gUser/gPass/gBtn id 与 onclick 全部没动，只换皮。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   .gate{
     --serif:"Noto Serif SC","Songti SC","STSong",serif;
     --blue:#4a5c8c;--blue-deep:#384a74;--blue-ink:#2b3a5e;
@@ -1471,12 +1471,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .mtabbar button{color:#8f97ab}           /* 深底未选中：≥4.5:1 */
   .mtabbar button.on{color:#b7c3f5}        /* 深底选中：亮化同族蓝（--m-blue 深底上只有 3.2:1） */
 }
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   .mtabbar{display:flex}
   .tabbar{display:none!important}          /* 旧手机底栏退场 */
   .main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}  /* ==5.18== 悬浮胶囊抬离底缘，预留加大防遮挡 */
 }
-@media (min-width:1100px){ .mtabbar{display:none!important} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .mtabbar{display:none!important} }
 body.board-mode .mtabbar{display:none!important}
 /* ==MTAB-MOBILE-END== */
 
@@ -1495,7 +1495,7 @@ body.board-mode .mtabbar{display:none!important}
    · 桌面 ≥1100 零影响：全部规则包在 <1100 媒体查询里；唯一的全局新规则是
      .bg-logo{display:none}（hero 浮雕图，桌面不渲染，<1100 五页 hero 才亮起）。 */
 .bg-logo{display:none}
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   /* ── 五页公共底座：样张令牌 + 满幅纸底 + 顶部蓝渐变头带 ──
      头带用一条页面背景画完（linear-gradient 限高 --hero-h），标题/副题透出蓝带，
      首卡自然叠在带沿上 ≈ 样张 .sheet 白板叠头。 */
@@ -1549,7 +1549,7 @@ body.board-mode .mtabbar{display:none!important}
   }
   #page-settings.on #verLine{color:rgba(255,255,255,.6);margin:2px 0 0}
   /* <699 隐藏顶栏，hero 直达屏幕顶（样张形态）；:has 不支持时顶栏自然保留，优雅降级 */
-  @media (max-width:699px){
+  @media (max-width:699px) and ((hover:none) or (pointer:coarse)){
     body.stu:has(#page-stuHome.on) .topbar,
     body.stu:has(#page-stuSign.on) .topbar,
     body.stu:has(#page-stuHw.on) .topbar,
@@ -1713,7 +1713,7 @@ body.board-mode .mtabbar{display:none!important}
      蓝头带固定品牌面白字，深浅两套都可读；
    · 桌面 ≥1100 零影响：全部规则包在 <1100 媒体查询里（.bg-logo 全局已有
      display:none，本块不重复）。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   /* ── 七页公共底座：样张令牌 + 满幅纸底 + 顶部蓝渐变头带（与 3a 同一条配方）──
      头带用一条页面背景画完（linear-gradient 限高 --hero-h），标题/副题透出蓝带。
      att 页头带自画在 .chead 上（高度随筛选行内容涨落，不用固定 --hero-h）。 */
@@ -1766,7 +1766,7 @@ body.board-mode .mtabbar{display:none!important}
     color:rgba(255,255,255,.72); letter-spacing:1px; vertical-align:0;
   }
   /* <699 隐藏顶栏，hero 直达屏幕顶（与 3a 同一手法；:has 不支持时顶栏自然保留，优雅降级） */
-  @media (max-width:699px){
+  @media (max-width:699px) and ((hover:none) or (pointer:coarse)){
     body:has(#page-today.on) .topbar,
     body:has(#page-myclass.on) .topbar,
     body:has(#page-tickets.on) .topbar,
@@ -1956,7 +1956,7 @@ body.board-mode .mtabbar{display:none!important}
      #D9BE86），蓝头带固定品牌面白字；
    · 搜索胶囊为装饰样式：生产无全局搜索功能，未接（元素 title 已注明）。 */
 .m2-only{display:none}
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   /* ── 页面级：桌面页头退场（==MOBILE-V1== 蓝头带已撤，--hero-h 随之退场）── */
   #page-stuHome.on > .page-title,
   #page-stuHome.on > .page-sub{display:none}
@@ -2093,7 +2093,7 @@ body.board-mode .mtabbar{display:none!important}
      的真实功能不删），版序插在「今日教务」之后；
    · 宫格 8 项只跳现有页面 id，越权由 App.can 拦（文案与样张对齐生产叫法）；
    · 桌面 ≥1100 逐像素一致（.m2-only 全局 display:none）；深色同 STU2 块。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   #page-home.on > .page-title,
   #page-home.on > .page-sub{display:none}
 
@@ -2211,7 +2211,7 @@ body.board-mode .mtabbar{display:none!important}
    · 三首页（stuHome / today / home）：顶栏（融合标 + 时段问候 + 角色金签）+
      顶部轮播（第一张 = 方案 C 暖金渐变统考倒计时卡，第二张 = 角色概览卡露边）+
      圆点指示；概览由文件尾 V1 模块用真实数据填。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   /* ── 1. 撤蓝头：纸底；首页 bg-logo 浮雕退场（浅底上无意义；我的页另行重挂）── */
   #page-stuHome.on, #page-today.on, #page-home.on,
   #page-stuSign.on, #page-stuHw.on, #page-stuTable.on,
@@ -2285,7 +2285,7 @@ body.board-mode .mtabbar{display:none!important}
   body.stu:has(#page-stuHome.on) .topbar .v1-badge,
   body:has(#page-today.on) .topbar .v1-badge,
   body:has(#page-home.on) .topbar .v1-badge{display:inline-flex}
-  @media (max-width:699px){
+  @media (max-width:699px) and ((hover:none) or (pointer:coarse)){
     /* 三首页顶栏从 v85/v86 隐藏名单捞回（样张首页顶栏 = logo + 问候） */
     body.stu:has(#page-stuHome.on) .topbar,
     body:has(#page-today.on) .topbar,
@@ -2405,7 +2405,7 @@ body.board-mode .mtabbar{display:none!important}
    · 卡内 h2 衬线墨蓝 + 线性图标翻学府蓝
    铁律：只动 <1100 且只动下列 22 页（V1 13 页的选择器不在本块出现，不回退）；
         业务 JS 零改动；StuMark 水印不动；深色走令牌（块尾深色子块翻 --paper 系）。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   #page-roster.on, #page-profile.on, #page-hours.on, #page-night.on,
   #page-quant.on, #page-exam.on, #page-coop.on, #page-gather.on,
   #page-teachers.on, #page-rules.on, #page-board.on, #page-students.on,
@@ -3033,7 +3033,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .news-strip{margin-top:var(--sp-4);display:grid}
 .news-more-wrap{margin-top:var(--sp-3)}
 .news-more{width:100%}
-@media (min-width:1100px){ .page#page-home.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-home.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑦ 考勤页（F 册页）────────────────────────────────────────────────── */
 .chead{padding-bottom:var(--sp-4);border-bottom:2px solid var(--text)}
@@ -3046,7 +3046,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   color:var(--text-dim);padding:2px 1px;cursor:pointer;border-radius:0}
 .fold:hover{color:var(--text);border-color:var(--text)}
 .attgrid{display:flex;flex-direction:column;gap:var(--sp-6);margin-top:var(--sp-4)}
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   .attgrid{display:grid;grid-template-columns:minmax(0,1fr) clamp(240px,28%,300px);gap:var(--sp-8);align-items:start}
 }
 .roster{min-width:0}
@@ -3062,7 +3062,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .rrow .slot i{width:8px;height:8px;display:inline-block;background:var(--stamp-ok);border-radius:50%}
 .rrow .slot i.bad{background:var(--stamp-late)}
 .rrow .ro-all{font-size:12px;color:var(--text-dim);text-align:right;white-space:nowrap}
-@media (max-width:1099px){
+@media (max-width:1099px) and ((hover:none) or (pointer:coarse)){
   /* F1：<1100 单列 —— 姓名列 ≥44px、姓名不截断、表头不竖排 */
   .rrow{grid-template-columns:34px minmax(44px,1fr) auto}
   .rrow .slot, .rrow.head .h-slot{display:none}
@@ -3087,7 +3087,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .legend i.absent{background:var(--stamp-absent)}
 .sumbox .pending{font-size:14px;display:grid;gap:12px}
 .sumbox #attLeaveList .item{align-items:flex-start}
-@media (max-width:1099px){
+@media (max-width:1099px) and ((hover:none) or (pointer:coarse)){
   /* F1 降级：汇总条吸在章节头下方、横向排开（复用 .sumbox/.sumrow/.ratio/.legend）；
      拆开 .sumsticky(display:contents)：本节小结 → 吸顶横向条；待批请假 → 落到名单之后 */
   .sumsticky{display:contents}
@@ -3109,13 +3109,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 }
 /* G1：空态下汇总条完全不参与布局（不留百余像素空白） */
 .attgrid.is-empty .sumsticky{display:none}
-@media (min-width:1100px){ .attgrid.is-empty{grid-template-columns:minmax(0,1fr)} }
-@media (min-width:1100px){ .page#page-att.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .attgrid.is-empty{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-att.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑦b 考勤页（#page-att）手机端：整体收一档 + 状态方块平分整行 ──
    本轮只落这一页，全站收档下一轮做。⚠️ input / select / textarea 一律不准小于 16px
    （小于 16px 时 iOS 聚焦会自动放大整页），所以这里只调文本元素，不碰表单控件。 */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   #page-att .chead h2{font-size:20px}
   #page-att .sumbox h3{font-size:16px}
   #page-att .sumrow{font-size:13px}
@@ -3135,7 +3135,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
 /* ── ⑧ 名册页（.split 册页化）──────────────────────────────────────────── */
 .roster-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
-@media (min-width:700px){ .roster-grid{grid-template-columns:240px minmax(0,1fr);gap:var(--sp-8)} }
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){ .roster-grid{grid-template-columns:240px minmax(0,1fr);gap:var(--sp-8)} }
 .cls-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-4)}
 .sec-h{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2)}
 .sec-meta{margin-top:4px;font-size:var(--fs-small);color:var(--text-dim)}
@@ -3145,11 +3145,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .more > summary{cursor:pointer;font-size:14px;color:var(--text-dim);padding:6px 0}
 .more > summary:hover{color:var(--text)}
 .more .mrow{margin-top:var(--sp-3)}
-@media (min-width:1100px){ .page#page-roster.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-roster.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑨ 作业页（左检查 · 右布置）────────────────────────────────────────── */
 .hw-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
-@media (min-width:700px){ .hw-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--sp-8)} }
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){ .hw-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:var(--sp-8)} }
 .hw-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--pad)}
 .hk-progress{height:8px;border-radius:var(--r-pill);background:var(--line);overflow:hidden;margin-top:var(--sp-3)}
 .hk-progress i{display:block;height:100%;background:var(--accent);transition:width var(--dur-slow) var(--ease-slow)}
@@ -3159,13 +3159,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .hw-form .chips{display:flex;gap:8px;flex-wrap:wrap}
 /* ==DESKTOP-V2== P2-12：#hwDate 行内样式收敛为类（_qa 断言 #hwDate 无 style 属性） */
 .hw-form .hw-date{width:100%;min-width:0}
-@media (min-width:1100px){ .page#page-homework.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-homework.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑩ 设置页（常用 / 高级 + 锚点）─────────────────────────────────────── */
 .anchor-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6);align-items:start}
-@media (min-width:1100px){ .anchor-layout{grid-template-columns:200px minmax(0,1fr);gap:var(--sp-8)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .anchor-layout{grid-template-columns:200px minmax(0,1fr);gap:var(--sp-8)} }
 .anchor-nav{position:sticky;top:16px;display:flex;flex-direction:column;gap:2px}
-@media (max-width:1099px){ .anchor-nav{position:static;flex-direction:row;flex-wrap:wrap;gap:6px} }
+@media (max-width:1099px) and ((hover:none) or (pointer:coarse)){ .anchor-nav{position:static;flex-direction:row;flex-wrap:wrap;gap:6px} }
 .anchor-nav a{font-size:14px;color:var(--text-dim);text-decoration:none;padding:6px 10px;border-radius:var(--r-sm);
   border-left:2px solid transparent}
 .anchor-nav a:hover{color:var(--text);background:var(--hover)}
@@ -3173,14 +3173,14 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .seg-h{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2);display:flex;align-items:center;gap:10px}
 .seg{margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--line)}
 .s-card{scroll-margin-top:84px}
-@media (min-width:1100px){ .page#page-settings.on{grid-template-columns:minmax(0,1fr)} }
-@media (min-width:1100px){ .page#page-timetable.on{grid-template-columns:minmax(0,1fr)} } /* 课表页：大作息/小课两卡并排、大课表全宽，别掉进两列网格 */
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-settings.on{grid-template-columns:minmax(0,1fr)} }
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-timetable.on{grid-template-columns:minmax(0,1fr)} } /* 课表页：大作息/小课两卡并排、大课表全宽，别掉进两列网格 */
 /* 锚点跳转后别被吸顶导航压住：设置页里每个可跳的 [id] 都留出导航条的高度 */
 .anchor-layout [id]{scroll-margin-top:76px}
 
 /* 两栏并排（页尾章节里成对排开的说明块用；不用 .split —— 那是「列表+详情」的语义） */
 .two-up{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-6)}
-@media (min-width:700px){ .two-up{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-8)} }
+@media (min-width:700px), ((hover:hover) and (pointer:fine)){ .two-up{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-8)} }
 
 /* ── ⑪ 空态：只在 5 页的新容器里把 .empty 摆成「插图 + 文案」竖排（不动旧 .empty 语义）── */.attgrid .empty,.roster-grid .empty{display:flex;flex-direction:column;align-items:center;
   gap:var(--sp-3);padding:var(--sp-6) var(--sp-4);text-align:center}
@@ -3227,7 +3227,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
      2) .hero / .num / .sumrow b 这类「数字主角」不碰 —— 降了页面就没有视觉层级；
      3) 看板端（.bd-*）不碰 —— 那是挂在办公室墙上的大屏，按 vw 缩放，不归手机管。
    只加不改：本块不重定义任何 --* 变量、不新增断点，断点只用既有的 699px。 */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   /* 页面主标题 22 → 20（与 ⑦b 的 .chead h2 同值） */
   .page-title, .chead h2{font-size:20px}
   /* 章节 / 卡片标题 18（.card h2 为 17）→ 16 */
@@ -3255,7 +3255,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
       375px 及以上（常见 iPhone 宽度）维持一行不变。
    flex-shrink + min-width:0 配合父级既有的 flex-wrap:wrap 走的是**换行、不是裁切** ——
    320px 实测 5 个图例项全部完整可见、无截断，图例占两行。 */
-@media (max-width:374px){
+@media (max-width:374px) and ((hover:none) or (pointer:coarse)){
   #page-att .sumbox:first-child .legend{flex-shrink:1;min-width:0}
 }
 
@@ -3266,7 +3266,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    ≤699 直接 display:none；桌面 ≥1100 的左栏锚点一行没动。
    JS 的 Settings.bindChrome() 只是给 nav 绑点击监听，隐藏后不再触发，无副作用。
    实测：settings@390 3753 → 3612（−141px），overX 仍 0，home/att 不变。 */
-@media (max-width:699px){
+@media (max-width:699px) and ((hover:none) or (pointer:coarse)){
   #page-settings .anchor-nav{display:none}
 }
 
@@ -3274,10 +3274,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    ==DESKTOP-V2== 桌面端全量改版（Phase E · 2026-10-22，只动 ≥1100）
    ───────────────────────────────────────────────────────────────────────────
    来源：docs/redesign-2026-10/samples/shell.css（P2 清零版）+ 03 文档 §7 主理人核定修正。
-   铁律：本块所有规则收在 @media (min-width:1100px) —— 手机端 <1100 一个字不动；
+   铁律：本块所有规则收在 @media (min-width:1100px), ((hover:hover) and (pointer:fine)) —— 手机端 <1100 一个字不动；
         业务 JS 零改动（展示 JS 收文件尾 ==DESKTOP-V2== JS 块）；深色走令牌。
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   /* §7：页题衬线基准 26px（令牌表默认值），宽桌面提到 30px（样张 shell.css 同源） */
   :root{--fs-h1:30px}
   /* 页题衬线化（样张 shell.css .page-title）。手机 v1 的 .page-title 覆盖
@@ -3339,7 +3339,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 /* ═══════════════════════════════════════════════════════════════════════════
    ==XF== 学府门户桌面版（≥1100）── 来源：docs/preview-2026-10/00-设计规格.md（v1 定稿）   + assets/preview.css + redesign-fresh/G4-学府门户-轮播终版.html（像素级标杆）
    ───────────────────────────────────────────────────────────────────────────
-   铁律：本块所有规则收在 @media (min-width:1100px)（含其中的深色翻转）——
+   铁律：本块所有规则收在 @media (min-width:1100px), ((hover:hover) and (pointer:fine))（含其中的深色翻转）——
         <1100 手机端一字不动；业务 JS 零改动（展示 JS 收文件尾 ==XF== 模块）；
         StuMark 水印、登录门、mtabbar 不动；大课表 grid/导出三拷贝不碰。
    令牌策略：--blue 系/--paper/--ink 系/--gold-deep/--red 在桌面此前未定义
@@ -3348,7 +3348,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    ═══════════════════════════════════════════════════════════════════════════ */
 /* 基础层：学府骨架/页脚默认不渲染（<1100 永远隐藏；≥1100 在下方媒体内点亮） */
 .xf-top,.xf-foot{display:none}
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   /* ── ① 学府令牌（浅色）────────────────────────────────────────────── */
   :root{
     --blue:#4a5c8c; --blue-deep:#384a74; --blue-ink:#2b3a5e; --gold-deep:#a8895a;
@@ -3447,7 +3447,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xf-more-panel a:hover{background:#f6f8fc;color:var(--blue)}
   .xf-more-panel a.on{background:#faf6ec;color:var(--gold-deep)}
   /* 1100~1300 收紧间距保一排（先收紧、不折行） */
-  @media (min-width:1100px) and (max-width:1320px){
+  @media (min-width:1100px) and (max-width:1320px), ((hover:hover) and (pointer:fine)) and (max-width:1320px){
     .xf-navstrip a, .xf-more-btn{padding:13px 11px;font-size:13px;letter-spacing:1.5px}
     .xf-navstrip a.on::after, .xf-more.cur-in .xf-more-btn::after{left:11px;right:11px}
     .xf-navstrip-in{padding:0 14px}
@@ -3521,7 +3521,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 
 /* ── ⑩ 学府深色翻转（≥1100 + 随系统深色）─────────────────────────────
    规格只给了浅色；生产深色是活的，不能砍 —— 深蓝加深、纸面变深、文字变浅。 */
-@media (min-width:1100px) and (prefers-color-scheme: dark){
+@media (min-width:1100px) and (prefers-color-scheme: dark), ((hover:hover) and (pointer:fine)) and (prefers-color-scheme: dark){
   :root{
     --paper:#191d27; --bg:#191d27;
     --card:#222735;
@@ -3552,7 +3552,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    ==XF2== 学府门户内容区深排（≥1100）── 来源：docs/preview-2026-10/page-home.html
    + assets/preview.css（像素标杆 redesign-fresh/G4-学府门户-轮播终版.html）
    ───────────────────────────────────────────────────────────────────────
-   铁律：本块全部收在 @media (min-width:1100px)（hero 基础层 display:none，
+   铁律：本块全部收在 @media (min-width:1100px), ((hover:hover) and (pointer:fine))（hero 基础层 display:none，
         <1100 永不渲染）；业务 JS 零改动（数据填充收文件尾 ==XF2== 展示模块）；
         StuMark 水印 / mtabbar / 登录门不动；大课表三拷贝不碰。
    深排范围（首批 = 用户点名的 home）：
@@ -3563,7 +3563,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    · 今日时间轴 evt 行化（#tlAxis 刻度行重排 + tl-head 收成右侧倒计时卡）
    · 今日要闻通知条目化（.notice 日期块，由 XF 展示模块重画，链接与展开全保留） */
 .xf-hero, .xf-term, .xd-only{display:none}
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   /* ── ① 学期信息条（高校仪式感；基础层 display:none，这里点亮）── */
   .xf-term{display:block;background:#fff;border-bottom:1px solid var(--line)}
   .xf-term-in{max-width:1280px;margin:0 auto;padding:0 40px;height:42px;display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--ink-2);letter-spacing:2px}
@@ -3737,7 +3737,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    同批复用首批词汇：◆ 衬线节标 + 细规线 + 直角细边卡。
    铁律同 XF2：全部收在 ≥1100（<1100 一字不动）；业务 JS 零改动
    （教务通知条目化由文件尾 XF3 展示模块重画，深色经 ：root 令牌翻转自适应）。 */
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   /* 卡片收敛为学府版式（同 home tl-wrap：白底细边、微圆直角、无投影） */
   .page#page-today.on .card, .page#page-news.on .card{
     background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:none;padding:22px 24px}
@@ -3788,7 +3788,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    （home/today/news）的节标词汇铺满剩余全部桌面页。
    铁律同前：≥1100 才生效（<1100 一字不动）；只动版式不动 DOM/业务 JS；
    深色经 :root 令牌翻转自适应；大课表三拷贝结构不碰（h2 只换字体与规线）。 */
-@media (min-width:1100px){
+@media (min-width:1100px), ((hover:hover) and (pointer:fine)){
   .page.on .card{border-radius:4px;box-shadow:none}
   .page.on .card > h2{
     font-family:var(--font-serif);font-size:21px;letter-spacing:4px;color:var(--ink);font-weight:700;
@@ -3810,7 +3810,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
    卡片 16px 圆角加阴影 · 输入 10px · 按钮胶囊全圆 · 卡间距 12/内边距 14 · 分割线淡化；
    字号阶梯按预览范围（home/att：页题 22 / 卡题 15 / 正文 14 / 辅助 12 / 大数字 22）。
    大课表三拷贝卡不裁切（overflow 豁免）；StuMark / 登录门 / 业务 JS 零触碰。 */
-@media (max-width:1099.98px){
+@media (max-width:1099.98px) and ((hover:none) or (pointer:coarse)){
   .card{border-radius:16px;overflow:hidden;
     box-shadow:0 4px 16px rgba(43,52,70,.08)}
   /* 既有 MOBILE 块对五页 .card 有 ID 级 14px，同特异性在此后声明以覆盖 */
@@ -3831,6 +3831,19 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   @media (prefers-color-scheme: dark){
     .card{box-shadow:0 6px 20px rgba(0,0,0,.35)}
   }
+}
+
+/* ==5.33== hero 横幅窄幅适配（VoxOS 5.33）==================================
+   home 大横幅的右侧留白（.xf-stx right:620 与拍立得照片区）是按 1200+ 横幅
+   设计的固定值 —— 桌面锁版后窗口可以任意窄，横幅跟着变窄时：文字区被挤成
+   0 宽（标题直接被裁）、照片溢出左缘。用容器查询按**横幅实际宽度**分流：
+   窄幅（<900px）拍立得照片退场、文字区收成全宽（左 40 右 40），标题交给
+   FitLine 缩放单行；宽幅维持原样视觉不变。触屏端 xf-hero 不渲染，零影响。 */
+.xf-banner{container-type:inline-size}
+@container (max-width: 900px){
+  .xf-polaroid{display:none}
+  .xf-slide .xf-stx{right:40px}
+  .xf-slide[data-i="2"] .xf-stx{right:40px}
 }
 
 </style>
@@ -3893,6 +3906,26 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 <symbol id="ic-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
 <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
 </svg>
+<script>
+/* ==5.33== 桌面锁版（VoxOS 5.33）：桌面输入特征（悬停 + 精指针 = 鼠标环境）判定桌面，
+   挂 html.desktop-lock。CSS 断点已按 hover/pointer 特征分流（手机块限定触屏、桌面块
+   放开特征命中），桌面窄窗恒为电脑版；真手机/平板（触屏）保持自动切手机版，m390 零变化。
+   JS 分支一律用 __desk()，与 CSS 同口径 —— 禁止再用裸 matchMedia('(min-width:...)')。 */
+(function(){
+  var Q = '(hover:hover) and (pointer:fine)';
+  window.__deskQ = Q;
+  window.__desk = function(){ return !!window.matchMedia && matchMedia(Q).matches; };
+  if (window.__desk()) document.documentElement.classList.add('desktop-lock');
+  /* 输入特征变了（iPad 接/拔鼠标、触屏本切换）→ 类跟着翻。CSS 断点本身按
+     特征实时求值不用管，这里只同步 JS 侧用的类。 */
+  if (window.matchMedia){
+    var mq = matchMedia(Q);
+    var onchg = function(e){ document.documentElement.classList.toggle('desktop-lock', !!e.matches); };
+    if (mq.addEventListener) mq.addEventListener('change', onchg);
+    else if (mq.addListener) mq.addListener(onchg);
+  }
+})();
+</script>
 <script>
 var Icon = {
   KNOWN: new Set(['bolt','calc','chat','desktop','export','book','calendar','card','chart','check','clipboard','clock','db','dice','doc','envelope','eye','flask','folder','gear','globe','grad','grid','hand','hash','hospital','id','image','inbox','key','megaphone','memo','mic','mobile','moon','news','pen','pin','plus','pulse','receipt','refresh','ruler','school','scroll','search','target','teacher','trend','users','warn','wrench','chevron','shield']),
@@ -5860,7 +5893,7 @@ var Icon = {
     });
     /* 桌面默认选中「教师」（==5.25== 体检 🟢22：教务系统主要用户是老师，
        默认学生是老遗留），按钮文案同步；窄屏不动按钮文案 */
-    if (window.matchMedia && matchMedia('(min-width:1100px)').matches){
+    if (window.matchMedia && window.__desk()){
       window.__gRole = '教师';
       const btn = document.getElementById('gBtn');
       if (btn) btn.textContent = '教 师 登 录';
@@ -20008,7 +20041,7 @@ V1.init();
   var main = sumbar.closest('.main') || document.querySelector('.main');
   if (!main) return;
   function stuckTick(){
-    if (window.matchMedia('(min-width:1100px)').matches){ sumbar.classList.remove('is-stuck'); return; }
+    if (window.__desk()){ sumbar.classList.remove('is-stuck'); return; }
     var mr = main.getBoundingClientRect(), br = sumbar.getBoundingClientRect();
     var stuck = main.scrollTop > 0 && (br.top - mr.top) <= 10;
     sumbar.classList.toggle('is-stuck', stuck);
@@ -20280,7 +20313,7 @@ const XF2 = {
     setInterval(() => {
       if (this._pause && Date.now() < this._pause) return;
       if (!document.getElementById('page-home') || !document.getElementById('page-home').classList.contains('on')) return;
-      if (document.hidden || !window.matchMedia('(min-width:1100px)').matches) return;
+      if (document.hidden || !window.__desk()) return;
       const i = (n() + 1) % dots.length;
       track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' });
     }, 6000);
@@ -20292,7 +20325,7 @@ const XF2 = {
     if (!body || !window.MutationObserver || this._nObs) return;
     const paint = () => {
       try{
-        if (!window.matchMedia('(min-width:1100px)').matches) return;   /* 手机永远原样 */
+        if (!window.__desk()) return;   /* 手机永远原样 */
         const cache = Store.get('news_cache');
         if (!cache || !cache.items || !cache.items.length) return;
         /* 展开态跟随：DOM 里的条数就是当前应显示的条数（展开全部按钮原样保留） */
@@ -20340,6 +20373,78 @@ const XF2 = {
 };
 XF2.init();
 
+/* ==5.33== 全站大标题单行锁死（VoxOS 5.33，用户实锤 hero 折行）──────
+   桌面锁版端（html.desktop-lock）大标题一律单行：white-space:nowrap +
+   JS 测量缩放（fit-text）—— 渲染宽超过可用宽就按比例缩字号（连字距一起缩），
+   任何窗口宽度 360~2560 一行不折、不溢出不重叠。
+   清单：hero 轮播主/副标题、各页 page-title（含时钟角标）、章节头 chead h2
+   （含 small 副行，独立测量）；5.32 timetable 卡头锁死保持原样（bd- 看板
+   标题本就 clamp+nowrap）。触屏端 html 上没有 desktop-lock，本模块不生效，
+   m390 基线零变化。 */
+const FitLine = {
+  SEL: ['.xf-stx h1', '.xf-stx .ssub', '.page-title', '.chead h2', '.chead h2 small'].join(','),
+  raf: 0,
+  /* 元素本行的内容宽：文本节点 + 行内子元素（如 page-title 的时钟、hero h1
+     的「·」span）**同一行累加求和**（nowrap 下它们都在一行）；块级子元素
+     （chead h2 的 small）不在本行，另行单独测 —— 不然 small 更长会把 h2
+     过度缩小。 */
+  lineW(el){
+    let w = 0;
+    for (const n of el.childNodes){
+      let rect = null;
+      if (n.nodeType === 3 && n.textContent.trim()){
+        const r = document.createRange(); r.selectNodeContents(n);
+        rect = r.getBoundingClientRect();
+      } else if (n.nodeType === 1){
+        const d = getComputedStyle(n).display;
+        if (d === 'inline' || d === 'inline-block'){
+          const r = document.createRange(); r.selectNodeContents(n);
+          rect = r.getBoundingClientRect();
+        }
+      }
+      if (rect) w += rect.width;
+    }
+    return w;
+  },
+  fit(){
+    if (!document.documentElement.classList.contains('desktop-lock')) return;
+    document.querySelectorAll(this.SEL).forEach(el => {
+      if (!el.getClientRects().length) return;                    /* 隐藏页跳过 */
+      const cs = getComputedStyle(el);
+      if (!el._fitBase) el._fitBase = parseFloat(cs.fontSize) || 16;
+      el.style.whiteSpace = 'nowrap';
+      el.style.fontSize = el._fitBase + 'px';                     /* 先还原再测 */
+      const pst = getComputedStyle(el.parentElement);
+      const avail = el.parentElement.clientWidth
+        - (parseFloat(pst.paddingLeft) || 0) - (parseFloat(pst.paddingRight) || 0);
+      const w = this.lineW(el) || el.scrollWidth;
+      if (w > avail && avail > 40){
+        const k = avail / w;
+        el.style.fontSize = Math.max(11, Math.floor(el._fitBase * k * 10) / 10) + 'px';
+        const ls = parseFloat(cs.letterSpacing);
+        if (ls > 0) el.style.letterSpacing = Math.max(0, Math.floor(ls * k * 10) / 10) + 'px';
+      } else {
+        el.style.letterSpacing = '';
+      }
+    });
+  },
+  schedule(){ if (this.raf) return; this.raf = requestAnimationFrame(() => { this.raf = 0; try{ this.fit(); }catch(e){} }); },
+  init(){
+    if (!window.__desk()) return;                                 /* 触屏端不装 */
+    window.addEventListener('resize', () => this.schedule(), { passive: true });
+    window.addEventListener('load', () => this.schedule());
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => this.schedule());
+    /* 页面切换（.page.on）与轮播切换（.xf-slide.on）后重测 */
+    try {
+      new MutationObserver(() => this.schedule())
+        .observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    } catch(e){}
+    this.schedule();
+  }
+};
+FitLine.init();
+window.FitLine = FitLine;   /* ==5.33== 暴露给测试/控制台排查 */
+
 /* ==XF3== 内容区深排第二批展示 JS（业务零改动）──
    教务通知条目化：Today.render 写进 #tdNotice 的 .item 重画为日期块条目
    （数据仍来自渲染 DOM 的真实通知文本/日期/发布人；深色与 <1100 不受影响）。
@@ -20350,7 +20455,7 @@ const XF3 = {
     if (!body || !window.MutationObserver || this._tObs) return;
     const paint = () => {
       try{
-        if (!window.matchMedia('(min-width:1100px)').matches) return;   /* 手机永远原样 */
+        if (!window.__desk()) return;   /* 手机永远原样 */
         const items = [...body.querySelectorAll(':scope > .item')];
         if (!items.length) return;                                      /* 空态/加载中不碰 */
         const html = items.map(it => {
