@@ -421,7 +421,12 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v113'; /* VoxOS 5.33：桌面锁版 + 全站大标题单行锁死（用户录屏实锤两问题）——
+VERSION = 'v114'; /* VoxOS 5.34：建号体验修复（用户实测三问题）——
+   ① 给老师分班「一直跳」选不了：根因实锤 = Store.mergeRemote 对 REMOTE_WINS 键（examDate/sign_rules）每 15s 盲写盲计 changed（不比较值），n 恒 ≥1 → 每轮 pull 触发 App.refresh → Teachers.render 开头 closeCls() 把打开中的带班编辑器冲掉。修：REMOTE_WINS 键 JSON.stringify 值比较，值变了才 set/changed；Teachers.render 删 closeCls()。
+   ② 账号列表「一直重复刷新」：Teachers.render 数据指纹幂等（id/role/active/classIds/name/user + demoHidden 没变就跳过 paint），「正在读取…」只在无数据时显示；App.refresh 三层收敛（120ms 去抖 → 交互保护：.picker.on 弹层/tClsCard 编辑卡/输入焦点时只记 _pendingRefresh 只刷红点 → MutationObserver 监弹层/编辑卡关闭后补刷欠下的那次）。
+   ③ 「已删除账号的历史」栏移除（#tHistoryCard 卡片 + renderHistory 函数 + 调用点/文案）；staff_history KV 留档 archive() 照写，数据不动只删 UI。
+   测试：teacher_cls_check --fix 8/8（33s 两轮询周期选择器保持打开/render=0/refresh=0/保存成功/历史栏不在 DOM）；teacher_ro_check 39 + board_check 68 + xf_check m390 基线全过。index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.33：桌面锁版 + 全站大标题单行锁死（用户录屏实锤两问题）——
    ① hero/横幅大标题窄窗折行：FitLine 桌面端 fit-text（nowrap + 测量缩放，字号字距按可用宽等比缩，行宽=同行片段求和），清单 .xf-stx h1/.ssub、.page-title、.chead h2(+small)；hero 右侧留白 right:620 是按 1200+ 横幅设计的固定值，窄幅被挤成 0 宽 → .xf-banner 加 container-type:inline-size，@container (max-width:900px) 拍立得退场、文字区收全宽。
    ② 窄窗自动切手机版被误认为「变回旧版」：桌面输入特征（hover:hover+pointer:fine）恒锁桌面版 —— 手机块（max-width:1099.98/1099/699/374）加 and((hover:none) or (pointer:coarse))，桌面块（min-width:700/900/1100）加 or 特征支；真手机/平板（触屏）命中集合与旧版完全一致（m390 逐像素零差异）。JS 分支 5 处 matchMedia(min-width:1100) 统一 __desk()；desktop-lock 类跟随特征变化。
    深色块/1100-1320 微调块的 AND 语境在批量改写时被 OR 破坏（浅色系统误入深色），已回补第一支条件。

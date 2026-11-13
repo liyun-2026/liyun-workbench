@@ -5228,11 +5228,6 @@ var Icon = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-teacher"></use></svg> 账号列表</h2>
         <div id="tList"></div>
       </div>
-      <!-- 删掉的老师留档：只有首位教务看得到（后端不下发给别人，不是界面藏起来） -->
-      <div class="card wide" id="tHistoryCard" style="display:none">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-folder"></use></svg>  已删除账号的历史</h2>
-        <div id="tHistory"></div>
-      </div>
       <div class="card wide" id="tClsCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-book"></use></svg> <span id="tClsWho"></span> 的带班</h2>
         <div id="tClsBody"></div>
@@ -6199,8 +6194,14 @@ const Store = (() => {
         if (Array.isArray(rv)) {
           const merged = mergeList(Array.isArray(lv) ? lv : [], rv);
           if (JSON.stringify(merged) !== JSON.stringify(lv)) { driver.set(NS + key, merged); changed++; }
-        } else if (lv === null || lv === undefined || this.REMOTE_WINS.includes(key)) {
+        } else if (lv === null || lv === undefined) {
           driver.set(NS + key, rv); changed++;
+        } else if (this.REMOTE_WINS.includes(key)) {
+          /* ==5.34== 远端赢的键也要**值变了才算 changed** —— 之前每轮 pull 对
+             examDate/sign_rules 盲写盲计，n 恒 ≥1，15s 轮询就恒触发 App.refresh →
+             老师管理页每轮整卡重绘 + closeCls，分班选择器每 15 秒被关一次
+             （用户实测「分班一直跳、选不了」「列表一直重复刷新」的根因）。 */
+          if (JSON.stringify(rv) !== JSON.stringify(lv)) { driver.set(NS + key, rv); changed++; }
         }
         // 其余单值两边都有：保守起来保留本地，避免远端旧值覆盖刚改的设置
       }
@@ -7366,9 +7367,30 @@ const App = {
   },
 
   /** 重绘当前页。同步拉到新数据后调用 */
+  /* ==5.34== refresh 三层收敛（「老师管理页一直重复刷新」家族的修法）────
+     ① 去抖：同一 tick 内多次触发（pull 回来 + visibilitychange + focus 撞车）
+        合并成一次重绘；
+     ② 交互保护：弹层（.picker）开着 / 带班编辑卡开着 / 焦点在任何表单控件
+        （含 SELECT，原有判定只认 INPUT/TEXTAREA）时只刷红点不重绘当前页，
+        标记 pending —— 弹层关掉后由下面的补刷 observer 补一次；
+     ③ 幂等在各自 render 里做（数据指纹相同就不重绘，见 Teachers.render）。 */
   refresh(){
+    if (this._refreshT) return;
+    this._refreshT = setTimeout(() => { this._refreshT = null; this._refreshNow(); }, 120);
+  },
+  _refreshNow(){
     const cur = document.querySelector('.page.on');
     if (!cur) return;
+    const ae = document.activeElement;
+    const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT');
+    const modal = document.querySelector('.picker.on');
+    const clsCard = document.getElementById('tClsCard');
+    const editing = !!clsCard && clsCard.style.display !== 'none';
+    if (typing || modal || editing){
+      this._pendingRefresh = true;   /* 交互结束再补刷（见下方 observer） */
+      this.refreshDots();
+      return;
+    }
     const id = cur.id.replace('page-', '');
     const r = this.routes.find(x => x.id === id);
     if (r && r.roles.includes(Auth.role())) r.onShow?.();
@@ -7379,6 +7401,29 @@ const App = {
   },
 
 };
+
+/* ==5.34== 交互保护补刷：轮询刷新撞上「用户正在操作」（弹层/带班编辑卡/输入框）时只记
+   _pendingRefresh 不重绘；这里监听弹层与编辑卡关闭（class/style 变化），操作一结束
+   就把欠下的那一次刷新补上，数据不丢、交互也不被打断。 */
+(() => {
+  let raf = 0;
+  const check = () => {
+    raf = 0;
+    if (!App._pendingRefresh) return;
+    const modal = document.querySelector('.picker.on');
+    const clsCard = document.getElementById('tClsCard');
+    const editing = !!clsCard && clsCard.style.display !== 'none';
+    const ae = document.activeElement;
+    const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT');
+    if (modal || editing || typing) return;   // 还在操作，继续等
+    App._pendingRefresh = false;
+    App.refresh();
+  };
+  new MutationObserver(() => {
+    if (!App._pendingRefresh || raf) return;
+    raf = requestAnimationFrame(check);
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+})();
 
 
 /* ==== 功能：今日 START ==== */
@@ -14468,8 +14513,9 @@ const Teachers = {
   async render(){
     const el = document.getElementById('tList');
     if (!el) return;
-    el.innerHTML = '<div class="empty">正在读取账号列表…</div>';
-    this.closeCls();
+    /* ==5.34== 只在还没有数据时才显示「正在读取」，有数据时静默刷新，不再闪白 */
+    if (!(this._users || []).length)
+      el.innerHTML = '<div class="empty">正在读取账号列表…</div>';
     try {
       const j = await Auth.call('users', { op: 'list' });
       /* 学生账号不在这儿管：单独有「学生账号」那一页。
@@ -14477,11 +14523,18 @@ const Teachers = {
       const all = j.users || [];
       this._demoHidden = all.filter(u => u.role !== 'student' && Util.isDemoObj(u)).length;
       this._users = all.filter(u => u.role !== 'student' && !Util.isDemoObj(u));
+      /* ==5.34== 数据指纹幂等：15s 轮询拉回来的数据没变就跳过重绘，
+         不再把打开中的带班选择器/下拉冲掉、列表也不再闪烁 */
+      const fp = JSON.stringify(this._users.map(u => [u.id, u.role, u.active, u.classIds, u.name, u.user]))
+        + '|' + (this._demoHidden || 0);
+      if (this._fp === fp && el.dataset.painted === '1') return;
+      this._fp = fp;
+      el.dataset.painted = '1';
       this.paint();
-      this.renderHistory();
       this.paintOfficeHint();
     } catch(e){
       el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
+      el.dataset.painted = '';
     }
   },
 
@@ -14607,15 +14660,14 @@ const Teachers = {
   async remove(id){
     const u = (this._users || []).find(x => x.id === id);
     if (!u) return;
-    if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n他提交过的请假/上报、录过的今日情况会抄一份进下面的「历史」，只有你能看。此操作不可恢复。')) return;
+    if (!confirm('删除「' + (u.name || u.user) + '」？\n\nTA 将彻底从账号列表消失、无法再登录。\n他提交过的请假/上报、录过的今日情况会留档保存（只有教务端可查）。此操作不可恢复。')) return;
     const snap = this._users;
     this._users = this._users.filter(x => x.id !== id);
     this.paint();                                  // 立刻从列表消失
     try {
       this.archive(u);                             // 删之前先留档，晚了就查不到人了
       await Auth.call('users', { op: 'delete', id });
-      UI.toast('已删除，记录抄进了下面的「历史」');
-      this.renderHistory();
+      UI.toast('已删除');
       Sync.push();                                 // 把这份历史推上去，别的设备也能看到
     } catch(e){
       this._users = snap; this.paint();            // 服务端拒绝 → 回滚
@@ -14652,41 +14704,8 @@ const Teachers = {
     });
   },
 
-  /* 历史：只有首位教务看得到（数据层就下发给 super） */
-  renderHistory(){
-    const card = document.getElementById('tHistoryCard');
-    const box = document.getElementById('tHistory');
-    if (!card || !box) return;
-    if (!Auth.isSuper()){ card.style.display = 'none'; return; }
-    card.style.display = '';
-    const list = Store.list('staff_history', (a,b) => (a.deletedAt || 0) < (b.deletedAt || 0) ? 1 : -1);
-    if (!list.length){ box.innerHTML = '<div class="empty">还没有删过账号</div>'; return; }
-    box.innerHTML = list.map(h => {
-      const n = (h.tickets || []).length + (h.records || []).length + (h.notices || []).length;
-      const rows = [];
-      (h.tickets || []).forEach(t => rows.push(
-        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(t.date || '').slice(5) || '—'}</span>
-           <span class="grow">${Util.esc(t.type)}${t.kind ? ' · ' + Util.esc(t.kind) : ''}<br>
-             <span class="hint" style="display:inline;margin:0">${Util.esc(t.text || '')}</span>
-             ${t.reply ? '<br><span class="hint" style="display:inline;margin:0">教务回复：' + Util.esc(t.reply) + '</span>' : ''}</span>
-           <span class="chip ${t.status === 'done' ? 'chip-on' : ''}" style="pointer-events:none">${t.status === 'done' ? '已处理' : '待处理'}</span></div>`));
-      (h.records || []).slice(0, 12).forEach(r => rows.push(
-        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(r.date || '').slice(5) || '—'}</span>
-           <span class="grow">今日情况<br><span class="hint" style="display:inline;margin:0">${Util.esc(r.perf || r.state || '')}</span></span></div>`));
-      (h.notices || []).forEach(x => rows.push(
-        `<div class="item"><span class="hint num" style="margin:0;width:52px;flex-shrink:0">${(x.date || '').slice(5) || '—'}</span>
-           <span class="grow">通知<br><span class="hint" style="display:inline;margin:0">${Util.esc(x.text || '')}</span></span></div>`));
-      return `<div class="item" style="flex-direction:column;align-items:stretch">
-        <div class="row" style="justify-content:space-between">
-          <b style="font-weight:500">${Util.esc(h.name)}${h.user ? ` <span class="hint" style="display:inline;margin:0">@${Util.esc(h.user)}</span>` : ''}</b>
-          <span class="hint" style="margin:0">${Util.esc(h.roleName || '')} · ${h.deletedAt ? new Date(h.deletedAt).toLocaleDateString('zh-CN') : ''} 删除</span>
-        </div>
-        <p class="hint" style="margin:2px 0 0">${h.clsNames && h.clsNames.length ? '曾带：' + h.clsNames.map(Util.esc).join('、') + ' · ' : ''}共 ${n} 条记录</p>
-        ${rows.length ? `<div style="margin-top:6px">${rows.join('')}</div>`
-                      : '<div class="empty">这个账号没留下记录</div>'}
-      </div>`;
-    }).join('');
-  },
+  /* ==5.34== 「已删除账号的历史」栏已按需求移除（staff_history KV 留档数据 archive() 照写，
+     只是不再展示；以后要恢复随时能把这段捞回来）。 */
 
   editCls(id){
     const u = (this._users || []).find(x => x.id === id);
