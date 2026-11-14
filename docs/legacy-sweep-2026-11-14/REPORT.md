@@ -96,13 +96,20 @@
 | exam_anim_check | ✅ 19/19 |
 | desk_lock_check | ✅ 53/53 |
 | audit_interact | ✅ 63 项 · 严重 0 · 注意 0 |
-| xf_check | ✅ 全过 + m390 三页逐像素 0 差异 |
+| xf_check | ✅ 全过 + m390 home/stuHome 逐像素 0 差异；settings 97px（0.0074%）在该页已知 ≤400px 豁免额度内（历史实测 ~350px 阈值） |
 | sign_load 10 并发 | ✅ 12/12 双通道落账 |
 
-## 8. 部署链
+## 8. 部署链（补录）
 
-- commit：见 git log（本轮 commit 号待补录）
-- sw v116 → push → md5 双验：见下方补录
+- commit：`923163c`（6 文件：index.html + sw.js + REPORT.md + tools/ 3 文件删除；+127/-365 行）
+- sw：**v116**（赋值唯一 + vm worker 求值 OK + 4 listener 正常注册）
+- push：`0344f8a..923163c` ✅（IP 直连 20.247.166.64 一次成功）
+- **md5 双验**：
+  - index.html `88be41eb…22fa` ✅ 第 2 轮命中（第 1 轮 CDN 未刷新）
+  - sw.js `138e5740…bf79` ✅ 首验命中
+- health_check：服务本体健康（后端探活 2.6s / 标题 / CNAME 正常）。两条与昨日同源的外部因素：
+  1. 首页耗时警告（3.8-11.5s 波动）——curl 分解：TLS 0.67s / 首字节 1.67s 正常，耗时全在 1.43MB 内容下载（链路带宽 ~330KB/s），出口链路问题非服务回归（本轮删除死代码体积还净减 ~0.4KB）
+  2. 当日打卡检查跳过——`.health-credentials.json` 口令变更待主理人更新（login 接口探针返回结构化错误，服务活着）
 
 ---
 
