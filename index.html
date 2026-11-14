@@ -452,11 +452,6 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   font-size:21px;font-weight:600;color:#1a1815;text-align:center;
   margin-top:16px;letter-spacing:3px;text-indent:3px;
 }
-.gate .whoami{
-  display:flex;align-items:center;gap:10px;margin-top:22px;padding-top:18px;
-  border-top:1px solid var(--line);font-size:13px;color:var(--text-dim);
-}
-.gate .whoami .grow{flex:1;min-width:0}
 
 /* ── 分栏：手机上竖着堆，电脑上变「列表 + 详情」两栏 ── */
 .split{display:flex;flex-direction:column;gap:var(--gap)}
@@ -859,15 +854,12 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .sgrid thead th{background:#c9ab7c;color:#222;font-weight:500;padding:6px 4px}
 .sgrid thead .gd{font-size:13px}
 .sgrid thead .gw{font-size:11px;color:#5b4a2a}
-.sgrid .phead{background:var(--bg2,#f6f5f2);font-weight:500;white-space:nowrap;font-size:12px}
 /* ── 班级分块版式（v73 用户定：方案B）——班级/时段/时间三列 ── */
 .sgrid td.ccls{background:#f3efe6;color:#8a6f45;font-weight:700;text-align:center;vertical-align:middle;min-width:0;cursor:default;font-size:13px}
 .sgrid td.cslot{background:#f8f5ec;color:#6e685c;text-align:center;vertical-align:middle;min-width:0;cursor:default;white-space:nowrap;font-size:12px}
 .sgrid td.ctime{background:#faf8f2;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;white-space:nowrap;font-size:12px;line-height:1.5}
 .sgrid td.ctime:hover{background:#f3efe6}
 .sgrid td.ctime .hint{font-size:11px}
-/* v75 大课表对齐用户标准表：行=班级×上午/下午；时间写进课程行首；全天休息/考试整格色块 */
-.sgrid td.slotv{width:26px;min-width:26px;padding:4px 2px;font-size:13px;color:#6e685c;background:#f8f5ec;white-space:nowrap}
 .sgrid td.allday{background:#eef2e4;text-align:center;vertical-align:middle;min-width:0;cursor:pointer;font-size:13px}
 .sgrid td.allday.allbreak{background:#e3ecd6;color:#4d6b39}
   .sgclass tbody tr.brow td{border-top:2px solid #b9a97f}
@@ -912,20 +904,6 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 .ppweek .chip{cursor:pointer;user-select:none}
 .ppstat{margin-top:10px}
 .ppstat .sum{font-size:13px;line-height:1.7}
-
-/* ── 导入预览表：解析结果先摆出来让人过目 ── */
-.imptbl{border-collapse:collapse;width:100%;font-size:13px;min-width:900px}
-.imptbl th,.imptbl td{border:1px solid var(--line);padding:3px 4px}
-.imptbl th{background:#c9ab7c;color:#222;font-weight:500;padding:5px 4px;white-space:nowrap}
-.imptbl td input{padding:4px 6px;font-size:16px;border-radius:5px}
-.imptbl td:nth-child(1){width:146px}
-.imptbl td:nth-child(2){width:140px}
-.imptbl td:nth-child(3){width:100px}
-.imptbl td:nth-child(4){min-width:180px}
-.imptbl td:nth-child(5){width:104px}
-.imptbl td:nth-child(6){width:88px}
-.imptbl td:last-child{width:34px;text-align:center}
-.imptbl .del{color:var(--text-dim);background:none;border:none;font-size:14px;cursor:pointer}
 
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1801,13 +1779,9 @@ body.board-mode .mtabbar{display:none!important}
   /* ── 版序（样张 m-home-student）：hero → 今日打卡 → 今天上课 → 我的作业 → 校园公告 ──
      每个直接子元素都显式给 order（同时盖掉 v85 的 nth-child 调序，后者在此页已失效）。 */
   #page-stuHome.on > .m2-hero{order:1; display:block}
-  #page-stuHome.on > .m2-s-sign{order:2; display:flex}
   #page-stuHome.on > .m2-k-sign{order:3; margin-top:0}
-  #page-stuHome.on > .m2-s-cls{order:4; display:flex}
   #page-stuHome.on > .m2-k-cls{order:5; margin-top:0}
-  #page-stuHome.on > .m2-s-hw{order:6; display:flex}
   #page-stuHome.on > .m2-k-hw{order:7; margin-top:0}
-  #page-stuHome.on > .m2-s-notice{order:8; display:flex}
   #page-stuHome.on > .m2-k-notice{order:9; margin-top:0}
 
   /* ── hero：大问候 + 副题 + 搜索胶囊（样张 .greet/.sub/.search-pill）── */
@@ -2698,9 +2672,7 @@ body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:
 
 /* ── ① 新增令牌（浅色一套）──────────────────────────────────────────────── */
 :root{
-  --brand:#B08A4F;            /* 可用金：只作描边/填充/进度环，禁止作文字（F4） */
-  --brand-ink:#7E6438;        /* 金·作文字时用（F4：四浅底最低 5.12:1） */
-  --brand-deco:#C9AB7C;       /* 装饰金：只做点缀（= 旧 --gold 原值，降级用途） */
+  --brand:#B08A4F;            /* 可用金：只作描边/填充/进度环，禁止作文字（F4） */        /* 金·作文字时用（F4：四浅底最低 5.12:1） */       /* 装饰金：只做点缀（= 旧 --gold 原值，降级用途） */
   --accent-ink:#26241F;       /* accent 作文字时用（F4；③ 端口覆盖为深金） */
   --cursor:#9C4E1F;           /* 游标暖赭（今日页「现在几点」）；F4：作文字 4.23→5.47 */
   --focus:var(--cursor);      /* P2-b 合并：焦点环与游标同源（非文字 UI 门槛 3:1，实测 4.23–4.61） */
@@ -2717,14 +2689,12 @@ body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:
      教务端 3.31:1），未选中的格子在白卡上几乎看不见，而它是要点的控件 —— 不能只当装饰。
      四个浅色端口的卡片都是纯白，所以一组固定值就够。实测（白卡）：文字 5.39:1、描边 3.07:1。 */
   --stamp-off:#6E6A61; --stamp-line:#9C9280;
-  --fs-h2:18px; --fs-small:14px; --fs-caption:12px;
-  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px;
-  --sp-12:48px; --sp-18:72px; --sp-28:112px;
-  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
-  --sh-1:0 1px 2px rgba(60,50,35,.05); --sh-2:0 6px 18px rgba(60,50,35,.08);
-  --dur-quick:120ms; --dur-base:180ms; --dur-slow:280ms; --dur-page:420ms;
+  --fs-h2:18px; --fs-small:14px; --fs-caption:12px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px;
+  --r-sm:8px; --r-md:12px; --r-pill:999px;
+  --sh-1:0 1px 2px rgba(60,50,35,.05);
+  --dur-quick:120ms; --dur-base:180ms; --dur-slow:280ms;
   --ease-quick:cubic-bezier(.4,0,.2,1); --ease-base:cubic-bezier(.4,0,.2,1);
-  --ease-slow:cubic-bezier(0,0,.2,1); --ease-page:cubic-bezier(.22,1,.36,1);
+  --ease-slow:cubic-bezier(0,0,.2,1);
   --font-serif:'NotoSerifSC','Songti SC','STSong','Source Han Serif SC','SimSun','NSimSun',serif;
 }
 
@@ -2792,8 +2762,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .cd-edit{border:1px dashed var(--line);background:transparent;color:var(--text-dim);font:inherit;
   font-size:13px;padding:2px 9px;border-radius:var(--r-sm);cursor:pointer;margin-top:8px}
 .cd-edit:hover{border-color:var(--accent);color:var(--accent-ink)}
-.cd-input{font-family:var(--font-serif);font-size:var(--fs-hero);font-weight:400;width:3.6ch;
-  background:transparent;border:none;border-bottom:2px solid var(--brand);padding:0;outline:none;color:var(--text)}
 .tl-next{margin-left:auto;text-align:right}
 .tl-next .num{font-family:var(--font-serif);font-size:22px;color:var(--cursor);display:block;white-space:nowrap}
 .tl-wrap{position:relative;margin-top:var(--sp-8);padding-left:72px}
@@ -2941,11 +2909,9 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .sec-h{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2)}
 .sec-meta{margin-top:4px;font-size:var(--fs-small);color:var(--text-dim)}
 .cls-count{font-size:12px;color:var(--text-dim);margin-left:auto}
-.stu-meta{font-size:12px;color:var(--text-dim)}
 .more{margin-top:var(--sp-4)}
 .more > summary{cursor:pointer;font-size:14px;color:var(--text-dim);padding:6px 0}
 .more > summary:hover{color:var(--text)}
-.more .mrow{margin-top:var(--sp-3)}
 @media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-roster.on{grid-template-columns:minmax(0,1fr)} }
 
 /* ── ⑨ 作业页（左检查 · 右布置）────────────────────────────────────────── */
@@ -2973,7 +2939,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .anchor-nav a.on{color:var(--accent-ink);border-left-color:var(--accent)}
 .seg-h{font-family:var(--font-serif);font-weight:400;font-size:var(--fs-h2);display:flex;align-items:center;gap:10px}
 .seg{margin-top:var(--sp-8);padding-top:var(--sp-6);border-top:1px solid var(--line)}
-.s-card{scroll-margin-top:84px}
 @media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-settings.on{grid-template-columns:minmax(0,1fr)} }
 @media (min-width:1100px), ((hover:hover) and (pointer:fine)){ .page#page-timetable.on{grid-template-columns:minmax(0,1fr)} } /* 课表页：大作息/小课两卡并排、大课表全宽，别掉进两列网格 */
 /* 锚点跳转后别被吸顶导航压住：设置页里每个可跳的 [id] 都留出导航条的高度 */
@@ -3283,10 +3248,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .chip{border:1px solid var(--line);border-radius:14px;padding:3px 11px;font-size:11px;letter-spacing:1px}
   .chip-on{background:var(--blue);color:#fff;border-color:transparent}
   input:focus,textarea:focus,select:focus{border-color:var(--blue)}
-  .imptbl th{font-family:var(--font-serif);font-size:12.5px;color:var(--ink-2);letter-spacing:2.5px;
-    font-weight:500;background:#f9f8f4;border-bottom:1.5px solid var(--blue)}
-  .imptbl td{border-bottom:1px solid #efeee8}
-  .imptbl tr:hover td{background:#f6f8fc}
 
   /* ── ⑨ 入场动画（克制）：骨架三条带错峰 fadeUp ──────────────────── */
   @keyframes xfFadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
@@ -5869,16 +5830,6 @@ const Store = (() => {
       return this.count(key);
     },
     count(key){ return this.list(key).length; },
-
-    /* ── 按天：key 自带日期，两台设备改的是不同 key，天然不冲突 ── */
-    getDaily(key, fallback = null){ return this.get(key + ':' + Util.today(), fallback); },
-    setDaily(key, val){ return this.set(key + ':' + Util.today(), val); },
-    listDaily(key, sort){ return this.list(key + ':' + Util.today(), sort); },
-    upsertDaily(key, item){ return this.upsert(key + ':' + Util.today(), item); },
-    incrDaily(key, n = 1){ return this.incr(key + ':' + Util.today(), n); },
-    decrDaily(key){ return this.decr(key + ':' + Util.today()); },
-    countDaily(key){ return this.count(key + ':' + Util.today()); },
-
     /* ── 敏感数据：独立命名空间，不进备份 ── */
     getSecret(key){ return driver.get(SEC + key); },
     setSecret(key, val){ return driver.set(SEC + key, val); },
@@ -9623,20 +9574,6 @@ const Schedule = {
      解析器不可能全对，所以结果不直接落库 —— 先摆进一张每格都能改的
      预览表，人看过、改过，再点确认导入。 */
   _impRows: null,
-
-  /** 抠日期：2026-07-10 / 7月10日 / 7-10 / 7/10 */
-  _textDate(s, year){
-    s = String(s == null ? '' : s);
-    let m = s.match(/(\d{4})\s*[-\/.]\s*(\d{1,2})\s*[-\/.]\s*(\d{1,2})/);
-    if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
-    m = s.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日?/);
-    if (m) return year + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
-    m = s.match(/(\d{1,2})\s*[-\/]\s*(\d{1,2})/);
-    if (m && +m[1] >= 1 && +m[1] <= 12 && +m[2] >= 1 && +m[2] <= 31)
-      return year + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
-    return '';
-  },
-
   /** 抠时间范围：08:00-09:40 / 8：00~9：40 / 08:00至09:40 */
   _textTime(s){
     const m = String(s == null ? '' : s)
@@ -9645,42 +9582,6 @@ const Schedule = {
     const pad = n => String(n).padStart(2, '0');
     return { start: pad(m[1]) + ':' + pad(m[2]), end: pad(m[3]) + ':' + pad(m[4]), full: m[0] };
   },
-
-  /** 抠一格的班级 / 教室 / 老师 / 学员 / 内容 */
-  parseCell(cell, known, knownTeacher){
-    let s = String(cell == null ? '' : cell);
-    const t = this._textTime(s);
-    if (t) s = s.replace(t.full, ' ');
-
-    let room = '';
-    const rm = s.match(/[\[【(（]\s*([^\]】)）]{1,14})\s*[\]】)）]/);
-    if (rm){ room = rm[1].trim(); s = s.replace(rm[0], ' '); }
-
-    let cls = '';
-    const by = s.match(/\b(BY\s*\d{1,3})\b/i);
-    if (by){ cls = by[1].replace(/\s+/g, ''); s = s.replace(by[0], ' '); }
-    if (!cls){
-      const hit = (known || []).find(n => n && s.indexOf(n) >= 0);
-      if (hit){ cls = hit; s = s.replace(hit, ' '); }
-    }
-
-    let teacher = '';
-    const th = (knownTeacher || []).find(n => n && s.indexOf(n) >= 0);
-    if (th){ teacher = th; s = s.replace(th, ' '); }
-
-    let stu = '';
-    const st = s.match(/(?:学员|学生)\s*[:：]?\s*([\u4e00-\u9fa5]{2,4})/);
-    if (st){ stu = st[1]; s = s.replace(st[0], ' '); }
-
-    const title = s.replace(/^[\s\-–—,，、:：|/]+/, '')
-                   .replace(/[\s\-–—,，、:：|/]+$/, '')
-                   .replace(/\s{2,}/g, ' ').trim();
-    const small = /一对一|小课|辅导|单独|私教/.test(title) || !!stu;
-    return { time: t ? t.start + '-' + t.end : '', room, cls, teacher, stu, title, small };
-  },
-
-  /** 课表文字 → 条目数组（只返回，不落库） */
-
 
   /** 时间 → 已有节次；没有就顺手补一个，省得对不上 */
   matchPeriod(timeStr){

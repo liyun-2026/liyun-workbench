@@ -421,7 +421,16 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v115'; /* VoxOS 5.35：全端口浅色化 + 遗留清理（主理人拍板三条线）——
+VERSION = 'v116'; /* VoxOS 5.36：旧版本彻底迭代删除·大检查（主理人拍板「不允许任何历史遗留」）——
+   ① 死 CSS 删 27 条规则（whoami×2/phead/slotv/imptbl 全家 12 条/m2-s-sign·cls·hw·notice 4 条/cd-input/stu-meta/mrow/s-card，剥注释判定+动态拼接排查+跨文件扫描实锤零引用）
+   ② 死令牌删 10 个（--brand-deco/--brand-ink/--dur-page/--ease-page/--r-lg/--sh-2/--sp-1/--sp-12/--sp-18/--sp-28，var()/JS 字符串引用双查零命中）
+   ③ 死 JS 删 9 函数（Store 按天封装 getDaily/setDaily/listDaily/upsertDaily/incrDaily/decrDaily/countDaily 七件套零调用；Schedule 旧文字导入底层解析残留 _textDate/parseCell——5.35 删链时漏网；孤儿注释清一条；_textTime 保留＝matchPeriod→impImport 活链）
+   ④ 「旧版/legacy」13 处甄别全留（注释 8 + 用户文案/活逻辑 5，legacy 变量是计分分组语义非死代码）
+   ⑤ 深色残留复核：prefers-color-scheme 代码 0、matchMedia 仅宽度锁版、#18211E 系零残留
+   ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
+   工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
+   测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.35：全端口浅色化 + 遗留清理（主理人拍板三条线）——
    ① 深色模式整体移除：删 17 处 @media (prefers-color-scheme: dark) 块（桌面 ：root/五端皮肤/gate/mtabbar/手机端 5 处令牌翻转/学府深色翻转/hours 深色/卡片阴影）、深色 theme-color meta、Port.syncChrome 的深色监听 —— 系统深色 pref 下也恒为浅色（暖纸 #f6f5f2 + 古铜金 #c9ab7c）。
    ② 手机版浅色对比度重审：浅色文字金 --gold-deep #a8895a（3.0:1 不达标）→ #7E6637（纸上 5.01 / 白卡 5.46 / tint 4.88，全 ≥4.5:1），浅色下金作文字的 8 处引用（clock/角色对勾/门头座右铭/看板签字/页脚 hover）改引 gold-deep；金渐变卡本就白字压金底不动。
    ③ 遗留清理：Schedule 旧「文字导入」死链 13 个方法（importFile/clearImport/parseRows/parseLocal/renderImpPreview/impEdit/impDel/impCancel/archiveText/renderBig/addPeriod/_kindText + compressImage，词频实锤全文仅定义处）+ 尸体 DOM（schFile/impText/impStat）；impImport 尾部（课时统计写入链复用的活函数）就地清状态替代已删调用；死资源 assets/splash/ 28 张启动图（3MB，无引用）+ brand-lock-alpha 两张。
