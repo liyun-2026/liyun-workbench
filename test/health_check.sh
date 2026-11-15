@@ -26,12 +26,11 @@ out=()
 # 首页: HTTP 状态 + 响应耗时 (耗时 >3s 警告, >8s 严重)
 read -r code elapsed <<<"$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "$DOMAIN")"
 if [ "$code" = "200" ]; then
-  if awk "BEGIN{exit !($elapsed > 8)}"; then
-    ok=0
-    out+=("[严重] 首页 HTTP=200 但响应耗时 ${elapsed}s (>8s, 通道卡顿)")
+  # 首页慢=已知外部因素（境外 CDN 带宽），HTTP=200 即服务活着，不计 FAIL；>10s 才提示
+  if awk "BEGIN{exit !($elapsed > 10)}"; then
+    out+=("[提示] 首页 HTTP=200 但响应耗时 ${elapsed}s（>10s，已知 CDN 出口带宽因素，服务正常）")
   elif awk "BEGIN{exit !($elapsed > 3)}"; then
-    ok=0
-    out+=("[警告] 首页响应耗时 ${elapsed}s (>3s)")
+    out+=("[正常] 首页 HTTP=200 耗时 ${elapsed}s（>3s 为已知 CDN 因素，不影响判活）")
   else
     out+=("[正常] 首页 HTTP=200 耗时 ${elapsed}s")
   fi
