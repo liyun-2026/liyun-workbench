@@ -27,6 +27,20 @@ const LOCK_MS = 5 * 60 * 1000;
 const MAX_BYTES = 700 * 1024;          // 受限于边缘函数请求体 1MB
 const SESSION_MS = 60 * 24 * 3600 * 1000;   // 登录状态保留 60 天
 const MIN_PASS = 8;
+/* ==5.37== 方案A（一人一密发放卡）：学生密码 = by + 4 位随机数字（共 6 位），
+   好念好读、发给中小学生记得住；教职账号仍按 MIN_PASS=8。
+   下限按角色分开判：建号（mkUser）/ 教务改密（op:'pass'）/ 自己改密（chpass），
+   登录入口只做最宽的兜底检查（6 位），真实下限在写的那几步钉死。 */
+const STUDENT_MIN_PASS = 6;
+/* 换设备一次性密钥：8 位随机码（大小写+数字，去易混 0O1I），10 分钟有效、用一次即废 */
+const DEVKEY_TTL = 10 * 60 * 1000;
+const stuPass = () => 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+const genDevKey = () => {
+  const CS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';   // 去掉 0 O 1 l I
+  let s = '';
+  for (let i = 0; i < 8; i++) s += CS[Math.floor(Math.random() * CS.length)];
+  return s.slice(0, 4) + '-' + s.slice(4);
+};
 
 const SUPER = 'super';       // 首位教务：什么都能管，包括账号
 const OFFICE = 'office';     // 总教务：教务那摊全管 + 账号管理，唯独动不了首位教务（用户 2026-10-02 定）
@@ -44,6 +58,10 @@ const STAFF = [SUPER, OFFICE, ADMIN, BOTH];
        （见 mkUser 的唯一性检查），**改身份改不出来**（见 op:'update' 那道拦）。 */
 const ASSIGNABLE = [ADMIN, BOTH, TEACHER, STUDENT];
 const normRole = r => (ASSIGNABLE.indexOf(String(r)) >= 0 ? String(r) : TEACHER);
+/* 方案A 两个账号管理 action（device_key / reset_password）谁可调：
+   主理人 2026-11-15 定的口径 —— office / admin / super 三档教务都行。
+   （doUsers 的建号/改档仍只有 super/office，不受这里影响。） */
+const ACCT_OPS = [SUPER, OFFICE, ADMIN];
 
 /* ══ 演示 / 看板那一套：只有首位教务看得见 ══
    用户 2026-10-02：「演示教务、演示教务兼老师、看板（办公室那台）……全部只要
@@ -639,7 +657,7 @@ async function doLogin(s, body) {
   const pass = String(body.pass || '');
   const bad = userErr(user);
   if (bad) return json({ error: bad }, 400);
-  if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
+  if (pass.length < STUDENT_MIN_PASS) return json({ error: `密码至少 ${STUDENT_MIN_PASS} 位` }, 400);
 
   const uid = await hex('u|' + user);
   const kAuth = `auth/${uid}`;
@@ -1218,11 +1236,14 @@ async function doUsers(s, me, body) {
     const nu = canonUser(u);
     const bad = userErr(nu);
     if (bad) return { err: bad };
-    if (String(pass || '').length < MIN_PASS) return { err: `密码至少 ${MIN_PASS} 位` };
     /* 「总教务」不走 normRole —— 它不在 ASSIGNABLE 里（改身份改不出来），
        只能从这一条 create 路进来，而且**全系统只准有一个**：
        已经有一个在册了就拒掉（停用/已删的不算，那种是腾位置给新的）。 */
     const wantOffice = String(role) === OFFICE;
+    /* ==5.37== 学生 6 位起（方案A：by+4 位数字），教职仍 8 位 */
+    const roleFinal = wantOffice ? OFFICE : normRole(role);
+    const min = roleFinal === STUDENT ? STUDENT_MIN_PASS : MIN_PASS;
+    if (String(pass || '').length < min) return { err: `密码至少 ${min} 位` };
     if (wantOffice) {
       for (const u2 of idx.ids) {
         const a2 = await s.get(`auth/${u2}`, { type: 'json' });
@@ -1293,7 +1314,9 @@ async function doUsers(s, me, body) {
 
   if (op === 'pass') {
     const pass = String(body.pass || '');
-    if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
+    /* ==5.37== 被改的是学生号就 6 位起（方案A），教职仍 8 位 */
+    const min = (target.role || TEACHER) === STUDENT ? STUDENT_MIN_PASS : MIN_PASS;
+    if (pass.length < min) return json({ error: `密码至少 ${min} 位` }, 400);
     target.salt = randHex(16);
     target.hash = await hex(pass + '|' + target.salt);
     target.changedAt = Date.now();
@@ -1359,7 +1382,9 @@ export async function onRequestPost(context) {
     if (action === 'chpass') {
       const oldPass = String(body.oldPass || '');
       const np = String(body.newPass || '');
-      if (np.length < MIN_PASS) return json({ error: `新密码至少 ${MIN_PASS} 位` }, 400);
+      /* ==5.37== 学生密码 6 位起（方案A 的初始密码就是 6 位），教职仍 8 位 */
+      const min = me.isStudent ? STUDENT_MIN_PASS : MIN_PASS;
+      if (np.length < min) return json({ error: `新密码至少 ${min} 位` }, 400);
       const auth = await s.get(`auth/${me.id}`, { type: 'json' });
       if (!auth) return json({ error: 'NO_ACCOUNT' }, 404);
       if (await hex(oldPass + '|' + auth.salt) !== auth.hash) return json({ error: '原密码不对' }, 401);
@@ -1385,6 +1410,59 @@ export async function onRequestPost(context) {
        这两个是写类 action，必须和其余写 action 一样把 role 校验钉死在服务端。 */
     if (action === 'backupDump') return await doBackupDump(s, me);
     if (action === 'backupRestore') return await doBackupRestore(s, me, body);
+
+    /* ══ ==5.37== 方案A · 学生账号管理两件套（office/admin/super 才可调）══
+       device_key：换设备一次性密钥的生成 / 作废 —— 码由服务端出（8 位、去 0O1I），
+         教务不再手编；10 分钟有效由核销侧（action 'dev'）钉死，这里只管发与废。
+       reset_password：一键重置学生密码 —— 新码服务端生成（by+4 位数字），
+         旧密码当场作废（换 salt 重算 hash），发放卡拿新密码重打即可。
+       权限口径与 doUsers 不同（那边账号改动只有 super/office）：
+         主理人 2026-11-15 定的 —— 这两件 office/admin/super 三档教务都可以调。 */
+    if (action === 'device_key') {
+      if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务可以管换设备密钥' }, 403);
+      const d = (await s.get('org/data', { type: 'json' })) || {};
+      const keys = Array.isArray(d.dev_keys) ? d.dev_keys : [];
+      const op = String(body.op || 'make');
+      if (op === 'make') {
+        const k = { id: 'dk' + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36),
+                    code: genDevKey(), used: false,
+                    madeAt: Date.now(), madeBy: me.name || me.user || '' };
+        keys.push(k);
+        d.dev_keys = keys;
+        await s.setJSON('org/data', d);
+        return json({ ok: true, code: k.code, ttl: DEVKEY_TTL });
+      }
+      if (op === 'revoke') {
+        const k = keys.find(x => x && x.id === String(body.id || ''));
+        if (!k) return json({ error: '没找到这枚密钥' }, 404);
+        if (!k.used) {
+          k.used = true;
+          k.usedBy = (me.name || me.user || '') + '（作废）';
+          k.usedAt = Date.now();
+          k._u = Date.now();    // 同 'dev' 核销：改 _u 让教务端本地副本合并时认服务端的新状态
+        }
+        d.dev_keys = keys;
+        await s.setJSON('org/data', d);
+        return json({ ok: true });
+      }
+      return json({ error: '未知的密钥操作' }, 400);
+    }
+    if (action === 'reset_password') {
+      if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务可以重置学生密码' }, 403);
+      const id = String(body.id || '');
+      const target = id ? await s.get(`auth/${id}`, { type: 'json' }) : null;
+      if (!target) return json({ error: '账号不存在' }, 404);
+      if ((target.role || TEACHER) !== STUDENT) {
+        return json({ error: '一键重置只用于学生账号，教职账号去「老师管理」里改' }, 403);
+      }
+      const pass = stuPass();
+      target.salt = randHex(16);
+      target.hash = await hex(pass + '|' + target.salt);
+      target.changedAt = Date.now();
+      target.resetBy = me.name || me.user || '';
+      await s.setJSON(`auth/${id}`, target);
+      return json({ ok: true, pass });
+    }
 
     /* ── 学生设备绑定 ──
        一个学生账号最多两台设备；第一台登进去的那台是「认证设备」。
@@ -1444,6 +1522,10 @@ export async function onRequestPost(context) {
       const keys = Array.isArray(d.dev_keys) ? d.dev_keys : [];
       const hit = keys.find(k => k && String(k.code || '').trim() === key && !k.used);
       if (!hit) return json({ error: '密钥不对，或者已经被用过了' }, 403);
+      /* ==5.37== 方案A：密钥 10 分钟有效 —— 过期的当作不存在，逼着走「重新生成」 */
+      if (Date.now() - (hit.madeAt || 0) > DEVKEY_TTL) {
+        return json({ error: '密钥已过期（10 分钟有效），找教务重新生成一枚' }, 403);
+      }
       hit.used = true; hit.usedBy = me.name || me.user || ''; hit.usedAt = Date.now();
       /* ⚠️ 这一下必须改 _u：教务那边本地也存着同一条（还没用），
          不改时间戳的话合并时两边 _u 一样，教务刷新后仍然看到「还没用」，

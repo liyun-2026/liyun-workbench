@@ -400,21 +400,21 @@ await ta('动态码：教务取到码，学生用它能打上', async () => {
   const c = await must({ action: 'code', token: su.token });
   ok(/^\d{6}$/.test(c.code), '码该是 6 位纯数字（实际「' + c.code + '」）');
   eq(c.fixed, false, '码一律是动态的，不该再有 fixed 这条路');
-  eq(c.window, 60000, '换码窗口该是 60 秒');
-  ok(c.left > 0 && c.left <= 60000, '该带回落「这一枚还剩多少毫秒」（实际 ' + c.left + '）');
+  eq(c.window, 30000, '换码窗口该是 30 秒（v109 B4 定的：30 秒换码）');
+  ok(c.left > 0 && c.left <= 30000, '该带回落「这一枚还剩多少毫秒」（实际 ' + c.left + '）');
   const r = await must({ action: 'sign', token: s1.token, code: c.code, dev: 'devA', lat: 34.75, lng: 113.62 });
   eq(r.way, 'code');
   ok(r.status !== undefined, '应该给出判定');
 });
-/* 「一分钟一换」不是「每次要都是新的」—— 同一个窗口里要稳定不变，
+/* 「半分钟一换」不是「每次要都是新的」—— 同一个窗口里要稳定不变，
    否则屏幕上那 6 位数字会在学生眼皮底下乱跳。 */
-await ta('同一窗口内码不变、倒计时在往下走（60 秒一换，不是每次随机）', async () => {
+await ta('同一窗口内码不变、倒计时在往下走（30 秒一换，不是每次随机）', async () => {
   const a = await must({ action: 'code', token: su.token });
   await new Promise(r => setTimeout(r, 1200));
   const b = await must({ action: 'code', token: su.token });
   ok(b.left < a.left, '倒计时该在减少（' + a.left + ' → ' + b.left + '）');
   /* 只有「这一枚还剩得够久」时才比码，免得正好卡在换码点上假红 */
-  if (a.left > 3000) eq(b.code, a.code, '同一个 60 秒窗口里，码不该变来变去');
+  if (a.left > 3000) eq(b.code, a.code, '同一个 30 秒窗口里，码不该变来变去');
 });
 
 await ta('学生拿不到动态码（码只对教务/老师有意义）', async () => {
@@ -462,7 +462,7 @@ await ta('码被传到校外：打得上，但方式写明 geo-far、状态待�
 });
 
 /* v51：打卡时刻由客户端带上（取到码那一刻），但只允许往回一小段 ——
-   码的有效期就是两个 60 秒窗口，再早就不是「刚扫到的码」了。 */
+   码的有效期就是两个 30 秒窗口，再早就不是「刚扫到的码」了。 */
 await ta('带一个很旧的 at 上来 → 服务端拉回现在（不许拿旧时刻冒充准时）', async () => {
   await setRules(RULES_OK(0));
   const c = await must({ action: 'code', token: su.token });

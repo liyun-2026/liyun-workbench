@@ -19,7 +19,9 @@ const PORT = Number(process.argv[2] || 5325);
 const BASE = `http://127.0.0.1:${PORT}`;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const SUPER = { user: '测试教务', pass: 'shotpass123' };
-const KEY = 'DK-TEST-1';
+/* ==5.37== 方案A：密钥改为一键生成（服务端出 8 位随机码），不再手填。
+   KEY 在【2/5】生成后动态赋值，后续步骤全部用真码。 */
+let KEY = '';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const jfetch = (url, opt = {}) => fetch(url, { ...opt, signal: AbortSignal.timeout(8000) });
@@ -81,18 +83,21 @@ try {
   ok(s1.keyCard, '设置页出现「学生换设备密钥」卡');
   ok(s1.demoCard && s1.demoRows === 4, '设置页出现「演示账号」卡，四个身份都在（' + s1.demoRows + ' 行）');
 
-  console.log('\n【2/5】亲手设一个密钥…');
+  console.log('\n【2/5】一键生成一枚密钥（方案A：服务端出码，10 分钟有效）…');
   const s2 = await cdp.eval(`(async () => {
-    document.getElementById('devKeyNew').value = '${KEY}';
-    Settings.devKeyAdd();
-    await new Promise(r => setTimeout(r, 200));
+    await Settings.devKeyGen();
+    await new Promise(r => setTimeout(r, 900));
     const all = Settings.devKeys();
-    return { n: all.length, code: all[0] && all[0].code, used: all[0] && all[0].used,
+    const k = all[0] || {};
+    return { n: all.length, code: k.code, used: k.used, madeBy: k.madeBy,
              txt: (document.getElementById('devKeyList') || {}).textContent || '' };
   })()`);
-  ok(s2.n === 1 && s2.code === KEY, '密钥按教务填的那个存下来了（' + s2.code + '）');
+  KEY = s2.code || '';
+  ok(s2.n === 1 && /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/.test(KEY), '一键生成出 8 位随机码（' + KEY + '）');
+  ok(!/[0O1lI]/.test(KEY), '码里没有易混字符 0O1lI');
   ok(s2.used === false, '新密钥是「还没用」状态');
-  ok(/还没用/.test(s2.txt), '列表里写清楚了它还没被用过');
+  ok(/有效中/.test(s2.txt) && /剩约/.test(s2.txt), '列表写清了有效期倒计时：' + s2.txt.replace(/\s+/g, ' ').slice(0, 60));
+  ok(s2.madeBy === SUPER.user, '留痕记了生成人（' + s2.madeBy + '）');
 
   console.log('\n【3/5】一键建好四个演示账号…');
   const s3 = await cdp.eval(`(async () => {

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>砺蕴教务系统 · 学生账号体系三方案设计 · 2026-11-15</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f6f5f2;font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2a2a2a;line-height:1.7}
+.sheet{max-width:880px;margin:0 auto;background:#fff;min-height:100vh;box-shadow:0 0 40px rgba(42,42,42,.08);padding:56px 64px 72px}
+.brand{font-family:'Songti SC','STSong',serif;font-size:12px;letter-spacing:.5em;color:#a8895a;text-align:center}
+h1{font-family:'Songti SC','STSong',serif;font-size:32px;font-weight:700;letter-spacing:.12em;text-align:center;margin-top:14px;white-space:nowrap}
+.meta{text-align:center;font-size:12.5px;color:#8d877b;margin-top:12px;letter-spacing:.04em}
+.rule{width:64px;height:4px;border-radius:999px;background:linear-gradient(90deg,#c9ab7c,#a8895a);margin:22px auto 0}
+h2{font-family:'Songti SC','STSong',serif;font-size:21px;letter-spacing:.1em;margin:44px 0 14px;color:#2a2a2a;
+  border-top:1px solid rgba(201,171,124,.55);padding-top:26px}
+h2::before{content:'◆ ';color:#c9ab7c;font-size:15px}
+h3{font-family:'Songti SC',serif;font-size:17px;letter-spacing:.08em;margin:26px 0 10px;color:#2b3a5e}
+h3::before{content:'▸ ';color:#c9ab7c}
+p{margin:8px 0;font-size:14.5px}
+ul{margin:8px 0 8px 22px}
+li{font-size:14.5px;margin:5px 0}
+ol{margin:8px 0 8px 26px}
+ol li{font-size:14.5px;margin:6px 0}
+.verdict{background:linear-gradient(135deg,rgba(201,171,124,.14),rgba(168,137,90,.08));border:1px solid rgba(201,171,124,.55);
+  border-radius:14px;padding:20px 26px;margin:20px 0}
+.verdict p{font-size:15px}
+.verdict b{color:#a8895a}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+th{background:rgba(201,171,124,.16);color:#5c4a2e;font-weight:600;text-align:left;padding:9px 12px;letter-spacing:.04em}
+td{border-bottom:1px solid rgba(201,171,124,.28);padding:9px 12px;vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{font-family:'Songti SC',serif;color:#a8895a;font-weight:700;white-space:nowrap}
+.ok{color:#2e7d54;font-weight:600;white-space:nowrap}
+.warn{color:#c0392b;font-weight:600}
+.note{font-size:12.5px;color:#8d877b}
+.flow{background:#faf9f6;border:1px solid rgba(201,171,124,.4);border-radius:12px;padding:16px 22px;margin:12px 0}
+.flow ol{margin:6px 0 2px 24px}
+.flow li{margin:7px 0}
+.flow b{color:#7E6637}
+.shot{margin:18px 0;text-align:center}
+.shot img{max-width:100%;border-radius:14px;border:1px solid #E7E3DA;box-shadow:0 14px 40px rgba(60,50,35,.13)}
+.shot .cap{font-size:12px;color:#8d877b;margin-top:8px;letter-spacing:.06em}
+.plans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:16px 0}
+.plan{border:1px solid rgba(201,171,124,.45);border-radius:14px;padding:16px 18px;background:#fff}
+.plan h4{font-family:'Songti SC',serif;font-size:15.5px;color:#2b3a5e;letter-spacing:.04em}
+.plan .one{font-size:12.5px;color:#6b7284;margin-top:8px;line-height:1.7}
+.plan .rec{display:inline-block;margin-top:10px;font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(201,171,124,.2);color:#7E6637}
+.final{border-top:2px solid #c9ab7c;margin-top:44px;padding-top:24px;text-align:center}
+.final p{font-family:'Songti SC',serif;font-size:16.5px;letter-spacing:.05em}
+.foot{margin-top:30px;text-align:center;font-size:11.5px;color:#b3ab9c;letter-spacing:.1em}
+</style></head><body><div class="sheet">
+
+<div class="brand">砺 蕴 教 务 系 统</div>
+<h1>学生账号体系 · 三方案设计</h1>
+<div class="meta">设计日期 2026-11-15 · 工程基线 commit ffcfd30 · Service Worker v116 · VoxOS 5.36<br>
+本轮只出方案与样张，不动生产代码 · 产物目录 docs/stuacct-proposal-2026-11-15/</div>
+<div class="rule"></div>
+
+<h2>一页结论</h2>
+<div class="verdict">
+<p>针对现状「初始密码留空 = 全班统一 <b>liyun2026</b>」的安全隐患，给出 <b>A / B / C</b> 三个可选方案。
+<b>A 一人一密 + 发放卡</b>是推荐项：批量建号自动生成「班级码+学号」账号与每人随机好念密码，
+一键打印 A4 发放卡，56 人一次建号约 10 分钟；B 在 A 之上加首登强制改密（更稳但多一步学生门槛）；
+C 走邀请码自助注册（教务最省但引入审核与乱注册兜底负担）。</p>
+<div class="plans">
+  <div class="plan"><h4>方案 A · 一人一密发放卡</h4>
+    <div class="one">密码 uniqueness 从「全班 1 个」变「56 人 56 个」，发放靠打印，教务全链路可控。</div>
+    <span class="rec">★ 推荐</span></div>
+  <div class="plan"><h4>方案 B · 首登强制改密</h4>
+    <div class="one">在 A 全量基础上，第一次登录必须设自己的密码，防「初始密码长期沿用」，代价是学生多一步。</div>
+    <span class="rec">在 A 之上 +1 天</span></div>
+  <div class="plan"><h4>方案 C · 邀请码自助</h4>
+    <div class="one">教务发一个码，学生自己注册设密，教务只管审核；建号零逐一操作，但多一层审核心智。</div>
+    <span class="rec">教务省力 · 引入审核面</span></div>
+</div>
+</div>
+
+<h2>方案背景与现状事实（已侦察）</h2>
+<ul>
+<li><b>建号现状</b>：名册页已支持单个 / 批量建学生账号；<span class="warn">初始密码留空时全班统一 liyun2026</span>——任何学生拿到班内任一账号即可冒用他人，这是本轮改造的直接动机。</li>
+<li><b>设备绑定现成</b>：每账号最多 2 台设备，首台登录自动认证；换新设备需要教务手填一枚一次性密钥（手编、要口头传达、无自动留痕核销）。</li>
+<li><b>打卡链路现成</b>：30 秒动态码 + 位置校验，双通道落账，30 并发压测通过——密码层之外已有「设备 + 动态码」两道防线，三层防线里真正薄弱的只有密码层。</li>
+<li><b>人群画像</b>：培训机构，56 名在读学员，学生为中小学生，家长 involvement 中等（家长帮忙装 App、拍照存卡是常态，家长群转发截图风险真实存在）。</li>
+</ul>
+
+<h2>方案 A · 一人一密 + 发放卡（推荐）</h2>
+
+<h3>1. 全链路流程（每步谁操作、点什么）</h3>
+<div class="flow">
+<ol>
+<li><b>教务 · 批量建号</b>：名册页选班级 → 「批量建号」 → 系统自动生成账号（<b>班级码+学号</b>，如 By2401-12）与每人随机唯一密码（<b>by+4 位数字</b>，好念好读、无易混淆字符 0O1lI），不再有「留空=统一密码」</li>
+<li><b>教务 · 打印发放卡</b>：一键生成 A4 发放卡 PDF（8 张/页，白卡浮影风格，含账号+密码+登录地址+三步上手），普通打印机打出 → 沿虚线剪开 → 写姓名 → 课上发给学生</li>
+<li><b>学生 · 首次登录</b>：打开 liyun2026.top → 「我是学生」 → 输卡上的账号密码 → <b>首台设备自动认证绑定</b>，之后免输</li>
+<li><b>学生 · 日常打卡</b>：到校点「今日打卡」 → 输老师屏幕上的 6 位动态码 → 位置校验 → 落账（与现状相同，零变化）</li>
+<li><b>学生 · 换设备</b>：新手机登录时提示要密钥 → 找教务 → <b>教务在学生卡上点「一键生成 8 位密钥」</b>（系统自动随机、10 分钟有效、用一次即废、自动留痕核销），学生输入即过——替代现在的手填流程</li>
+<li><b>学生 · 忘密码</b>：告诉教务 → 教务在学生卡点「重置密码」 → 系统生成新随机密码 → 口头告知学生（或打一张新卡），旧密码立即失效</li>
+</ol>
+</div>
+
+<h3>2. 教务工作量</h3>
+<table>
+<tr><th style="width:180px">场景</th><th>方案 A 的工作量</th></tr>
+<tr><td>56 人批量建号</td><td>选班级 → 点一次 → 打印 7 页 A4 → 剪卡发卡，全程约 <span class="num">10 分钟</span>（密码生成/去重/账号防撞全自动）</td></tr>
+<tr><td>换设备（预估 2-4 次/月）</td><td>学生卡点「一键生成密钥」+ 口头告知，<span class="num">约 30 秒/次</span>（现为手编密钥约 2 分钟且要记录传达）</td></tr>
+<tr><td>忘密码（预估 3-5 次/月）</td><td>点「重置」+ 告知新密码，<span class="num">约 20 秒/次</span>；无需知道旧密码</td></tr>
+<tr><td>日常维护</td><td><span class="ok">零</span>：无审核列表、无有效期管理、无改密纠纷（密码丢了就重置）</td></tr>
+</table>
+
+<h3>3. 学生 / 家长体验</h3>
+<ul>
+<li><b>拿到卡到登录成功</b>：<span class="num">2 步</span>（打开网址 → 输卡上账号密码），首台设备自动绑定，之后打开即用</li>
+<li>可能卡在哪：① 家长把卡拍照发家长群（卡上已印警示语，且方案本身按「卡会外流」设计——密码只是第一层，后面还有设备与动态码）② 中年级学生拼错账号大小写（登录框自动纠正大小写与全半角）</li>
+<li>家长 involvement 中等的实际形态：多为家长帮登录一次 → 设备绑定后学生自己用，发放卡的「三步上手」就是写给家长照着念的</li>
+</ul>
+
+<h3>4. 安全分析</h3>
+<table>
+<tr><th style="width:130px">防线</th><th>方案 A 强度</th></tr>
+<tr><td>密码层</td><td><span class="ok">强</span>：56 人 56 个独立随机密码；同学互猜成功率从「100%（全班同码）」降到「1/9000 且有登录频控」；账号规则可预测（By2401-12）但密码不可预测，二者分离正是设计意图</td></tr>
+<tr><td>设备层</td><td><span class="ok">强</span>：沿用最多 2 台 + 首台自动认证；换设备密钥改自动生成后，<b>消除了手编密钥的弱口令/复用风险</b>与人工记录泄露面</td></tr>
+<tr><td>动态码层</td><td><span class="ok">强</span>：30 秒轮换 + 位置校验不变——即使密码+账号双双泄露，异校区的冒用打卡仍会被位置拦下</td></tr>
+<tr><td>攻击面残余</td><td>家长群转发发放卡 → 单个账号泄露（影响面 1 人，教务可重置）；账号借用代打卡 → 被动态码+位置限制，与现状一致不恶化</td></tr>
+</table>
+
+<h3>5. 风险与运维负担</h3>
+<ul>
+<li>纸质卡丢失 → 重置即可（20 秒），卡片无回收需求</li>
+<li>打印质量差（密码 6/b/g 混淆）→ 密码字符集已剔除易混淆字符；发放卡用衬线大字</li>
+<li>运维负担集中在「重置」一个动作上，无新增常态化流程</li>
+</ul>
+
+<h3>6. 系统改造点清单</h3>
+<table>
+<tr><th style="width:210px">位置</th><th>改动</th></tr>
+<tr><td>名册页 · 批量建号</td><td>账号自动编号生成器（班级码映射 + 学号）；随机密码生成器（by+4 位，字符集去易混淆、去重）；「统一初始密码」输入框退场</td></tr>
+<tr><td>名册页 · 新增「发放卡」卡</td><td>A4 PDF 生成（8 张/页拼版、裁切虚线、三步上手文案）；按班级/按选中人两种出卡</td></tr>
+<tr><td>名册页 · 学生卡</td><td>「一键生成换设备密钥」（8 位随机 + 10 分钟有效 + 用后即废 + 留痕列表）；「重置密码」按钮</td></tr>
+<tr><td>edge-functions sync.js</td><td>密码哈希存储（现行为保持）；新增 device_key 生成/核销 action；reset_password action（仅 super/教务）</td></tr>
+<tr><td>登录页</td><td>账号输入自动纠错提示；密码错误 N 次频控提示文案</td></tr>
+</table>
+
+<div class="shot"><img src="a1-发放卡样张.png" alt="A 发放卡样张">
+<div class="cap">样张 A-①　发放卡单张（示例：初二 · 砺蕴二班 · 王小明 · By2401-12 · by3729）</div></div>
+<div class="shot"><img src="a2-A4拼版.png" alt="A4 拼版">
+<div class="cap">样张 A-②　A4 拼版示意（8 张/页，页脚即生成入口文案）</div></div>
+<div class="shot"><img src="a3-换设备密钥界面.png" alt="换设备密钥">
+<div class="cap">样张 A-③　换设备密钥一键生成（教务视角，含留痕记录与 2 台额度提示）</div></div>
+
+<h2>方案 B · 首登强制改密（= A + 一步）</h2>
+
+<h3>1. 全链路流程（与 A 的差异点加粗）</h3>
+<div class="flow">
+<ol>
+<li>建号 / 发卡 / 打印：<b>与 A 完全一致</b></li>
+<li><b>学生 · 首次登录</b>：输卡上账号密码通过后，<b>系统弹出强制改密页（不可关闭、不可跳过）：「为了账号安全，先设一个你自己的密码」</b>；新密码规则 = 至少 6 位、必须含数字、不得与初始密码相同；改完才进入学生端</li>
+<li><b>学生 · 日常打卡</b>：与 A 一致</li>
+<li>换设备：与 A 一致（密钥自动生成）</li>
+<li><b>忘密码</b>：只能走教务重置（重置后回到「首登态」，学生下次登录再设一次自己的密码）</li>
+</ol>
+</div>
+
+<h3>2-3. 工作量与学生体验</h3>
+<table>
+<tr><th style="width:180px">维度</th><th>方案 B</th></tr>
+<tr><td>教务工作量</td><td>建号/发卡与 A 相同；<b>忘密码重置后学生还要再设一遍</b>，教务要多交代一句话；月度维护与 A 持平</td></tr>
+<tr><td>学生体验</td><td>首登 <span class="num">3 步</span>（登录 → 设密码 → 进入）；中小学生「设一个记得住的密码」失败率不低——两次输入不一致、设完就忘是高频卡点；家长代设后学生不知道 → 变相回到「找老师重置」</td></tr>
+<tr><td>家长沟通</td><td>需要在群里提前说明「第一次登录要自己设密码」，否则首日集中卡在改密页</td></tr>
+</table>
+
+<h3>4. 安全分析</h3>
+<ul>
+<li><b>密码层</b>：<span class="ok">比 A 更强</span>——初始密码只在首登存活几分钟，之后连学生自己都不知道；「初始密码外流」的时间窗趋近于零；学生自设密码有最低规则（6 位含数字）但弱密码（如 123456、学号+0）无法在规则层杜绝，<b>实际强度取决于学生设密素养</b></li>
+<li><b>设备层 / 动态码层</b>：与 A 完全一致</li>
+<li><b>攻击面残余</b>：学生设「by3729+0」类可猜密码 → 规则挡不住；可在改密页加「与初始密码相似度」与「常见弱密码黑名单」两层校验兜底</li>
+</ul>
+
+<h3>5. 风险与运维负担</h3>
+<ul>
+<li>新增一类工单：「设完就忘」——本质与忘密码同链路，重置成本不变，但<b>发生频次会高于 A</b>（自设密码遗忘率 &gt; 卡片遗失率）</li>
+<li>首日集中改密的现场压力：56 人同时首登改密，需要老师在课堂上讲一遍（配合样张 B-① 的温和文案可控）</li>
+</ul>
+
+<h3>6. 系统改造点清单（在 A 之上追加）</h3>
+<table>
+<tr><th style="width:210px">位置</th><th>改动</th></tr>
+<tr><td>学生端 · 登录后拦截层</td><td>mustChangePassword 标志：为真时全页遮罩 + 改密弹窗（不可关闭），改完置假；对应样张 B-①（390 手机版式）</td></tr>
+<tr><td>edge-functions sync.js</td><td>change_password action（校验旧登录态 + 新密码规则 + 弱密码黑名单）；重置后置回 mustChangePassword</td></tr>
+<tr><td>名册页 · 学生卡</td><td>重置按钮文案改「重置为初始密码（下次登录需重设）」</td></tr>
+</table>
+<p class="note">改造增量：约 1 个拦截组件 + 1 个接口 + 状态字段，在 A 完成的基础上 <span class="num">+0.5~1 天</span>。</p>
+
+<div class="shot"><img src="b1-首登改密弹窗.png" alt="B 首登改密弹窗">
+<div class="cap">样张 B-①　首登强制改密弹窗（手机 390 版式 · 文案温和 · 规则实时校验提示）</div></div>
+
+<h2>方案 C · 邀请码自助注册</h2>
+
+<h3>1. 全链路流程</h3>
+<div class="flow">
+<ol>
+<li><b>教务 · 生成邀请码</b>：名册页选班级 → 设有效期（如至 12-31）与人数上限（如 20）→ 生成一枚码（LY-2B7K-4Q）→ <b>一句话发到班级群</b>（含截止日期与「先到先得」）</li>
+<li><b>学生 · 自助注册</b>（手机上自己操作或家长帮忙）：打开注册页 → 输邀请码（自动验证班级）→ 填姓名 + 学号 → 自己设密码（≥6 位含数字）→ 勾选设备绑定须知 → 提交；<b>这台设备即首台自动绑定</b></li>
+<li><b>教务 · 审核</b>：姓名学号与名册<b>精确匹配</b>的自动通过；对不上（重名、学号冲突、乱填）的进「待审核」列表，教务逐条 <b>通过 / 驳回</b>，驳回后名额立即释放</li>
+<li><b>学生 · 日常打卡</b>：审核通过后正常登录打卡，与 A/B 一致</li>
+<li>换设备 / 忘密码：沿用设备密钥 + 教务重置（与 A 相同）</li>
+</ol>
+</div>
+
+<h3>2. 教务工作量</h3>
+<table>
+<tr><th style="width:180px">场景</th><th>方案 C 的工作量</th></tr>
+<tr><td>建号</td><td>生成 1 枚码 + 发群里，<span class="num">约 2 分钟</span>；但 56 人分多个班则每班一枚；<b>收尾还要处理审核列表</b></td></tr>
+<tr><td>审核（预估首周集中 20-40 条）</td><td>匹配通过的自动过；冲突/乱填的逐条人工判，<span class="num">约 30-60 分钟/班</span>（集中在启用首周，之后趋零）</td></tr>
+<tr><td>换设备 / 忘密码</td><td>与 A 相同（重置在审核列表之外另有入口）</td></tr>
+<tr><td>日常维护</td><td>有效期/名额到期管理、转发扩散后的名额挤占、每个新学员cycle都要重发码——<b>长尾心智负担高于 A/B</b></td></tr>
+</table>
+
+<h3>3. 学生 / 家长体验</h3>
+<ul>
+<li><b>拿到码到登录成功</b>：<span class="num">4 步</span>（打开注册页 → 输码 → 填姓名学号 → 设密码），对中小学生偏长；家长 involvement 中等反而是利好（家长代填更顺）</li>
+<li>可能卡在哪：① 名字打错字进待审核，要等教务当天确认才能登录（体验断点）② 邀请码在群里被外班家长拿到 → 占用名额（上限兜底 + 审核驳回兜底，但会产生「名额满了要重新生成」的沟通）③ 学号冲突（同一学号被抢注）→ 待审核仲裁</li>
+</ul>
+
+<h3>4. 安全分析</h3>
+<table>
+<tr><th style="width:130px">防线</th><th>方案 C 强度</th></tr>
+<tr><td>密码层</td><td><span class="ok">强</span>：学生自设且无初始密码外流窗口；规则同 B（≥6 位含数字），弱密码风险与 B 相同，可加黑名单兜底</td></tr>
+<tr><td>设备层 / 动态码层</td><td>与 A/B 完全一致</td></tr>
+<tr><td>新攻击面：身份冒领</td><td><span class="warn">C 独有</span>——邀请码一旦在群里扩散，任何拿到码的人可「自称姓名学号」抢注真实学员身份；兜底 = 名册精确匹配自动过 + 冲突进待审核人工仲裁 + 驳回释放名额；<b>但「精确匹配成功」的冒领（知道真实姓名+学号的同班同学）无法自动识别</b>，只能靠设备层（2 台）与动态码层兜底</td></tr>
+</table>
+
+<h3>5. 风险与运维负担</h3>
+<ul>
+<li>点名冲突/乱注册：样张 C-① 已示范「陈屿自报学号 12 与王小明冲突」的处理路径（待审核 → 驳回释放）</li>
+<li>名额挤占与重发：外流后名额被非本班占用 → 驳回 + 必要时换码重发（群通知会重复打扰）</li>
+<li>审核是常态化心智：教务每天要扫一眼「待审核 N 条」红点，漏审会直接卡住学生首登</li>
+</ul>
+
+<h3>6. 系统改造点清单</h3>
+<table>
+<tr><th style="width:210px">位置</th><th>改动</th></tr>
+<tr><td>登录门外 · 新增注册路由</td><td>独立注册页（四步表单：邀请码/姓名/学号/设密码），邀请码实时验证、名册实时匹配提示、设备绑定须知勾选——样张 C-②</td></tr>
+<tr><td>名册页 · 新增「邀请码」卡</td><td>生成（班级/有效期/上限）、当前码展示、已用/剩余统计、复制一句话群发文案——样张 C-①</td></tr>
+<tr><td>名册页 · 新增审核列表</td><td>待审核红点 + 逐条通过/驳回（驳回释放名额）；通过即建号并继承名册班级映射</td></tr>
+<tr><td>edge-functions sync.js</td><td>invite_codes 键（码/班级/有效期/上限/已用）、register action（匹配校验 + 待审核态）、approve/deny action（仅教务）</td></tr>
+<tr><td>名册页 · 批量建号</td><td>保留（给转学生/插班生用，与邀请码并存）</td></tr>
+</table>
+<p class="note">改造增量：1 个新页面 + 1 张卡 + 1 个审核列表 + 3 个接口，是三案中页面改动最多的，约 <span class="num">2.5~3.5 天</span>。</p>
+
+<div class="shot"><img src="c1-邀请码生成卡.png" alt="C 邀请码卡">
+<div class="cap">样张 C-①　教务邀请码生成卡（码值 / 有效期 / 名额 / 待审核仲裁示例）</div></div>
+<div class="shot"><img src="c2-学生注册页.png" alt="C 注册页">
+<div class="cap">样张 C-②　学生注册页（手机 390 版式 · 四步 · 名册实时匹配反馈）</div></div>
+
+<h2>三案横向对比</h2>
+<table>
+<tr><th style="width:150px">维度</th><th style="width:200px">A 一人一密发放卡</th><th style="width:200px">B 首登强制改密</th><th>C 邀请码自助</th></tr>
+<tr><td>初始密码隐患</td><td class="ok">根除（随机唯一）</td><td class="ok">根除且外流窗口趋零</td><td class="ok">根除（自设）</td></tr>
+<tr><td>教务建号操作</td><td><span class="num">10 分钟</span>（打印发卡）</td><td>同 A</td><td><span class="num">2 分钟</span>+审核 30-60 分钟/班</td></tr>
+<tr><td>学生上手步数</td><td><span class="num">2 步</span></td><td><span class="num">3 步</span>（多设密一步）</td><td><span class="num">4 步</span>+等待审核</td></tr>
+<tr><td>首日现场压力</td><td><span class="ok">最低</span>（发卡即用）</td><td>中（课堂讲一遍改密）</td><td>中（答疑+催审核）</td></tr>
+<tr><td>月度运维</td><td><span class="ok">零流程</span>（只有重置）</td><td>重置频次略高</td><td>有效期/名额/审核三件套</td></tr>
+<tr><td>密码层强度</td><td>强（随机）</td><td>强+（外流窗趋零，弱密码靠素养）</td><td>强+（自设，弱密码同 B）</td></tr>
+<tr><td>新引入攻击面</td><td>卡外流（影响 1 人可重置）</td><td>弱自设密码</td><td><span class="warn">身份冒领/名额挤占</span></td></tr>
+<tr><td>改造工作量</td><td><span class="num">1.5~2 天</span>（名册页为主）</td><td>A + <span class="num">0.5~1 天</span></td><td><span class="num">2.5~3.5 天</span>（新页面+审核链）</td></tr>
+<tr><td>适合场景</td><td><b>当前 56 人规模 + 培训机构节奏</b></td><td>家长群转发顾虑极重时</td><td>学员频繁流动/大规模招生时</td></tr>
+</table>
+
+<h2>选型建议</h2>
+<div class="verdict">
+<p><b>主场景推荐 A</b>：56 人规模下「10 分钟建号 + 打印发卡」的一次性成本最低，三层防线即刻拉满，日常运维只剩「重置」一个动作；换设备密钥自动化（A 内含）顺带修掉了现行手编密钥的薄弱点。</p>
+<p><b>若主理人特别在意「初始密码被拍照留存长期沿用」</b>，可 A+B 组合（在 A 上线稳定后追加，+1 天）——发放卡上的密码变成「一次性开局密码」，长期凭证只存在学生脑子里。</p>
+<p><b>C 建议缓行</b>：它的省力红利要在大规模、高流动招生下才成立；当前 56 人 + 家长 involvement 中等的形态下，审核心智与冒领兜底反而是净增负担。等二期扩班（&gt;150 人）再启不迟。</p>
+</div>
+
+<div class="final">
+<p><b>三方案均已给出全链路流程、工作量、体验、安全、风险与改造清单，<br>
+样张按白卡浮影风格真实渲染（含 8 张 A4 拼版与三列对照图）。<br>
+主理人按自身情况选定后，即可按对应「改造点清单」排期施工。</b></p>
+</div>
+
+<div class="foot">砺蕴教务系统 · 学生账号体系三方案设计 · 2026-11-15 · 样张与本报告存档于 docs/stuacct-proposal-2026-11-15/</div>
+</div></body></html>

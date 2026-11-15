@@ -3929,25 +3929,30 @@ var Icon = {
           <select id="singleCls" style="max-width:170px"></select>
         </div>
         <div class="row" style="flex-wrap:wrap;margin-top:8px">
-          <input type="text" id="singlePass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
           <button class="btn" onclick="Roster.createSingle()">建这一个</button>
         </div>
         <p class="hint" id="singleStat"></p>
+        <p class="hint" style="margin:6px 0 0">密码自动生成：<b class="num">by</b> + 4 位随机数字，每人不同，建好直接显示，可当场打印发放卡。</p>
       </div>
       <!-- ==== 功能：单独建号 END ==== -->
 
-      <!-- ==== 功能：批量建号 START ==== -->
+      <!-- ==== 功能：批量建号 START ====（方案A：账号=班级码-学号，密码每人随机，一人一密发放卡） -->
 
       <div class="card edit-only" id="batchAcctCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 批量建号</h2>
         <div class="row" style="flex-wrap:wrap">
-          <select id="batchCls" style="max-width:170px"></select>
-          <input type="text" id="batchPass" placeholder="初始密码（留空用 liyun2026）" style="max-width:240px">
+          <select id="batchCls" style="max-width:170px" onchange="Roster.onBatchCls()"></select>
+        </div>
+        <div class="row" id="clsCodeRow" style="flex-wrap:wrap;margin-top:8px;align-items:center;display:none">
+          <span class="hint" style="display:inline;margin:0">班级码</span>
+          <input type="text" id="clsCodeIn" style="max-width:90px" autocapitalize="off" spellcheck="false">
+          <span class="hint" style="display:inline;margin:0" id="clsCodeHint"></span>
         </div>
         <div class="row" style="margin-top:10px;flex-wrap:wrap">
           <button class="btn" onclick="Roster.genAccounts()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-bolt"></use></svg> 给全班建号</button>
           <button class="btn ghost" onclick="App.go('students')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 查看学生账号</button>
         </div>
+        <p class="hint" style="margin:6px 0 0">账号 = 班级码-学号，密码 = <b class="num">by</b> + 4 位随机数字，每人不同、全班不重。学号按姓名排序自动编，已有账号的学员不动。</p>
         <p class="hint" id="rsStat"></p>
         <div id="rosterMsgBox" style="display:none;margin-top:10px"></div>
       </div>
@@ -4522,7 +4527,7 @@ var Icon = {
       </div>
       <!-- ==== 账号与同步卡片 syncCard END ==== -->
 
-      <!-- ==== 学生换设备密钥 devKeyCard START ====（教务端：密钥由教务自己想，一次性） -->
+      <!-- ==== 学生换设备密钥 devKeyCard START ====（方案A：一键生成 8 位随机码，10 分钟有效，用一次即废） -->
           </section>
 
           <!-- 高级段（可折叠） -->
@@ -4538,12 +4543,11 @@ var Icon = {
       <div class="card wide" id="devKeyCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-key"></use></svg> 学生换设备密钥</h2>
         <p class="hint" style="margin:0 0 10px">
-          学生换手机、或者要在第三台设备上登录，得输你给的一次性密钥。<b>每个密钥只能用一次</b>，用完就作废。
+          学生换手机、或者要在第三台设备上登录，点一下给他一枚<b>一次性密钥</b>（8 位随机码，不含易混的 0O1I）。
+          <b>10 分钟内有效、用一次即废</b>，过期作废——重新生成就行，不用手编、不用记。
         </p>
         <div class="row" style="flex-wrap:wrap">
-          <input type="text" id="devKeyNew" placeholder="自己想一个，如 8866-A" style="max-width:220px" autocapitalize="off" spellcheck="false">
-          <button class="btn" onclick="Settings.devKeyAdd()">生成</button>
-          <button class="btn ghost" onclick="Settings.devKeyRand()">随机一个</button>
+          <button class="btn" onclick="Settings.devKeyGen()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-bolt"></use></svg> 一键生成密钥</button>
         </div>
         <div id="devKeyList" style="margin-top:10px"></div>
       </div>
@@ -7671,6 +7675,7 @@ const Roster = {
 
     this._fillClsSelect('singleCls');
     this._fillClsSelect('batchCls');
+    this.onBatchCls();        // 班级码映射确认区跟着选中的班走
     Weekend.render();     // 周末班名单取自全部在册学员，学员有变要跟着重画
   },
 
@@ -7831,9 +7836,47 @@ const Roster = {
     Weekend.render();     // 学员没了，周末班名单要跟着变
   },
 
-  /* ── 一键为全班建学生账号 ──
-     用户名 = 姓名，撞名就加学号后 4 位（学员档案里没有手机号这个字段）。
-     已经有了的自动跳过，不会建重。建完把「网址 + 用户名 + 密码」发给学生。 */
+  /* ── 方案A · 班级码映射 ──
+     按班级名自动取「数字 + 班(b)」：砺蕴二班 → 2b、2024级01班 → 01b。
+     没有数字的班（素描班这类）直接拿班名当码 —— 汉字用户名合法，页面上可改。 */
+  clsCodeDefault(name){
+    const s = String(name || '');
+    const ar = s.match(/\d+/g);
+    if (ar) return ar[ar.length - 1] + 'b';
+    const CN = { 一:1, 二:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9 };
+    const m = s.match(/([一二三四五六七八九十]{1,3})\s*班/);
+    if (m){
+      const c = m[1]; let v = 0;
+      if (c === '十') v = 10;
+      else if (/十/.test(c)) { const p = c.split('十'); v = (p[0] ? CN[p[0]] : 1) * 10 + (p[1] ? CN[p[1]] : 0); }
+      else v = CN[c] || 0;
+      if (v) return v + 'b';
+    }
+    return s.replace(/\s+/g, '').slice(0, 8) || 'cls';
+  },
+
+  /* 选班后把班级码映射摆出来给教务确认（码可当场改，映射规则写在提示里） */
+  onBatchCls(){
+    const row = document.getElementById('clsCodeRow');
+    const sel = document.getElementById('batchCls');
+    if (!row || !sel) return;
+    const clsId = sel.value;
+    if (!clsId){ row.style.display = 'none'; return; }
+    const clsName = Util.clsName(clsId);
+    const c = Store.list('classes').find(x => x.id === clsId);
+    const code = (c && c.code) || this.clsCodeDefault(clsName);
+    row.style.display = '';
+    const inp = document.getElementById('clsCodeIn');
+    if (inp && document.activeElement !== inp) inp.value = code;
+    const hint = document.getElementById('clsCodeHint');
+    if (hint) hint.textContent = `来自「${clsName}」（数字+班，可改）`;
+  },
+
+  /* ── 一键为全班建学生账号（方案A · 一人一密）──
+     账号 = 班级码-学号（学号按姓名排序自动编，写进学员档案 s.no，重跑不换号）；
+     密码 = by + 4 位随机数字，全班唯一（撞号自动重生成）。
+     旧「留空统一 liyun2026」的口子已删 —— 全班同码是代打卡的最大漏洞。
+     建完出「打印发放卡」按钮，A4 拼版即裁即用。 */
   async genAccounts(){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，建号由教务老师操作');
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，建不了学生账号');
@@ -7842,8 +7885,9 @@ const Roster = {
     if (!clsId) return UI.toast('先在上头选定一个班级');
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId && !Util.isDemoObj(s));
     if (!students.length) return UI.toast('这个班还没有学员');
-    const pass = (document.getElementById('batchPass')?.value || '').trim() || 'liyun2026';
-    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
+    const clsName = Util.clsName(clsId);
+    const code = (((document.getElementById('clsCodeIn') || {}).value || '')
+      .trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')) || this.clsCodeDefault(clsName);
 
     const stat = document.getElementById('rsStat');
     if (stat) stat.textContent = '正在建…';
@@ -7852,32 +7896,38 @@ const Roster = {
       const users = j.users || [];
       const haveSid = new Set(users.filter(u => u.role === 'student' && u.studentId).map(u => u.studentId));
       const haveUser = new Set(users.map(u => u.user));
-      const list = [];
-      const skip = [];
+      const passes = new Set();
+      const stuPass = () => { let p; do { p = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0'); } while (passes.has(p)); passes.add(p); return p; };
+      /* 学号：档案里已有学号的沿用；没有的接着班里最大号往下编（名单本就按姓名排序） */
+      let maxNo = 0;
+      students.forEach(s => { const n = parseInt(s.no, 10); if (n > maxNo) maxNo = n; });
+      const list = [], skip = [], numbered = [];
       students.forEach(s => {
         if (haveSid.has(s.id)) { skip.push(s.name + '（已有）'); return; }
-        let user = s.name;
-        if (haveUser.has(user)) user = s.name + String(s.id).slice(-4);
-        if (haveUser.has(user)) { skip.push(s.name + '（用户名撞了）'); return; }
+        if (!s.no){ maxNo += 1; s.no = maxNo; numbered.push(s); }
+        const no2 = String(s.no).padStart(2, '0');        // 学号两位起：2b-01，跟发放卡一个写法
+        const user = code + '-' + no2;
+        if (haveUser.has(user)) { skip.push(s.name + '（账号 ' + user + ' 被占用）'); return; }
         haveUser.add(user);
-        list.push({ user, name: s.name, studentId: s.id, role: 'student', pass });
+        list.push({ user, name: s.name, studentId: s.id, role: 'student', pass: stuPass(), no: s.no });
       });
       if (!list.length){
         if (stat) stat.textContent = '这个班的学员都已经有账号了。';
         return;
       }
-      if (!confirm(`要给 ${list.length} 名学员建账号，初始密码统一为「${pass}」。确定？`)) {
+      if (!confirm(`要给 ${list.length} 名学员建账号：\n账号 = ${code}-学号，密码每人随机（by + 4 位数字，全班不重）。\n${numbered.length ? '新编学号 ' + numbered.length + ' 人（按姓名排序）。' : ''}\n\n建完可以直接打印 A4 发放卡。确定？`)) {
         if (stat) stat.textContent = '已取消。';
         return;
       }
+      numbered.forEach(s => Store.upsert('students', s));   // 学号写进档案：重跑建号、发放卡重打都用同一号
       const r = await Auth.call('users', { op: 'createMany', list });
-      const msg = `建好了 ${r.n} 个账号。` +
+      const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
+      const msg = `建好了 ${ok.length} 个账号（一人一密）。` +
         (r.fail && r.fail.length ? ` 没建成 ${r.fail.length} 个：${r.fail.map(f => f.user + '（' + f.err + '）').join('、')}` : '') +
         (skip.length ? ` 跳过 ${skip.length} 个：${skip.join('、')}` : '');
-      if (stat) stat.innerHTML = msg + '<br>下面两段话可以直接复制发给学生。';
-      UI.toast('建好了 ' + r.n + ' 个学生账号');
-      const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
-      this._pass = pass;
+      if (stat) stat.innerHTML = msg + '<br>下面可以打印发放卡，或复制文案发群。';
+      UI.toast('建好了 ' + ok.length + ' 个学生账号（每人一个密码）');
+      this._ok = ok; this._clsName = clsName;
       this.renderMsg(ok);
     } catch(e){
       if (stat) stat.textContent = '建号失败：' + e.message;
@@ -7885,9 +7935,11 @@ const Roster = {
     }
   },
 
-  /* ── 单独建号：今天新来的一个学生，选班（可现场建班）后直接开账号、入册 ── */
-  /* 班级下拉只列已经存在的班：建班是「名册」页面上头那张班级卡片的事，
-     这儿不再塞「＋新建班级」入口（2026-09-25 按老师要求去掉）。 */
+  /* ── 单独建号：今天新来的一个学生，选班（可现场建班）后直接开账号、入册 ──
+     班级下拉只列已经存在的班：建班是「名册」页面上头那张班级卡片的事，
+     这儿不再塞「＋新建班级」入口（2026-09-25 按老师要求去掉）。
+     方案A：密码自动生成（by + 4 位随机数字），不再有「留空用 liyun2026」。
+     班级码沿用同班已有账号的前缀（没有就自动映射）；学号接着班里最大号编。 */
   _fillClsSelect(selId){
     const el = document.getElementById(selId);
     if (!el) return;
@@ -7904,8 +7956,6 @@ const Roster = {
     if (!clsId) return UI.toast('先选定一个班级');
     const name = (document.getElementById('singleName').value || '').trim();
     if (!name) return UI.toast('填一下学员姓名');
-    const pass = (document.getElementById('singlePass').value || '').trim() || 'liyun2026';
-    if (pass.length < 8) return UI.toast('初始密码至少 8 位');
     const stat = document.getElementById('singleStat');
     try {
       const j = await Auth.call('users', { op:'list' });
@@ -7915,20 +7965,35 @@ const Roster = {
       let stu = Store.list('students').find(s => s.name === name && s.classId === clsId && !Util.isDemoObj(s));
       if (!stu) stu = Store.upsert('students', { classId: clsId, name });
       if (haveSid.has(stu.id)){ if (stat) stat.textContent = name + ' 在这个班已经有账号了。'; return; }
-      let user = name;
-      if (haveUser.has(user)) user = name + String(stu.id).slice(-4);
-      if (haveUser.has(user)){ if (stat) stat.textContent = '用户名「' + user + '」被占了，换个字或加个后缀再建。'; return; }
+      const clsMates = Store.list('students').filter(s => s.classId === clsId);
+      const mateIds = new Set(clsMates.map(s => s.id));
+      /* 班级码：同班已有账号的前缀优先（整班一致），否则按班名自动映射 */
+      let code = '';
+      users.forEach(u => {
+        if (u.role === 'student' && mateIds.has(u.studentId)){
+          const m = /^(.+?)-\d+$/.exec(String(u.user || ''));
+          if (m) code = m[1];
+        }
+      });
+      if (!code) code = this.clsCodeDefault(Util.clsName(clsId));
+      let maxNo = 0;
+      clsMates.forEach(s => { const n = parseInt(s.no, 10); if (n > maxNo) maxNo = n; });
+      if (!stu.no){ stu.no = maxNo + 1; Store.upsert('students', stu); }
+      const user = code + '-' + String(stu.no).padStart(2, '0');
+      if (haveUser.has(user)){ if (stat) stat.textContent = '账号「' + user + '」被占了（学号撞号），到批量建号里核对一下班级码。'; return; }
+      const pass = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
       const r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
-      this._pass = pass; this._ok = [{ user, name }];
-      if (stat) stat.innerHTML = '建好了「' + name + '」的账号（用户名 ' + user + '），下面是发给 TA 的话。';
-      this.renderMsg([{ user, name }]);
+      if (r.fail && r.fail.length){ if (stat) stat.textContent = '建号失败：' + (r.fail[0].err || '未知原因'); return; }
+      this._ok = [{ user, name, no: stu.no, pass }]; this._clsName = Util.clsName(clsId);
+      if (stat) stat.innerHTML = '建好了「' + name + '」的账号：<b class="num">' + Util.esc(user) + '</b> / <b class="num">' + pass + '</b>，可以打印发放卡或复制发给本人。';
+      this.renderMsg(this._ok);
       this.render();
       UI.toast('建好了 ' + name + ' 的账号');
     } catch(e){ if (stat) stat.textContent = '建号失败：' + e.message; UI.toast(e.message); }
   },
 
-  /* ── 建完号，直接把「发给学生的两段话」摆出来 ──
-     一段发群里（欢迎 + 网址 + 密码 + 怎么加到桌面），一段是用户名清单（私发本人）。 */
+  /* ── 建完号，把「发放卡 / 发群文案 / 私发清单」摆出来 ──
+     密码只进发放卡和私发清单，欢迎语里不再带统一密码。 */
   here(){ return location.origin || 'https://liyun2026.top'; },
 
   renderMsg(list){
@@ -7937,37 +8002,95 @@ const Roster = {
     this._ok = list;
     box.style.display = '';
     box.innerHTML = `
-      <textarea id="rsMsg" style="min-height:300px"></textarea>
+      <textarea id="rsMsg" style="min-height:190px"></textarea>
       <div class="row" style="margin-top:8px;flex-wrap:wrap">
-        <button class="btn" onclick="Roster.msg('all')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 复制欢迎语（发群里）</button>
-        <button class="btn ghost" onclick="Roster.msg('names')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-id"></use></svg>  复制用户名清单（单独发给本人）</button>
+        <button class="btn" onclick="Roster.printCards()">打印发放卡（A4 拼版）</button>
+        <button class="btn ghost" onclick="Roster.msg('all')">复制欢迎语（发群里）</button>
+        <button class="btn ghost" onclick="Roster.msg('names')">复制账号密码（私发本人）</button>
       </div>`;
     this.msg('all', true);
+  },
+
+  /* ── 方案A · 发放卡打印：A4 拼版 8 张/页，照 a2 样张排版 ──
+     开一个打印窗口写完整排版，浏览器「打印」即裁即用。
+     整班建号 / 单个建号 / 重置密码后都能打 —— 数据取 Roster._ok（存最新的密码）。 */
+  printCards(){
+    const list = (this._ok || []).filter(x => x && x.user && x.pass);
+    if (!list.length) return UI.toast('先建号，再打印发放卡');
+    const clsName = this._clsName || '';
+    const url = this.here().replace(/^https?:\/\//, '');
+    const card = (x, i) => `
+      <div class="mini"><div class="no">${String(i + 1).padStart(2, '0')}</div><div class="gb"></div><div class="st">学 生 账 号 发 放 卡</div>
+        <div class="nm">${Util.esc(x.name)}<span>学号 ${Util.esc(String(x.no || '').padStart(2, '0'))}</span></div>
+        <div class="row"><span class="k">账号</span><span class="v">${Util.esc(x.user)}</span></div>
+        <div class="row"><span class="k">密码</span><span class="v">${Util.esc(x.pass)}</span></div>
+        <div class="tip">${Util.esc(url)} · 别发群里 · 丢了找老师</div></div>`;
+    const pages = [];
+    for (let i = 0; i < list.length; i += 8) pages.push(list.slice(i, i + 8).map((x, j) => card(x, i + j)).join(''));
+    const w = window.open('', '_blank');
+    if (!w) return UI.toast('浏览器拦了弹出窗口，允许后再试');
+    w.document.write(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>学生账号发放卡</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2b3446;background:#e9e7e2}
+.a4{width:794px;min-height:1123px;background:#fff;box-shadow:0 24px 70px rgba(60,50,35,.22);
+  padding:44px 54px 38px;position:relative;margin:30px auto;page-break-after:always}
+@media print{body{background:#fff}.a4{margin:0;box-shadow:none}}
+.a4-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #c9ab7c;padding-bottom:14px}
+.a4-head .t{font-family:'Songti SC','STSong',serif;font-size:19px;font-weight:700;letter-spacing:.12em}
+.a4-head .t span{color:#a8895a;font-size:13px;letter-spacing:.3em;margin-right:12px}
+.a4-head .m{font-size:11.5px;color:#8d877b}
+.grid{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:20px 26px}
+.mini{border:1.5px dashed rgba(168,137,90,.6);border-radius:12px;padding:15px 17px 13px;position:relative;background:#fff}
+.mini .gb{height:4px;border-radius:999px;background:linear-gradient(90deg,#c9ab7c,#a8895a);margin-bottom:11px}
+.mini .st{font-family:'Songti SC',serif;font-size:11px;letter-spacing:.4em;color:#a8895a}
+.mini .nm{font-family:'Songti SC',serif;font-size:16.5px;font-weight:700;margin-top:5px;color:#2b3446}
+.mini .nm span{font-size:11px;color:#8d877b;font-weight:400;margin-left:8px;font-family:'PingFang SC'}
+.mini .row{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;background:#f7f6f2;border-radius:8px;padding:7px 10px}
+.mini .row .k{font-size:10.5px;color:#7E6637}
+.mini .row .v{font-family:'Menlo',monospace;font-size:14.5px;font-weight:700;color:#2b3446}
+.mini .tip{font-size:9.5px;color:#b3ab9c;margin-top:8px;text-align:center;letter-spacing:.06em}
+.mini .no{position:absolute;top:10px;right:12px;font-family:'Songti SC',serif;font-size:11px;color:#c9ab7c}
+.a4-foot{position:absolute;bottom:26px;left:54px;right:54px;display:flex;justify-content:space-between;
+  font-size:11px;color:#8d877b;border-top:1px solid #E7E3DA;padding-top:12px}
+.a4-foot b{color:#7E6637}
+</style></head><body>
+${pages.map(p => `<div class="a4">
+  <div class="a4-head">
+    <div class="t"><span>砺蕴教务系统</span>学生账号发放卡 · A4 拼版</div>
+    <div class="m">${Util.esc(clsName)} · 共 ${list.length} 张 · 沿虚线剪开</div>
+  </div>
+  <div class="grid">${p}</div>
+  <div class="a4-foot">
+    <span>密码随机不重复 · 打印即销毁屏幕上的明文清单</span>
+    <span>${new Date().toLocaleDateString('zh-CN')}</span>
+  </div>
+</div>`).join('')}
+</body></html>`);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 400);
   },
 
   msg(kind, silent){
     const ta = document.getElementById('rsMsg');
     if (!ta) return '';
-    const pass = this._pass || 'liyun2026';
     const url = this.here();
     let txt = '';
     if (kind === 'names'){
-      txt = (this._ok || []).map(x => x.user).join('\n');
+      txt = (this._ok || []).map(x => [x.name, x.user, x.pass].join('　')).join('\n');
     } else {
-      txt = `哈喽，乖，欢迎加入博艺大家庭，下面是你的学生系统的账号和密码，注意查收哦
+      txt = `哈喽，乖，欢迎加入博艺大家庭！你的学生系统账号已经建好了：
 
 砺蕴学生系统　${url}
-用户名　姓名
-密码　${pass}
+
+账号和密码印在发放卡上，老师会单独发给你。
+密码是给你一个人用的，别发到群里，也别借给别人登录哦。
 
 加到手机桌面：
 iPhone（用 Safari 打开）分享 → 添加到主屏幕
-安卓 右上角「⋮」→ 添加到主屏幕
-
-登录后先改密码。`;
+安卓 右上角「⋮」→ 添加到主屏幕`;
     }
     ta.value = txt;
-    if (!silent){ Util.copy(txt); UI.toast(kind === 'names' ? '用户名清单已复制' : '欢迎语已复制，去微信粘贴'); }
+    if (!silent){ Util.copy(txt); UI.toast(kind === 'names' ? '账号密码已复制，去微信私发' : '欢迎语已复制，去微信粘贴'); }
     return txt;
   }
 };
@@ -14295,16 +14418,18 @@ const StuAcct = {
     el.innerHTML = list.length ? list.map(u => {
       const stu = this.stuOf(u);
       const acts = editable ? `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-          <button class="chip" onclick="StuAcct.resetPass('${u.id}')">改密码</button>
+          <button class="chip" onclick="StuAcct.resetPass('${u.id}')">重置密码</button>
           <button class="chip" onclick="StuAcct.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
           ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
         </span>` : '';
+      const fresh = u._newPass ? `<br><span class="hint" style="display:inline;margin:0;color:#2e7d54">新密码 ${Util.esc(u._newPass)} · 旧密码已作废
+          <button class="chip" style="pointer-events:auto" onclick="StuAcct.printOne('${u.id}')">打印发放卡</button></span>` : '';
       return `<div class="item">
         <span class="grow">${Util.esc(u.name || u.user)}
           <span class="hint" style="display:inline;margin:0"> @${Util.esc(u.user)}</span>
           <br><span class="hint" style="display:inline;margin:0">${
             (stu ? (Util.esc(Util.clsName(stu.classId) || '') || '已关联学员') : '还没关联学员档案') +
-            (u.active ? '' : ' · 已停用')}</span></span>
+            (u.active ? '' : ' · 已停用')}</span>${fresh}</span>
         ${acts}
       </div>`;
     }).join('') : `<div class="empty">还没有学生账号，${editable
@@ -14312,12 +14437,28 @@ const StuAcct = {
         : '建号要找首位教务 / 总教务 —— 你这一档只能看'}</div>`;
   },
 
+  /* ── 方案A · 一键重置：不问新密码 —— 服务端生成 by + 4 位随机码，旧密码当场作废 ──
+     重置完这条记录上直接亮出新密码和「打印发放卡」，卡上的密码即时跟上（可反复重打）。 */
   async resetPass(id){
     const u = (this._users || []).find(x => x.id === id);
-    const np = prompt('给「' + ((u && u.name) || (u && u.user) || '这个学生') + '」设一个新密码（至少 8 位）');
-    if (!np) return;
-    try { await Auth.call('users', { op: 'pass', id, pass: np }); UI.toast('密码已改'); }
-    catch(e){ UI.toast(e.message); }
+    const who = (u && u.name) || (u && u.user) || '这个学生';
+    if (!confirm('重置「' + who + '」的登录密码？\n\n会生成一个新的随机密码（by + 4 位数字），旧密码当场作废，发放卡可以马上重打。')) return;
+    try {
+      const j = await Auth.call('reset_password', { id });
+      if (u) u._newPass = j.pass;
+      this.paint();
+      UI.toast('密码已重置：' + j.pass);
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  /* 重置后打单张发放卡（借名册页的打印器，临时塞一条进 Roster._ok） */
+  printOne(id){
+    const u = (this._users || []).find(x => x.id === id);
+    if (!u || !u._newPass) return;
+    const stu = this.stuOf(u);
+    Roster._ok = [{ user: u.user, name: u.name || u.user, no: stu ? stu.no : '', pass: u._newPass }];
+    Roster._clsName = stu ? Util.clsName(stu.classId) : '';
+    Roster.printCards();
   },
 
   async toggle(id, active){
@@ -14895,57 +15036,58 @@ const Settings = {
     } finally { inp.value = ''; }
   },
 
-  /* ════════ 学生换设备的一次性密钥 ════════
-     学生换手机、或在第三台设备上登录，必须输教务亲手设的密钥。
-     每个密钥只能用一次 —— 用完服务端就打上「已用」，第二次拿来就废了。
-     不设自动生成的码、也不设有效期：教务自己想、自己发、自己看着作废。 */
-  devKeys(){ const a = Store.get('dev_keys'); return Array.isArray(a) ? a : []; },
-  _saveDevKeys(a){ Store.set('dev_keys', a); },
+  /* ════════ 学生换设备的一次性密钥（方案A · 一键生成）════════
+     8 位随机码（大小写 + 数字，去掉易混的 0O1I），10 分钟内有效、用一次即废。
+     生成 / 作废走服务端 device_key action（office/admin/super 才可调），
+     码由服务端出 —— 教务不再自己想、自己记；核销仍在学生输码那一步（action 'dev'）。
+     留痕：生成时间 / 生成人 / 使用状态（谁用的、什么时候用的），本地这份只是展示副本。 */
+  DEVKEY_TTL: 10 * 60 * 1000,
 
-  devKeyAdd(){
-    const el = document.getElementById('devKeyNew');
-    const code = ((el && el.value) || '').trim().replace(/\s+/g, '');
-    if (!code) return UI.toast('先想一个密钥，比如 8866-A');
-    const all = this.devKeys();
-    if (all.some(k => k.code === code && !k.used)) return UI.toast('这个密钥已经有了，换一个');
-    all.push({ id: 'dk' + Date.now().toString(36), code, used: false, madeAt: Date.now() });
-    this._saveDevKeys(all);
-    if (el) el.value = '';
-    this.renderDevKeys();
-    Sync.push();
-    UI.toast('密钥「' + code + '」已生成，发给要换设备的学生（只能用一次）');
+  devKeys(){ const a = Store.get('dev_keys'); return Array.isArray(a) ? a : []; },
+
+  async devKeyGen(){
+    try {
+      const j = await Auth.call('device_key', { op: 'make' });
+      await Sync.pull(true);    // 服务端已落库，拉回展示副本（列表里马上能看到这枚码）
+      this.renderDevKeys();
+      UI.toast('密钥已生成：' + j.code + '（10 分钟内有效，发给学生输一次）');
+    } catch(e){ UI.toast(e.message); }
   },
 
-  devKeyRand(){
-    const el = document.getElementById('devKeyNew');
-    const n = String(Math.floor(100000 + Math.random() * 900000));
-    if (el) el.value = n;
-    this.devKeyAdd();
+  async devKeyRevoke(id){
+    if (!confirm('把这枚密钥作废？学生还没用的话就登不了了，可以再生成一枚。')) return;
+    try {
+      await Auth.call('device_key', { op: 'revoke', id });
+      await Sync.pull(true);
+      this.renderDevKeys();
+      UI.toast('已作废');
+    } catch(e){ UI.toast(e.message); }
   },
 
   devKeyCopy(code){ Util.copy(code); UI.toast('已复制：' + code); },
 
-  devKeyDel(id){
-    const all = this.devKeys().filter(k => k.id !== id);
-    this._saveDevKeys(all);
-    this.renderDevKeys();
-    Sync.push();
-  },
-
   renderDevKeys(){
     const box = document.getElementById('devKeyList');
     if (!box) return;
+    const now = Date.now();
     const all = this.devKeys().slice().sort((a,b) => (b.madeAt || 0) - (a.madeAt || 0));
-    if (!all.length){ box.innerHTML = '<div class="empty">还没有密钥。上面想一个，点「生成」。</div>'; return; }
-    box.innerHTML = all.map(k => `
+    if (!all.length){ box.innerHTML = '<div class="empty">还没有密钥。点上面「一键生成密钥」。</div>'; return; }
+    box.innerHTML = all.map(k => {
+      const expired = !k.used && now - (k.madeAt || 0) > this.DEVKEY_TTL;
+      const left = Math.max(0, Math.ceil(((k.madeAt || 0) + this.DEVKEY_TTL - now) / 60000));
+      const st = k.used
+        ? '已用 · ' + Util.esc(k.usedBy || '') + (k.usedAt ? ' · ' + new Date(k.usedAt).toLocaleString('zh-CN') : '')
+        : expired ? '已过期 · 重新生成一枚就行'
+        : '有效中 · 剩约 ' + left + ' 分钟';
+      const made = k.madeAt ? new Date(k.madeAt).toLocaleString('zh-CN') : '';
+      return `
       <div class="item">
         <span class="grow"><b class="num" style="font-weight:500;letter-spacing:.08em">${Util.esc(k.code)}</b>
-          <br><span class="hint" style="display:inline;margin:0">${
-            k.used ? '已用 · ' + Util.esc(k.usedBy || '') + (k.usedAt ? ' · ' + new Date(k.usedAt).toLocaleString('zh-CN') : '')
-                   : '还没用'}</span></span>
-        ${k.used ? '' : `<button class="chip" onclick="Settings.devKeyCopy('${Util.esc(k.code)}')">复制</button>`}
-        <button class="chip ${k.used ? '' : 'chip-no'}" onclick="Settings.devKeyDel('${k.id}')">删掉</button>
-      </div>`).join('');
+          <br><span class="hint" style="display:inline;margin:0">${made}${k.madeBy ? ' · ' + Util.esc(k.madeBy) + ' 生成' : ''} · ${st}</span></span>
+        ${(!k.used && !expired) ? `<button class="chip" onclick="Settings.devKeyCopy('${Util.esc(k.code)}')">复制</button>` : ''}
+        <button class="chip ${k.used || expired ? '' : 'chip-no'}" onclick="Settings.devKeyRevoke('${k.id}')">作废</button>
+      </div>`;
+    }).join('');
   },
 
   /* ════════ 演示账号：只有首位教务能建、能切 ════════

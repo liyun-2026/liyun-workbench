@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>A3 换设备密钥自动生成</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f7f6f2;font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2b3446;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:30px}
+.win{width:660px;background:#fff;border:1px solid #E7E3DA;border-radius:16px;
+  box-shadow:0 1px 4px rgba(60,50,35,.07),0 20px 54px rgba(60,50,35,.13);overflow:hidden}
+.bar{background:linear-gradient(135deg,#4a5c8c,#384a74);color:#fff;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between}
+.bar .t{font-size:15.5px;font-weight:600;letter-spacing:.08em}
+.bar .c{font-size:11.5px;opacity:.75;letter-spacing:.06em}
+.body{padding:24px 28px 28px}
+.row{display:flex;gap:14px;align-items:center;margin-bottom:18px}
+.row label{font-size:13px;color:#6b7284;width:72px;flex:none}
+.row .sel{flex:1;border:1px solid #E7E3DA;border-radius:10px;padding:11px 14px;font-size:14px;
+  background:#fff;display:flex;justify-content:space-between;align-items:center}
+.row .sel b{font-family:'Songti SC',serif;color:#2b3a5e}
+.row .sel span{font-size:12px;color:#8d877b}
+.hintbox{background:#faf9f6;border:1px solid rgba(201,171,124,.4);border-radius:12px;
+  padding:13px 16px;font-size:12.5px;color:#6b7284;line-height:1.7;margin-bottom:18px}
+.hintbox b{color:#7E6637}
+.gen{width:100%;padding:13px;border:0;border-radius:999px;cursor:pointer;
+  background:linear-gradient(135deg,#c9ab7c,#a8895a);color:#fff;font-size:15px;font-weight:600;letter-spacing:.14em}
+.result{margin-top:20px;border:1.5px solid rgba(46,125,84,.35);background:rgba(46,125,84,.06);
+  border-radius:14px;padding:18px 22px;text-align:center}
+.result .st{font-size:12.5px;color:#2e7d54;letter-spacing:.1em}
+.result .code{font-family:'Menlo',monospace;font-size:40px;font-weight:700;letter-spacing:.22em;
+  color:#2b3446;margin:10px 0 8px}
+.result .meta{font-size:12px;color:#6b7284;line-height:1.8}
+.result .meta b{color:#c0392b}
+.log{margin-top:18px;border-top:1px dashed #E7E3DA;padding-top:14px}
+.log h5{font-size:12px;color:#8d877b;letter-spacing:.1em;margin-bottom:9px}
+.log .li{display:flex;justify-content:space-between;font-size:12.5px;color:#4a5568;padding:6px 2px}
+.log .li + .li{border-top:1px solid #f2efe9}
+.log .ok{color:#2e7d54}.log .warn{color:#c0392b}
+</style></head><body>
+<div class="win">
+  <div class="bar"><span class="t">换设备密钥 · 一键生成</span><span class="c">名册页 → 学生卡 → 「换设备」</span></div>
+  <div class="body">
+    <div class="row">
+      <label>选择学生</label>
+      <div class="sel"><b>王小明</b><span>By2401-12 · 初二 砺蕴二班 · 已绑 1 台（iPhone of 王小明）</span></div>
+    </div>
+    <div class="hintbox">
+      学生的旧手机不用了 / 家长换新手机时，在这里给一枚<b>一次性密钥</b>。
+      新设备登录时输这枚码即可通过认证；<b>10 分钟内有效、用一次即废</b>，不用再手编、不用记、不用回填——
+      系统自动生成、自动核销，谁也没法提前猜出来。
+    </div>
+    <button class="gen">一 键 生 成 8 位 密 钥</button>
+    <div class="result">
+      <div class="st">✅ 已生成 · 只显示这一次，发给学生输入即可</div>
+      <div class="code">K7-2M-9Q4X</div>
+      <div class="meta">10 分钟内有效 · 用一次即废 · 过期作废可重新生成<br>
+        学生侧提示：<b>「请在旧设备还能上网时申请」</b>——旧设备直接丢了也不慌，这张卡下面有「补发通道」</div>
+    </div>
+    <div class="log">
+      <h5>本 学 生 密 钥 使 用 记 录（自动留痕）</h5>
+      <div class="li"><span>2026-11-15 16:02 · 生成（教务 · 王老师）</span><span class="ok">已核销 · iPad of 王小明</span></div>
+      <div class="li"><span>2026-10-09 19:44 · 生成（教务 · 王老师）</span><span class="ok">已核销 · 首台 iPhone</span></div>
+      <div class="li"><span>2026-10-02 08:15 · 首台自动认证</span><span class="ok">iPhone of 王小明</span></div>
+      <div class="li"><span>额度</span><span class="warn">2 台已绑满 · 换新需先解绑一台（点学生卡「设备管理」）</span></div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -421,7 +421,7 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    卡间距 12/内边距 14、分割线淡化；字号阶梯按预览范围（home/att：22/15/14/12/22）；
    mtabbar 悬浮胶囊（左右 12/底 10/全圆角/深浅色半透明毛玻璃 blur+投影），
    .main 底部预留 68→84 防遮挡。桌面零变化。无新增静态文件 → VERSION 加一。 */
-VERSION = 'v116'; /* VoxOS 5.36：旧版本彻底迭代删除·大检查（主理人拍板「不允许任何历史遗留」）——
+/* v116（VoxOS 5.36）：旧版本彻底迭代删除·大检查（主理人拍板「不允许任何历史遗留」）——
    ① 死 CSS 删 27 条规则（whoami×2/phead/slotv/imptbl 全家 12 条/m2-s-sign·cls·hw·notice 4 条/cd-input/stu-meta/mrow/s-card，剥注释判定+动态拼接排查+跨文件扫描实锤零引用）
    ② 死令牌删 10 个（--brand-deco/--brand-ink/--dur-page/--ease-page/--r-lg/--sh-2/--sp-1/--sp-12/--sp-18/--sp-28，var()/JS 字符串引用双查零命中）
    ③ 死 JS 删 9 函数（Store 按天封装 getDaily/setDaily/listDaily/upsertDaily/incrDaily/decrDaily/countDaily 七件套零调用；Schedule 旧文字导入底层解析残留 _textDate/parseCell——5.35 删链时漏网；孤儿注释清一条；_textTime 保留＝matchPeriod→impImport 活链）
@@ -430,6 +430,13 @@ VERSION = 'v116'; /* VoxOS 5.36：旧版本彻底迭代删除·大检查（主�
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
+VERSION = 'v117'; /* VoxOS 5.37 学生账号方案A「一人一密发放卡」——
+   ① 批量/单独建号（名册页）：账号 = 班级码-学号（班级码按班名自动映射「数字+班」，页面确认可改；学号按姓名序自动编并写进学员档案 s.no 重跑不换号）；密码 = by+4 位随机数字一人一密全班唯一（撞号自动重生成）；「留空统一 liyun2026」口子删除；完成区出「打印发放卡 / 复制欢迎语 / 复制账号密码」
+   ② 发放卡生成器：A4 拼版 8 张/页（a2 样张排版：金条+虚线裁切框+账号密码行），整班/单人/重置后都可重打，浏览器打印即裁即用
+   ③ 换设备密钥自动化（设置页 devKeyCard）：一键生成 8 位随机码（去易混 0O1I）服务端出码留痕（生成人/时间/使用状态），10 分钟有效、用一次即废（'dev' 核销加过期校验）；「教务自己想一个」手填输入框退役
+   ④ 一键重置（学生账号页）：行按钮「重置密码」→ 服务端出新码、旧密码当场作废，行上亮新密码 +「打印发放卡」单卡重打
+   ⑤ sync.js：新增 device_key（make/revoke）与 reset_password 两 action，权限 office/admin/super（ACCT_OPS，主理人 11-15 口径）；学生密码下限降 6 位（STUDENT_MIN_PASS，教职仍 8）——doLogin 入口兜底/mkUser/op:'pass'/chpass 四处角色感知
+   测试：stuacct_check 新套件 58 项全绿 + demo_devkey_check 改造 22 项全绿 + 九套件全量回归 + index.html 变了 → VERSION 加一 */
   /* VoxOS 5.35：全端口浅色化 + 遗留清理（主理人拍板三条线）——
    ① 深色模式整体移除：删 17 处 @media (prefers-color-scheme: dark) 块（桌面 ：root/五端皮肤/gate/mtabbar/手机端 5 处令牌翻转/学府深色翻转/hours 深色/卡片阴影）、深色 theme-color meta、Port.syncChrome 的深色监听 —— 系统深色 pref 下也恒为浅色（暖纸 #f6f5f2 + 古铜金 #c9ab7c）。
    ② 手机版浅色对比度重审：浅色文字金 --gold-deep #a8895a（3.0:1 不达标）→ #7E6637（纸上 5.01 / 白卡 5.46 / tint 4.88，全 ≥4.5:1），浅色下金作文字的 8 处引用（clock/角色对勾/门头座右铭/看板签字/页脚 hover）改引 gold-deep；金渐变卡本就白字压金底不动。

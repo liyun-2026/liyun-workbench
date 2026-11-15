@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>C2 学生自助注册页</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#e9e7e2;font-family:'PingFang SC','Helvetica Neue',sans-serif;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;padding:26px}
+.phone{width:390px;height:820px;background:#f7f6f2;border-radius:44px;border:10px solid #2a2a2e;
+  box-shadow:0 30px 80px rgba(60,50,35,.3);overflow:hidden;position:relative}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:26px;background:#2a2a2e;border-radius:0 0 16px 16px;z-index:5}
+.pstatus{position:relative;z-index:2;display:flex;justify-content:space-between;padding:14px 26px 0;
+  font-size:13px;font-weight:600;color:#2b3446}
+.phead{padding:26px 26px 0;text-align:center}
+.school{font-family:'Songti SC','STSong',serif;font-size:12px;letter-spacing:.5em;color:#a8895a}
+.ptitle{font-family:'Songti SC','STSong',serif;font-size:22px;font-weight:700;letter-spacing:.12em;margin-top:10px;color:#2b3446}
+.psub{font-size:12px;color:#8d877b;margin-top:8px;line-height:1.6}
+.psub b{color:#7E6637}
+.steps{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.stp{width:26px;height:26px;border-radius:999px;font-size:12px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border:1px solid #E7E3DA;color:#8d877b}
+.stp.on{background:linear-gradient(135deg,#c9ab7c,#a8895a);border:0;color:#fff;font-weight:700}
+.stp.done{color:#2e7d54;border-color:rgba(46,125,84,.4)}
+.body{padding:18px 24px 0}
+.field{background:#fff;border:1px solid #E7E3DA;border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.field .k{font-size:12px;color:#7E6637;letter-spacing:.08em;margin-bottom:7px;display:flex;justify-content:space-between}
+.field .k .ck{color:#2e7d54}
+.field input{width:100%;border:0;font-size:16px;color:#2b3446;background:transparent;outline:none;letter-spacing:.04em}
+.field .hint{font-size:11px;color:#b3ab9c;margin-top:6px}
+.field .hint b{color:#c0392b;font-weight:600}
+.agree{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#6b7284;line-height:1.6;
+  padding:2px 4px 0}
+.agree i{font-style:normal;color:#2e7d54}
+.pbtn{width:calc(100% - 48px);margin:16px 24px 0;padding:13.5px;border:0;border-radius:999px;cursor:pointer;
+  background:linear-gradient(135deg,#c9ab7c,#a8895a);color:#fff;font-size:15.5px;font-weight:600;letter-spacing:.16em}
+.plink{text-align:center;font-size:11.5px;color:#a8895a;margin-top:12px}
+.already{text-align:center;font-size:11px;color:#b3ab9c;margin-top:6px}
+.homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:120px;height:5px;
+  border-radius:999px;background:#2a2a2e;opacity:.5}
+</style></head><body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="pstatus"><span>20:14</span><span>信号 · WiFi</span></div>
+  <div class="phead">
+    <div class="school">砺 蕴 教 务 系 统</div>
+    <div class="ptitle">学生注册</div>
+    <div class="psub">邀请码来自老师在群里发的通知 · <b>姓名学号要和名册对得上</b></div>
+    <div class="steps">
+      <div class="stp done">✓</div><div class="stp done">✓</div><div class="stp on">3</div><div class="stp">4</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="field">
+      <div class="k">① 邀请码 <span class="ck">✓ 已验证 · 初二 砺蕴二班</span></div>
+      <input value="LY-2B7K-4Q" readonly>
+    </div>
+    <div class="field">
+      <div class="k">② 姓名 <span class="ck">✓ 与名册匹配</span></div>
+      <input value="吴雨桐" readonly>
+      <div class="hint">打错字会进老师的<b>待审核</b>列表，重名要等老师确认</div>
+    </div>
+    <div class="field">
+      <div class="k">③ 学号 <span class="ck">✓ By2401-15 · 名册无冲突</span></div>
+      <input value="15" readonly>
+    </div>
+    <div class="field">
+      <div class="k">④ 设密码（至少 6 位，要含数字）</div>
+      <input type="password" value="wyt1128" readonly>
+      <div class="hint">✓ 长度够 · ✓ 含数字 · 别用生日和<b>学号当密码</b></div>
+    </div>
+    <div class="agree"><span><i>✓</i></span><span>这台手机注册后会自动绑定为我的设备（每人最多 2 台，换手机找老师要密钥）</span></div>
+  </div>
+  <button class="pbtn">注 册 并 绑 定 本 设 备</button>
+  <div class="plink">注册后等老师确认（一般当天），确认后就能登录打卡</div>
+  <div class="already">已经有账号？去登录 →</div>
+  <div class="homebar"></div>
+</div>
+</body></html>

@@ -2,6 +2,7 @@
 .DS_Store
 test/.sync.gen.mjs
 test/.sync.student.mjs
+test/.sync.stuacct.mjs
 test/.preview-data.json
 test/.shots/
 
