@@ -106,16 +106,28 @@ elif [ "$DOW" -le 5 ] && [ "$HM" -ge 1200 ]; then
     -H 'content-type: application/json' \
     -d "{\"action\":\"pull\",\"token\":\"${TOKEN}\"}")
   nsign=$(printf '%s' "$sign_json" | TODAY="$TODAY" python3 -c '
-import sys, json, os
+import sys, json, os, datetime
 try:
     d = json.load(sys.stdin)
-    print(len((d.get("shared") or {}).get("sign:" + os.environ["TODAY"]) or []))
+    sh = d.get("shared") or {}
+    today = os.environ["TODAY"]
+    n = len(sh.get("sign:" + today) or [])
+    # 近 7 天（不含今日）是否有打卡活动：有活动才把「今日无打卡」当异常
+    base = datetime.date.fromisoformat(today)
+    recent = 0
+    for i in range(1, 8):
+        k = "sign:" + (base - datetime.timedelta(days=i)).isoformat()
+        recent += len(sh.get(k) or [])
+    print(n, recent)
 except Exception:
-    print(-1)')
+    print(-1, -1)')
+  read -r nsign nrecent <<<"$nsign"
   if [ "$nsign" = "-1" ]; then
     out+=("[警告] 当日打卡检查失败 原因=pull 请求失败或返回异常（凭据可能过期）")
+  elif [ "$nsign" = "0" ] && [ "$nrecent" -gt 0 ]; then
+    out+=("ALERT 类型=当日打卡异常 原因=近7天有打卡活动但当日($TODAY)突然为零（疑似漏打/故障）")
   elif [ "$nsign" = "0" ]; then
-    out+=("ALERT 类型=当日打卡异常 原因=工作日已过12:00但当日($TODAY)无任何打卡记录")
+    out+=("[提示] 当日打卡 0 人，且近 7 天无打卡活动（预使用期静默，不报警）")
   else
     out+=("[正常] 当日打卡 ${nsign} 人（令牌来自${TOKEN_SRC}）")
   fi
