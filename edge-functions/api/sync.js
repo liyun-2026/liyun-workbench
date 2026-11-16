@@ -48,6 +48,11 @@ const ADMIN = 'admin';       // 教务老师：业务全能，不管账号
 const TEACHER = 'teacher';   // 授课老师：只看自己带的班
 const BOTH = 'both';         // 教务兼授课：教务那摊 + 自己班的授课那摊，两套都在
 const STUDENT = 'student';   // 学生：只看自己的，只能打卡和请假
+/* ==5.38== 系统工作号（sys）：巡检脚本 / 看板那台电脑用的「不是人」的号。
+   不进 STAFF（isStaff=false → 一切业务写天然 403），pull 单开一条全量只读，
+   push 一律拒写。账号只能由 sys_acct / migrate_sys 两条专用路进出，
+   doUsers 那边把 sys 账号整个锁死（改/停/删/改密全 403）。 */
+const SYS = 'sys';           // 系统工作：只读 pull + 看板，无任何业务写
 /* 数据口径上「算教务」的角色：能拿到全部数据、能写全部数据。
    both 也算教务（否则 TA 打开考勤/量化会是一片空），只是不能管账号（看 doUsers）。
    office（总教务）算教务，而且能管账号。 */
@@ -324,6 +329,8 @@ async function profileOf(auth, uid, user) {
     isSuper: auth.role === SUPER,
     isOffice: auth.role === OFFICE,
     isStaff: STAFF.includes(auth.role),
+    /* ==5.38== 系统工作号：前端据此走「只进看板 + 设置最低配」的那套界面 */
+    isSys: auth.role === SYS,
     isStudent: auth.role === STUDENT,
     /* 看板专用号（Board.createAccount 建的那个）—— 只有它走「多设备」那一套，见 dev 动作 */
     board: auth.board === true,
@@ -428,6 +435,10 @@ function filterForStudent(src, me) {
 /* ── 授课老师：只下发自己班的班级/学员/考勤/作业/过关/成绩/体重/评语，加自己提的工单 ── */
 function filterShared(shared, me) {
   const src = shared || {};
+  /* ==5.38== 系统工作号：全量只读（同首位教务的取数口径，但不给任何写路）。
+     巡检脚本要核对全库、看板屏要打卡码/考勤/课表，两样都得是全量；
+     「只读」由 sanitizePush 那边钉死（sys 一律拒写），这里只管读。 */
+  if (me.role === SYS) return src;
   /* 教务（含教务兼授课、总教务）：全量。但演示班 / 演示学员是系统自用的东西 ——
      除了首位教务和演示号自己，别人的设备上根本不该出现（见 stripDemo）。
      总教务也是「别人」：他看不到演示与看板那一套（用户 2026-10-02 定）。 */
@@ -569,13 +580,28 @@ function sanitizeStudent(src, me, server) {
 /* ── 写回白名单：老师只能提交自己的工单和自己录的今日情况；次位教务改不了首位教务的东西 ── */
 function sanitizePush(shared, me, serverShared) {
   const src = shared || {};
+  /* ==5.38== 系统工作号：一个字节都不许写。不回 403 而是静默丢弃 ——
+     看板屏与巡检脚本的前台会自动 push，回 403 会让那块屏天天弹「同步失败」；
+     这里丢弃即「写不进去」，防线与 403 等效（测试断言：push 后服务端数据不变）。 */
+  if (me.role === SYS) return {};
   if (me.role === STUDENT) return sanitizeStudent(src, me, serverShared || {});
   if (me.isStaff) {
     const out = Object.assign({}, src);
     /* 身份卡只由服务端下发（ownerCard），客户端谁都不用写、也写不进来：
        一旦让本机的旧副本同步上去，org/data 里就会存下一张永远不更新的死卡。 */
     delete out.owner;
-    if (me.role !== SUPER) for (const k of SUPER_ONLY_WRITE) delete out[k];   // aiKey 只有首位教务能改（教务老师、教务兼授课都不行）
+    if (me.role !== SUPER) for (const k of SUPER_ONLY_WRITE) delete out[k];
+    /* ==5.38== 「系统保护」学员（巡检探针号挂的档案）删不掉：
+       名册本地删了也只是软删（_d 墓碑），这里把墓碑拦在服务端门外，
+       服务器上的档案永远活着 —— 前端 delStu 也拦，这是第二道锁。 */
+    if (Array.isArray(out.students)) {
+      const srvStu = new Map((Array.isArray(serverShared.students) ? serverShared.students : []).map(x => [x && x.id, x]));
+      out.students = out.students.filter(x => {
+        if (!(x && x._d && x.id)) return true;
+        const srv = srvStu.get(x.id);
+        return !(srv && srv.sysProtected === true);
+      });
+    }
     return out;
   }
 
@@ -1222,6 +1248,8 @@ async function doUsers(s, me, body) {
         role: a.role || TEACHER, classIds: a.classIds || [],
         studentId: a.studentId || '',
         active: a.active !== false, createdAt: a.createdAt || 0,
+        /* ==5.38== 系统保护标记（巡检探针号）：学生账号页据此亮徽章、藏按钮 */
+        sysProtected: a.sysProtected === true,
       });
     }
     return json({ ok: true, users: out, ownerId: me.id });
@@ -1296,6 +1324,15 @@ async function doUsers(s, me, body) {
   const target = await s.get(`auth/${id}`, { type: 'json' });
   if (!target) return json({ error: '账号不存在' }, 404);
   if ((target.role || TEACHER) === SUPER) return json({ error: '首位教务的账号不能被修改' }, 403);
+  /* ==5.38== 系统工作号与「系统保护」学员账号在 doUsers 里整个锁死：
+     改名/改身份/停用/改密/删除全 403。它们只走 sys_acct（sys 号）与
+     reset_password 之外自己的专用路 —— 巡检与看板靠它们活着，
+     教务在账号页一个手滑删掉，整条巡检链就断了。 */
+  if (target.role === SYS || target.sysProtected === true) {
+    return json({ error: target.role === SYS
+      ? '系统工作号只能在设置页「系统工作号」区块管理'
+      : '这个学员账号受系统保护（巡检用），不能在这里改动' }, 403);
+  }
 
   if (op === 'update') {
     if (body.name !== undefined) target.name = String(body.name || '').trim().slice(0, 24) || target.name;
@@ -1455,6 +1492,11 @@ export async function onRequestPost(context) {
       if ((target.role || TEACHER) !== STUDENT) {
         return json({ error: '一键重置只用于学生账号，教职账号去「老师管理」里改' }, 403);
       }
+      /* ==5.38== 系统保护学员（巡检探针号）密码不重置：
+         探针密码记在巡检配置里，随手一重置整条打卡探针就断了 */
+      if (target.sysProtected === true) {
+        return json({ error: '这个学员账号受系统保护（巡检用），不能一键重置' }, 403);
+      }
       const pass = stuPass();
       target.salt = randHex(16);
       target.hash = await hex(pass + '|' + target.salt);
@@ -1462,6 +1504,137 @@ export async function onRequestPost(context) {
       target.resetBy = me.name || me.user || '';
       await s.setJSON(`auth/${id}`, target);
       return json({ ok: true, pass });
+    }
+
+    /* ══ ==5.38== 系统工作号管理（sys_acct）══
+       super/office 专用：list（列出全部 sys 号）/ create（新建一个 sys 号）/ delete（软删）。
+       不走 doUsers —— 那边把 sys 目标整个锁死了；sys 号的进出只有这一条门，
+       普通「老师管理」与批量建号永远造不出 sys 号（normRole 会把 sys 归成 teacher）。 */
+    if (action === 'sys_acct') {
+      if (!(me.role === SUPER || me.role === OFFICE)) {
+        return json({ error: '只有首位教务与总教务能管理系统工作号' }, 403);
+      }
+      const op = String(body.op || 'list');
+      const idx = await uidIndex(s);
+      if (op === 'list') {
+        const out = [];
+        for (const uid of idx.ids) {
+          const a = await s.get(`auth/${uid}`, { type: 'json' });
+          if (!a || a.role !== SYS) continue;
+          out.push({ id: uid, user: a.user || '', name: a.name || a.user || '',
+                     board: a.board === true, active: a.active !== false,
+                     createdAt: a.createdAt || 0 });
+        }
+        return json({ ok: true, users: out });
+      }
+      if (op === 'create') {
+        const nu = canonUser(body.user);
+        const bad = userErr(nu);
+        if (bad) return json({ error: bad }, 400);
+        const pass = String(body.pass || '');
+        if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
+        const uid = await hex('u|' + nu);
+        if (await s.get(`auth/${uid}`, { type: 'json' })) return json({ error: '这个用户名已经存在' }, 400);
+        const salt = randHex(16);
+        const rec = {
+          salt, hash: await hex(pass + '|' + salt), role: SYS,
+          name: String(body.name || nu).trim().slice(0, 24) || nu,
+          classIds: [], active: true, user: nu, createdAt: Date.now(), createdBy: me.id,
+        };
+        if (body.board === true) rec.board = true;   // 看板那台电脑的号保留 board 标记（设备额度走另一套）
+        await s.setJSON(`auth/${uid}`, rec);
+        if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
+        return json({ ok: true, id: uid });
+      }
+      if (op === 'delete') {
+        const id = String(body.id || '');
+        const target = id ? await s.get(`auth/${id}`, { type: 'json' }) : null;
+        if (!target) return json({ error: '账号不存在' }, 404);
+        if (target.role !== SYS) return json({ error: '这个账号不是系统工作号' }, 400);
+        target.active = false;
+        target.deletedAt = Date.now();
+        await s.setJSON(`auth/${id}`, target);
+        idx.ids = idx.ids.filter(x => x !== id);
+        await s.setJSON('sys/users', idx);
+        return json({ ok: true });
+      }
+      return json({ error: '未知的系统工作号操作' }, 400);
+    }
+
+    /* ══ ==5.38== 存量迁移（migrate_sys）══ super 专用、幂等可重复跑：
+       ① 「教务系统巡检账号」（teacher）→ role:sys
+       ② 看板专用号（board:true，名字「看板（…）」）→ role:sys（board 标记保留）
+       ③ 「巡检学员」（student）→ 保留 student，加 sysProtected:true，
+          并给它挂的学员档案也打 sysProtected（档案的 classId 清空 → 自动退出
+          一切按班统计的口径：考勤应到、名册班级人数、量化都按班取人）。
+       已经在目标状态的账号原样跳过 —— 重跑不产生任何新改动。 */
+    if (action === 'migrate_sys') {
+      if (me.role !== SUPER) return json({ error: '只有首位教务能跑系统工作号迁移' }, 403);
+      const idx = await uidIndex(s);
+      const changed = [], skipped = [];
+      const all = [];
+      for (const uid of idx.ids) {
+        const a = await s.get(`auth/${uid}`, { type: 'json' });
+        if (a && a.active !== false) all.push({ uid, a });
+      }
+      const findByUser = u => all.find(x => x.a.user === canonUser(u));
+
+      /* ① 巡检账号：teacher → sys（super/office/看板号绝不误伤 —— 只认这个用户名） */
+      const probe = findByUser('教务系统巡检账号');
+      if (probe) {
+        if (probe.a.role === SYS) skipped.push({ user: probe.a.user, note: '已是 sys' });
+        else {
+          probe.a.role = SYS;
+          probe.a.classIds = [];
+          probe.a.migratedAt = Date.now();
+          await s.setJSON(`auth/${probe.uid}`, probe.a);
+          changed.push({ user: probe.a.user, from: 'teacher', to: SYS });
+        }
+      } else skipped.push({ user: '教务系统巡检账号', note: '不存在，跳过' });
+
+      /* ② 看板号：board:true（或老名字前缀「看板（」）→ sys，board 标记原样保留 */
+      for (const { uid, a } of all) {
+        if (a.role !== SYS && (a.board === true || String(a.name || '').indexOf('看板（') === 0)) {
+          const wasRole = a.role || TEACHER;
+          a.role = SYS;
+          a.classIds = [];
+          a.migratedAt = Date.now();
+          await s.setJSON(`auth/${uid}`, a);
+          changed.push({ user: a.user, from: wasRole, to: SYS, note: '看板号，board 标记保留' });
+        } else if (a.role === SYS && a.board === true) {
+          skipped.push({ user: a.user, note: '看板号已是 sys' });
+        }
+      }
+
+      /* ③ 巡检学员：student 角色保留，加 sysProtected；学员档案同步打标 + 清班级 */
+      const stu = findByUser('巡检学员');
+      if (stu) {
+        if (stu.a.role !== STUDENT) {
+          skipped.push({ user: stu.a.user, note: '不是学生账号，跳过' });
+        } else if (stu.a.sysProtected === true) {
+          skipped.push({ user: stu.a.user, note: '已是系统保护' });
+        } else {
+          stu.a.sysProtected = true;
+          stu.a.migratedAt = Date.now();
+          await s.setJSON(`auth/${stu.uid}`, stu.a);
+          changed.push({ user: stu.a.user, note: 'student + sysProtected' });
+          const d = (await s.get('org/data', { type: 'json' })) || {};
+          const rec = (Array.isArray(d.students) ? d.students : [])
+            .find(x => x && x.id === (stu.a.studentId || ''));
+          if (rec) {
+            if (rec.sysProtected !== true || rec.classId) {
+              rec.sysProtected = true;
+              delete rec.classId;
+              rec._u = Date.now();
+              d.students = (d.students || []).map(x => (x && x.id === rec.id) ? rec : x);
+              await s.setJSON('org/data', d);
+              changed.push({ user: rec.name || rec.id, note: '学员档案 sysProtected + 退出班级统计' });
+            } else skipped.push({ user: rec.name || rec.id, note: '档案已保护' });
+          }
+        }
+      } else skipped.push({ user: '巡检学员', note: '不存在，跳过' });
+
+      return json({ ok: true, changed, skipped });
     }
 
     /* ── 学生设备绑定 ──

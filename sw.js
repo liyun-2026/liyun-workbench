@@ -430,7 +430,13 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
-VERSION = 'v117'; /* VoxOS 5.37 学生账号方案A「一人一密发放卡」——
+VERSION = 'v118'; /* VoxOS 5.38 系统工作号身份 sys：看板可登录 + 清空豁免 + 探针号保护 ——
+   ① 新身份 sys（系统工作）：sync.js 常量/profileOf.isSys；pull 全量只读（filterShared sys 直通）、push 一律拒写（sanitizePush 返回空，静默不弹错保看板稳定）；sys_acct（super/office：list/create/delete，board 标记可选）与 migrate_sys（super，幂等：巡检 teacher 账号→sys、看板号→sys 保 board 标记、「巡检学员」→student+sysProtected 且学员档案打标清班级）两新 action；doUsers 对 role=sys 与 sysProtected 目标 update/pass/delete 全 403；reset_password 拒系统保护学员
+   ② 看板端修复（根因实锤 index.html Board.ok=Auth.isStaff()，服务端 STAFF 四种不含 sys/teacher → sys 登录被「这个功能你的账号看不到」挡死）：Board.ok 放行 sys；board/settings 路由 roles 加 sys；NAV_ORDER.sys/TAB_ORDER.sys=board+settings；defaultPage sys→board；boot sys 无条件 Board.enter() 直达看板展示模式；Board.leave sys 回设置页；ROLE_KIND.sys（paintRoles 过滤不给选）
+   ③ 清空豁免：名册「系统保护」分组（renderStuList 单列）、delStu/delCls 拦 sysProtected、sanitizePush 拦学员墓碑跨端复活；StuAcct/Teachers 系统行金框徽章无操作；出勤/班级人数按班取人 → 探针档案无 classId 自动退出统计口径
+   ④ 设置页「系统工作号」区块（super/office：列表+新建+迁移按钮）+ 锚点导航
+   测试：sysacct_check 新套件 + 九套件全量回归 + stuacct_check 58 + demo_devkey_check 22 + student_check 76；index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.37 学生账号方案A「一人一密发放卡」——
    ① 批量/单独建号（名册页）：账号 = 班级码-学号（班级码按班名自动映射「数字+班」，页面确认可改；学号按姓名序自动编并写进学员档案 s.no 重跑不换号）；密码 = by+4 位随机数字一人一密全班唯一（撞号自动重生成）；「留空统一 liyun2026」口子删除；完成区出「打印发放卡 / 复制欢迎语 / 复制账号密码」
    ② 发放卡生成器：A4 拼版 8 张/页（a2 样张排版：金条+虚线裁切框+账号密码行），整班/单人/重置后都可重打，浏览器打印即裁即用
    ③ 换设备密钥自动化（设置页 devKeyCard）：一键生成 8 位随机码（去易混 0O1I）服务端出码留痕（生成人/时间/使用状态），10 分钟有效、用一次即废（'dev' 核销加过期校验）；「教务自己想一个」手填输入框退役

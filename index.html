@@ -217,6 +217,13 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .chip-on{background:var(--accent);color:var(--btn-text);border-color:transparent}
 .chip-no{border-color:#c25650;color:#c25650}
 .chip:active{opacity:.7}
+/* ==5.38== 「系统」金框徽章：白卡风格克制 —— 只描一圈金线、金字，不填底。
+   挂在账号列表的 sys 行（老师管理 / 学生账号）与设置页「系统工作号」区块。 */
+.sys-badge{
+  border:1px solid var(--gold,#b8912f)!important;color:var(--gold,#b8912f)!important;
+  background:transparent!important;font-size:11px;letter-spacing:2px;
+  padding:2px 8px;border-radius:999px;font-weight:500;
+}
 
 /* ==== 列表 ==== */
 .item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(128,128,128,.22)}
@@ -4474,6 +4481,7 @@ var Icon = {
           <a href="#segAdvanced">高级</a>
           <a href="#devKeyCard">换设备密钥</a>
           <a href="#demoCard">演示账号</a>
+          <a href="#sysAcctCard">系统工作号</a>
           <a href="#healthCard">系统健康</a>
           <a href="#rulesCard">量化细则</a>
           <a href="#boardCard">看板入口</a>
@@ -4564,6 +4572,23 @@ var Icon = {
         <div id="demoList"></div>
       </div>
       <!-- ==== 演示账号 demoCard END ==== -->
+
+      <!-- ==== ==5.38== 系统工作号 sysAcctCard START ====（首位教务 / 总教务专用：
+             巡检脚本与看板屏的机器身份。列表 + 新建 + 存量迁移（仅首位教务）。） -->
+      <div class="card wide" id="sysAcctCard" style="display:none">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-desktop"></use></svg> 系统工作号 <span class="chip sys-badge" style="pointer-events:none">系统</span></h2>
+        <p class="hint" style="margin:0 0 10px">
+          巡检脚本、看板屏这类<b>机器身份</b>用的号：登录后直达看板展示模式，只读同步，<b>没有任何业务写权限</b>，开学前清空数据时也会被豁免。<br>
+          普通建号建不出这种身份 —— 只能在这里发。
+        </p>
+        <div class="row" style="flex-wrap:wrap">
+          <button class="btn" onclick="Settings.sysAcctCreate()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-plus"></use></svg> 新建系统工作号</button>
+          <button class="btn ghost" id="sysMigBtn" style="display:none" onclick="Settings.sysMigrate()">迁移存量账号 → sys</button>
+        </div>
+        <div id="sysAcctList" style="margin-top:10px"></div>
+        <p class="hint" id="sysMigTip" style="display:none;margin-bottom:0"></p>
+      </div>
+      <!-- ==== 系统工作号 sysAcctCard END ==== -->
 
       <div class="card" id="healthCard" style="display:none">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-pulse"></use></svg> 系统健康 <span class="chip" id="healthSetBadge" style="margin:0 0 0 auto;pointer-events:none">还没巡检</span></h2>
@@ -6732,15 +6757,16 @@ const App = {
     { id:'rules',     icon:'calc', name:'量化细则', roles:['super','office','admin','teacher','both'], onShow: () => Settings.renderRules() },
     /* 看板端：同上，有 route 但**不进 NAV_ORDER / TAB_ORDER** —— 它是给办公室那台
        电脑挂的一块只读屏，不是给人当功能用的。入口只有设置页那张卡，
-       或网址带 ?board=1（Windows 桌面快捷方式写死这个参数，开机就落在看板上）。 */
-    { id:'board',     icon:'desktop', name:'看板端', roles:['super','office','admin','both'], onShow: () => Board.render() },
+       或网址带 ?board=1（Windows 桌面快捷方式写死这个参数，开机就落在看板上）。
+       ==5.38== 系统工作号（sys）也放进来：sys 登录后默认直达看板展示模式。 */
+    { id:'board',     icon:'desktop', name:'看板端', roles:['super','office','admin','both','sys'], onShow: () => Board.render() },
     /* 学生账号单独一个端口：学生没有带班，不跟老师账号混在一张列表里。
        名册里能一键建号的是教务，所以三位教务都看得见这张表（2026-09-25 从「只给首位教务」放开）。
        区别只在能不能动：改密码 / 停用 / 删除仍然只有首位教务，见 StuAcct.paint()。 */
     { id:'students',  icon:'grad', name:'学生账号', roles:['super','office','admin','teacher','both'], onShow: () => StuAcct.render() },
     /* 巡检只给首位教务：系统通不通是站长的事，教务老师、授课老师、学生都不该看到这一页 */
     { id:'health',    icon:'pulse', name:'巡检',     roles:['super','office'],         onShow: () => Health.render() },
-    { id:'settings',  icon:'gear', name:'设置',     roles:['super','office','admin','teacher','both','student'], tab:5, onShow: () => Settings.render() },
+    { id:'settings',  icon:'gear', name:'设置',     roles:['super','office','admin','teacher','both','student','sys'], tab:5, onShow: () => Settings.render() },
 
     /* ── 授课老师端。老师上课没时间玩手机，这里全是「一眼看完就走」的 ── */
     { id:'today',     icon:'target', name:'今天',     roles:['teacher','both'], tab:1, onShow: () => Today.render() },
@@ -6783,6 +6809,10 @@ const App = {
       desc:'两套都有：既能管教务那一摊，也能录自己班的情况、发上报。适合又上课又管教务的人（老师管理进不去）。' },
     student: { icon:'grad', name:'学生',
       desc:'只看自己的：今日、打卡、请假、每日新闻、我的课表、考试抽签、本班量化、我的档案、我的作业。' },
+    /* ==5.38== 系统工作号：不是给人用的身份，不给选（建号入口只在设置页「系统工作号」区块）。
+       paintRoles 里过滤掉，这里只为 roleName / 徽章提供名字。 */
+    sys:     { icon:'desktop', name:'系统工作',
+      desc:'巡检脚本与看板屏专用的机器身份：登录后直达看板展示模式，只读同步，没有任何业务写权限。这里不提供选择。' },
   },
 
   /* 底部标签栏放哪 5 个（手机上最多 5 个）—— 每个角色单独定，因为 both 会撞号 */
@@ -6792,7 +6822,10 @@ const App = {
     admin:   ['home','att','homework','roster','settings'],
     teacher: ['today','record','myclass','tickets','settings'],
     both:    ['home','att','record','myclass','settings'],
-    student: ['stuHome','stuSign','stuNews','stuTable','settings']
+    student: ['stuHome','stuSign','stuNews','stuTable','settings'],
+    /* ==5.38== 系统工作号：看板展示模式下 chrome 整个隐藏，tab 栏实际看不见；
+       列出来只为「退出看板（Esc）」回到设置页时还有一条 tab 可点 */
+    sys:     ['board','settings']
   },
 
   /* 各角色的功能顺序 —— 同一条 route 在不同角色下面可以排在不同位置 */
@@ -6811,7 +6844,10 @@ const App = {
        老师管理 / 巡检 / 看板 / 设置管理员卡，路由里本来就没给 teacher），
        自己的授课那摊跟在后面；「today」仍是老师的首屏，与教务的「home」并存。 */
     teacher: ['today','att','sign','homework','roster','students','profile','timetable','hours','night','quant','exam','coop','gather','news','record','myclass','tickets','settings'],
-    student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings']
+    student: ['stuHome','stuGather','stuSign','stuNews','stuTable','stuExam','stuQuant','stuProfile','stuHw','stuMsg','settings'],
+    /* ==5.38== 系统工作号：只进看板 + 设置（改自己密码 / 退出）。
+       其余业务页面一概不在导航里 —— 就算手输 route，routes 的 roles 也不认 sys。 */
+    sys:     ['board','settings']
   },
 
   /** 当前角色能看到的功能，已按顺序排好 */
@@ -6833,6 +6869,8 @@ const App = {
 
   defaultPage(){
     if (Auth.isStudent()) return 'stuHome';
+    /* ==5.38== 系统工作号：登录后直达看板展示模式（boot 里走 Board.enter 那条路） */
+    if (Auth.role() === 'sys') return 'board';
     return Auth.isStaff() ? 'home' : 'today';
   },
 
@@ -6983,8 +7021,11 @@ const App = {
     this.restoreSide();                         // 侧栏收起状态（v71）：上回收起了就保持收起
     const last = Store.get('_lastPage');
     /* 网址带 ?board=1 = 这台机器是当看板用的（桌面快捷方式里写死这个参数）：
-       直接落在看板上，不走「上次停在哪」。教务端才有看板，老师/学生照旧。 */
-    if (/[?&]board=1/.test(location.search) && Board.ok()) Board.enter();
+       直接落在看板上，不走「上次停在哪」。教务端才有看板，老师/学生照旧。
+       ==5.38== 系统工作号（sys）登录后**无条件**直达看板展示模式 ——
+       这个身份就是给挂屏用的，不需要桌面快捷方式带参。 */
+    if (Auth.role() === 'sys' && Board.ok()) Board.enter();
+    else if (/[?&]board=1/.test(location.search) && Board.ok()) Board.enter();
     else this.go(this.can(last) ? last : this.defaultPage());
     Staff.reset();                              // 换了账号，老师名单缓存作废
     if (Auth.mode === 'local') Sync.status('本机模式');   // 本机模式没有云端可同步
@@ -7679,13 +7720,17 @@ const Roster = {
     Weekend.render();     // 周末班名单取自全部在册学员，学员有变要跟着重画
   },
 
-  /** 这个班的学员名单：名字后面挂职务标签（是班干部才挂） */
+  /** 这个班的学员名单：名字后面挂职务标签（是班干部才挂）。
+      ==5.38== 「系统保护」学员（巡检探针号挂的档案）不混进班级名单，
+      单独一组摆在最下面 —— 删不得（delStu/delCls 都拦）、也不进班级人数。 */
   renderStuList(){
     const box = document.getElementById('stuList');
     if (!box) return;
     const cur = Store.get('_rosterCls');
-    const students = Store.list('students', Util.byName).filter(s => s.classId === cur && !Util.isDemoObj(s));
-    box.innerHTML = students.length
+    const all = Store.list('students', Util.byName).filter(s => !Util.isDemoObj(s));
+    const students = all.filter(s => s.classId === cur && !s.sysProtected);
+    const guarded = all.filter(s => s.sysProtected);
+    box.innerHTML = (students.length
       ? students.map(s => {
           const o = Store.list('officers').find(x => x && x.studentId === s.id && x.title);
           return `<div class="item">
@@ -7694,7 +7739,13 @@ const Roster = {
             ${Auth.canEdit() ? `<button class="del" onclick="Roster.delStu('${s.id}')">✕</button>` : ''}
           </div>`;
         }).join('')
-      : '<div class="empty">这个班还没有学员</div>';
+      : '<div class="empty">这个班还没有学员</div>')
+      + (guarded.length
+        ? `<div class="hint" style="margin:14px 0 4px">系统保护（巡检用，不可删除、不参与出勤统计）</div>`
+          + guarded.map(s => `<div class="item">
+              <span class="grow">${Util.esc(s.name)}<span class="chip sys-badge" style="pointer-events:none;margin-left:6px">系统</span></span>
+            </div>`).join('')
+        : '');
   },
 
   /* ── 班干部 ──
@@ -7820,9 +7871,11 @@ const Roster = {
 
   delCls(id){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
-    const n = Store.list('students').filter(s => s.classId === id).length;
-    if (n && !confirm(`班里还有 ${n} 名学员，删班级会连学员一起删，确定？`)) return;
-    Store.list('students').filter(s => s.classId === id).forEach(s => Store.softDelete('students', s.id));
+    /* ==5.38== 「系统保护」学员不跟着班级一起删 —— 巡检探针号挂在上面 */
+    const victims = Store.list('students').filter(s => s.classId === id && !s.sysProtected);
+    const kept = Store.list('students').filter(s => s.classId === id && s.sysProtected).length;
+    if (victims.length && !confirm(`班里还有 ${victims.length} 名学员，删班级会连学员一起删${kept ? '（系统保护学员除外）' : ''}，确定？`)) return;
+    victims.forEach(s => Store.softDelete('students', s.id));
     Store.softDelete('classes', id);
     if (Store.get('_rosterCls') === id) Store.remove('_rosterCls');
     this.render();
@@ -7830,6 +7883,9 @@ const Roster = {
 
   delStu(id){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，名册由教务老师管理');
+    /* ==5.38== 系统保护学员：删不得 —— 巡检探针号挂在档案上，删了整条巡检链就断 */
+    const s = Store.list('students').find(x => x && x.id === id);
+    if (s && s.sysProtected) return UI.toast('这个学员受系统保护（巡检用），不能删除');
     if (!confirm('删除这名学员？TA 的历史记录会保留，但不再出现在名单里。')) return;
     Store.softDelete('students', id);
     this.render();
@@ -14077,10 +14133,11 @@ const Teachers = {
     const cur = this._role;
     /* 学生不在这里建（学生账号由「名册」一键建出），所以身份选项里不出现「学生」。
        「总教务」全系统只准有一个，已经有一个在册就不列它了 ——
-       例外：正在给「那个总教务账号」改身份时仍旧列出来（否则当前身份没得选、看不到自己在哪一项）。 */
+       例外：正在给「那个总教务账号」改身份时仍旧列出来（否则当前身份没得选、看不到自己在哪一项）。
+       ==5.38== 「系统工作」也不给选：那是机器的身份，进出只走设置页「系统工作号」区块。 */
     const noOffice = this.hasOffice() && !(this._roleFor && cur === 'office');
     box.innerHTML = Object.keys(App.ROLE_KIND)
-      .filter(k => k !== 'student' && !(k === 'office' && noOffice))
+      .filter(k => k !== 'student' && k !== 'sys' && !(k === 'office' && noOffice))
       .map(k => {
       const r = App.ROLE_KIND[k];
       const on = k === cur ? ' on' : '';
@@ -14160,14 +14217,18 @@ const Teachers = {
     const list = this._users || [];
     el.innerHTML = list.length ? list.map(u => {
       const isSuper = u.role === 'super';
+      /* ==5.38== 系统工作号：金框徽章、无任何操作按钮 —— 它的进出只在
+         设置页「系统工作号」区块，这一页里连「身份」都不能点（服务端也锁死）。 */
+      const isSys = u.role === 'sys';
       /* 名字一律真名。这一页只有首位教务和总教务进得来（routes 里 roles:['super','office']），
          而「学管办公室」只对**学生眼里的首位教务**那一个账号生效 ——
          这页要是也统一成办公室，教务就看不出谁是谁了（v47 犯过，已改回）。
          登录用户名（@xxx）保留：改密码、停用、点哪一行都靠它分辨。 */
       const shown  = u.name || u.user;
       const handle = ` <span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)}</span>`;
-      const sub    = isSuper ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
-      const acts   = isSuper ? '' : `<span style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:5px;flex-shrink:0;max-width:280px">
+      const sub    = isSuper ? '' : isSys ? '' : `${this.roleName(u.role)}${this.clsText(u)}${u.active ? '' : ' · 已停用'}`;
+      const badge  = isSys ? ` <span class="chip sys-badge" style="pointer-events:none;margin-left:6px">系统</span>` : '';
+      const acts   = isSuper || isSys ? '' : `<span style="display:flex;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:5px;flex-shrink:0;max-width:280px">
                ${Store.getSecret('greet:' + u.id)
                  ? `<button class="chip chip-on" onclick="Teachers.copyGreet('${u.id}')">复制发给TA</button>`
                  : ''}
@@ -14179,7 +14240,7 @@ const Teachers = {
              </span>`;
       return `<div class="item">
         <span class="grow">
-          ${Util.esc(shown)}${handle}
+          ${Util.esc(shown)}${handle}${badge}
           ${sub ? `<br><span class="hint" style="display:inline;margin:0">${sub}</span>` : ''}
         </span>
         ${acts}
@@ -14417,7 +14478,10 @@ const StuAcct = {
     const editable = this.canEdit();
     el.innerHTML = list.length ? list.map(u => {
       const stu = this.stuOf(u);
-      const acts = editable ? `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+      /* ==5.38== 系统保护学员（巡检探针号）：亮徽章、无操作 ——
+         重置/停用/删除在服务端全 403（doUsers 与 reset_password 都拦），按钮干脆不给 */
+      const prot = u.sysProtected === true || (stu && stu.sysProtected === true);
+      const acts = (editable && !prot) ? `<span style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
           <button class="chip" onclick="StuAcct.resetPass('${u.id}')">重置密码</button>
           <button class="chip" onclick="StuAcct.toggle('${u.id}', ${u.active ? 'false' : 'true'})">${u.active ? '停用' : '启用'}</button>
           ${u.active ? '' : `<button class="chip chip-no" onclick="StuAcct.remove('${u.id}')">删除</button>`}
@@ -14427,6 +14491,7 @@ const StuAcct = {
       return `<div class="item">
         <span class="grow">${Util.esc(u.name || u.user)}
           <span class="hint" style="display:inline;margin:0"> @${Util.esc(u.user)}</span>
+          ${prot ? '<span class="chip sys-badge" style="pointer-events:none;margin-left:6px">系统保护</span>' : ''}
           <br><span class="hint" style="display:inline;margin:0">${
             (stu ? (Util.esc(Util.clsName(stu.classId) || '') || '已关联学员') : '还没关联学员档案') +
             (u.active ? '' : ' · 已停用')}</span>${fresh}</span>
@@ -14962,6 +15027,14 @@ const Settings = {
     show('devKeyCard', staff && cloud);                 // 学生换设备的一次性密钥
     show('demoCard', Auth.isSuper() || this.isDemo());  // 演示账号：只有首位教务有
 
+    /* ==5.38== 系统工作号区块：首位教务 / 总教务可见可发号；「迁移存量」只有首位教务 */
+    const sysBlock = (Auth.isSuper() || Auth.isOffice()) && cloud;
+    show('sysAcctCard', sysBlock);
+    if (sysBlock){
+      show('sysMigBtn', Auth.isSuper());
+      this.renderSysAccts();
+    }
+
     this.refreshBackupInfo();
     this.renderAcct();
     this.renderDevKeys();
@@ -15088,6 +15161,78 @@ const Settings = {
         <button class="chip ${k.used || expired ? '' : 'chip-no'}" onclick="Settings.devKeyRevoke('${k.id}')">作废</button>
       </div>`;
     }).join('');
+  },
+
+  /* ════════ ==5.38== 系统工作号：列表 / 新建 / 删除 / 存量迁移 ════════
+     全部走专用 action sys_acct（super/office）与 migrate_sys（super）。
+     服务端把 sys 账号在 doUsers 里整个锁死 —— 这一块是它们唯一的进出通道。 */
+  async renderSysAccts(){
+    const box = document.getElementById('sysAcctList');
+    if (!box) return;
+    try {
+      const j = await Auth.call('sys_acct', { op: 'list' });
+      const users = (j && j.users) || [];
+      box.innerHTML = users.length ? users.map(u => `
+        <div class="item">
+          <span class="grow"><b style="font-weight:500">${Util.esc(u.name || u.user)}</b>
+            <span class="chip sys-badge" style="pointer-events:none;margin-left:6px">系统</span>
+            ${u.board ? '<span class="hint" style="display:inline;margin:0 0 0 6px">看板屏（5 台设备额度）</span>' : ''}
+            <br><span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)} · ${u.active ? '使用中' : '已停用'}</span></span>
+          <button class="chip chip-no" onclick="Settings.sysAcctDel('${u.id}', '${Util.esc(u.user)}')">删除</button>
+        </div>`).join('')
+        : '<div class="empty">还没有系统工作号。存量迁移会把巡检与看板号搬进来。</div>';
+    } catch(e){
+      box.innerHTML = '<div class="empty">读不到系统工作号：' + Util.esc(e.message) + '</div>';
+    }
+  },
+
+  async sysAcctCreate(){
+    const user = (prompt('给系统工作号起一个用户名（登录时输入）：', '') || '').trim();
+    if (!user) return;
+    const bad = userErr(user);
+    if (bad) return UI.toast(bad);
+    const name = (prompt('显示名（留空就用用户名）：', '') || '').trim();
+    const pass = (prompt('密码（至少 8 位。发下去之前先记牢，这页不会再显示它）：', '') || '');
+    if (pass.length < 8) return UI.toast('密码至少 8 位');
+    const forBoard = confirm('这个号是给看板屏（办公室那台电脑）用的吗？\n\n「确定」= 看板号（5 台设备额度）；「取消」= 普通系统工作号（巡检脚本等）。');
+    try {
+      await Auth.call('sys_acct', { op: 'create', user, name, pass, board: forBoard });
+      UI.toast('系统工作号已建好');
+      this.renderSysAccts();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async sysAcctDel(id, user){
+    if (!confirm('删除系统工作号「' + user + '」？\n\n用它挂着的看板屏 / 巡检脚本会立刻登不进来。')) return;
+    try {
+      await Auth.call('sys_acct', { op: 'delete', id });
+      UI.toast('已删除');
+      this.renderSysAccts();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  /* 存量迁移（幂等）：巡检 teacher 账号 → sys；看板号 → sys（board 标记保留）；
+     「巡检学员」→ student + sysProtected（学员档案同步打标、退出班级统计口径）。
+     重跑不产生任何新改动 —— 结果里 changed 为空就说明已经迁过了。 */
+  async sysMigrate(){
+    if (!Auth.isSuper()) return UI.toast('只有首位教务能跑迁移');
+    if (!confirm('把存量系统自用账号迁移成 sys 身份？\n\n· 「教务系统巡检账号」→ sys\n· 看板专用号 → sys（看板标记保留）\n· 「巡检学员」→ student + 系统保护\n\n迁移幂等，重复跑不会产生新改动。')) return;
+    const tip = document.getElementById('sysMigTip');
+    try {
+      const j = await Auth.call('migrate_sys');
+      const ch = (j && j.changed) || [], sk = (j && j.skipped) || [];
+      if (tip){
+        tip.style.display = '';
+        tip.innerHTML = '迁移完成：' +
+          (ch.length ? '<b>改动 ' + ch.length + ' 项</b> —— ' + ch.map(x => Util.esc(x.user) + '：' + Util.esc(x.note || ((x.from || '') + ' → ' + (x.to || '')))).join('；') : '无新改动（之前已迁过）') +
+          (sk.length ? '<br>跳过 ' + sk.length + ' 项：' + sk.map(x => Util.esc(x.user) + '（' + Util.esc(x.note) + '）').join('；') : '');
+      }
+      UI.toast('迁移完成：改动 ' + ch.length + ' 项，跳过 ' + sk.length + ' 项');
+      this.renderSysAccts();
+    } catch(e){
+      if (tip){ tip.style.display = ''; tip.textContent = '迁移失败：' + e.message; }
+      UI.toast(e.message);
+    }
   },
 
   /* ════════ 演示账号：只有首位教务能建、能切 ════════
@@ -15506,6 +15651,7 @@ const Auth = {
     if (this.isStudent()) return '学生';
     if (this.isSuper()) return '首位教务';
     if (this.isOffice()) return '总教务';
+    if (this.role() === 'sys') return '系统工作';
     if (this.role() === 'both') return '教务兼授课';
     return this.isStaff() ? '教务老师' : '授课老师';
   },
@@ -18573,8 +18719,12 @@ const Board = {
     return '当前无课';
   },
 
-  /* 只有教务端能看：老师那边没有打卡这一摊，学生更不该看到码 */
-  ok(){ return Auth.isStaff(); },
+  /* ==5.38== 根因实锤（看板账号登不进去）：原来只有这一行 —— `Auth.isStaff()`，
+     而服务端 profileOf 的 isStaff = STAFF.includes(role)（super/office/admin/both 四种）。
+     「老师/学生/系统」这些身份一律 false → Board.enter() 直接 toast
+     「这个功能你的账号看不到」，?board=1 开机也进不了看板。
+     修复：sys 身份放行 —— 看板屏本来就是系统工作号的本职。 */
+  ok(){ return Auth.isStaff() || Auth.role() === 'sys'; },
 
   link(){ return location.href.replace(/[?#].*$/, '') + '?board=1'; },
 
@@ -18679,7 +18829,8 @@ const Board = {
     try {
       if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     } catch(e){}
-    App.go('home');
+    /* ==5.38== sys 没有工作台首页（home 是教务的），退出看板回设置页（改密码/退出在那儿） */
+    App.go(Auth.role() === 'sys' ? 'settings' : 'home');
   },
 
   render(){ if (this.ok()) this.start(); },
