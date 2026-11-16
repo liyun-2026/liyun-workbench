@@ -50,6 +50,22 @@ else
   out+=("[严重] 后端探活 hello 异常: $hello_body")
 fi
 
+
+# SSL 证书剩余天数：EdgeOne 免费证书到期前 15 天自动续期；剩 ≤10 天还没换新才报警提醒手动操作
+cert_days=$(echo | openssl s_client -connect liyun2026.top:443 -servername liyun2026.top 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 | xargs -I{} sh -c 'echo $(( ( $(date -j -f "%b %d %H:%M:%S %Y %Z" "{}" "+%s" 2>/dev/null || date -d "{}" +%s 2>/dev/null || echo 0) - $(date +%s) ) / 86400 ))')
+if [ -n "$cert_days" ] && [ "$cert_days" != "0" ]; then
+  if [ "$cert_days" -le 10 ]; then
+    ok=0
+    out+=("[严重] SSL 证书仅剩 ${cert_days} 天到期且平台未自动续期——请按 docs/ssl-renew-guide.md 手动申请免费证书")
+  elif [ "$cert_days" -le 20 ]; then
+    out+=("[提示] SSL 证书剩 ${cert_days} 天（平台应在此期间自动续期，若越过 10 天线将报警）")
+  else
+    out+=("[正常] SSL 证书剩 ${cert_days} 天")
+  fi
+else
+  out+=("[提示] SSL 证书有效期探测失败（不影响判活）")
+fi
+
 title=$(curl -s --max-time 20 "$DOMAIN" | grep -o '<title>[^<]*</title>')
 if printf '%s' "$title" | grep -q '砺蕴2026'; then
   out+=("[正常] 标题标记存在")
