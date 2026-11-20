@@ -88,20 +88,36 @@ else
   out+=("[严重] 后端探活 hello 异常: ${hello_body}——服务不可用")
 fi
 
-# SSL 证书剩余天数：EdgeOne 免费证书到期前 15 天自动续期；剩 ≤10 天还没换新才报警
-# （唯一一处「业务项可以过红」：自动续期失败的人工兜底）
-cert_days=$(echo | openssl s_client -connect "${HOST}:443" -servername "$HOST" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 | xargs -I{} sh -c 'echo $(( ( $(date -j -f "%b %d %H:%M:%S %Y %Z" "{}" "+%s" 2>/dev/null || date -d "{}" +%s 2>/dev/null || echo 0) - $(date +%s) ) / 86400 ))')
-if [ -n "$cert_days" ] && [ "$cert_days" != "0" ]; then
-  if [ "$cert_days" -le 10 ]; then
-    ok=0
-    out+=("[严重] SSL 证书仅剩 ${cert_days} 天到期且平台未自动续期——请按 docs/ssl-renew-guide.md 手动申请免费证书")
-  elif [ "$cert_days" -le 20 ]; then
-    out+=("[提示] SSL 证书剩 ${cert_days} 天（平台应在此期间自动续期，若越过 10 天线将报警）")
-  else
-    out+=("[正常] SSL 证书剩 ${cert_days} 天")
-  fi
+# SSL 证书检查（python ssl：强制域名匹配 + 剩余天数）——11-20 空SAN坏证书事故的教训
+cert_json=$(python3 - <<'PYEOF'
+import ssl, socket, datetime, json
+r = {"ok": False}
+try:
+    ctx = ssl.create_default_context()
+    with socket.create_connection(('liyun2026.top', 443), timeout=12) as s:
+        with ctx.wrap_socket(s, server_hostname='liyun2026.top') as w:
+            c = w.getpeercert()
+            end = ssl.cert_time_to_seconds(c['notAfter'])
+            r = {"ok": True, "days": int((end - datetime.datetime.now().timestamp())/86400),
+                 "end": c['notAfter'],
+                 "san": [v for k,v in c.get('subjectAltName',()) if k=='DNS']}
+except Exception as e:
+    r = {"ok": False, "err": str(e)[:120]}
+print(json.dumps(r))
+PYEOF
+)
+cert_ok=$(printf '%s' "$cert_json" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("1" if d.get("ok") and "liyun2026.top" in (d.get("san") or []) and d.get("days",0)>0 else "0")')
+cert_days=$(printf '%s' "$cert_json" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("days","?"))')
+if [ "$cert_ok" != "1" ]; then
+  ok=0
+  out+=("[严重] SSL 证书异常：域名不匹配/验证失败（浏览器会拦截）——按 docs/ssl-renew-guide.md 手动重新申请")
+elif [ "$cert_days" -le 10 ]; then
+  ok=0
+  out+=("[严重] SSL 证书仅剩 ${cert_days} 天且未自动续期——按 docs/ssl-renew-guide.md 手动重新申请")
+elif [ "$cert_days" -le 20 ]; then
+  out+=("[提示] SSL 证书剩 ${cert_days} 天（平台应在到期前15天自动续期）")
 else
-  out+=("[提示] SSL 证书有效期探测失败（不影响判活）")
+  out+=("[正常] SSL 证书域名匹配，剩 ${cert_days} 天")
 fi
 
 title=$(curl -s --max-time 20 "$DOMAIN" | grep -o '<title>[^<]*</title>')
