@@ -25,6 +25,14 @@
 #   ⑥ 延迟趋势留痕：每轮把 首页/后端/探针 耗时追加到
 #      ~/Desktop/砺蕴教务系统/.health-history.jsonl（一行一个 JSON：t/homeMs/helloMs/
 #      probeMs/peak），超过 5000 行自动裁掉最旧的，供简报做趋势对比。
+#   ⑦ DNS 污染检测（==5.38== 2026-11-20 虚惊教训：Mac 本机 DNS 被路由器 DHCP 下发的
+#      假 DNS 污染，返回假 IP + 302 垃圾站，「打不开网站」但站点完好）——
+#      本机 dig vs DoH 权威（223.5.5.5，兜底 119.29.29.29）对照：
+#      · IP 集合不一致或 CNAME 不匹配 *.pages.dnsoe4.com → [提示] 本机网络 DNS 被污染
+#        （站点本身正常），并改用权威 IP curl --resolve 直连重测全部站点检查，
+#        直连 200 = 站点活着，OVERALL 不降级；探针段此场景 [跳过]（无法跨污染网络探测）。
+#      · 权威 IP 直连 200 才算「站点活着」；DoH 两个源都拿不到 IP → 按本机解析继续测
+#        （无法翻案），本机测挂即 FAIL；权威 IP 直连也挂 → FAIL（站点真故障）。
 #   DOMAIN 可用 LIYUN_HEALTH_DOMAIN 覆盖（dev 演练 / 故障注入测试用）。
 #   automation 消费口径不变：grep 'ALERT' 抓报警行，行内带「类型=」与「原因=」。
 set -u
@@ -58,10 +66,71 @@ except Exception:
 fi
 peak_tag=""; [ "$PEAK" = "1" ] && peak_tag="高峰期 · "
 
+# ── DNS 定性（==5.38== ⑦）：本机 dig vs DoH 权威对照，必须在所有站点检查之前跑 ——
+#    污染时后面的 curl 都要改用权威 IP 直连，否则首页打到假 IP 上就是一场虚惊。
+#    IP 字面量（dev 演练直连）没有 DNS 可查，整段跳过。
+IS_IP=0; printf '%s' "$HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' && IS_IP=1
+POLLUTED=0; AUTH_IP=""; AUTH_SET=""; LOCAL_SET=""; CNAME_MODE_OK=1
+RESOLVE_OPT=""; DNS_MSG=""
+if [ "$IS_IP" = "0" ]; then
+  # DoH 权威解析：主 223.5.5.5（/resolve），兜底 119.29.29.29（/dnsquery），各 8s 超时
+  AUTH_SET=$(curl -s --max-time 8 "https://223.5.5.5/resolve?name=${HOST}&type=A" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(" ".join(sorted(a["data"] for a in (d.get("Answer") or []) if a.get("type") == 1)))
+except Exception: pass' 2>/dev/null)
+  if [ -z "$AUTH_SET" ]; then
+    AUTH_SET=$(curl -s --max-time 8 "https://119.29.29.29/dnsquery?name=${HOST}&type=A" 2>/dev/null | python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(" ".join(sorted(x["data"] for x in (d.get("data") or []) if x.get("type") == 1)))
+except Exception: pass' 2>/dev/null)
+  fi
+  AUTH_IP=$(printf '%s' "$AUTH_SET" | awk '{print $1}')
+
+  # 本机解析（dig +short：CNAME 行 + A 行混在一份输出里）与 CNAME 模式校验
+  local_res=$(dig +short "$HOST" A 2>/dev/null)
+  LOCAL_SET=$(printf '%s\n' "$local_res" | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$' | sort -u | tr '\n' ' ' | sed 's/ $//')
+  # CNAME 必须匹配 *.pages.dnsoe4.com —— 今晚污染时 CNAME 也可能造假，光查「存在」不够
+  if printf '%s\n' "$local_res" | grep -qE '[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.pages\.dnsoe4\.com\.?([[:space:]]|$)'; then
+    CNAME_MODE_OK=1
+  else
+    CNAME_MODE_OK=0
+  fi
+
+  if [ -z "$AUTH_SET" ]; then
+    DNS_MSG="[提示] DoH 权威解析不可用（223.5.5.5 / 119.29.29.29 都超时）—— 按本机解析继续测，无法为误判翻案"
+  elif [ -z "$LOCAL_SET" ]; then
+    POLLUTED=1    # 权威拿得到、本机 dig 反而空 —— 本机解析已废
+  elif [ "$LOCAL_SET" != "$AUTH_SET" ] || [ "$CNAME_MODE_OK" = "0" ]; then
+    POLLUTED=1
+  fi
+
+  if [ "$POLLUTED" = "1" ] && [ -n "$AUTH_IP" ]; then
+    RESOLVE_OPT="--resolve ${HOST}:443:${AUTH_IP}"
+    EXTRA=""
+    [ "$CNAME_MODE_OK" = "0" ] && EXTRA="、CNAME 不匹配 *.pages.dnsoe4.com"
+    DNS_MSG="[提示] 本机网络 DNS 被污染（站点本身正常）：本机解析 ${LOCAL_SET:-空}${EXTRA}，权威（DoH）= ${AUTH_SET} —— 以下站点检查已改用权威 IP ${AUTH_IP} 直连重测"
+  elif [ "$POLLUTED" = "1" ]; then
+    DNS_MSG="[提示] 本机解析异常（本机 = ${LOCAL_SET:-空}）但 DoH 权威也拿不到 —— 无法直连翻案，按本机解析继续测"
+    POLLUTED=0
+  elif [ "$IS_IP" = "0" ] && [ -n "$AUTH_SET" ]; then
+    DNS_MSG="[正常] DNS 解析与权威一致（CNAME 匹配 *.pages.dnsoe4.com，权威 = ${AUTH_SET}）"
+  fi
+  [ -n "$DNS_MSG" ] && out+=("$DNS_MSG")
+else
+  out+=("[跳过] DNS 定性与 CNAME 检查（IP 直连演练模式）")
+fi
+
 # 首页: HTTP 状态 + 响应耗时（200 即判活；慢=已知 CDN 因素，只提示，永不影响 OVERALL）
-read -r code home_elapsed <<<"$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 "$DOMAIN")"
+# DNS 被污染时 $RESOLVE_OPT 非空：改走权威 IP 直连 —— 打到假 IP 上的 302 垃圾站不算数
+read -r code home_elapsed <<<"$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 20 $RESOLVE_OPT "$DOMAIN")"
 if [ "$code" = "200" ]; then
-  if awk "BEGIN{exit !($home_elapsed > 10)}"; then
+  if [ "$POLLUTED" = "1" ]; then
+    out+=("[正常] 首页 HTTP=200 耗时 ${home_elapsed}s（经权威 IP ${AUTH_IP} 直连 —— 本机解析被污染不影响判活）")
+  elif awk "BEGIN{exit !($home_elapsed > 10)}"; then
     out+=("[提示] 首页 HTTP=200 但响应耗时 ${home_elapsed}s（>10s，已知 CDN 出口带宽因素，服务正常）")
   elif awk "BEGIN{exit !($home_elapsed > 3)}"; then
     out+=("[正常] 首页 HTTP=200 耗时 ${home_elapsed}s（>3s 为已知 CDN 因素，不影响判活）")
@@ -73,7 +142,7 @@ else
   out+=("[严重] 首页 HTTP=$code (期望 200)——服务不可用")
 fi
 
-hello=$(curl -s --max-time 20 -w '\n%{time_total}' -X POST "$DOMAIN/api/sync" \
+hello=$(curl -s --max-time 20 $RESOLVE_OPT -w '\n%{time_total}' -X POST "$DOMAIN/api/sync" \
   -H 'content-type: application/json' -d '{"action":"hello"}')
 hello_body="${hello%$'\n'*}"
 hello_time="${hello##*$'\n'}"
@@ -89,13 +158,16 @@ else
 fi
 
 # SSL 证书检查（python ssl：强制域名匹配 + 剩余天数）——11-20 空SAN坏证书事故的教训
-cert_json=$(python3 - <<'PYEOF'
-import ssl, socket, datetime, json
+# DNS 被污染时走权威 IP 连接（HC_AUTH_IP），server_hostname 照传真域名 —— SNI 与证书校验都正确
+cert_json=$(HC_AUTH_IP="$AUTH_IP" HC_HOST="$HOST" python3 - <<'PYEOF'
+import ssl, socket, datetime, json, os
 r = {"ok": False}
+host = os.environ.get("HC_HOST") or "liyun2026.top"
+ip = os.environ.get("HC_AUTH_IP") or host     # 无权威 IP 时按本机解析走
 try:
     ctx = ssl.create_default_context()
-    with socket.create_connection(('liyun2026.top', 443), timeout=12) as s:
-        with ctx.wrap_socket(s, server_hostname='liyun2026.top') as w:
+    with socket.create_connection((ip, 443), timeout=12) as s:
+        with ctx.wrap_socket(s, server_hostname=host) as w:
             c = w.getpeercert()
             end = ssl.cert_time_to_seconds(c['notAfter'])
             r = {"ok": True, "days": int((end - datetime.datetime.now().timestamp())/86400),
@@ -120,25 +192,12 @@ else
   out+=("[正常] SSL 证书域名匹配，剩 ${cert_days} 天")
 fi
 
-title=$(curl -s --max-time 20 "$DOMAIN" | grep -o '<title>[^<]*</title>')
+title=$(curl -s --max-time 20 $RESOLVE_OPT "$DOMAIN" | grep -o '<title>[^<]*</title>')
 if printf '%s' "$title" | grep -q '砺蕴2026'; then
   out+=("[正常] 标题标记存在")
 else
   ok=0
   out+=("[严重] 标题标记异常: ${title}——服务不可用")
-fi
-
-# CNAME：IP 字面量（dev 演练直连）没有 DNS 可查，跳过
-if printf '%s' "$HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-  out+=("[跳过] CNAME 解析检查（IP 直连演练模式）")
-else
-  cname=$(dig +short "$HOST" 2>/dev/null)
-  if [ -n "$cname" ]; then
-    out+=("[正常] CNAME 解析存在")
-  else
-    ok=0
-    out+=("[严重] CNAME 解析失败——服务不可用")
-  fi
 fi
 
 # ── 打卡通道探针（==5.38== 本轮核心，零数据写入的预期拒绝探测）──
@@ -203,7 +262,11 @@ out["ok"] = out["code"] in ("BADCODE", "EXPIRED")   # 结构化拒绝 = 通道�
 print(json.dumps(out))' 2>/dev/null)
 
 PROBE_KIND=""; PROBE_MS=""; PROBE_NOTE=""
-if [ -n "$PROBE_RES" ]; then
+# ==5.38== DNS 被污染时探针强制 [跳过]：urllib 跨不过污染网络（会打到假 IP 上），
+# 权威 IP 直连已证明站点活着，OVERALL 不因探针缺测降级 —— 宁缺勿假。
+if [ "$POLLUTED" = "1" ] && [ -n "$RESOLVE_OPT" ]; then
+  PROBE_KIND="polluted"
+elif [ -n "$PROBE_RES" ]; then
   PROBE_KIND=$(printf '%s' "$PROBE_RES" | HC_PR="$PROBE_RES" python3 -c '
 import sys, json, os
 d = json.loads(os.environ["HC_PR"])
@@ -217,6 +280,10 @@ else: print("fail")' 2>/dev/null)
 fi
 
 case "$PROBE_KIND" in
+  polluted)
+    PROBE_MS=""
+    out+=("[跳过] 打卡通道探针 原因=本机 DNS 被污染，探测请求会打到假 IP 上 —— 权威 IP 直连已证明站点活着，恢复网络后探针自动恢复")
+    ;;
   skip)
     PROBE_MS=""    # 探针没跑，history 里 probeMs 记 null
     out+=("[跳过] 打卡通道探针 原因=凭据文件没有 stu_user/stu_pass（专用巡检学生账号）——配法：名册给「巡检学员」档案单独建一个学生号，再把账号密码写进 ${CRED_FILE} 的 stu_user/stu_pass 两个键")
