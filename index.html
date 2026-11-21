@@ -15024,7 +15024,10 @@ const Settings = {
     show('slotCard', staff);         // 考勤时段也只有教务端配
     Health.paintBadge();             // 无论在哪一页，设置里的那句话都跟着最新一次结果走
 
-    show('devKeyCard', staff && cloud);                 // 学生换设备的一次性密钥
+    /* ==5.39== 密钥卡显隐收口成 ACCT_OPS 三档（super/office/admin）：原来用 staff 判断
+       —— both 也是 staff，卡片可见但服务端 ACCT_OPS 不含 both，点「一键生成」必 403。
+       上线前夜实锤收口：点了没用就别露出来（与「系统健康」卡同一类毛病的同一句修法）。 */
+    show('devKeyCard', (Auth.isSuper() || Auth.isOffice() || Auth.role() === 'admin') && cloud);
     show('demoCard', Auth.isSuper() || this.isDemo());  // 演示账号：只有首位教务有
 
     /* ==5.38== 系统工作号区块：首位教务 / 总教务可见可发号；「迁移存量」只有首位教务 */

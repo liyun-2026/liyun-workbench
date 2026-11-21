@@ -185,10 +185,9 @@ try {
   ok(st1.syncCard, '「我的账号」卡可见（改密码/退出）');
   if (['super','office','admin'].includes(b1.role)){
     ok(st1.devKey, '换设备密钥区块可见（一键生成可用）');
-  } else if (b1.role === 'both'){
-    note('密钥区块对 both（staff）可见 —— ⚠️ UI 疏漏：服务端 ACCT_OPS 只有 super/office/admin，both 点「一键生成」会被 403（如实报告，待主理人拍板是否收起）');
   } else {
-    ok(!st1.devKey, '密钥区块对 ' + b1.role + ' 隐藏（权限收起，与设计一致）');
+    /* ==5.39== 密钥卡显隐收口成 ACCT_OPS 三档：both/teacher 一律隐藏（服务端本就 403） */
+    ok(!st1.devKey, '密钥区块对 ' + b1.role + ' 已收起（5.39 显隐收口，与 ACCT_OPS 一致）');
   }
   ok(!st1.danger || b1.role === 'super', '危险操作卡权限收起正确');
   await cdp.shot(path.join(SHOTS, 'desktop-settings.png'));

@@ -430,7 +430,12 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
-VERSION = 'v118'; /* VoxOS 5.38 系统工作号身份 sys：看板可登录 + 清空豁免 + 探针号保护 ——
+VERSION = 'v119'; /* VoxOS 5.39 密钥卡显隐收口（上线前夜最后一修）——
+   devKeyCard 显隐从 staff 收成 ACCT_OPS 三档（super/office/admin）：both 也是 staff，
+   卡片可见但服务端 ACCT_OPS 不含 both，点「一键生成」必 403 —— prelaunch_check 生产体检实锤，
+   点了没用就别露出来。一行改动 + 注释；teacher_ro_check / v47_features_check / demo_devkey_check /
+   stuacct_check 断言核过零冲突。index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.38 系统工作号身份 sys：看板可登录 + 清空豁免 + 探针号保护 ——
    ① 新身份 sys（系统工作）：sync.js 常量/profileOf.isSys；pull 全量只读（filterShared sys 直通）、push 一律拒写（sanitizePush 返回空，静默不弹错保看板稳定）；sys_acct（super/office：list/create/delete，board 标记可选）与 migrate_sys（super，幂等：巡检 teacher 账号→sys、看板号→sys 保 board 标记、「巡检学员」→student+sysProtected 且学员档案打标清班级）两新 action；doUsers 对 role=sys 与 sysProtected 目标 update/pass/delete 全 403；reset_password 拒系统保护学员
    ② 看板端修复（根因实锤 index.html Board.ok=Auth.isStaff()，服务端 STAFF 四种不含 sys/teacher → sys 登录被「这个功能你的账号看不到」挡死）：Board.ok 放行 sys；board/settings 路由 roles 加 sys；NAV_ORDER.sys/TAB_ORDER.sys=board+settings；defaultPage sys→board；boot sys 无条件 Board.enter() 直达看板展示模式；Board.leave sys 回设置页；ROLE_KIND.sys（paintRoles 过滤不给选）
    ③ 清空豁免：名册「系统保护」分组（renderStuList 单列）、delStu/delCls 拦 sysProtected、sanitizePush 拦学员墓碑跨端复活；StuAcct/Teachers 系统行金框徽章无操作；出勤/班级人数按班取人 → 探针档案无 classId 自动退出统计口径
