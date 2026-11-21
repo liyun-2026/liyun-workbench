@@ -430,7 +430,13 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
-VERSION = 'v119'; /* VoxOS 5.39 密钥卡显隐收口（上线前夜最后一修）——
+VERSION = 'v120'; /* VoxOS 5.40 平台劣化韧性：重试 + 缓存兜底 + 云端暂忙友好态（2026-11-21 夜，EdgeOne 后端劣化实测 login 4-10s / pull 6-10.5s / 间歇 504）——
+   ① Auth.call 请求重试链：单请求上限 20s；网络层失败 / 5xx / 429 自动重试 2 次（退避 1s/3s），重试只救「没送到」，业务错误（4xx）一律不重试；重试期间「连接中…（第 n 次）」细条（.net-nub，fixed 顶部不挡点击），成败都撤
+   ② 缓存兜底渲染：pull/push 失败 → 页面继续用本地 Store 渲染（各页实从 Store 读，绝不白屏），底部金条「云端同步暂缓 · 显示 HH:MM 的本地数据」（.stale-bar）；恢复 pull 成功自动撤条；AUTH 过期不误导（走 sessionLost）
+   ③ 设置页系统工作号区块读失败 → 「云端暂忙 · 点击重试」按钮替代裸报错，重试走①的重试链；读不到不阻塞设置页其他功能
+   ④ 全部细条 fixed 定位 pointer-events:none（stale-bar 保留可点）—— 慢 ≠ 锁死
+   测试：resilience_check 新套件 16 项（monkey-patch fetch 模拟 504×2→成功 / 401 不重试 / 断网缓存渲染+金条 / 恢复自动撤条 / sys 区块暂忙重试）全绿；index.html 变了 → VERSION 加一 */
+  /* VoxOS 5.39 密钥卡显隐收口（上线前夜最后一修）——
    devKeyCard 显隐从 staff 收成 ACCT_OPS 三档（super/office/admin）：both 也是 staff，
    卡片可见但服务端 ACCT_OPS 不含 both，点「一键生成」必 403 —— prelaunch_check 生产体检实锤，
    点了没用就别露出来。一行改动 + 注释；teacher_ro_check / v47_features_check / demo_devkey_check /

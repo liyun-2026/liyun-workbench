@@ -224,6 +224,18 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
   background:transparent!important;font-size:11px;letter-spacing:2px;
   padding:2px 8px;border-radius:999px;font-weight:500;
 }
+/* ==5.40== 平台劣化韧性：两条全局细条（不挡任何点击 —— 慢 ≠ 锁死）
+   .net-nub  请求正在自动重试：「连接中…（第 n 次）」，成败都撤
+   .stale-bar 云端拉不动，页面改用本地缓存渲染（底部金条），恢复同步自动撤 */
+.net-nub,.stale-bar{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:998;
+  font-size:12px;letter-spacing:.5px;padding:6px 14px;border-radius:999px;
+  background:rgba(28,34,30,.86);color:#f3efe6;box-shadow:0 4px 14px rgba(0,0,0,.18);
+  pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .25s;max-width:92vw;overflow:hidden;text-overflow:ellipsis;
+}
+.net-nub{top:10px}
+.stale-bar{bottom:14px;pointer-events:auto;background:rgba(163,124,58,.94)}
+.net-nub.on,.stale-bar.on{opacity:1}
 
 /* ==== 列表 ==== */
 .item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(128,128,128,.22)}
@@ -6237,6 +6249,32 @@ const UI = {
     box.innerHTML = html;
     target?.prepend(box);
     return box;
+  },
+
+  /* ==5.40== 平台劣化韧性：两条全局细条 ──
+     retryNub：Auth.call 正在自动重试（「连接中…（第 n 次）」），成败都撤；
+     staleBar：云端拉不动，页面改用本地缓存渲染（底部金条写明数据时点），恢复同步自动撤。
+     两条都只是「说话」，不挡任何点击 —— 平台慢不能变成系统不可用。 */
+  _nubEl(){
+    let el = document.getElementById('netNub');
+    if (!el){ el = document.createElement('div'); el.id = 'netNub'; el.className = 'net-nub'; document.body.appendChild(el); }
+    return el;
+  },
+  retryNub(n){
+    const el = this._nubEl();
+    el.textContent = '连接中…（第 ' + n + ' 次重试）';
+    el.classList.add('on');
+  },
+  retryNubOff(){ const el = document.getElementById('netNub'); if (el) el.classList.remove('on'); },
+  staleBar(on){
+    let el = document.getElementById('staleBar');
+    if (on){
+      if (!el){ el = document.createElement('div'); el.id = 'staleBar'; el.className = 'stale-bar'; document.body.appendChild(el); }
+      const at = Store.get('_syncAt');
+      const t = at ? new Date(at).toTimeString().slice(0, 5) : '';
+      el.textContent = '云端同步暂缓 · 显示 ' + (t || '本次开机') + ' 的本地数据';
+      el.classList.add('on');
+    } else if (el) el.classList.remove('on');
   }
 };
 
@@ -15185,7 +15223,11 @@ const Settings = {
         </div>`).join('')
         : '<div class="empty">还没有系统工作号。存量迁移会把巡检与看板号搬进来。</div>';
     } catch(e){
-      box.innerHTML = '<div class="empty">读不到系统工作号：' + Util.esc(e.message) + '</div>';
+      /* ==5.40== 云端暂忙友好态：504 / 超时后不再裸报错 —— 摆一个「点击重试」，
+         重试走 Auth.call 的自动重试链（1s/3s 退避）。读不到账号列表不阻塞
+         设置页其他任何功能：这块空着，别的照常点。 */
+      box.innerHTML = '<div class="empty">云端暂忙，读不到系统工作号（' + Util.esc(e.message) + '）<br>' +
+        '<button class="btn ghost" style="margin-top:8px" onclick="Settings.renderSysAccts()">点击重试</button></div>';
     }
   },
 
@@ -15726,15 +15768,28 @@ const Auth = {
     return { token: 'local:' + user, profile: this._strip(a), created: false };
   },
 
-  async call(action, extra = {}){
+  /* ==5.40== 平台劣化韧性（主理人 2026-11-21 夜拍板）：单请求上限 20 秒，
+     网络层失败 / 5xx / 429 自动重试 2 次（退避 1s / 3s）——重试只救「没送到」，
+     业务错误（密码错、没权限、打卡码错…4xx）一律不重试，答错了再试也没有意义。
+     重试期间亮「连接中…（第 n 次）」细条，成败都撤；整条链全程异步，不阻塞本页其他功能。 */
+  async call(action, extra = {}, _attempt = 0){
+    const RETRY = [1000, 3000];
     let r;
     try {
       r = await fetch('/api/sync', {
         method:'POST',
         headers:{ 'content-type':'application/json' },
-        body: JSON.stringify(Object.assign({ action, token: this.token() }, extra))
+        body: JSON.stringify(Object.assign({ action, token: this.token() }, extra)),
+        signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(20000) : undefined
       });
-    } catch {
+    } catch (err) {
+      /* 网络层没送到（连接失败 / 20 秒超时）→ 可重试 */
+      if (_attempt < RETRY.length){
+        UI.retryNub(_attempt + 1);
+        await new Promise(res => setTimeout(res, RETRY[_attempt]));
+        UI.retryNubOff();
+        return this.call(action, extra, _attempt + 1);
+      }
       let msg = '连不上服务器（网络断了，或预览服务没在跑）。本地记的东西都还在，恢复后会自动补传。';
       /* localhost 走代理是常见坑：有的代理软件不放过它，换成 IP 就绕开了 */
       if (location.hostname === 'localhost') msg += ' 也可以把地址里的 localhost 换成 127.0.0.1 试试。';
@@ -15742,6 +15797,13 @@ const Auth = {
       e.code = 'OFFLINE';
       this._connErr = e.message;
       throw e;
+    }
+    /* 5xx / 429 = 平台侧暂时不好使（CDN 网关超时、限流）→ 同样可重试 */
+    if (!r.ok && (r.status >= 500 || r.status === 429) && _attempt < RETRY.length){
+      UI.retryNub(_attempt + 1);
+      await new Promise(res => setTimeout(res, RETRY[_attempt]));
+      UI.retryNubOff();
+      return this.call(action, extra, _attempt + 1);
     }
     let j = {};
     try { j = await r.json(); }
@@ -16059,7 +16121,10 @@ const Sync = {
     return { shared, personal: {} };
   },
 
-  /** 拉取并合并。失败一律静默降级——本地数据才是主的 */
+  /** 拉取并合并。失败一律静默降级——本地数据才是主的。
+      ==5.40== 平台劣化韧性：拉不动（504/超时/断网）时页面继续用本地 Store 渲染
+      （各页本来就实从 Store 读，绝不白屏），底部亮金条说明「显示的是 HH:MM 的本地数据」；
+      下一轮拉成功自动撤条 —— 页面无需任何手动操作，其他功能照常可点。 */
   async pull(loud){
     if (!this.on() || this._busy) return;
     this._busy = true;
@@ -16071,6 +16136,7 @@ const Sync = {
       if (j.profile) Auth._me = j.profile;
       Store.set('_syncAt', Date.now());
       this.status('已同步');
+      UI.staleBar(false);
       if (n){
         // 正在打字的页面不整体重绘，免得把老师/教务刚敲的字冲掉；红点照样刷
         const ae = document.activeElement;
@@ -16082,8 +16148,10 @@ const Sync = {
       else if (loud) UI.toast('已是最新');
     } catch(e){
       this.status('未同步');
-      if (loud) UI.toast(e.message);
+      /* 会话过期要重新登录，别亮「暂缓」条误导（那条是给「云端暂时够不着」用的） */
       if (e.code === 'AUTH') this.sessionLost();
+      else UI.staleBar(true);
+      if (loud && e.code !== 'AUTH') UI.toast(e.message);
     } finally { this._busy = false; }
   },
 
@@ -16109,10 +16177,14 @@ const Sync = {
       if (j.shared || j.personal) Store.mergeRemote(Object.assign({}, j.shared || {}, j.personal || {}));
       Store.set('_syncAt', Date.now());
       this.status('已同步');
+      UI.staleBar(false);
     } catch(e){
       this.status('未同步');
       console.warn('同步失败，本地数据不受影响：', e.message);
+      /* ==5.40== 推不上去同样亮「暂缓」条：改动安全地留在本地，
+         15 秒轮询 / 切前台 / 恢复 online 事件都会自动补传，条到时候自己撤 */
       if (e.code === 'AUTH') this.sessionLost();
+      else UI.staleBar(true);
     } finally { this._busy = false; }
   },
 
