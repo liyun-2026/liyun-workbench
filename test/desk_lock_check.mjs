@@ -60,6 +60,12 @@ try {
   await waitFor(async () => (await jfetch(`${BASE}/api/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"action":"hello"}' })).ok, { what: '预览服务', tries: 40 });
   console.log('预览服务就绪 →', BASE, '\n');
 
+  /* ==5.52== 先清空预览数据再登录。本套件靠「李老师 首次登录自动成为首位教务」
+     拿到一个干净的超管视角；若沿用上一轮套件留下的 .preview-data.json（owner 已存在
+     但没有李老师），登录会返回 NO_ACCOUNT → gate 不关 → 整片页面内容检测全部落空。 */
+  await jfetch(`${BASE}/api/dev-reset`, { method: 'POST' });
+  await sleep(300);
+
   const profile = await mkdtemp(path.join(tmpdir(), 'desklock-'));
   chrome = spawn(CHROME, ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--remote-debugging-port=' + CPORT,
     `--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-extensions','--no-proxy-server','about:blank'], { stdio: 'ignore' });

@@ -176,7 +176,7 @@ const TEACHER_READ = {
    这些键里只存 studentId 不存班级，所以统一按「自己班的学员」过滤。
    ==5.27== 只读视角补三样：sign:（打卡记录，实到一览用）、hwchk:（作业交没交登记）、
    gresp:（限时征集的回执，老师看「已回几人」）—— 全部仍只发本班学员的条目。 */
-const TEACHER_PREFIX_READ = ['att:', 'night:', 'hw:', 'sign:', 'hwchk:', 'gresp:'];
+const TEACHER_PREFIX_READ = ['att:', 'night:', 'note:', 'hw:', 'sign:', 'hwchk:', 'gresp:'];
 /* 授课老师能写回哪些：自己的工单 + 自己录的今日情况 + 作业提交登记（hw: 前缀） */
 const TEACHER_WRITE = ['tickets', 'records'];
 /* 只有首位教务能改的东西 */
