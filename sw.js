@@ -430,7 +430,11 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
-VERSION = 'v123'; /* VoxOS 5.42 新闻外链 iOS PWA standalone 兜底（2026-11-22 开学日）：「每日新闻无法跳转」定性——页面层无 bug（数据源 80 条全完整链接/链接可点/无遮挡/无 preventDefault，CDP 四项实锤），真失败模式是 iOS 加到主屏（standalone）后 <a target="_blank"> 点了完全没反应（iOS 著名坑）。兜底：委托层绑一次，standalone 的 iPhone/iPad 点外链改当前窗口导航（按返回回来），桌面浏览器与普通 Safari 零影响。同日定性：办公室电脑看板登录不上 = 旧 SW 缓存（v117- 前端不认 role:sys → defaultPage 'today' → App.can 拦「这个功能你的账号看不到」），处置=硬刷一次自动换版，无需改码。 */
+VERSION = 'v124'; /* VoxOS 5.43 课表上传可观测兜底+拖拽上传 / 登录门看板号说明（2026-11-22 开学日）——
+   ①「选文件识别点了没反应」定性：CDP 实测 v123 链路通（真实点击 → hrsFile click 意图正常发出、零 JS 错）；git 考古实锤 schFile/impText/impStat 删除是 5.35「旧文字导入死链清理」（v71 起 docx 链 hrsFile 独立活链未被伤，5.36 只删 _textDate/parseCell 解析残留）——5.36 误删不成立；54 个可见按钮逐个 hit-test+真实点击核实零死件（「收起 ▾」为 addEventListener 绑定）。
+     兜底增强：pickFile 600ms 内监听不到 input click 意图 → toast 明说「被浏览器拦了，可拖文件到卡上」；上传卡支持拖拽（dragenter 高亮/drop 直接走识别同链）；CDP 拖喂 docx 全链路落库 9 条 ✅
+   ②「看板要选择老师还是学生登录」定性：登录门 gRoles 教师/学生卡只影响按钮文案（v80 注释明示「权限由账号决定」），v118+ 的 sys 登录零选择直达看板（CDP board-mode 实测）——主理人设备仍是旧 SW 缓存（旧版 gRoles 卡 + 旧 boot 进不去）。gRoles 下加 hint「看板号 / 系统工作号不用选 —— 登录后自动进看板」。
+   测试：十四套件全绿后上线 */
   /* VoxOS 5.41b 迁移一次性通道拆除（2026-11-22，v121 开通 → 执行 → 本版拆除）：migrate_sys 恢复仅 super 可调，令牌分支已删；迁移已执行完毕（巡检号/看板号 → sys，幂等复核过）。其余零改动。 */
   /* VoxOS 5.41 开学日双修：① 课表 docx 上传死路打通 ② 系统工作号迁移一次性通道（用完即拆，2026-11-22）——
    ① 根因：网格课表（周几 × 节次，新学期 docx 主形态）识别出的行只有 day=周一、date 全空，而 applyYear 只补「有日期缺年份」的行 —— 填年份点「整表补上」提示「没有需要补的」，点写入又被 toSchedule「日期都缺年份」拦住，整条上传链死路（诊断实锤：4 个 docx fixture 3 个网格形态全部 date=0）

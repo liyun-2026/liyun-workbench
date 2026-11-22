@@ -177,6 +177,8 @@ body.no-edit .stamp.ro-stamp{pointer-events:none;cursor:default}
   box-shadow:var(--shadow);padding:var(--pad);
 }
 .card h2{font-size:17px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+/* ==5.43== 课表上传卡拖拽悬停态（Hours.initDrop 挂 .drag） */
+.card.drag{outline:2px dashed var(--gold);outline-offset:-2px}
 .hint{font-size:var(--fs-meta);color:var(--text-dim);margin-top:8px;line-height:1.6}
 .empty{font-size:var(--fs-meta);color:var(--text-dim);text-align:center;padding:22px 0}
 
@@ -4215,11 +4217,12 @@ var Icon = {
         <p class="hint" style="margin-top:0">传课表<b>图片</b>，或 Word（<b>.doc / .docx</b>）/ Excel（<b>.xls / .xlsx</b>）/ CSV 原件。系统会把课表还原成「周几 × 节次」的结构，在这里给你核对、修改。老版 Word（.doc）我是尽力解析，结果一定会标「待核」，请逐格核对；<b>PDF 请先截图再传</b>。</p>
         <p class="hint" style="margin-top:4px">确认无误后可<b>一键写入系统课表</b>（学生端、老师端的首页课表用的就是它）—— 写入前会自动把现在的课表存进「往期课表」，写的是<b>整表替换</b>，弹窗里会再问你一次。</p>
         <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:8px;align-items:center">
-          <button class="btn" onclick="document.getElementById('hrsFile').click()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
+          <button class="btn" onclick="Hours.pickFile()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-doc"></use></svg> 选文件识别</button>
           <button class="btn ghost edit-only" onclick="Hours.clear()">清空</button>
         </div>
         <input type="file" id="hrsFile" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.txt,.csv,.doc,.docx,.xls,.xlsx,.pdf" style="display:none" onchange="Hours.onFile(this)">
         <p class="hint" id="hrsStat" style="margin:8px 0 0"></p>
+        <p class="hint" style="margin:4px 0 0">也可以把文件<b>直接拖到这张卡上</b>，一样的识别。</p>
       </div>
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-search"></use></svg> 识别结果（可改）</h2>
@@ -5586,6 +5589,10 @@ var Icon = {
             <b>学生</b>
           </button>
         </div>
+        <!-- ==5.43== 开学日反馈「看板要选择老师还是学生登录」：这里的教师/学生卡
+             只影响按钮文案，真正的身份由账号决定 —— 看板号 / 系统工作号登录后
+             自动直达看板展示模式，两个都不用选。写明白，免得再困惑。 -->
+        <p class="hint" id="gRolesHint" style="margin:6px 0 0;font-size:12.5px">看板号 / 系统工作号不用选 —— 登录后自动进看板。</p>
         <div class="g-form">
           <input type="text" id="gUser" placeholder="请输入账号" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
           <div class="g-pwwrap">
@@ -11842,10 +11849,45 @@ const Hours = {
 
   /* ═══════════ 页面 ═══════════ */
   render(){
+    this.initDrop();                              /* ==5.43== 拖拽上传绑一次（幂等） */
     const box = document.getElementById('hrsBody');
     if (!box) return;
     if (!this._model) box.innerHTML = this._emptyHtml();
     else this._paint();
+  },
+
+  /* ==5.43== 开学日「选文件识别点了没反应」定性后的可观测兜底：
+     onclick 里的 input.click() 是同步调用、真实浏览器必弹文件选择框（CDP 实测
+     意图正常发出）；万一被浏览器拦截 / 扩展挡掉 / iOS 偶发手势丢失，之前就是
+     纯静默 —— 用户视角就是「点了没反应」。现在 600ms 内监听不到 input 的
+     click 意图就明说，并把「拖文件到卡上」这条备用路指给他。 */
+  pickFile(){
+    const inp = document.getElementById('hrsFile');
+    if (!inp) return UI.toast('上传组件没找到，刷新页面再试');
+    let fired = false;
+    inp.addEventListener('click', () => { fired = true; }, { once: true });
+    inp.click();
+    setTimeout(() => {
+      if (!fired) UI.toast('文件选择框没弹出来（多半被浏览器拦了）。可以直接把文件拖到这张卡上，或换个浏览器再点。');
+    }, 600);
+  },
+
+  /* ==5.43== 拖拽上传（绑一次）：文件拖到上传卡上直接走识别，与选文件完全同链 */
+  initDrop(){
+    const inp = document.getElementById('hrsFile');
+    const card = inp && inp.closest('.card');
+    if (!card || card.dataset.dropBound) return;
+    card.dataset.dropBound = '1';
+    ['dragover','dragenter'].forEach(t => card.addEventListener(t, e => { e.preventDefault(); card.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(t => card.addEventListener(t, e => { e.preventDefault(); card.classList.remove('drag'); }));
+    card.addEventListener('drop', e => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      inp.files = dt.files;
+      this.onFile(inp);
+    });
   },
 
   onFile(input){
