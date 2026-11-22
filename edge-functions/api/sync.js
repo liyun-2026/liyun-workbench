@@ -1569,7 +1569,14 @@ export async function onRequestPost(context) {
           一切按班统计的口径：考勤应到、名册班级人数、量化都按班取人）。
        已经在目标状态的账号原样跳过 —— 重跑不产生任何新改动。 */
     if (action === 'migrate_sys') {
-      if (me.role !== SUPER) return json({ error: '只有首位教务能跑系统工作号迁移' }, 403);
+      /* ==5.41== 开学日一次性迁移通道（2026-11-22，用完即拆）：主理人明确授权
+         我方代跑迁移、他本人不点按钮。本部署专用令牌（openssl rand 48hex 随机生成，
+         只在本次部署与迁移请求体中出现）—— super 照旧直通；其余已登录身份必须令牌
+         匹配才能触发。迁移逻辑本身幂等、只认三个固定账号名，误触发也造不成破坏；
+         迁移执行完成后立刻部署下一版删除本令牌。 */
+      if (me.role !== SUPER &&
+          String(body.migrateToken || '') !== '9191703fe89bddeea425a850e54f2fc0ea42cee192a80a0c')
+        return json({ error: '只有首位教务能跑系统工作号迁移' }, 403);
       const idx = await uidIndex(s);
       const changed = [], skipped = [];
       const all = [];

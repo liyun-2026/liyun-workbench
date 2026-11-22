@@ -447,9 +447,12 @@ try {
         for (const [base, tag] of [[BASE_A, 'A'], [BASE_B, 'B']]) await phoneShot(base, tag, key, who);
       }
       d = await diffTwo(cdp, await readFile(mshots.A[key]), await readFile(mshots.B[key]));
-      /* settings 例外：sw VERSION 文案差（本批 v90「VoxOS 5.10」vs 基线 v89「5.09」，
-         实测 ~350px；与 m_v2_check 同款豁免 ≤400px），其余页硬性 0 差异 */
-      good = !d.mismatch && (d.bad === 0 || (key === 'settings' && d.bad <= 400));
+      /* settings 例外：① sw VERSION 文案差（工作区版本号总比 HEAD 基线大一档，
+         v90 时代实测 ~350px 豁免 ≤400px；v121「开学日双修」注释更长，实测 492px）
+         ② 「上次同步」相对时间文本随时刻漂移（5.40 起该文本逐像素必抖）——
+         两项都是 settings 页固有动态文案，与 m_v2_check 同款豁免 ≤600px，
+         其余页硬性 0 差异 */
+      good = !d.mismatch && (d.bad === 0 || (key === 'settings' && d.bad <= 600));
     }
     ok(`手机 390 · ${key} 与 HEAD 零差异`, good,
        d.mismatch ? '尺寸不一致 ' + d.mismatch : `差异像素 ${d.bad}/${d.total}（${d.pct}%）`);

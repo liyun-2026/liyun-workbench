@@ -11963,17 +11963,41 @@ const Hours = {
       '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   },
 
-  /* 日期整表补年份：只补还没写「年」的，已补过的不动（可重复点） */
+  /* 日期整表补年份：只补还没写「年」的，已补过的不动（可重复点）
+     ==5.41== 开学日故障修复（2026-11-22）：网格课表（周几 × 节次）识别出来的行
+     本来就没有日期（date 空、只有 day=周一），而这里原来只补「有日期缺年份」的行 ——
+     网格课表填了年份点「整表补上」提示「没有需要补的」，点写入又被 toSchedule 的
+     「日期都缺年份」拦住，整条 docx 上传链死路（开学日主理人报「课表传不上」的根因）。
+     现在对只有星期没有日期的行，推算「填的年份里、今天往后第一个该周几」的具体日期
+     （y 是今年 → 就是最近那周；y 是明年 → 落在明年 1 月第一个该周几，寒假开学也对），
+     推完照常逐格可改；推算落不到填的年份里（y 是过去年份）就不动并统计提醒。 */
   applyYear(){
     const inp = document.getElementById('hrsYear');
     const y = inp ? String(inp.value).trim() : '';
     if (!/^\d{4}$/.test(y) || +y < 2000 || +y > 2100) return UI.toast('先填一个 4 位年份，比如 2025');
-    let n = 0;
+    const DAY_IDX = { '周一':1, '周二':2, '周三':3, '周四':4, '周五':5, '周六':6, '周日':0 };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const fmt = d => (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    let n = 0, g = 0, miss = 0;
     ((this._model && this._model.records) || []).forEach(r => {
-      if (r.date && r.date.indexOf('年') < 0){ r.date = y + '年' + r.date; n++; }
+      if (r.date && r.date.indexOf('年') < 0){ r.date = y + '年' + r.date; n++; return; }
+      if (!r.date && r.day && DAY_IDX[r.day] != null){
+        const want = DAY_IDX[r.day];
+        const d = new Date(today);
+        let hit = null;
+        for (let i = 0; i < 400; i++){                 /* 今天起 400 天内必有一年内的该周几 */
+          if (d.getDay() === want && d.getFullYear() === +y){ hit = new Date(d); break; }
+          d.setDate(d.getDate() + 1);
+        }
+        if (hit){ r.date = y + '年' + fmt(hit); g++; } else miss++;
+      }
     });
     this._paint();
-    UI.toast(n ? ('已给 ' + n + ' 条的日期补上 ' + y + ' 年') : '没有需要补的（日期都是空的或已带年份）');
+    let msg = [];
+    if (n) msg.push('已给 ' + n + ' 条的日期补上 ' + y + ' 年');
+    if (g) msg.push('已按「' + y + ' 年 · 今天往后第一个该周几」给 ' + g + ' 条网格课推算出日期');
+    if (miss) msg.push(miss + ' 条星期课推不到 ' + y + ' 年（年份填错了？）');
+    UI.toast(msg.length ? msg.join('；') : '没有需要补的（日期都是空的或已带年份）');
   },
 
   _extraHtml(m){
