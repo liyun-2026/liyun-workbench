@@ -414,6 +414,34 @@ try {
     ok(dayInTitle.length === 0, dayInTitle.length ? ('title 里还残留星期词：' + dayInTitle.join(' / ')) : '列表式课表 csv：title 里没有星期词');
   }
 
+  /* ── 3c. 本地优先（==5.51== P1-2）：人员名单没加载也必须立刻出结构 ──
+     生产根因是 readSource 第一行 await Staff.load()（users:list，22~35 秒）。
+     这里把 Staff 清空后跑同一份 CSV：结构必须秒出，老师名留空待补，
+     名单回来后由 _fillTeachers 就地补齐。 */
+  const fast = await cdp.eval(`(async () => {
+    ${PAGE_HELPERS}
+    Staff.reset();
+    const f = window.__mkFile(${JSON.stringify(listB64)}, 'hours_list.csv', 'text/csv');
+    const t0 = performance.now();
+    const m = await Hours.readSource(f, () => {});
+    const spent = Math.round(performance.now() - t0);
+    window.__hm = m;
+    return { spent, n: m.records.length, pending: m._teacherPending === true,
+             filled0: m.records.filter(r => r.teacherId).length };
+  })()`);
+  ok(fast.spent < 3000, `名单未加载也不等：${fast.spent}ms 出结构（门槛 3000ms）`);
+  ok(fast.n === 7, `结构完整：${fast.n}/7 条`);
+  ok(fast.pending === true && fast.filled0 === 0, '名单没回来时先出结构、老师名留空待补');
+  const back = await cdp.eval(`(async () => {
+    await new Promise(r => setTimeout(r, 2500));
+    const m = window.__hm || {};
+    const recs = m.records || [];
+    return { loaded: !!Staff.loaded, filled: recs.filter(r => r.teacherId).length, total: recs.length,
+             sample: (recs.find(r => r.teacherId) || {}).teacher || '' };
+  })()`);
+  ok(back.loaded && back.filled >= 2,
+     `名单回来后自动补名 ${back.filled}/${back.total} 条（如「${back.sample}」）`);
+
   /* 合成词块（OCR 列表）同一份数据再走一遍 */
   const words = [];
   LIST_LINES.forEach((line, i) => {

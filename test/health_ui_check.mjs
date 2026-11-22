@@ -152,12 +152,14 @@ try {
       empty: [...document.querySelectorAll('#page-health .card')].some(c => c.textContent.includes('查过一次就有内容')),
       speed: (rec.items.find(i => i.name === '打开页面的速度') || {}).value,
       apiItem: (rec.items.find(i => i.name === '后台接口') || {}).value,
+      probe: rec.items.find(i => i.name === '打卡通道探针') || {},
+      probeBtn: !!document.querySelector('#healthLocal .item .btn'),
       due0: (rec.dues[0] || {}).value
     };
   })()`);
   ok(run.net >= 2, `通道组 ${run.net} 项`);
   ok(run.res >= 1, `服务与资源组 ${run.res} 项`);
-  ok(run.local === 3, `这台设备组 ${run.local} 项`);
+  ok(run.local === 4, `这台设备组 ${run.local} 项（含打卡通道探针）`);
   ok(run.due === 2, `到期提醒 ${run.due} 项`);
   ok(run.hist >= 1, `历史记录 ${run.hist} 条`);
   ok(!run.empty, '不再是空页面');
@@ -165,6 +167,12 @@ try {
   ok(/ms$/.test(run.apiItem || ''), `后台接口耗时：${run.apiItem}`);
   ok(/天前?$|天$/.test(run.due0 || ''), `到期天数算出来了：${run.due0}`);
   ok(/正常|注意|异常/.test(run.badge), '总览徽章有结论：' + run.badge);
+  /* ==5.51== P1-3：打卡通道探针单列一行（提示级，不进待处理）+ 结论与明细一致 */
+  ok(run.probe.level === 'skip' && /未配置/.test(run.probe.value || ''),
+     `打卡通道探针单列一行：${run.probe.level} / ${run.probe.value}`);
+  ok(run.probeBtn, '这一行带「怎么配」入口');
+  ok(run.level === 'bad' || !/需要处理/.test(run.summary),
+     '没有异常项时结论不写「需要处理」：' + run.summary);
 
   console.log('\n【5/7】异常时亮红点，恢复后消失…');
   const dot = await cdp.eval(`(() => {

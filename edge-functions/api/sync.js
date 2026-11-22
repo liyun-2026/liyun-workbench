@@ -314,7 +314,38 @@ async function secret(s) {
 }
 
 async function uidIndex(s) {
-  return (await s.get('sys/users', { type: 'json' })) || { ids: [] };
+  const idx = (await s.get('sys/users', { type: 'json' })) || { ids: [] };
+  if (!Array.isArray(idx.ids)) idx.ids = [];
+  if (!idx.recs || typeof idx.recs !== 'object') idx.recs = {};
+  return idx;
+}
+
+/* ==5.51== 轻量账号摘要（users:list-light 的数据源）──
+   起因：2026-11-22 全站体检实锤「学生账号」页在生产要 85 秒且一行不出 ——
+   list 是 N+1：先读 sys/users 拿 51 个 uid，再逐条 get auth/*，平台读
+   22~35 秒时会一次串成 20 分钟。摘要把列表要用的字段随索引一起存，
+   list-light 一次 get 就够；摘要里**不含** salt/hash，也不含密码。
+   摘要与 auth 记录同步点：建号 / 改名改身份 / 停用 / 删除 / 补挂 / 迁移。
+   对不上（老数据没有 recs、或条数不等）时 list-light 自己重建一次并写回。 */
+function lightOf(a, uid) {
+  return {
+    id: uid, user: a.user || '', name: a.name || a.user || '',
+    role: a.role || TEACHER,
+    active: a.active !== false,
+    studentId: a.studentId || '',
+    classIds: Array.isArray(a.classIds) ? a.classIds : [],
+    createdAt: a.createdAt || 0,
+    sysProtected: a.sysProtected === true,
+    demo: a.demo === true, board: a.board === true,
+  };
+}
+function idxPut(idx, a, uid) {
+  if (!idx || !a || !uid) return;
+  if (!idx.recs) idx.recs = {};
+  idx.recs[uid] = lightOf(a, uid);
+}
+function idxDel(idx, uid) {
+  if (idx && idx.recs) delete idx.recs[uid];
 }
 
 async function profileOf(auth, uid, user) {
@@ -712,7 +743,9 @@ async function doLogin(s, body) {
     await s.setJSON(kAuth, auth);
     await s.setJSON('org/owner', { id: uid, user, name: auth.name, createdAt: now });
     const idx = await uidIndex(s);
-    if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
+    if (!idx.ids.includes(uid)) { idx.ids.push(uid); }
+    idxPut(idx, auth, uid);
+    await s.setJSON('sys/users', idx);
     created = true;
   } else {
     /* 老版本（v1）的账号没有角色 → 迁移成首位教务，并把老数据搬进机构共享区 */
@@ -742,10 +775,14 @@ async function doLogin(s, body) {
   if (auth.active === false) return json({ error: '这个账号已被停用，请联系教务' }, 403);
   if (rate.n) await s.setJSON(kRate, { n: 0, until: 0 });
 
-  /* 自愈：老版本迁移过来的账号不在索引里，登录时补上，否则教务看不到它 */
+  /* 自愈：老版本迁移过来的账号不在索引里，登录时补上，否则教务看不到它。
+     ==5.51== 摘要只在「缺这条」时补 —— 每次登录都写 sys/users 会在早高峰
+     几十个学生同时登录时抢同一个键，没必要。 */
   const idx = await uidIndex(s);
-  if (!idx.ids.includes(uid)) {
-    idx.ids.push(uid);
+  const missing = !idx.ids.includes(uid) || !idx.recs[uid];
+  if (!idx.ids.includes(uid)) idx.ids.push(uid);
+  if (missing){
+    idxPut(idx, auth, uid);
     await s.setJSON('sys/users', idx);
   }
 
@@ -1229,12 +1266,35 @@ async function doBackupRestore(s, me, body) {
 async function doUsers(s, me, body) {
   /* ==5.27== 授课老师全功能只读：账号列表可以看（发账号 / 排课选老师都要用，
      返回的字段本就不含密码）；list 之外的改动仍走下面的 canManage 拦 */
-  if (!me.isStaff && !(me.role === TEACHER && String(body.op || 'list') === 'list'))
+  if (!me.isStaff && !(me.role === TEACHER && (String(body.op || 'list') === 'list' || String(body.op || 'list') === 'list-light')))
     return json({ error: '只有教务可以管理账号' }, 403);
   const op = String(body.op || 'list');
   const canManage = me.role === SUPER || me.role === OFFICE;
-  if (op !== 'list' && !canManage) return json({ error: '账号只有首位教务和总教务能改' }, 403);
+  if (op !== 'list' && op !== 'list-light' && !canManage) return json({ error: '账号只有首位教务和总教务能改' }, 403);
   const idx = await uidIndex(s);
+
+  /* ==5.51== 轻量列表：一次 get 就够（见 lightOf 的说明）。
+     与 list 的差别只有「不逐条读 auth」，返回字段对前端是超集。 */
+  if (op === 'list-light') {
+    let recs = idx.recs || {};
+    if (Object.keys(recs).length !== idx.ids.length) {
+      recs = {};
+      for (const uid of idx.ids) {
+        const a = await s.get(`auth/${uid}`, { type: 'json' });
+        if (a) recs[uid] = lightOf(a, uid);
+      }
+      idx.recs = recs;
+      await s.setJSON('sys/users', idx);
+    }
+    const out = [];
+    for (const uid of idx.ids) {
+      const r = recs[uid];
+      if (!r) continue;
+      if (isDemoAcct(r) && me.role !== SUPER) continue;
+      out.push(r);
+    }
+    return json({ ok: true, users: out, ownerId: me.id, light: true });
+  }
 
   if (op === 'list') {
     const out = [];
@@ -1291,7 +1351,9 @@ async function doUsers(s, me, body) {
     if (ex.demo === true)  rec.demo  = true;
     if (ex.board === true) rec.board = true;
     await s.setJSON(`auth/${uid}`, rec);
-    if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
+    if (!idx.ids.includes(uid)) idx.ids.push(uid);
+    idxPut(idx, rec, uid);   // ==5.51== 摘要随建号同步
+    await s.setJSON('sys/users', idx);
     return { id: uid, user: nu };
   };
 
@@ -1339,8 +1401,10 @@ async function doUsers(s, me, body) {
       if (!sidSet.has(sid)) { fail.push({ id: id2, err: '学员档案不存在' }); continue; }
       a.studentId = sid; a.relinkedAt = Date.now();
       await s.setJSON(`auth/${id2}`, a);
+      idxPut(idx, a, id2);   // ==5.51== 摘要跟着补挂走
       done.push({ id: id2, user: a.user || '' });
     }
+    await s.setJSON('sys/users', idx);
     return json({ ok: true, n: done.length, done, fail });
   }
 
@@ -1371,6 +1435,8 @@ async function doUsers(s, me, body) {
     }
     target.changedAt = Date.now();
     await s.setJSON(`auth/${id}`, target);
+    idxPut(idx, target, id);   // ==5.51== 改名 / 改身份 / 停用 / 改带班 → 摘要同步
+    await s.setJSON('sys/users', idx);
     return json({ ok: true });
   }
 
@@ -1391,6 +1457,7 @@ async function doUsers(s, me, body) {
     target.deletedAt = Date.now();
     await s.setJSON(`auth/${id}`, target);
     idx.ids = idx.ids.filter(x => x !== id);
+    idxDel(idx, id);   // ==5.51== 摘要一并摘掉
     await s.setJSON('sys/users', idx);
     return json({ ok: true });   // 数据保留，只是不能再登录
   }
@@ -1568,7 +1635,9 @@ export async function onRequestPost(context) {
         };
         if (body.board === true) rec.board = true;   // 看板那台电脑的号保留 board 标记（设备额度走另一套）
         await s.setJSON(`auth/${uid}`, rec);
-        if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
+        if (!idx.ids.includes(uid)) idx.ids.push(uid);
+        idxPut(idx, rec, uid);
+        await s.setJSON('sys/users', idx);
         return json({ ok: true, id: uid });
       }
       /* ==5.45== op:'pass' 重置系统工作号密码（主理人 2026-11-22 找不到入口拍板补）：
@@ -1596,6 +1665,7 @@ export async function onRequestPost(context) {
         target.deletedAt = Date.now();
         await s.setJSON(`auth/${id}`, target);
         idx.ids = idx.ids.filter(x => x !== id);
+        idxDel(idx, id);
         await s.setJSON('sys/users', idx);
         return json({ ok: true });
       }
@@ -1680,6 +1750,9 @@ export async function onRequestPost(context) {
         }
       } else skipped.push({ user: '巡检学员', note: '不存在，跳过' });
 
+      /* ==5.51== 迁移改的是 role / sysProtected / classIds —— 摘要一次性跟上 */
+      for (const { uid, a } of all) idxPut(idx, a, uid);
+      await s.setJSON('sys/users', idx);
       return json({ ok: true, changed, skipped });
     }
 

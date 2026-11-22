@@ -163,6 +163,41 @@ console.log('\n【第一段】后端规则：密码下限 / device_key / reset_p
   ok(r.status === 403, '授课老师调 reset_password 被 403');
   r = await call({ action: 'device_key', token: stu.token, op: 'make' });
   ok(r.status === 403, '学生调 device_key 被 403');
+
+  /* ⑤ ==5.51== users:list-light（学生账号页 P0-1 的治本项）：
+     一次 get 就回列表，不逐条读 auth；摘要与 auth 必须同步，老索引要能自愈。 */
+  const full = await call({ action: 'users', token: T, op: 'list' });
+  let light = await call({ action: 'users', token: T, op: 'list-light' });
+  ok(light.ok && light.light === true, 'list-light 可用');
+  ok((light.users || []).length === (full.users || []).length,
+     'list-light 与 list 条数一致（' + (light.users || []).length + '/' + (full.users || []).length + '）');
+  const l0 = (light.users || [])[0] || {};
+  ok(!!l0.id && 'user' in l0 && 'name' in l0 && 'role' in l0 && 'active' in l0 && 'studentId' in l0,
+     '字段齐全：id/user/name/role/active/studentId');
+  ok(!('hash' in l0) && !('salt' in l0), '摘要里没有 hash / salt');
+
+  const sid = (full.users || []).find(u => u.user === 'stu2').id;
+  await call({ action: 'users', token: T, op: 'update', id: sid, name: '李思远改名' });
+  await call({ action: 'users', token: T, op: 'update', id: sid, active: false });
+  light = await call({ action: 'users', token: T, op: 'list-light' });
+  const l2 = (light.users || []).find(u => u.id === sid);
+  ok(l2 && l2.name === '李思远改名' && l2.active === false,
+     '改名 / 停用后摘要同步（' + JSON.stringify(l2 || {}).slice(0, 70) + '）');
+
+  /* 老数据自愈：索引里没有 recs（5.51 之前部署的库）→ 一次调用自己重建 */
+  const idx0 = raw().get('sys/users');
+  delete idx0.recs;
+  raw().set('sys/users', idx0);
+  light = await call({ action: 'users', token: T, op: 'list-light' });
+  const idx1 = raw().get('sys/users') || {};
+  ok((light.users || []).length === (full.users || []).length &&
+     idx1.recs && Object.keys(idx1.recs).length === (light.users || []).length,
+     '旧索引（无摘要）一次调用自愈重建（' + Object.keys(idx1.recs || {}).length + ' 条）');
+
+  r = await call({ action: 'users', token: tea.token, op: 'list-light' });
+  ok(r.ok, '授课老师也能读 list-light（排课选老师要用）');
+  r = await call({ action: 'users', token: stu.token, op: 'list-light' });
+  ok(r.status === 403, '学生读 list-light 被 403');
 }
 
 /* ════════ 第二段：CDP 真界面全链路 ════════ */
