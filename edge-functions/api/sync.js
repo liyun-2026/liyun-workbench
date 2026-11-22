@@ -1546,6 +1546,22 @@ export async function onRequestPost(context) {
         if (!idx.ids.includes(uid)) { idx.ids.push(uid); await s.setJSON('sys/users', idx); }
         return json({ ok: true, id: uid });
       }
+      /* ==5.45== op:'pass' 重置系统工作号密码（主理人 2026-11-22 找不到入口拍板补）：
+         仅 super（与 sys_acct 的 list/create 对 office 开放的语义区分开 —— 改密码
+         属于「动凭据」，只给首位教务）；只改 hash 不碰其他字段，幂等可重复跑。
+         salt 沿用原值（与 doUsers 的 pass 分支同款写法，登录校验口径一致）。 */
+      if (op === 'pass') {
+        if (me.role !== SUPER) return json({ error: '只有首位教务能重置系统号密码' }, 403);
+        const id = String(body.id || '');
+        const target = id ? await s.get(`auth/${id}`, { type: 'json' }) : null;
+        if (!target) return json({ error: '账号不存在' }, 404);
+        if (target.role !== SYS) return json({ error: '这个账号不是系统工作号' }, 400);
+        const pass = String(body.pass || '');
+        if (pass.length < MIN_PASS) return json({ error: `密码至少 ${MIN_PASS} 位` }, 400);
+        target.hash = await hex(pass + '|' + target.salt);
+        await s.setJSON(`auth/${id}`, target);
+        return json({ ok: true });
+      }
       if (op === 'delete') {
         const id = String(body.id || '');
         const target = id ? await s.get(`auth/${id}`, { type: 'json' }) : null;

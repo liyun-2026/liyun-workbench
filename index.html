@@ -15302,7 +15302,10 @@ const Settings = {
             <span class="chip sys-badge" style="pointer-events:none;margin-left:6px">系统</span>
             ${u.board ? '<span class="hint" style="display:inline;margin:0 0 0 6px">看板屏（5 台设备额度）</span>' : ''}
             <br><span class="hint" style="display:inline;margin:0">@${Util.esc(u.user)} · ${u.active ? '使用中' : '已停用'}</span></span>
-          <button class="chip chip-no" onclick="Settings.sysAcctDel('${u.id}', '${Util.esc(u.user)}')">删除</button>
+          <span style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+            ${Auth.isSuper() ? `<button class="chip" onclick="Settings.sysAcctPass('${u.id}', '${Util.esc(u.user)}')">重置密码</button>` : ''}
+            <button class="chip chip-no" onclick="Settings.sysAcctDel('${u.id}', '${Util.esc(u.user)}')">删除</button>
+          </span>
         </div>`).join('')
         : '<div class="empty">还没有系统工作号。存量迁移会把巡检与看板号搬进来。</div>';
     } catch(e){
@@ -15327,6 +15330,19 @@ const Settings = {
       await Auth.call('sys_acct', { op: 'create', user, name, pass, board: forBoard });
       UI.toast('系统工作号已建好');
       this.renderSysAccts();
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  /* ==5.45== 重置系统工作号密码（super 专属）：prompt 输新密码 → 服务端只改 hash。
+     提示语写清「发下去之前记牢」——这页不再显示密码，忘了只能再重置。 */
+  async sysAcctPass(id, user){
+    if (!Auth.isSuper()) return UI.toast('只有首位教务能重置系统号密码');
+    const pass = (prompt('给系统工作号「' + user + '」设一个新密码（至少 8 位）：\n\n设完用新密码登录即可，这页不会再显示它。', '') || '');
+    if (!pass) return;
+    if (pass.length < 8) return UI.toast('密码至少 8 位');
+    try {
+      await Auth.call('sys_acct', { op: 'pass', id, pass });
+      UI.toast('已重置，用新密码登录');
     } catch(e){ UI.toast(e.message); }
   },
 
