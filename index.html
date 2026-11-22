@@ -14653,18 +14653,43 @@ const Teachers = {
    建号在「名册」里一键建（用户名就是姓名），这一页只管：查、改密码、停用、删除。 */
 const StuAcct = {
   _users: [],
+  _fp: '',
+  _seq: 0,
 
+  /* ==5.48== 学生账号页稳定渲染（开学日「一直反复刷新 / 只显示 3 行」）──
+     5.34 在「老师管理」页做过同一套收敛，这一页当时漏了：
+       ① 每次 render 先把列表抹成「正在读取…」——而 15s 轮询只要拉到任何一处
+          数据变化就会 App.refresh() → 当前页重绘，用户看到的就是整页反复闪白
+          （截图里「页脚顶到页面中部」＝列表被抹掉、只剩一行占位的瞬间）；
+       ② 没有指纹幂等：账号一个都没变也整块重绘，滚动位置被顶回顶部，
+          21 行看起来像只剩 3 行（重绘到一半被下一轮打断）。
+     现在：首屏之后不再抹列表；账号内容不变（指纹相同）连 DOM 都不碰；
+     并加序号令牌，慢响应回来时若已发起新一轮就丢掉，不覆盖新数据。 */
   async render(){
     const el = document.getElementById('saList');
     if (!el) return;
-    el.innerHTML = '<div class="empty">正在读取…</div>';
+    const seq = ++this._seq;
+    const hasData = (this._users || []).length > 0 || el.dataset.painted === '1';
+    if (!hasData) el.innerHTML = '<div class="empty">正在读取…</div>';
     try {
       const j = await Auth.call('users', { op: 'list' });
-      /* 演示学员的账号不进学生账号表 —— 这张表是拿来发给学生的 */
-      this._users = (j.users || []).filter(u => u.role === 'student' && !Util.isDemoObj(u));
+      if (seq !== this._seq) return;            // 过期响应：新一轮已经发起了，别覆盖
+      const list = (j.users || []).filter(u => u.role === 'student' && !Util.isDemoObj(u));
+      /* 指纹：账号内容 + 学员档案（班级名/关联会变）没变就一个字节都不动 DOM */
+      const fp = JSON.stringify(list.map(u => [u.id, u.user, u.name, u.active, u.studentId, u.sysProtected]))
+        + '|' + Store.list('students').length;
+      if (fp === this._fp && el.dataset.painted === '1') return;
+      this._fp = fp;
+      this._users = list;
+      el.dataset.painted = '1';
       this.paint();
     } catch(e){
-      el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
+      if (seq !== this._seq) return;
+      /* 已经有列表就留着（轮询偶发失败不该把人家正在看的表抹掉） */
+      if (!hasData){
+        el.innerHTML = '<div class="empty">读不到账号列表：' + Util.esc(e.message) + '</div>';
+        el.dataset.painted = '';
+      }
     }
   },
 
@@ -14700,7 +14725,16 @@ const StuAcct = {
     const list = this.sorted();
     const off = list.filter(u => !u.active).length;
     const meta = document.getElementById('saMeta');
-    if (meta) meta.textContent = list.length ? `（${list.length} 人${off ? ' · 停用 ' + off : ''}）` : '';
+    /* ==5.48== 「账号数 vs 学员数」对不上要当场说：22 名学员只有 21 个号，
+       教务在别的页面看不出来，只会觉得「少了一个人」。 */
+    let lack = 0;
+    try {
+      const sids = new Set(list.map(u => u.studentId).filter(Boolean));
+      lack = Store.list('students').filter(s => !Util.isDemoObj(s) && !sids.has(s.id)).length;
+    } catch(e){}
+    if (meta) meta.textContent = list.length
+      ? `（${list.length} 人${off ? ' · 停用 ' + off : ''}${lack ? ' · 还有 ' + lack + ' 名学员没建号' : ''}）`
+      : '';
     const editable = this.canEdit();
     el.innerHTML = list.length ? list.map(u => {
       const stu = this.stuOf(u);
