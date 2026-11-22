@@ -3913,7 +3913,7 @@ var Icon = {
           <div class="sec-h">班级</div>
           <p class="sec-meta"><span class="only-desk">选中一个班，右边看这个班的学员</span><span class="only-mob">选中一个班，下面看这个班的学员</span></p>
           <div class="row">
-          <input type="text" id="clsIn" placeholder="班级名称" disabled>
+          <input type="text" id="clsIn" placeholder="班级名称">
           <button class="btn edit-only" onclick="Roster.addClass()">建班</button>
         </div>
         <div id="clsList" style="margin-top:8px"></div>
@@ -7724,6 +7724,12 @@ async function readAnyFile(file, prog){
 /* ==== 功能：名册 START ==== */
 const Roster = {
   render(){
+    /* ==5.46== 开学日真 bug：「班级名称」输入框 HTML 里硬编码 disabled，全项目
+       没有任何代码解除 —— 教务点输入框输不进字，点「建班」永远「填一下班级名」，
+       用户报「点建班没反应」。改为按权限运行时开关：教务可编辑，
+       授课老师仍只读（与「建班」按钮 .edit-only 的显隐口径一致）。 */
+    const clsEl = document.getElementById('clsIn');
+    if (clsEl) clsEl.disabled = !Auth.canEdit();
     const classes = Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1);
     const realClasses = classes.filter(c => !Util.isDemoObj(c));
     let cur = Store.get('_rosterCls');

@@ -430,7 +430,20 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ⑥ sw 复核：本赋值唯一、SHELL 25 文件零缺失、旧缓存 activate 清理链在位
    工程外 trash：tools/ 3 旧脚本、redesign-fresh/ 27M 旧设计稿、根目录 5 张 VoxOS4.1x 旧导出图；保留：启动预览.command（活工具）/ocr/（活资源）/6 个备份文件夹（主理人 11-13 未勾删）
    测试：九套件全量回归 + index.html 变了 → VERSION 加一 */
-VERSION = 'v126'; /* VoxOS 5.45 系统工作号重置密码（2026-11-22）：设置页「系统工作号」行加「重置密码」chip（仅 super 可见）→ prompt 新密码（≥8 位）→ sys_acct op:'pass'（仅 super，403「只有首位教务能重置系统号密码」；只改 hash 不碰其他字段、幂等）→ toast「已重置，用新密码登录」。行内按钮 flex 对齐（chip 风格）。sysacct_check 68→75（pass 全链断言）。 */
+/* v126（VoxOS 5.45 系统工作号重置密码，2026-11-22）：设置页「系统工作号」行加「重置密码」chip（仅 super 可见）→ prompt 新密码（≥8 位）→ sys_acct op:'pass'（仅 super，403「只有首位教务能重置系统号密码」；只改 hash 不碰其他字段、幂等）→ toast「已重置，用新密码登录」。行内按钮 flex 对齐（chip 风格）。sysacct_check 68→75（pass 全链断言）。 */
+VERSION = 'v127'; /* VoxOS 5.46 名册建班复活 + 全站禁用控件审计（2026-11-22 开学日）——
+   ① 名册页 #clsIn「班级名称」输入框在 HTML 里硬编码 disabled，全项目零解除逻辑
+      （grep 仅 HTML 与 Roster.addClass 读值）→ 教务输不进字，点「建班」永远提示
+      「填一下班级名」，用户报「点建班没反应」。去掉硬编码，改由 Roster.render 按
+      Auth.canEdit() 运行时开关：教务可编辑、授课老师只读（与「建班」按钮 .edit-only 同口径）。
+   ② 全站禁用类控件审计：disabled 硬编码误伤仅 #clsIn 一处；余 4 处均有运行时逻辑或
+      业务合理（auto 时段输入、末时段删除、规则只读、登录按钮 busy）；readonly 零命中、
+      空 onclick 零命中、pointer-events:none 全在装饰层。
+   ③ CDP 双身份实测：super 输入框可编辑 → 建班落库（点名班C）→「建这一个」真实鼠标
+      点击建房号（点名班C-01 / by1746，云端 users 命中 student）；teacher 输入框 disabled、
+      「建班」按钮 display:none。另核实「建这一个」上一轮被判死件是 <details> 未展开时的
+      测量假象（展开后 hit=BUTTON.btn，点击真落库）。
+   无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
   /* VoxOS 5.43 课表上传可观测兜底+拖拽上传 / 登录门看板号说明（2026-11-22 开学日）——
    ①「选文件识别点了没反应」定性：CDP 实测 v123 链路通（真实点击 → hrsFile click 意图正常发出、零 JS 错）；git 考古实锤 schFile/impText/impStat 删除是 5.35「旧文字导入死链清理」（v71 起 docx 链 hrsFile 独立活链未被伤，5.36 只删 _textDate/parseCell 解析残留）——5.36 误删不成立；54 个可见按钮逐个 hit-test+真实点击核实零死件（「收起 ▾」为 addEventListener 绑定）。
      兜底增强：pickFile 600ms 内监听不到 input click 意图 → toast 明说「被浏览器拦了，可拖文件到卡上」；上传卡支持拖拽（dragenter 高亮/drop 直接走识别同链）；CDP 拖喂 docx 全链路落库 9 条 ✅
