@@ -196,8 +196,11 @@ try {
     assert(/const IDLE_GAP = 120000;/.test(FLAT), 'IDLE_GAP 不是 2 分钟');
     return '在';
   });
-  t('常亮屏每 20 分钟主动问一次有没有新版', () => {
-    assert(/const CHECK_EVERY = 20 \* 60 \* 1000;/.test(FLAT), '自检间隔不是 20 分钟');
+  t('页面可见时每 5 分钟主动问一次有没有新版（5.44 收口：终结旧缓存三连）', () => {
+    assert(/const CHECK_EVERY = 5 \* 60 \* 1000;/.test(FLAT), '自检间隔不是 5 分钟');
+    assert(/window\.__swUpdate = \(\) => \{/.test(FLAT), 'update 动作没挂 window.__swUpdate —— 登录时没法顺手问一次');
+    assert(/if \(window\.__swUpdate\)\{ try \{ window\.__swUpdate\(\); \} catch \(e\) \{\} \}/.test(FLAT),
+      '登录成功路径没有调 __swUpdate —— 登录是最可靠的「用户在场」时刻，不调就白瞎');
     assert(/reg\.update\(\)/.test(FLAT), '没有调 registration.update() —— 浏览器只在导航时才会去问 sw.js');
     assert(/if \(document\.hidden\) return;/.test(FLAT), '后台标签页没跳过，白耗电');
     return '在';

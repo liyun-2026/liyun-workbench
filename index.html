@@ -16039,6 +16039,10 @@ const Auth = {
       UI.toast(j.created
         ? (local ? '已创建 · 本机模式' : '已创建，你是首位教务')
         : '欢迎回来，' + j.profile.name);
+      /* ==5.44== 登录是最可靠的「用户在场」时刻 —— 顺手问一次 SW 有没有新版：
+         部署了新版本而设备还停在旧页面时，这一下让换版路径立刻启动（空闲静默换 /
+         在用挂提醒条），不再干等 5 分钟轮询。 */
+      if (window.__swUpdate){ try { window.__swUpdate(); } catch (e) {} }
       App.boot();
       Sync.pull();
       if (typeof Sync !== 'undefined') Sync.push();
@@ -20470,7 +20474,7 @@ App.init();
      ① 打开 30 秒内、用户一次都没动过（没点 / 没按 / 没滚 / 没输入）
      ② 看板屏（board-mode）空闲 2 分钟 —— 只读屏没人碰，挂着自己换到新版
    用户一旦动过手就一律不换，留到下次打开（新 SW 已装好、缓存已是新版），
-   不会把正在填的表单、正在看的页面刷掉。配套：常亮的屏每 20 分钟主动
+   不会把正在填的表单、正在看的页面刷掉。配套：页面可见时每 5 分钟主动
    registration.update() 问一次有没有新版（浏览器默认只在导航时才会去问）。
    （历史 v35~v46 的开屏期换版策略随 5.17 删除入场动画一并退役。）
 
@@ -20485,7 +20489,14 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   const KEY_DONE = 'liyun_sw_reloaded';     // 本会话已经为换版重载过（不消费）
   const OPEN_GRACE = 30000;                 // 打开后 30 秒内还没动手 → 允许换版
   const IDLE_GAP   = 120000;                // 看板那种常亮的屏：空闲 2 分钟 → 允许换版
-  const CHECK_EVERY = 20 * 60 * 1000;       // 常亮屏每隔 20 分钟主动问一次有没有新版
+  /* ==5.44== 开学日三连「设备停在旧 SW 缓存」（看板登录 / 课表上传 / 新闻跳转全是
+     同一病根：SW 更新检查只在页面导航时触发，设备停在登录页 / 看板模式就永远不换版）
+     之后的收口：轮询从 20 分钟收紧到 **5 分钟**（页面可见时才问，省资源）；并把
+     update 动作挂到 window.__swUpdate，登录成功时也顺手问一次 —— 登录是最可靠的
+     「用户在场」时刻，新部署的版本最多 5 分钟/一次登录就能被旧页面发现。
+     发现新版仍走既有路径：空闲中静默换版（刚打开没动手 / 看板屏空闲 2 分钟），
+     用户在用则挂「系统已更新 · 点这里换到新版」提醒条（右上角非阻塞小条）。 */
+  const CHECK_EVERY = 5 * 60 * 1000;        // 每 5 分钟主动问一次有没有新版
   /* 用户动过手没有？只要碰过一下（点、按、滚、输入），就再也不主动换版 ——
      宁可让他下次打开时自然生效，也不能把正在填的表单/正在看的页刷掉。 */
   let _touched = false, _lastAct = Date.now(), _openedAt = Date.now();
@@ -20544,16 +20555,16 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   navigator.serviceWorker.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'shell-updated') _onShellReady();
   });
-  /* 常亮屏（看板）不会自己重开，浏览器也只在导航时才去问 sw.js 有没有变 ——
-     这里每隔 20 分钟主动问一次。发现新版就走上面那条路径，空闲中就静默换掉。
-     页面在后台（document.hidden）时跳过：没人看，省电省流量。 */
-  setInterval(() => {
+  /* ==5.44== 每 5 分钟主动问一次（页面在后台 document.hidden 时跳过：没人看，
+     省电省流量）。update 动作挂 window.__swUpdate —— 登录成功时也调它。 */
+  window.__swUpdate = () => {
     if (document.hidden) return;
     try {
       const p = navigator.serviceWorker.getRegistration();
       if (p && p.then) p.then((reg) => { try { reg && reg.update(); } catch (e) {} }).catch(() => {});
     } catch (e) {}
-  }, CHECK_EVERY);
+  };
+  setInterval(window.__swUpdate, CHECK_EVERY);
 }
 </script>
 </body>
