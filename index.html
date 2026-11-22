@@ -8119,6 +8119,26 @@ const Roster = {
         const r = await Auth.call('users', { op: 'createMany', list });
         fail = r.fail || [];
         created = list.filter(x => !fail.some(f => f.user === x.user));
+        /* ==5.49== 「这个用户名已经存在」但账号列表里根本看不到它 = 那个号被删过，
+           墓碑还占着名字（删除是软删，auth 记录留着、索引里没了）。
+           不跟它硬碰：给这些学员换更大的空号重试，最多 8 轮 ——
+           否则一个学员会永远建不出号（开学日 kq06-20 撞墓碑，郭金涵卡住）。 */
+        for (let round = 0; round < 8 && fail.some(f => /已经存在/.test(f.err)); round++){
+          const retry = [];
+          fail.filter(f => /已经存在/.test(f.err)).forEach(f => {
+            const it = list.find(x => x.user === f.user);
+            if (!it) return;
+            const nn = nextNo();
+            retry.push({ user: code + '-' + pad2(nn), name: it.name, studentId: it.studentId, role: 'student', pass: it.pass, no: nn });
+            const stu = students.find(s => s.id === it.studentId);
+            if (stu && parseInt(stu.no, 10) !== nn){ stu.no = nn; numbered.push(stu); }
+          });
+          if (!retry.length) break;
+          const r2 = await Auth.call('users', { op: 'createMany', list: retry });
+          created = created.concat(retry.filter(x => !(r2.fail || []).some(f => f.user === x.user)));
+          fail = fail.filter(f => !/已经存在/.test(f.err)).concat(r2.fail || []);
+          numbered.forEach(s => Store.upsert('students', s));   // 换了号的学员要把新学号写回档案
+        }
       }
 
       /* 三层口径：新建 / 已有 / 失败 —— 别再把「已存在」渲染成失败 */
@@ -8183,12 +8203,24 @@ const Roster = {
       if (!code) code = this.clsCodeDefault(Util.clsName(clsId));
       let maxNo = 0;
       clsMates.forEach(s => { const n = parseInt(s.no, 10); if (n > maxNo) maxNo = n; });
-      if (!stu.no){ stu.no = maxNo + 1; Store.upsert('students', stu); }
-      const user = code + '-' + String(stu.no).padStart(2, '0');
-      if (haveUser.has(user)){ if (stat) stat.textContent = '账号「' + user + '」被占了（学号撞号），到批量建号里核对一下班级码。'; return; }
+      if (!stu.no) stu.no = maxNo + 1;
+      /* ==5.49== 号被占（含「删过的号还在占名字」这种看不见的墓碑）就往后找，
+         不再一次撞上就放弃 —— 服务端 createMany 对墓碑同样回「已经存在」 */
+      let user = code + '-' + String(stu.no).padStart(2, '0');
+      for (let i = 0; i < 30 && haveUser.has(user); i++){
+        stu.no = (parseInt(stu.no, 10) || 0) + 1;
+        user = code + '-' + String(stu.no).padStart(2, '0');
+      }
+      if (haveUser.has(user)){ if (stat) stat.textContent = '账号「' + user + '」一连串号位都被占了，到批量建号里核对一下班级码。'; return; }
       const pass = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-      const r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
+      let r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
+      for (let i = 0; i < 8 && r.fail && r.fail.length && /已经存在/.test(r.fail[0].err || ''); i++){
+        stu.no = (parseInt(stu.no, 10) || 0) + 1;
+        user = code + '-' + String(stu.no).padStart(2, '0');
+        r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
+      }
       if (r.fail && r.fail.length){ if (stat) stat.textContent = '建号失败：' + (r.fail[0].err || '未知原因'); return; }
+      Store.upsert('students', stu);   // 学号写回档案（上面可能为躲开占位往后挪过）
       this._ok = [{ user, name, no: stu.no, pass }]; this._clsName = Util.clsName(clsId);
       if (stat) stat.innerHTML = '建好了「' + name + '」的账号：<b class="num">' + Util.esc(user) + '</b> / <b class="num">' + pass + '</b>，可以打印发放卡或复制发给本人。';
       this.renderMsg(this._ok);

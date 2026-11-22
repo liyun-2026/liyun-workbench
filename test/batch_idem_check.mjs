@@ -226,6 +226,36 @@ try {
   ok(r4.sidsOk, '18 个孤儿号全部补挂到现任学员档案（op:relink 生效）');
   await cdp.shot(path.join(SHOTS, 's4-orphan-reuse.png'));
 
+  /* ══ 场景⑤：墓碑号（删过的号还占着用户名，账号列表里却看不见）══ */
+  console.log('\n【场景⑤】号被删过、墓碑还占着名字 → 自动换号重试，0 失败…');
+  const tomb = await cdp.eval(`(async () => {
+    const cls = Store.upsert('classes', { name: '墓碑班' });
+    Store.upsert('students', { classId: cls.id, name: '墓碑甲' });
+    Store.upsert('students', { classId: cls.id, name: '墓碑乙' });
+    await Sync.push();
+    App.go('roster');
+    await new Promise(x => setTimeout(x, 700));
+    document.getElementById('batchCls').value = cls.id; Roster.onBatchCls();
+    document.getElementById('clsCodeIn').value = 'kq07';
+    await Roster.genAccounts();
+    await new Promise(x => setTimeout(x, 900));
+    const j = await Auth.call('users', { op: 'list' });
+    const first = (j.users || []).filter(u => u.role === 'student' && /^kq07-/.test(u.user));
+    /* 删掉 kq07-01（软删：索引里没了，auth 记录还在 → 用户名仍被占） */
+    const victim = first.find(u => u.user === 'kq07-01');
+    await Auth.call('users', { op: 'delete', id: victim.id });
+    await Roster.genAccounts();
+    await new Promise(x => setTimeout(x, 1000));
+    const j2 = await Auth.call('users', { op: 'list' });
+    const list2 = (j2.users || []).filter(u => u.role === 'student' && /^kq07-/.test(u.user)).map(u => u.user).sort();
+    return { made: first.length, after: list2, stat: document.getElementById('rsStat').textContent,
+             clsId: cls.id };
+  })()`);
+  ok(tomb.made === 2, '先建出 kq07-01/02（' + tomb.made + ' 个）');
+  ok(/新建 1 个/.test(tomb.stat) && !/失败/.test(tomb.stat), '墓碑挡住 01 → 自动换号重建（' + tomb.stat.slice(0, 40) + '）');
+  ok(tomb.after.length === 2 && tomb.after.indexOf('kq07-03') >= 0, '最终 kq07-02/03 各一个，没撞死（' + tomb.after.join(' ') + '）');
+  ok(tomb.after.every(u => u !== 'kq07-01'), '墓碑号没被硬塞进去');
+
   console.log(`\n═══ batch_idem_check 结果：✅ ${pass} · 🔴 ${fail} ═══`);
 } finally {
   if (chrome) try { chrome.kill(); } catch {}
