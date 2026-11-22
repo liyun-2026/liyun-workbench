@@ -317,13 +317,15 @@ try {
   })()`);
   ok(rt.routeExists, "App.routes 里有 id='hours'");
   ok(rt.name === '课时统计' && rt.icon === 'clock', `名称/图标：${rt.name} / ${rt.icon}`);
-  ok(eq(rt.roles, ['super','office','admin','both']), 'roles 恰为 super/office/admin/both：' + JSON.stringify(rt.roles));
+  /* ==5.41== 断言对齐现设计：v71 起 teacher 也进课时统计（看自己课时，只读视角，
+     写操作由 canEdit 拦）—— 原断言停在 teacher 未开放的年代，久未跑过、基线漂移。 */
+  ok(eq(rt.roles, ['super','office','admin','teacher','both']), 'roles 恰为 super/office/admin/teacher/both：' + JSON.stringify(rt.roles));
   ok(rt.pageExists, 'HTML 里有 #page-hours');
   ok(rt.hoursOk, 'Hours 模块已定义（readSource / render 都在）');
   ok(rt.recWords, 'Ocr.recognizeWords 已定义');
   ok(rt.recIntact, "Ocr.recognize 仍是原来的写法（没被改坏）");
   ok(rt.nav.super && rt.nav.office && rt.nav.admin && rt.nav.both, "NAV_ORDER 四个教务串都有 'hours'");
-  ok(!rt.nav.teacher && !rt.nav.student, "teacher / student 的 NAV_ORDER 里没有 'hours'");
+  ok(rt.nav.teacher && !rt.nav.student, "teacher 的 NAV_ORDER 有 'hours'（只读视角）；student 没有");
   ok(!rt.tab.super && !rt.tab.office && !rt.tab.admin && !rt.tab.both && !rt.tab.teacher && !rt.tab.student,
      'TAB_ORDER 一个都没动（底栏不含 hours）');
   ok(rt.after.super === 1, "'hours' 紧跟在 'timetable' 后面");
@@ -1365,8 +1367,9 @@ try {
   const tLogin = await switchTo(TEACHER);
   const pTeacher = await probePerm();
   ok(tLogin.role === 'teacher', `已切换 teacher：${tLogin.name}`);
-  ok(!pTeacher.navHas && !pTeacher.can && !pTeacher.on && pTeacher.cur !== 'page-hours',
-     `teacher：看不到也进不去（navHas=${pTeacher.navHas} can=${pTeacher.can} on=${pTeacher.on} cur=${pTeacher.cur}）`);
+  /* ==5.41== teacher 现在能看课时统计（只读视角，v71 起）—— 断言从「看不到」改为「看得到」 */
+  ok(pTeacher.navHas && pTeacher.can && pTeacher.on && pTeacher.cur === 'page-hours',
+     `teacher：看得到 + 能进（只读视角，navHas=${pTeacher.navHas} can=${pTeacher.can} on=${pTeacher.on} cur=${pTeacher.cur}）`);
 
   const sLogin = await switchTo(STUDENT);
   const pStudent = await probePerm();
