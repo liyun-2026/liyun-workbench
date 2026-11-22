@@ -3,6 +3,7 @@
 test/.sync.gen.mjs
 test/.sync.student.mjs
 test/.sync.stuacct.mjs
+test/.sync.batchidem.mjs
 test/.preview-data.json
 test/.shots/
 

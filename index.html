@@ -3973,7 +3973,7 @@ var Icon = {
           <button class="btn" onclick="Roster.genAccounts()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-bolt"></use></svg> 给全班建号</button>
           <button class="btn ghost" onclick="App.go('students')"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-grad"></use></svg> 查看学生账号</button>
         </div>
-        <p class="hint" style="margin:6px 0 0">账号 = 班级码-学号，密码 = <b class="num">by</b> + 4 位随机数字，每人不同、全班不重。学号按姓名排序自动编，已有账号的学员不动。</p>
+        <p class="hint" style="margin:6px 0 0">账号 = 班级码-学号，密码 = <b class="num">by</b> + 4 位随机数字，每人不同、全班不重。学号按姓名排序自动编。<br>可以放心重复点：已有账号的学员直接复用原号、不重置密码，也不会把号往后顶。</p>
         <p class="hint" id="rsStat"></p>
         <div id="rosterMsgBox" style="display:none;margin-top:10px"></div>
       </div>
@@ -7983,7 +7983,19 @@ const Roster = {
      账号 = 班级码-学号（学号按姓名排序自动编，写进学员档案 s.no，重跑不换号）；
      密码 = by + 4 位随机数字，全班唯一（撞号自动重生成）。
      旧「留空统一 liyun2026」的口子已删 —— 全班同码是代打卡的最大漏洞。
-     建完出「打印发放卡」按钮，A4 拼版即裁即用。 */
+     建完出「打印发放卡」按钮，A4 拼版即裁即用。
+
+     ==5.47== 幂等化（开学日真事故：考前06班 18 人只建出 2 个，其余 20 个报
+     「这个用户名已经存在」）。旧逻辑只用 studentId 认「这个学员有没有号」，
+     名册删档重导后老号（kq06-01…20）的 studentId 指向已不存在的档案 →
+     当前学员一个个看着都"没号" → 逐个拿同号去建 → 服务端全撞名报失败。
+     现在三件事：
+       ① 认账号也认用户名：同名老号（孤儿号/原来就没挂档案的）直接复用，
+          孤儿号顺手把 studentId 补挂到现任学员（op:'relink'），密码不重置；
+       ② 编号取「没被占用的最小号」：新号不再从最大号一路往后加，18 人不会
+          因为老号占了 1-20 就跳到 21/22；
+       ③ 结果分三层说人话：新建 X · 已有 Y（复用，密码见原卡） · 失败 Z（原因），
+          另把「孤儿号 / 号被别的名字占着」的清单摆出来给教务拍板。 */
   async genAccounts(){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，建号由教务老师操作');
     if (Auth.mode !== 'cloud') return UI.toast('本机模式没有账号服务，建不了学生账号');
@@ -7997,45 +8009,131 @@ const Roster = {
       .trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')) || this.clsCodeDefault(clsName);
 
     const stat = document.getElementById('rsStat');
-    if (stat) stat.textContent = '正在建…';
+    if (stat) stat.textContent = '正在核对现有账号…';
     try {
       const j = await Auth.call('users', { op: 'list' });
       const users = j.users || [];
-      const haveSid = new Set(users.filter(u => u.role === 'student' && u.studentId).map(u => u.studentId));
-      const haveUser = new Set(users.map(u => u.user));
+      const nu = v => String(v || '').trim().toLowerCase();
+      /* 两份索引：用户名（含停用号 —— 名字还占着，建不出来）· 学员 id（只认在用的学生号） */
+      const acctByUser = new Map(), acctBySid = new Map();
+      users.forEach(u => {
+        if (u.user) acctByUser.set(nu(u.user), u);
+        if (u.role === 'student' && u.studentId && u.active !== false) acctBySid.set(u.studentId, u);
+      });
+      const aliveSids = new Set(Store.list('students').map(s => s.id));
+
+      /* 编号池：本班码下已经用掉的号 + 现任学员的学号；新号取「最小空号」 */
+      const codeRe = new RegExp('^' + code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-(\\d+)$');
+      const usedNo = new Set();
+      students.forEach(s => { const n = parseInt(s.no, 10); if (n > 0) usedNo.add(n); });
+      users.forEach(u => { const m = codeRe.exec(nu(u.user || '')); if (m) usedNo.add(parseInt(m[1], 10)); });
+      const nextNo = () => { let n = 1; while (usedNo.has(n)) n++; usedNo.add(n); return n; };
+      const pad2 = n => String(n).padStart(2, '0');
+
       const passes = new Set();
       const stuPass = () => { let p; do { p = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0'); } while (passes.has(p)); passes.add(p); return p; };
-      /* 学号：档案里已有学号的沿用；没有的接着班里最大号往下编（名单本就按姓名排序） */
-      let maxNo = 0;
-      students.forEach(s => { const n = parseInt(s.no, 10); if (n > maxNo) maxNo = n; });
-      const list = [], skip = [], numbered = [];
-      students.forEach(s => {
-        if (haveSid.has(s.id)) { skip.push(s.name + '（已有）'); return; }
-        if (!s.no){ maxNo += 1; s.no = maxNo; numbered.push(s); }
-        const no2 = String(s.no).padStart(2, '0');        // 学号两位起：2b-01，跟发放卡一个写法
-        const user = code + '-' + no2;
-        if (haveUser.has(user)) { skip.push(s.name + '（账号 ' + user + ' 被占用）'); return; }
-        haveUser.add(user);
-        list.push({ user, name: s.name, studentId: s.id, role: 'student', pass: stuPass(), no: s.no });
+
+      /* 同名老号索引：账号还在、档案却没了（或从来就没挂档案）—— 开学日 kq06 事故的现场。
+         有它才能「先认人再认号」：老号占着 01-18、新学员还没编号时也能对上。 */
+      const orphanByName = new Map();
+      users.forEach(u => {
+        if (u.role !== 'student' || u.active === false) return;
+        if (!codeRe.test(nu(u.user || ''))) return;
+        if (u.studentId && aliveSids.has(u.studentId)) return;
+        const k = nu(u.name);
+        if (k && !orphanByName.has(k)) orphanByName.set(k, u);
       });
-      if (!list.length){
-        if (stat) stat.textContent = '这个班的学员都已经有账号了。';
+
+      const list = [];       // 要新建的
+      const have = [];       // 已有（复用原号，密码不动）
+      const numbered = [];   // 这次才编上号的学员（要写回档案）
+      const orphans = [];    // 号被「档案已删的老号」或「别人的名字」占着（只列清单，不自动删）
+      students.forEach(s => {
+        const own = acctBySid.get(s.id);
+        if (own){
+          const m = /-(\d+)$/.exec(String(own.user || ''));
+          have.push({ sid: s.id, user: own.user, name: s.name,
+                      no: parseInt(s.no, 10) || (m ? parseInt(m[1], 10) : 0), pass: '' });
+          return;
+        }
+        /* ① 先认人：同名老号不管占的是几号，直接复用（顺手把学号对齐回账号上的号） */
+        const old = orphanByName.get(nu(s.name));
+        if (old){
+          const m = /-(\d+)$/.exec(String(old.user || ''));
+          const ono = m ? parseInt(m[1], 10) : 0;
+          if (ono > 0 && parseInt(s.no, 10) !== ono){ s.no = ono; numbered.push(s); }
+          if (ono > 0) usedNo.add(ono);
+          have.push({ sid: s.id, user: old.user, name: s.name, no: ono || (parseInt(s.no, 10) || 0),
+                      pass: '', relinkId: old.id });
+          return;
+        }
+        let no = parseInt(s.no, 10) > 0 ? parseInt(s.no, 10) : 0;
+        let user = '', acc = null;
+        for (let guard = 0; guard < 500; guard++){
+          if (!no) no = nextNo();
+          user = code + '-' + pad2(no);
+          acc = acctByUser.get(nu(user)) || null;
+          if (!acc) break;
+          const orph = !acc.studentId || !aliveSids.has(acc.studentId);
+          /* 同号同名（老号没被上面的索引收到，例如重名）→ 也算复用 */
+          if (acc.role === 'student' && acc.active !== false && nu(acc.name) === nu(s.name)){
+            have.push({ sid: s.id, user: acc.user || user, name: s.name, no,
+                        pass: '', relinkId: orph ? acc.id : '' });
+            return;
+          }
+          orphans.push(user + '（' + (acc.name || '?') + '）');
+          no = 0;                         // 号被别人的名字占着 → 换下一个空号
+        }
+        if (!(no > 0)) return;          // 兜底：没有可用号（极端情况，不计入任何一档）
+        if (parseInt(s.no, 10) !== no){ s.no = no; numbered.push(s); }
+        list.push({ user, name: s.name, studentId: s.id, role: 'student', pass: stuPass(), no });
+      });
+
+      if (!list.length && !have.length){
+        if (stat) stat.textContent = '这个班没有可建号的学员。';
         return;
       }
-      if (!confirm(`要给 ${list.length} 名学员建账号：\n账号 = ${code}-学号，密码每人随机（by + 4 位数字，全班不重）。\n${numbered.length ? '新编学号 ' + numbered.length + ' 人（按姓名排序）。' : ''}\n\n建完可以直接打印 A4 发放卡。确定？`)) {
-        if (stat) stat.textContent = '已取消。';
-        return;
+      /* 只在真要新建时确认；纯复用不打扰 */
+      if (list.length){
+        const q = `要给 ${list.length} 名学员新建账号（账号 = ${code}-学号，密码每人随机）` +
+          (have.length ? `；另外 ${have.length} 人已有账号，直接复用、不动密码` : '') +
+          (numbered.length ? `\n新编学号 ${numbered.length} 人（按姓名排序，取现有空号）` : '') +
+          '\n\n建完可以直接打印 A4 发放卡。确定？';
+        if (!confirm(q)){ if (stat) stat.textContent = '已取消。'; return; }
       }
       numbered.forEach(s => Store.upsert('students', s));   // 学号写进档案：重跑建号、发放卡重打都用同一号
-      const r = await Auth.call('users', { op: 'createMany', list });
-      const ok = list.filter(x => !(r.fail || []).some(f => f.user === x.user));
-      const msg = `建好了 ${ok.length} 个账号（一人一密）。` +
-        (r.fail && r.fail.length ? ` 没建成 ${r.fail.length} 个：${r.fail.map(f => f.user + '（' + f.err + '）').join('、')}` : '') +
-        (skip.length ? ` 跳过 ${skip.length} 个：${skip.join('、')}` : '');
-      if (stat) stat.innerHTML = msg + '<br>下面可以打印发放卡，或复制文案发群。';
-      UI.toast('建好了 ' + ok.length + ' 个学生账号（每人一个密码）');
-      this._ok = ok; this._clsName = clsName;
-      this.renderMsg(ok);
+
+      /* 孤儿老号补挂 studentId —— 补不上要当场说清楚（学生登录后看不到自己的数据是硬伤） */
+      let relinkFail = [];
+      const rel = have.filter(x => x.relinkId);
+      if (rel.length){
+        try {
+          const rr = await Auth.call('users', { op: 'relink', list: rel.map(x => ({ id: x.relinkId, studentId: x.sid })) });
+          const bad = new Set(((rr && rr.fail) || []).map(f => String(f.id)));
+          relinkFail = rel.filter(x => bad.has(String(x.relinkId)));
+        } catch(e){ relinkFail = rel.slice(); }
+      }
+
+      let created = [], fail = [];
+      if (list.length){
+        const r = await Auth.call('users', { op: 'createMany', list });
+        fail = r.fail || [];
+        created = list.filter(x => !fail.some(f => f.user === x.user));
+      }
+
+      /* 三层口径：新建 / 已有 / 失败 —— 别再把「已存在」渲染成失败 */
+      const okHave = have.filter(x => relinkFail.indexOf(x) < 0);
+      const bits = [`<b>新建 ${created.length} 个</b>`, `已有 ${okHave.length} 个（复用原账号，密码见原发放卡）`];
+      if (fail.length) bits.push(`<span style="color:#b4452f">失败 ${fail.length} 个</span>（${fail.map(f => Util.esc(f.user) + '：' + Util.esc(f.err)).join('；')}）`);
+      if (relinkFail.length) bits.push(`<span style="color:#b4452f">老号补挂失败 ${relinkFail.length} 个</span>（${relinkFail.map(x => Util.esc(x.user)).join('、')}，这些学员请到「学生账号」页单独重置密码）`);
+      const uniqOrphans = [...new Set(orphans)];
+      if (stat) stat.innerHTML = bits.join(' · ') +
+        (uniqOrphans.length ? `<br>另有 ${uniqOrphans.length} 个号位被别的名字占着（未动，要清理请到「学生账号」页删）：${uniqOrphans.map(Util.esc).join('、')}` : '') +
+        '<br>下面可以打印发放卡（已有账号的卡上写「密码见首次发放卡」），或复制文案发群。';
+      UI.toast('新建 ' + created.length + ' 个 · 已有 ' + okHave.length + ' 个' + (fail.length ? ' · 失败 ' + fail.length + ' 个' : ''));
+
+      this._ok = created.concat(okHave); this._clsName = clsName;
+      this.renderMsg(this._ok);
     } catch(e){
       if (stat) stat.textContent = '建号失败：' + e.message;
       UI.toast(e.message);
@@ -8122,7 +8220,7 @@ const Roster = {
      开一个打印窗口写完整排版，浏览器「打印」即裁即用。
      整班建号 / 单个建号 / 重置密码后都能打 —— 数据取 Roster._ok（存最新的密码）。 */
   printCards(){
-    const list = (this._ok || []).filter(x => x && x.user && x.pass);
+    const list = (this._ok || []).filter(x => x && x.user);
     if (!list.length) return UI.toast('先建号，再打印发放卡');
     const clsName = this._clsName || '';
     const url = this.here().replace(/^https?:\/\//, '');
@@ -8130,7 +8228,7 @@ const Roster = {
       <div class="mini"><div class="no">${String(i + 1).padStart(2, '0')}</div><div class="gb"></div><div class="st">学 生 账 号 发 放 卡</div>
         <div class="nm">${Util.esc(x.name)}<span>学号 ${Util.esc(String(x.no || '').padStart(2, '0'))}</span></div>
         <div class="row"><span class="k">账号</span><span class="v">${Util.esc(x.user)}</span></div>
-        <div class="row"><span class="k">密码</span><span class="v">${Util.esc(x.pass)}</span></div>
+        <div class="row"><span class="k">密码</span><span class="v">${x.pass ? Util.esc(x.pass) : '<span style="font-family:\'PingFang SC\';font-size:11px;font-weight:400;color:#a8895a">见首次发放卡（忘了走重置）</span>'}</span></div>
         <div class="tip">${Util.esc(url)} · 别发群里 · 丢了找老师</div></div>`;
     const pages = [];
     for (let i = 0; i < list.length; i += 8) pages.push(list.slice(i, i + 8).map((x, j) => card(x, i + j)).join(''));
@@ -8183,7 +8281,8 @@ ${pages.map(p => `<div class="a4">
     const url = this.here();
     let txt = '';
     if (kind === 'names'){
-      txt = (this._ok || []).map(x => [x.name, x.user, x.pass].join('　')).join('\n');
+      /* ==5.47== 复用来的老号没有密码可回显，别印一个空白骗人 */
+      txt = (this._ok || []).map(x => [x.name, x.user, x.pass || '密码见首次发放卡（忘了找老师重置）'].join('　')).join('\n');
     } else {
       txt = `哈喽，乖，欢迎加入博艺大家庭！你的学生系统账号已经建好了：
 

@@ -1319,6 +1319,31 @@ async function doUsers(s, me, body) {
     return json({ ok: true, n: ok.length, fail });
   }
 
+  /* ==5.47== 老号补挂档案（批量建号幂等的配套动作）：名册删档重导之后，老账号还在、
+     studentId 却指向已经删掉的学员档案 —— 学员登录后看不到自己的考勤/作业，
+     教务那边又看着「这个学员没号」反复去建（开学日 kq06-01…20 撞名事故的根）。
+     这里只做一件事：把学生号的 studentId 换成新档案（新档案还在才收），
+     密码 / 名字 / 角色 / 班别一概不动。调用方客户端已按「同名 + 老档案已删」筛过。 */
+  if (op === 'relink') {
+    const list = Array.isArray(body.list) ? body.list : [];
+    if (!list.length) return json({ error: '没有要补挂的账号' }, 400);
+    if (list.length > 300) return json({ error: '一次最多补挂 300 个' }, 400);
+    const shared = (await s.get('org/data', { type: 'json' })) || {};
+    const sidSet = new Set((shared.students || []).map(x => x && x.id));
+    const done = [], fail = [];
+    for (const it of list) {
+      const id2 = String(it.id || ''), sid = String(it.studentId || '');
+      const a = id2 ? await s.get(`auth/${id2}`, { type: 'json' }) : null;
+      if (!a || (a.role || '') !== STUDENT) { fail.push({ id: id2, err: '账号不存在或不是学生号' }); continue; }
+      if (a.active === false) { fail.push({ id: id2, err: '这个号已停用' }); continue; }
+      if (!sidSet.has(sid)) { fail.push({ id: id2, err: '学员档案不存在' }); continue; }
+      a.studentId = sid; a.relinkedAt = Date.now();
+      await s.setJSON(`auth/${id2}`, a);
+      done.push({ id: id2, user: a.user || '' });
+    }
+    return json({ ok: true, n: done.length, done, fail });
+  }
+
   const id = String(body.id || '');
   if (!id) return json({ error: '缺少账号 id' }, 400);
   const target = await s.get(`auth/${id}`, { type: 'json' });
