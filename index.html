@@ -13464,6 +13464,23 @@ const News = {
     if (this._items) this.paint(this._items, this._date);
   }
 };
+
+/* ==5.42== 开学日 2026-11-22「每日新闻无法跳转」定性后的兜底：
+   页面层实测无 bug（数据源 80 条全完整链接、链接可点、无遮挡、无 preventDefault），
+   但 iOS 把系统加到主屏幕（PWA standalone）后 <a target="_blank"> 点了**完全没反应**
+   ——iOS 著名坑，正是「点新闻跳不动」的真失败模式之一。委托层兜底（绑一次，覆盖
+   今日页/新闻页/学生端全部新闻外链）：standalone 下的 iPhone/iPad 不弹新窗，
+   改当前窗口导航（用户按返回回来）；桌面浏览器与普通 Safari 标签零影响。 */
+document.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a[target="_blank"]');
+  if (!a) return;
+  const standalone = (navigator.standalone === true) ||
+    (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (standalone && /iP(hone|ad|od)/.test(navigator.userAgent)){
+    e.preventDefault();
+    location.href = a.href;
+  }
+}, true);
 /* ==== 功能：每日新闻 END ==== */
 
 /* 授课老师端的「每日新闻」独立页：复用 News，渲染到本页专属容器 */
