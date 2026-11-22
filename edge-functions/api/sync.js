@@ -27,14 +27,14 @@ const LOCK_MS = 5 * 60 * 1000;
 const MAX_BYTES = 700 * 1024;          // 受限于边缘函数请求体 1MB
 const SESSION_MS = 60 * 24 * 3600 * 1000;   // 登录状态保留 60 天
 const MIN_PASS = 8;
-/* ==5.37== 方案A（一人一密发放卡）：学生密码 = by + 4 位随机数字（共 6 位），
+/* ==5.37== 方案A（一人一密发放卡）：学生密码 = by + 6 位随机数字（共 8 位，==5.50== 由 6 位升到 8 位），
    好念好读、发给中小学生记得住；教职账号仍按 MIN_PASS=8。
    下限按角色分开判：建号（mkUser）/ 教务改密（op:'pass'）/ 自己改密（chpass），
-   登录入口只做最宽的兜底检查（6 位），真实下限在写的那几步钉死。 */
+   登录入口只做最宽的兜底检查（6 位，兼容 5.49 之前发出去的 6 位旧码），真实下限在写的那几步钉死。 */
 const STUDENT_MIN_PASS = 6;
 /* 换设备一次性密钥：8 位随机码（大小写+数字，去易混 0O1I），10 分钟有效、用一次即废 */
 const DEVKEY_TTL = 10 * 60 * 1000;
-const stuPass = () => 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+const stuPass = () => 'by' + String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
 const genDevKey = () => {
   const CS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';   // 去掉 0 O 1 l I
   let s = '';
@@ -1476,7 +1476,7 @@ export async function onRequestPost(context) {
     /* ══ ==5.37== 方案A · 学生账号管理两件套（office/admin/super 才可调）══
        device_key：换设备一次性密钥的生成 / 作废 —— 码由服务端出（8 位、去 0O1I），
          教务不再手编；10 分钟有效由核销侧（action 'dev'）钉死，这里只管发与废。
-       reset_password：一键重置学生密码 —— 新码服务端生成（by+4 位数字），
+       reset_password：一键重置学生密码 —— 新码服务端生成（by+6 位数字，共 8 位），
          旧密码当场作废（换 salt 重算 hash），发放卡拿新密码重打即可。
        权限口径与 doUsers 不同（那边账号改动只有 super/office）：
          主理人 2026-11-15 定的 —— 这两件 office/admin/super 三档教务都可以调。 */

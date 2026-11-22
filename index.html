@@ -8031,7 +8031,9 @@ const Roster = {
       const pad2 = n => String(n).padStart(2, '0');
 
       const passes = new Set();
-      const stuPass = () => { let p; do { p = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0'); } while (passes.has(p)); passes.add(p); return p; };
+      /* ==5.50== 学生密码 by + 6 位数字（共 8 位）。旧规则的 6 位码继续可登录（登录门 ≥6），
+         新码更耐猜；批量建号与单独建号共用这一条规则。 */
+      const stuPass = () => { let p; do { p = 'by' + String(Math.floor(Math.random() * 1000000)).padStart(6, '0'); } while (passes.has(p)); passes.add(p); return p; };
 
       /* 同名老号索引：账号还在、档案却没了（或从来就没挂档案）—— 开学日 kq06 事故的现场。
          有它才能「先认人再认号」：老号占着 01-18、新学员还没编号时也能对上。 */
@@ -8212,7 +8214,7 @@ const Roster = {
         user = code + '-' + String(stu.no).padStart(2, '0');
       }
       if (haveUser.has(user)){ if (stat) stat.textContent = '账号「' + user + '」一连串号位都被占了，到批量建号里核对一下班级码。'; return; }
-      const pass = 'by' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+      const pass = 'by' + String(Math.floor(Math.random() * 1000000)).padStart(6, '0');   // ==5.50== 8 位
       let r = await Auth.call('users', { op:'createMany', list:[{ user, name, studentId: stu.id, role:'student', pass }] });
       for (let i = 0; i < 8 && r.fail && r.fail.length && /已经存在/.test(r.fail[0].err || ''); i++){
         stu.no = (parseInt(stu.no, 10) || 0) + 1;
@@ -8242,7 +8244,7 @@ const Roster = {
       <textarea id="rsMsg" style="min-height:190px"></textarea>
       <div class="row" style="margin-top:8px;flex-wrap:wrap">
         <button class="btn" onclick="Roster.printCards()">打印发放卡（A4 拼版）</button>
-        <button class="btn ghost" onclick="Roster.msg('all')">复制欢迎语（发群里）</button>
+        <button class="btn ghost" onclick="Roster.msg('all')">复制欢迎语（发给学生）</button>
         <button class="btn ghost" onclick="Roster.msg('names')">复制账号密码（私发本人）</button>
       </div>`;
     this.msg('all', true);
@@ -8261,7 +8263,7 @@ const Roster = {
         <div class="nm">${Util.esc(x.name)}<span>学号 ${Util.esc(String(x.no || '').padStart(2, '0'))}</span></div>
         <div class="row"><span class="k">账号</span><span class="v">${Util.esc(x.user)}</span></div>
         <div class="row"><span class="k">密码</span><span class="v">${x.pass ? Util.esc(x.pass) : '<span style="font-family:\'PingFang SC\';font-size:11px;font-weight:400;color:#a8895a">见首次发放卡（忘了走重置）</span>'}</span></div>
-        <div class="tip">${Util.esc(url)} · 别发群里 · 丢了找老师</div></div>`;
+        <div class="tip">${Util.esc(url)} · 保管好自己的账号密码 · 丢了找老师</div></div>`;
     const pages = [];
     for (let i = 0; i < list.length; i += 8) pages.push(list.slice(i, i + 8).map((x, j) => card(x, i + j)).join(''));
     const w = window.open('', '_blank');
@@ -8321,7 +8323,7 @@ ${pages.map(p => `<div class="a4">
 砺蕴学生系统　${url}
 
 账号和密码印在发放卡上，老师会单独发给你。
-密码是给你一个人用的，别发到群里，也别借给别人登录哦。
+账号密码是给你一个人用的，保管好自己的账号密码，也别借给别人登录哦。
 
 加到手机桌面：
 iPhone（用 Safari 打开）分享 → 添加到主屏幕
@@ -8431,7 +8433,7 @@ const Weekend = {
     UI.toast(on ? '本期已全部标记参加' : '本期已全部取消');
   },
 
-  /** 复制本期参加名单，方便发群里核对 */
+  /** 复制本期参加名单，方便发给教务核对 */
   copy(){
     const d = this.curDate();
     const marked = new Set(Store.list(this.key(d)).map(r => r.studentId));
@@ -16195,7 +16197,10 @@ const Auth = {
     const pass = document.getElementById('gPass').value || '';
     const bad = userErr(user);
     if (bad) return this.err(bad);
-    if (pass.length < 8) return this.err('密码至少 8 位');
+    /* ==5.50== 登录门只做最宽的兜底：学生密码下限是 6 位，8 位口径只属于建号/改密。
+       开学前夜学生被拦在提交前的根因就是这里写着 8。 */
+    if (!pass) return this.err('请输入密码');
+    if (pass.length < 6) return this.err('密码至少 6 位');
     this.err(''); this.busy(true);
     /* 启动时探活是丢到后台跑的（见 App._recheck），所以理论上用户可能在它回来之前
        就点了登录。这里补一道保险：模式没定就先定下来，否则会按云端去连一个本机地址。 */
@@ -17798,7 +17803,7 @@ const Sign = {
 
   /* ── 打卡码：**只读**，30 秒一换 ──
      以前这里能自己设一个固定码（一节课不变）—— 现在没了。
-     固定码最大的问题是「一次泄漏管一节课」：一个学生拍下来发群里，
+     固定码最大的问题是「一次泄漏管一节课」：一个学生拍下来转发出去，
      全班在宿舍都能打。改成服务端派生、30 秒轮换之后，截屏也追不上。
      屏幕上这枚码同时喂两处：二维码里编的就是它，数字也是它 —— 同一个值。 */
   async refreshCode(){

@@ -3,7 +3,7 @@
  *   node test/stuacct_check.mjs
  *
  * 第一段：直接调真 sync.js（mock-blob 内存版）—— 后端规则逐条钉死
- *   ① 学生密码下限 6 位（by+4 位数字），教职仍 8 位（建号/改密/自改密三处）
+ *   ① 学生密码 = by+6 位数字（共 8 位，登录门放行 ≥6 位的旧码），教职仍 8 位（建号/改密/自改密三处）
  *   ② device_key：一键生成 8 位随机码（去 0O1I）、留痕（生成人/时间）、
  *      一次性核销、10 分钟过期、教务可作废
  *   ③ reset_password：服务端出新密码、旧密码当场作废、只准重置学生号
@@ -140,7 +140,7 @@ console.log('\n【第一段】后端规则：密码下限 / device_key / reset_p
   const list = await call({ action: 'users', token: T, op: 'list' });
   const stu1 = (list.users || []).find(u => u.user === 'stu1');
   r = await call({ action: 'reset_password', token: T, id: stu1.id });
-  ok(r.ok && /^by\d{4}$/.test(r.pass || ''), '一键重置出了新密码（' + r.pass + '）');
+  ok(r.ok && /^by\d{6}$/.test(r.pass || ''), '一键重置出了新密码（' + r.pass + '）');
   e = await call({ action: 'login', user: 'stu1', pass: 'by2468' });
   ok(e.status === 401 || e.error, '旧密码当场作废');
   e = await call({ action: 'login', user: 'stu1', pass: r.pass });
@@ -155,7 +155,7 @@ console.log('\n【第一段】后端规则：密码下限 / device_key / reset_p
   r = await call({ action: 'device_key', token: adm.token, op: 'make' });
   ok(r.ok, 'admin 能一键生成密钥（主理人 11-15 定的三档口径）');
   r = await call({ action: 'reset_password', token: adm.token, id: stu1.id });
-  ok(r.ok && /^by\d{4}$/.test(r.pass || ''), 'admin 能一键重置学生密码（' + r.pass + '）');
+  ok(r.ok && /^by\d{6}$/.test(r.pass || ''), 'admin 能一键重置学生密码（' + r.pass + '）');
   const tea = await call({ action: 'login', user: '张老师', pass: 'teapass123' });
   r = await call({ action: 'device_key', token: tea.token, op: 'make' });
   ok(r.status === 403, '授课老师调 device_key 被 403');
@@ -229,7 +229,7 @@ try {
     const passes = okList.map(x => x.pass || '');
     return { n: stus.length, users: stus.map(u => u.user),
              okN: okList.length,
-             passOk: passes.every(p => /^by\\d{4}$/.test(p)),
+             passOk: passes.every(p => /^by\\d{6}$/.test(p)),
              uniq: new Set(passes).size === passes.length && passes.length === stus.length,
              boxShown: box && box.style.display !== 'none',
              stat: document.getElementById('rsStat')?.textContent?.slice(0, 40) || '',
@@ -237,7 +237,7 @@ try {
   })()`);
   ok(u3.n === 4, '四个学员号全建好（' + u3.n + ' 个）');
   ok(u3.users.every(x => /^2b-\d{2}$/.test(x)), '账号全是 班级码-学号 形态（' + u3.users.join(' ') + '）');
-  ok(u3.okN === 4 && u3.passOk, '四枚密码都是 by+4 位');
+  ok(u3.okN === 4 && u3.passOk, '四枚密码都是 by+6 位');
   ok(u3.uniq, '四枚密码互不重复');
   ok(u3.boxShown, '建号完成区出现（发放卡 / 复制按钮）');
   ok(u3.nos.length === 4, '学号写进学员档案（' + u3.nos.join(' ') + '）');
@@ -255,7 +255,7 @@ try {
   const minis = (u4.html.match(/class="mini"/g) || []).length;
   ok(/学生账号发放卡 · A4 拼版/.test(u4.html), '打印页是 A4 拼版头');
   ok(minis === 4, '四张迷你卡都排进去了（' + minis + ' 张）');
-  ok(/2b-\d{2}/.test(u4.html) && /by\d{4}/.test(u4.html), '卡上有账号和密码');
+  ok(/2b-\d{2}/.test(u4.html) && /by\d{6}/.test(u4.html), '卡上有账号和密码');
   ok(/学号\s*\d{2}/.test(u4.html), '卡上学号也印上了');
   ok(!u4.welcome.includes('密码　'), '欢迎语不再统一发密码（旧文案已退场）');
   ok(u4.welcome.includes('发放卡'), '欢迎语引导看发放卡');
@@ -310,7 +310,7 @@ try {
     /* 被重置的不一定是列表第一行（行按姓名排序，_users 是服务端顺序）—— 按账号找行 */
     const row0 = rows().find(r => (r.textContent || '').includes('@' + user0)) || rows()[0];
     const txt = row0?.textContent || '';
-    const np = (txt.match(/by\\d{4}/) || [])[0] || '';
+    const np = (txt.match(/by\\d{6}/) || [])[0] || '';
     let login = '';
     try { const j = await Auth.call('login', { user: user0, pass: np }); login = j.ok ? 'ok' : 'fail'; } catch(e){ login = e.message; }
     return { btnTxt, user0, confirmAlive: typeof window.confirm === 'function' && window.confirm.toString().includes('true'),
@@ -319,7 +319,7 @@ try {
   })()`);
   console.log('  [U7 诊断]', JSON.stringify(u7).slice(0, 300));
   ok(u7.btnTxt === '重置密码', '行按钮是「重置密码」（' + u7.btnTxt + '）');
-  ok(/^by\d{4}$/.test(u7.np), '行上亮出新密码（' + u7.np + '）');
+  ok(/^by\d{6}$/.test(u7.np), '行上亮出新密码（' + u7.np + '）');
   ok(/旧密码已作废/.test(u7.txt), '行上写明旧密码已作废');
   ok(u7.login === 'ok', '新密码真的能登录（' + u7.user0 + ' / ' + u7.np + '）');
   ok(/class="mini"/.test(u7.card) && u7.card.includes(u7.np), '单卡重打带新密码');
@@ -337,6 +337,34 @@ try {
   })()`);
   await sleep(400);
   await cdp.shot(path.join(SHOTS, 'roster-batch.png'));
+
+  console.log('\n【U9】登录门口径：空密码/5 位当场拦下、6 位旧码放行…');
+  const u9 = await cdp.eval(`(async () => {
+    /* 造一个仍持 6 位旧码的学生号 —— 5.49 之前发出去的码就长这样 */
+    await Auth.call('users', { op: 'createMany', list: [
+      { user: 'gate-6w', pass: 'by1234', role: 'student', name: '旧码学员', studentId: 'gate-6w' }] });
+    Auth.logout();
+    await new Promise(r => setTimeout(r, 700));
+    const err = () => (document.getElementById('gErr') || {}).textContent || '';
+    const put = (u, p) => { document.getElementById('gUser').value = u; document.getElementById('gPass').value = p; };
+
+    put('gate-6w', '');
+    await Auth.submit();
+    const eEmpty = err();
+
+    put('gate-6w', 'by123');
+    await Auth.submit();
+    const eShort = err();
+
+    put('gate-6w', 'by1234');
+    await Auth.submit();
+    await new Promise(r => setTimeout(r, 2200));
+    const me = Auth._me || {};
+    return { eEmpty, eShort, user: me.user || '', role: me.role || '', gateShown: !!document.querySelector('#gate.on') };
+  })()`);
+  ok(u9.eEmpty === '请输入密码', '空密码当场拦下（' + u9.eEmpty + '）');
+  ok(u9.eShort === '密码至少 6 位', '5 位密码当场拦下（' + u9.eShort + '）');
+  ok(u9.user === 'gate-6w' && u9.role === 'student', '6 位旧码真的登进去了（' + u9.user + ' / ' + u9.role + '）');
 
   console.log('\n【收尾】清场…');
   await devReset();

@@ -157,7 +157,7 @@ try {
              newPass: (StuAcct._users[0] || {})._newPass || '' };
   })()`);
   ok(changed.after.paint === 2, '数据变了才重绘（第 2 次）');
-  ok(/^by\d{4}$/.test(changed.newPass), '新密码亮在行上（' + changed.newPass + '）');
+  ok(/^by\d{6}$/.test(changed.newPass), '新密码亮在行上（' + changed.newPass + '）');
   ok(changed.items === 21, '重绘后仍是完整 21 行');
 
   console.log('\n【4】慢响应竞态：先发的请求后回来，不能覆盖新数据…');
