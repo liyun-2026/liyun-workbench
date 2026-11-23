@@ -2592,6 +2592,25 @@ body.board-mode .page.on > *{animation:none}
 .bd-q:first-child{border-color:rgba(201,171,124,.45);background:rgba(201,171,124,.10)}
 .bd-q.up .bd-q-v{color:var(--gold-lite)}
 .bd-q.down .bd-q-v{color:var(--green)}
+/* ==5.54== 量化榜密度：按班级数自动分档（data-n 由 paintQuant 写）。
+   1–2 个班：行撑满整块、名字 20px、分数 30px 加粗、名次更醒目；
+   3 个班：略放；4–5 个班：回落到原来的紧凑密度（一屏塞得下）。
+   写在 base 之后，仅靠 data-n 覆盖，不动原有尺寸口径。 */
+.bd-quant[data-n="2"]{gap:clamp(10px,2.2vh,22px)}
+.bd-quant[data-n="1"] .bd-q,
+.bd-quant[data-n="2"] .bd-q{flex:1 1 0;min-height:0;border-radius:14px;
+  padding:clamp(10px,2.6vh,30px) clamp(12px,1.3vw,24px)}
+.bd-quant[data-n="1"] .bd-q-k,
+.bd-quant[data-n="2"] .bd-q-k{font-size:clamp(13px,1.05vw,18px);font-weight:600;letter-spacing:.06em;
+  color:var(--gold-lite)}
+.bd-quant[data-n="1"] .bd-q-n,
+.bd-quant[data-n="2"] .bd-q-n{font-size:clamp(16px,1.45vw,20px);font-weight:600;letter-spacing:.08em;color:var(--ink)}
+.bd-quant[data-n="1"] .bd-q-v,
+.bd-quant[data-n="2"] .bd-q-v{font-size:clamp(24px,2.3vw,30px);font-weight:700}
+.bd-quant[data-n="3"]{gap:clamp(8px,1.6vh,14px)}
+.bd-quant[data-n="3"] .bd-q{padding:clamp(8px,1.6vh,15px) clamp(10px,1vw,18px)}
+.bd-quant[data-n="3"] .bd-q-n{font-size:clamp(14px,1.05vw,17px);color:var(--ink)}
+.bd-quant[data-n="3"] .bd-q-v{font-size:clamp(18px,1.5vw,24px)}
 .bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
 .bd-n{display:flex;gap:12px;min-width:0}
 .bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold-deep);
@@ -19796,6 +19815,40 @@ const Board = {
     });
   },
 
+  /* ==5.54== 今天排的课：**一律按日期取**，别再按星期几比。
+     生产里 schedule.day 存的是「一」（没有「周」字），看板过去拿 '周一' 去比，
+     于是永远对不上 —— 主理人看到的「今天没有排课 / 课程没更新」就是这个。
+     老数据没写 date 的，退回按「星期几字符」比（两种写法都认）。 */
+  dayChar(x){ return String((x && x.day) || '').replace(/^周/, ''); },
+  rowsOn(date){
+    const d = date || Util.today();
+    let w = '';
+    try { w = '日一二三四五六'[new Date(d + 'T00:00:00').getDay()]; } catch(e){}
+    return Store.list('schedule').filter(x => x && (x.date ? x.date === d : (w && this.dayChar(x) === w)));
+  },
+
+  /* 作息去重：同一区间（起止相同）只留一段 —— 用户的作息表里还有重复段没清，
+     看板不能跟着重复显示。空 start 的行直接丢掉（迁移写坏的）。 */
+  uniqPeriods(){
+    const seen = new Set();
+    return Store.list('periods').filter(p => {
+      if (!p || !p.start) return false;
+      const k = p.start + '|' + (p.end || '');
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    }).sort((a, b) => Schedule._tmin(a.start) - Schedule._tmin(b.start));
+  },
+
+  /* 时段文字：名字本身已经是「09:30-10:10」这种区间时，别再拼一遍时间。
+     过去无条件拼 pd.start–pd.end，于是顶带出现「09:30-10:10 · 09:30-10:10」。 */
+  slotTxt(pd){
+    const nm = String((pd && pd.name) || '').trim();
+    const rg = pd && pd.start ? (pd.start + (pd.end ? '–' + pd.end : '')) : '';
+    if (!nm) return rg;
+    if (rg && nm.indexOf(pd.start) >= 0) return nm.replace(/-/g, '–');   // 名字里已带起点时间
+    return rg ? nm + ' · ' + rg : nm;
+  },
+
   /* 顶带当前节次：「第 2 节 · 10:15–11:45 · 指定稿件朗读」。
      now 落在哪一节的 [start, end) 里就是哪节（end 缺失借下一节的 start）；
      没落在任何一节里就照实说「当前无课」。 */
@@ -19803,17 +19856,19 @@ const Board = {
     const d = new Date(Date.now() + this._off);
     const p2 = n => String(n).padStart(2, '0');
     const now = p2(d.getHours()) + ':' + p2(d.getMinutes());
-    const w = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
-    const periods = Store.list('periods').slice()
-      .sort((a, b) => (a.start || '') > (b.start || '') ? 1 : -1);
-    const rows = Store.list('schedule').filter(x => x.day === w);
+    const periods = this.uniqPeriods();
+    const rows = this.rowsOn(Util.today());
     for (let i = 0; i < periods.length; i++){
       const pd = periods[i];
       const end = pd.end || (periods[i + 1] && periods[i + 1].start) || '';
-      if (!pd.start || now < pd.start || (end && now >= end)) continue;
-      const x = rows.find(r => r.periodId === pd.id) || {};
-      const t = x.time || (pd.start + '–' + (pd.end || ''));
-      return (pd.name || '') + ' · ' + t + (x.title ? ' · ' + x.title : '');
+      if (now < pd.start || (end && now >= end)) continue;
+      const titles = [];
+      rows.forEach(r => {
+        if (r.periodId !== pd.id) return;
+        const t = String(r.title || '').trim();
+        if (t && titles.indexOf(t) < 0) titles.push(t);
+      });
+      return this.slotTxt(pd) + (titles.length ? ' · ' + titles.join(' / ') : '');
     }
     return '当前无课';
   },
@@ -20218,6 +20273,9 @@ const Board = {
     const rows = Util.realClasses()
       .map(c => ({ name: c.name || '', v: Quant.score(c.id) }))
       .sort((a, b) => b.v - a.v).slice(0, 5);
+    /* ==5.54== 只有 2 个班时把行撑满整块高度、字放大；3 个班以上回落紧凑密度。
+       密度只看 data-n（CSS 里按 1/2/3/4/5 分档），不写死行数。 */
+    box.dataset.n = String(rows.length);
     const html = rows.length
       ? rows.map((r, i) => {
           const cls = r.v > 100 ? 'up' : (r.v < 100 ? 'down' : '');
@@ -20237,35 +20295,50 @@ const Board = {
     const d = new Date(Date.now() + this._off);
     const p2 = n => String(n).padStart(2, '0');
     const nowHM = p2(d.getHours()) + ':' + p2(d.getMinutes());
-    const periods = Store.list('periods');
-    const rowsOf = w => Store.list('schedule').filter(x => x.day === w).map(x => {
-      const pd = periods.find(q => q.id === x.periodId) || {};
-      return { t: x.time || pd.start || '', x, pd };
-    }).sort((a, b) => String(a.t || '99:99') < String(b.t || '99:99') ? -1 : 1);
-    const row = (r, cls, live) => {
-      const who = r.x.teacher || r.x.cls || '';
-      return `<div class="bd-s2${cls}">`
-        + `<span class="bd-s2-t">${r.t ? Util.esc(r.t) : '—'}</span>`
-        + `<span class="bd-s2-n">${Util.esc(r.x.title || '')}</span>`
-        + (who ? `<span class="bd-s2-w">${Util.esc(String(who).split('、')[0])}</span>` : '')
-        + (live ? '<span class="bd-live">进行中</span>' : '')
-        + `</div>`;
+    const periods = this.uniqPeriods();
+    /* 按「节次 + 课程名」合并：同一节课两个班一起上时只占一行，
+       班级并列在后面（20 条排课 = 10 行，墙上扫一眼能读完）。 */
+    const group = rows => {
+      const m = new Map();
+      rows.forEach(x => {
+        const pd = periods.find(q => q.id === x.periodId) || {};
+        const t = x.time || pd.start || '';
+        const key = (x.periodId || t) + '|' + (x.title || '');
+        if (!m.has(key)) m.set(key, { t, x, pd, who: [] });
+        const g = m.get(key);
+        /* 右侧挂谁：老排课存的是 teacher 字符串（可能是「陈老师、刘老师」），
+           新排课存 teacherId，班课存 cls —— 三条路都认，别让老数据右边空着。 */
+        const w = x.teacher || x.cls || (x.teacherId && typeof Staff !== 'undefined' ? Staff.name(x.teacherId) : '') || '';
+        String(w || '').split(/[、，,]/).forEach(nm => {
+          nm = nm.trim();
+          if (nm && g.who.indexOf(nm) < 0) g.who.push(nm);
+        });
+      });
+      return [...m.values()].sort((a, b) => Schedule._tmin(a.t) - Schedule._tmin(b.t));
     };
-    const rows = rowsOf(['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]);
+    const row = (g, cls, live) => `<div class="bd-s2${cls}">`
+      + `<span class="bd-s2-t">${g.t ? Util.esc(g.t) : '—'}</span>`
+      + `<span class="bd-s2-n">${Util.esc(g.x.title || '')}</span>`
+      + (g.who.length ? `<span class="bd-s2-w">${Util.esc(g.who.join(' / '))}</span>` : '')
+      + (live ? '<span class="bd-live">进行中</span>' : '')
+      + `</div>`;
+    const rows = group(this.rowsOn(Util.today()));
     if (!rows.length) return '<div class="bd-s2" style="color:#8B8072">今天没有排课</div>';
     /* 「进行中」= 服务端校过的钟落在这一节的 [start, end) 里（end 缺失借下一节的 start）。
        比的是服务端校过的钟，这块屏摆一年也不会因为本机时间飘了而标错。 */
     let cur = -1;
-    rows.forEach((r, i) => {
-      const st = r.pd.start || r.t;
-      const en = r.pd.end || (rows[i + 1] && rows[i + 1].pd.start) || '';
+    rows.forEach((g, i) => {
+      const st = g.pd.start || g.t;
+      const en = g.pd.end || (rows[i + 1] && rows[i + 1].pd.start) || '';
       if (st && nowHM >= st && (!en || nowHM < en)) cur = i;
     });
-    const today = rows.map((r, i) => row(r, i === cur ? ' on' : '', i === cur)).join('');
+    const today = rows.map((g, i) => row(g, i === cur ? ' on' : '', i === cur)).join('');
     /* 明日预览：前两节，置灰 —— 给明天一个盼头，也给今天一个「快上完了」的参照 */
-    const tmr = rowsOf(['周日','周一','周二','周三','周四','周五','周六'][(d.getDay() + 1) % 7]).slice(0, 2);
+    let tmrDate = '';
+    try { const n = new Date(d); n.setDate(n.getDate() + 1); tmrDate = Util.dateOf(n); } catch(e){}
+    const tmr = group(tmrDate ? this.rowsOn(tmrDate) : []).slice(0, 2);
     const next = tmr.length
-      ? '<div class="bd-tl-sub">—— 明日预览 ——</div>' + tmr.map(r => row(r, ' dim', false)).join('')
+      ? '<div class="bd-tl-sub">—— 明日预览 ——</div>' + tmr.map(g => row(g, ' dim', false)).join('')
       : '';
     return today + next;
   },
