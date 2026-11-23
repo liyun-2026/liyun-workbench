@@ -5529,6 +5529,7 @@ var Icon = {
         <div class="row edit-only" style="flex-wrap:wrap">
           <span class="hint" style="margin:0;min-width:76px">上课时间</span>
           <input type="time" id="sgStart" onchange="Sign.saveRules()" style="max-width:150px">
+          <span class="hint" id="sgStartHint" style="margin:0"></span>
           <span class="hint" style="margin:0">宽限</span>
           <input type="number" id="sgLate" min="0" max="60" onchange="Sign.saveRules()" style="max-width:88px">
           <span class="hint" style="margin:0">分钟（<b>0 = 到点就迟到</b>，一分钟都不给）</span>
@@ -6107,7 +6108,7 @@ const Store = (() => {
        45 秒是「一次编辑 + 一次 push 落盘」的宽裕上限；过了照常合并。 */
     _wroteAt: {},
     HOLD_MS: 45000,
-    HOLD_KEYS: ['periods'],   /* ==5.55== 只有作息表需要防「改完被 pull 顶回去」，别的键照常合并 */
+    HOLD_KEYS: ['periods', 'sign_rules', 'att_slots'],   /* ==5.58== 作息/打卡设置/考勤时段都要防「改完被 pull 顶回去」 */
     /** 把远端整包数据合并进本地。数组型逐条合并，单值取时间新的 */
     mergeRemote(remote){
       if (!remote || typeof remote !== 'object') return 0;
@@ -6401,7 +6402,8 @@ const Util = {
   },
   /** 真学员：同理。名册、人数、出勤、量化一律走这个，不要直接拿 Store.list('students') */
   realStudents(sort){
-    return Store.list('students', sort).filter(s => !this.isDemoObj(s));
+    /* 系统保护学员（巡检探针）不进任何真实统计口径 —— 尤其看板应到/实到 */
+    return Store.list('students', sort).filter(s => !this.isDemoObj(s) && s.sysProtected !== true);
   },
 
   /** 学员名。同 clsName：按 id 查名字用 listRaw，统计才滤演示数据。 */
@@ -8762,7 +8764,7 @@ const Att = {
   },
   /* ==5.57== 看板用：按「当前时间」自动判该看哪个时段。
      优先级：① 时段自己配了 start/end（HH:MM）就按配置走；
-             ② 没配边界但能认出上午/下午（id 或名字），以 12:00 分界；
+             ② 没配边界但能认出上午/下午（id 或名字），以 13:00 分界；
              ③ 认不出来就稳住第一个时段，不乱猜、不乱跳。
      看板传进来的是服务端校过的钟，不拿本机时间赌。 */
   autoPid(at){
@@ -8774,7 +8776,9 @@ const Att = {
       const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || '').trim());
       return m ? (Number(m[1]) * 60 + Number(m[2])) : null;
     };
-    const timed = slots.map(s => ({ s, a: toMin(s.start), b: toMin(s.end) }))
+    /* boardFrom/boardTo 是看板切段边界；没有就退回 start/end。
+       生产里上午 07:50 上课，但看板要 13:00 才切下午 —— 两个口径必须分开。 */
+    const timed = slots.map(s => ({ s, a: toMin(s.boardFrom || s.start), b: toMin(s.boardTo || s.end) }))
                        .filter(x => x.a != null).sort((x, y) => x.a - y.a);
     if (timed.length){
       let prev = timed[0].s.id;
@@ -8788,7 +8792,7 @@ const Att = {
     const isPm = s => /下午|晚|pm/i.test(label(s));
     const isAm = s => /上午|早|am/i.test(label(s));
     const pm = slots.find(isPm), am = slots.find(isAm);
-    if (am && pm) return mins < 720 ? am.id : pm.id;
+    if (am && pm) return mins < 780 ? am.id : pm.id;   /* ==5.58== 13:00 整点切下午（主理人明确口径） */
     return slots[0].id;
   },
 
@@ -16555,9 +16559,24 @@ const Settings = {
          <span class="grow">${Util.esc(s.name)}` +
          (i === 0 ? ' <span class="hint" style="display:inline;margin:0">（默认，老数据算在这里）</span>' : '') +
          `</span>
+         <span class="hint" style="margin:0">上课</span>
+         <input type="time" value="${Util.esc(s.start || '')}" style="max-width:120px"
+                onchange="Settings.slotSetStart('${s.id}', this.value)">
          <button class="chip" onclick="Settings.slotDel('${s.id}')"` +
          (slots.length <= 1 ? ' disabled style="opacity:.45"' : '') + `>删除</button>
        </div>`).join('');
+  },
+
+  /* ==5.58== 时段上课时间：打卡从这个时间起算，看板切段用 boardFrom/boardTo 单独口径 */
+  slotSetStart(id, val){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角');
+    const s = Store.list('att_slots').find(x => x && x.id === id);
+    if (!s || !/^\d{1,2}:\d{2}$/.test(String(val || ''))) return;
+    Store.upsert('att_slots', Object.assign({}, s, { start: val }));
+    UI.toast('已更新：' + s.name + ' ' + val);
+    this.renderSlots();
+    Sign.render();
+    try { Sync.push(); } catch(e){}
   },
 
   slotAdd(){
@@ -18695,7 +18714,7 @@ const StuHw = {
    ══════════════════════════════════════════════════════════════════ */
 const Sign = {
   /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
-  DEF: { startAt:'08:30', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'' },
+  DEF: { startAt:'07:50', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'', customStart:'19:00' },
   _code: '', _until: 0, _timer: null,
 
   rules(){
@@ -18706,21 +18725,64 @@ const Sign = {
        否则一台老设备会把「8866」这种永不过期的码一直认下去。
        （不清掉，只是不再读：万一要回看历史设置还在。） */
     delete out.code;
+    /* ==5.58== 打卡上课时间不再让人手填「08:30」然后被同步顶回去：
+       上午跟作息第一节 07:50，下午跟作息下午第一节 14:50，
+       只有「自定义时间」才读自己填的 customStart。 */
+    const pid = out.pid || '';
+    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
+    if (pid === 'custom') out.startAt = out.customStart || out.startAt;
+    else if (slot && slot.start) out.startAt = slot.start;
+    else if (pid === 'am') out.startAt = '07:50';
+    else if (pid === 'pm') out.startAt = '14:50';
     return out;
   },
   saveRules(){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，打卡规则由教务老师设置');
     const num = (id, def) => { const v = Number(document.getElementById(id).value); return isNaN(v) ? def : v; };
     const old = this.rules();
+    const sel = document.getElementById('sgPid');
+    const pid = (sel && sel.value) || old.pid || '';
+    const typed = (document.getElementById('sgStart').value || old.startAt);
+    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
+    /* ==5.58== 上午/下午的时间从考勤时段（作息）来；自定义才用输入框的时间。
+       ⚠️ 上次「改了又跳回 08:30」的根因就是这里 set 完本地没 push，
+       15 秒后 sign_rules 被 REMOTE_WINS 用云端旧值盖回来。 */
+    const startAt = pid === 'custom' ? typed
+      : ((slot && slot.start) || (pid === 'am' ? '07:50' : pid === 'pm' ? '14:50' : typed));
     Store.set('sign_rules', Object.assign({}, old, {
-      startAt: document.getElementById('sgStart').value || old.startAt,
+      startAt,
+      customStart: pid === 'custom' ? typed : (old.customStart || '19:00'),
       lateAfter: num('sgLate', old.lateAfter),
       windowBefore: num('sgBefore', old.windowBefore),
       windowAfter: num('sgAfter', old.windowAfter),
       radius: num('sgRadius', old.radius),
-      pid: document.getElementById('sgPid').value || old.pid,
+      pid,
     }));
+    this.syncStartInput();
     this.stat();
+    this.pushRules();   /* 立刻推云端，别等下一轮 pull 把旧值带回来 */
+  },
+
+  /* 打卡时段选项：考勤时段 + 一个自定义。上午/下午的时间跟着作息走，输入框只读。 */
+  signSlots(){
+    const base = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id:'am', name:'上午' }];
+    return base.concat([{ id:'custom', name:'自定义时间' }]);
+  },
+  syncStartInput(){
+    const sel = document.getElementById('sgPid');
+    const input = document.getElementById('sgStart');
+    const hint = document.getElementById('sgStartHint');
+    if (!sel || !input) return;
+    const pid = sel.value || '';
+    const r = this.rules();
+    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
+    const start = pid === 'custom' ? (r.customStart || r.startAt)
+      : ((slot && slot.start) || (pid === 'am' ? '07:50' : pid === 'pm' ? '14:50' : r.startAt));
+    if (input.value !== start) input.value = start;
+    input.disabled = pid !== 'custom';
+    if (hint) hint.textContent = pid === 'custom'
+      ? '自定义时间：在这里填几点上课'
+      : `${start} · 跟作息自动走，要自己填就选「自定义时间」`;
   },
 
   stat(){
@@ -18746,6 +18808,7 @@ const Sign = {
         Store.set('sign_rules', r);
         UI.toast('已把当前位置设为校区');
         this.stat();
+        this.pushRules();
       },
       () => UI.toast('取不到位置 —— 电脑上定位常不可用。请在教室里用手机点这个按钮')
     );
@@ -18757,6 +18820,7 @@ const Sign = {
     Store.set('sign_rules', r);
     UI.toast('已清除校区位置');
     this.stat();
+    this.pushRules();
   },
 
   /** 改完规则立刻推一次，别等定时同步 —— 学生下一秒就可能要打卡 */
@@ -18915,13 +18979,14 @@ const Sign = {
     /* 表单回填 */
     const r = this.rules();
     const set = (id, v) => { const el = document.getElementById(id); if (el && el.value !== String(v)) el.value = v; };
-    set('sgStart', r.startAt); set('sgLate', r.lateAfter);
+    set('sgLate', r.lateAfter);
     set('sgBefore', r.windowBefore); set('sgAfter', r.windowAfter); set('sgRadius', r.radius);
 
-    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id:'am', name:'上午' }];
+    const slots = this.signSlots();
     const sel = document.getElementById('sgPid');
     if (sel) sel.innerHTML = slots.map(s =>
       `<option value="${s.id}" ${s.id === (r.pid || slots[0].id) ? 'selected' : ''}>${Util.esc(s.name)}</option>`).join('');
+    this.syncStartInput();
     this.stat();
 
     /* ⚠️ 动态码的秒表必须**在这儿**起来，不能等到函数末尾。
@@ -19979,8 +20044,8 @@ const Board = {
   _off: 0,       /* 本机时钟与服务端的偏差。三硬原则：时间以服务端为准 */
   _until: 0,     /* 这一枚码还剩到什么时候（服务端派生的码一定有时间点） */
   _code: '', _stamp: 0, _data: null,
-  _slotPid: null,   /* ==5.57== 看板当前正在显示的考勤时段，跨 12:00 自动换 */
-  _slotName: '', _switching: false,
+  _slotPid: null,   /* ==5.58== 看板当前正在显示的考勤时段，跨 13:00 / 24:00 自动换 */
+  _slotName: '', _date: '', _switching: false,
 
   /* ── 双模式（==5.24==）：签到立牌 sign / 信息中枢 dash ──
      两套固定构图（预览稿 docs/board-redesign-shots/ 1:1 移植），
@@ -20058,7 +20123,7 @@ const Board = {
     const p2 = n => String(n).padStart(2, '0');
     const now = p2(d.getHours()) + ':' + p2(d.getMinutes());
     const periods = this.uniqPeriods();
-    const rows = this.rowsOn(Util.today());
+    const rows = this.rowsOn(this.serverDate());
     for (let i = 0; i < periods.length; i++){
       const pd = periods[i];
       const end = pd.end || (periods[i + 1] && periods[i + 1].start) || '';
@@ -20076,10 +20141,17 @@ const Board = {
 
   /* ==5.57== 看板当前考勤时段：用 _off 校正过的服务端时间判，不用本机时间。
      主理人下午在看板上还看到上午考勤 —— 根因就是这里过去根本没有时段概念。 */
+  /* ==5.58== 看板的「今天」也跟服务端钟走。本机深夜没校正时，24 点后还停在前一天，
+     名单会一直是昨天的 —— 这里统一用校正后的日期。 */
+  serverDate(){
+    try { return Util.dateOf(new Date(Date.now() + this._off)); }
+    catch(e){ return Util.today(); }
+  },
   autoSlotPid(){
     const d = new Date(Date.now() + this._off);
     if (typeof Att !== 'undefined' && Att.autoPid) return Att.autoPid(d);
-    return d.getHours() < 12 ? 'am' : 'pm';
+    const mins = d.getHours() * 60 + d.getMinutes();
+    return mins < 780 ? 'am' : 'pm';
   },
   slotLabel(pid){
     let n = '';
@@ -20259,7 +20331,8 @@ const Board = {
        不用人去点、也不用重启大屏。 */
     this._slotPid = this.autoSlotPid();
     this._slotName = this.slotLabel(this._slotPid);
-    this._data = this.collect(Util.today(), this._slotPid);
+    this._date = this.serverDate();
+    this._data = this.collect(this._date, this._slotPid);
     this._stamp = Date.now();
     this.tick();        /* 时钟 / 倒计时 / 新鲜度，一并在这趟里画掉 */
     this.paint();
@@ -20385,11 +20458,12 @@ const Board = {
     this.paintCode();   /* 数字码/二维码/倒计时条每秒走一格，到点也在这一步触发换码 */
     this.paintFresh();
 
-    /* ==5.57== 跨过时段边界（如 12:00）立刻重取数 —— 不等下一趟 30 秒轮询。
-       refresh() 自己会再调 tick()，但那时 _slotPid 已经更新，不会来回触发。 */
+    /* ==5.58== 跨过时段边界（13:00）或跨日（24:00）立刻重取数 —— 不等下一趟 30 秒轮询。
+       refresh() 自己会再调 tick()，但那时 _slotPid/_date 已经更新，不会来回触发。 */
     if (this._slotPid && !this._switching){
       const np = this.autoSlotPid();
-      if (np !== this._slotPid){
+      const nd = this.serverDate();
+      if (np !== this._slotPid || nd !== this._date){
         this._switching = true;
         this.refresh().finally(() => { this._switching = false; });
       }
@@ -20598,7 +20672,7 @@ const Board = {
         + (live ? '<span class="bd-live">进行中</span>' : '')
         + `</div>`;
     };
-    const rows = group(this.rowsOn(Util.today()));
+    const rows = group(this.rowsOn(this.serverDate()));
     if (!rows.length) return '<div class="bd-s2" style="color:#8B8072">今天没有排课</div>';
     /* 「进行中」= 服务端校过的钟落在这一节的 [start, end) 里（end 缺失借下一节的 start）。
        比的是服务端校过的钟，这块屏摆一年也不会因为本机时间飘了而标错。 */

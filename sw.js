@@ -567,7 +567,20 @@ const /* v80：**学府门户登录门上线（用户 2026-10-20 定稿）** —
    ④ 不传 pid 仍是全天累计，老调用与老测试口径不变。
    测试：board_slot_check 18 项全绿；board/board554/board_dual/sw_reload/att_slot 回归全绿。
    无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
-VERSION = 'v142'; /* VoxOS 5.57 看板考勤按当前时段自动切 —— 详见上一段 v142 注释 */
+/* v143（VoxOS 5.58 打卡时间不再回跳 + 时段口径落地 + 高峰探针，2026-11-23）——
+   用户明天就要用打卡，实测生产 sign_rules 仍是 08:30/固定码1111、att_slots 为空。
+   根因：Sign.saveRules() 只写本地不 push，sign_rules 又在 REMOTE_WINS 里，
+   15 秒后 pull 把云端旧值盖回来 —— 界面上就是「设了又跳回去」。
+   修法：
+   ① HOLD_KEYS 扩到 sign_rules/att_slots；saveRules/pickHere/clearPos 改完立即 push；
+   ② 打卡时段=考勤时段+自定义；上午跟作息 07:50、下午跟 14:50，只有自定义可手填；
+   ③ Att.autoPid 支持 boardFrom/boardTo，看板 13:00 切下午、24:00 切次日，
+      日期与时段都用服务端校过的钟；sysProtected 巡检学员不进看板人数；
+   ④ 高峰窗口 07:30-08:10 / 14:30-15:10 探针配置 + 专用巡检学生号。
+   测试：board_slot_check 29/0；sign_code 10/0、att_slot 全过、board 68/0、sign_load 12/12。
+   无新增静态文件，SHELL 清单不变 → VERSION 加一。 */
+VERSION = 'v143'; /* VoxOS 5.58 打卡时间不再回跳 + 时段口径落地 + 高峰探针 —— 详见上一段 v143 注释 */
+
   /* 上一档 v133（VoxOS 5.52 晚自习 · 笔记检查卡片墙）—— 详见本文件上方 v133 注释段。 */
   /* v131（VoxOS 5.50 登录长度口径 + 8 位学生密码 + 文案，2026-11-22 开学前夜）——
    事故：学生拿到 6 位密码（by9530 这种）直连 API 能登，页面却登不进去 —— 登录门

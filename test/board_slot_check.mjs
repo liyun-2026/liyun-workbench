@@ -22,8 +22,13 @@ ok(/collect\(date, pid\)\{/.test(html), 'Board.collect 支持第二参 pid');
 ok(/const want = \(pid === undefined \|\| pid === null\) \? '\*' : pid;/.test(html), '不传 pid = 全天累计（老口径不破）');
 ok(/const signPid = s =>\s*\{/.test(html), 'sign 老记录按最近考勤反推时段');
 ok((html.match(/data-bd="attSlot"/g) || []).length === 2, 'sign/dash 两套骨架都有当前时段标注槽');
-ok(/跨过时段边界/.test(html) && /this\.refresh\(\)\.finally/.test(html), '跨 12:00 立即重取数，不等 30 秒轮询');
-ok(/this\._data = this\.collect\(Util\.today\(\), this\._slotPid\);/.test(html), 'refresh 明确传当前时段给 collect');
+ok(/跨过时段边界/.test(html) && /this\.refresh\(\)\.finally/.test(html), '跨 13:00 / 24:00 立即重取数，不等 30 秒轮询');
+ok(/this\._data = this\.collect\(this\._date, this\._slotPid\);/.test(html), 'refresh 用服务端校过的日期+时段取数');
+ok(/HOLD_KEYS: \['periods', 'sign_rules', 'att_slots'\]/.test(html), '打卡设置/考勤时段也上本地保护戳（不再被 pull 顶回旧值）');
+ok(/this\.pushRules\(\);\s*\/\* 立刻推云端/.test(html), '打卡设置改完立即 push，不等下一轮 pull');
+ok(/signSlots\(\)\{/.test(html), '打卡时段=考勤时段+自定义时间');
+ok(/mins < 780 \? am\.id : pm\.id/.test(html), '看板 13:00 切下午（用户明确口径）');
+ok(/serverDate\(\)\{/.test(html) && /nd !== this\._date/.test(html), '跨 24:00 看板按服务端日期重取数');
 
 console.log('\n【浏览器行为断言】');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -99,8 +104,45 @@ try {
     return JSON.stringify({a,p,n,c1,c2});
   })()`));
   ok(timed.a === 'am' && timed.p === 'pm', `按服务端校过的钟自动切：10:00→${timed.a}，15:00→${timed.p}`);
-  ok(timed.n === 'pm', `12:00 整点归下午（不出现空档）→ ${timed.n}`);
+  ok(timed.n === 'am', `12:00 仍上午、13:00 才切下午（用户口径）→ ${timed.n}`);
   ok(timed.c1 === 'am' && timed.c2 === 'x', `时段自带 start/end 时优先用配置边界 → ${timed.c1}/${timed.c2}`);
+
+  const dayEdge = JSON.parse(await ev(`(() => {
+    const at = h => { const d=new Date(); d.setHours(h,0,0,0); return d.getTime(); };
+    const off = t => t - Date.now();
+    const old = Att.SLOTS;
+    Att.SLOTS = () => [{id:'am',name:'上午'},{id:'pm',name:'下午'}];
+    const a = Att.autoPid(new Date(at(12)));      // 12:00 仍上午
+    const p = Att.autoPid(new Date(at(13)));      // 13:00 切下午
+    Att.SLOTS = old;
+    const tomorrow = new Date(Date.now()+864e5); tomorrow.setHours(0,10,0,0);
+    Board._off = tomorrow.getTime() - Date.now();
+    const sd = Board.serverDate();
+    Board._off = 0;
+    return JSON.stringify({a,p,sd});
+  })()`));
+  ok(dayEdge.a === 'am' && dayEdge.p === 'pm', `默认边界改到 13:00 → 12:00=${dayEdge.a}, 13:00=${dayEdge.p}`);
+  ok(dayEdge.sd === (await ev(`Util.dateOf(new Date(Date.now()+864e5))`)), `跨 24:00 serverDate 跟着服务端钟走 → ${dayEdge.sd}`);
+
+  const rules = JSON.parse(await ev(`(() => {
+    Store.set('att_slots', [
+      {id:'am',name:'上午',start:'07:50',boardFrom:'00:00',boardTo:'13:00'},
+      {id:'pm',name:'下午',start:'14:50',boardFrom:'13:00',boardTo:'24:00'},
+    ]);
+    const sel=document.getElementById('sgPid'), inp=document.getElementById('sgStart');
+    sel.innerHTML = Sign.signSlots().map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
+    const me0 = Auth._me; Auth._me = { isStaff:true, role:'super', name:'测试教务' };
+    sel.value='am'; inp.value='08:30'; Sign.saveRules();
+    const am = { startAt: (Store.get('sign_rules')||{}).startAt, disabled: inp.disabled };
+    sel.value='custom'; inp.value='19:30'; Sign.saveRules();
+    const custom = { startAt: (Store.get('sign_rules')||{}).startAt, customStart:(Store.get('sign_rules')||{}).customStart, disabled: inp.disabled };
+    Auth._me = me0;
+    return JSON.stringify({am,custom,held:!!(Store._wroteAt && Store._wroteAt.sign_rules),slots:Att.SLOTS(),slot:Att.slotObj('am')});
+  })()`));
+  ok(rules.am.startAt === '07:50' && rules.am.disabled, `上午打卡时间跟作息 07:50，手填 08:30 不再生效 → ${rules.am.startAt}`);
+  ok(rules.custom.startAt === '19:30' && rules.custom.customStart === '19:30' && !rules.custom.disabled,
+     `自定义时间可手填 19:30 并保存 → ${rules.custom.startAt}`);
+  ok(rules.held, '改完打卡设置上了本地保护戳，15 秒 pull 不会把旧值顶回来');
 
   const label = JSON.parse(await ev(`(() => {
     Board._data = Board.collect(Util.today(),'pm');
@@ -118,6 +160,18 @@ try {
     return Board._slotPid;
   })()`);
   ok(switched === 'pm', `跨时段边界时 tick 立刻重判，不靠下一轮轮询 → ${switched}`);
+
+  const daySwitch = await ev(`(async () => {
+    const t = new Date(Date.now()+864e5); t.setHours(0,10,0,0);
+    Board._off = t.getTime() - Date.now();
+    Board._date = Util.today(); Board._slotPid = 'am'; Board._switching = false;
+    Board.tick();
+    for (let i=0;i<20 && Board._date!==Board.serverDate();i++) await new Promise(r=>setTimeout(r,50));
+    return JSON.stringify({date:Board._date, pid:Board._slotPid});
+  })()`);
+  const ds = JSON.parse(daySwitch);
+  ok(ds.date === (await ev(`(() => { const t=new Date(Date.now()+864e5); t.setHours(0,10,0,0); Board._off=t.getTime()-Date.now(); const x=Board.serverDate(); Board._off=0; return x; })()`)) && ds.pid === 'am',
+     `跨 24:00 看板日期自动翻到次日，时段回到上午 → ${ds.date} / ${ds.pid}`);
 } catch (e) { fail++; console.log('  ✗ 浏览器异常：' + e.message); }
 finally { if (chrome) chrome.kill(); server.kill(); }
 
