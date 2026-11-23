@@ -359,6 +359,7 @@ try {
       nameW: cs(rows[0].querySelector('.bd-q-n')).fontWeight,
       val: parseFloat(cs(rows[0].querySelector('.bd-q-v')).fontSize),
       valW: cs(rows[0].querySelector('.bd-q-v')).fontWeight,
+      tab: cs(rows[0].querySelector('.bd-q-v')).fontVariantNumeric,
       k: parseFloat(cs(rows[0].querySelector('.bd-q-k')).fontSize),
       text: q.textContent.replace(/\\s+/g, ' ').trim(),
     };
@@ -369,13 +370,14 @@ try {
     assert(Q2.text.includes('考前05班') && Q2.text.includes('考前06班'), '班级名缺：' + Q2.text);
     return 'data-n=2 · ' + Q2.text;
   });
-  t('2 个班：班级名 20px、分数 30px 加粗、名次 18px（1920 档）', () => {
+  t('2 个班：班级名 20px/700、分数 35px/900、名次 18px（1920 档）', () => {
     assert(Q2.name >= 19.5, '班级名该 20px，实际 ' + Q2.name);
-    assert(Q2.nameW >= 600, '班级名该加粗，实际 ' + Q2.nameW);
-    assert(Q2.val >= 29.5, '分数该 30px，实际 ' + Q2.val);
-    assert(Number(Q2.valW) >= 700, '分数该 700 加粗，实际 ' + Q2.valW);
+    assert(Number(Q2.nameW) >= 700, '班级名该 700，实际 ' + Q2.nameW);
+    assert(Q2.val >= 34.5, '分数该 35px，实际 ' + Q2.val);
+    assert(Number(Q2.valW) >= 900, '分数该 900，实际 ' + Q2.valW);
     assert(Q2.k >= 17.5, '名次该 18px，实际 ' + Q2.k);
-    return '名 ' + Q2.name + 'px/' + Q2.nameW + ' · 分 ' + Q2.val + 'px/' + Q2.valW + ' · 次 ' + Q2.k + 'px';
+    assert(/tabular-nums/.test(Q2.tab), '分数该用等宽数字，实际 ' + Q2.tab);
+    return '名 ' + Q2.name + 'px/' + Q2.nameW + ' · 分 ' + Q2.val + 'px/' + Q2.valW + ' · 次 ' + Q2.k + 'px · ' + Q2.tab;
   });
   t('2 个班：竖条撑满可用高度（两行 + 间距 ≥ 面板 90%）', () => {
     const used = Q2.hs.reduce((a, b) => a + b, 0) + Q2.gap * (Q2.hs.length - 1);
@@ -446,8 +448,8 @@ try {
   })()`);
   const qpng = await shot(cdp, 'quant-dash-5.png', qbox);
   const lum = lumStats(qpng);
-  t('量化块在深蓝底上的文字对比度 ≥ 4.5:1', () => {
-    assert(lum.ratio >= 4.5, '对比度只有 ' + lum.ratio + ':1（暗 ' + lum.lo + ' / 亮 ' + lum.hi + '）');
+  t('量化块在深蓝底上的文字对比度 ≥ 7:1', () => {
+    assert(lum.ratio >= 7, '对比度只有 ' + lum.ratio + ':1（暗 ' + lum.lo + ' / 亮 ' + lum.hi + '）');
     return lum.ratio + ':1（底 ' + lum.lo + ' · 字 ' + lum.hi + '）';
   });
   await shot(cdp, 'board-dash-1920.png');

@@ -2601,16 +2601,21 @@ body.board-mode .page.on > *{animation:none}
 .bd-quant[data-n="2"] .bd-q{flex:1 1 0;min-height:0;border-radius:14px;
   padding:clamp(10px,2.6vh,30px) clamp(12px,1.3vw,24px)}
 .bd-quant[data-n="1"] .bd-q-k,
-.bd-quant[data-n="2"] .bd-q-k{font-size:clamp(13px,1.05vw,18px);font-weight:600;letter-spacing:.06em;
+.bd-quant[data-n="2"] .bd-q-k{font-size:clamp(13px,1.05vw,18px);font-weight:700;letter-spacing:.06em;
   color:var(--gold-lite)}
 .bd-quant[data-n="1"] .bd-q-n,
-.bd-quant[data-n="2"] .bd-q-n{font-size:clamp(16px,1.45vw,20px);font-weight:600;letter-spacing:.08em;color:var(--ink)}
+.bd-quant[data-n="2"] .bd-q-n{font-size:clamp(16px,1.45vw,20px);font-weight:700;letter-spacing:.08em;color:var(--ink)}
+/* ==5.55== 分数再粗一档：900（字族没有 900 时浏览器合成加粗，视觉落在 800~900 之间），
+   尺寸从 30px 提到 35px（+17%），tabular-nums 保持等宽，个位/十位不抖。 */
 .bd-quant[data-n="1"] .bd-q-v,
-.bd-quant[data-n="2"] .bd-q-v{font-size:clamp(24px,2.3vw,30px);font-weight:700}
+.bd-quant[data-n="2"] .bd-q-v{font-size:clamp(28px,2.5vw,35px);font-weight:900;letter-spacing:.01em;
+  -webkit-text-stroke:.7px currentColor}   /* 宋体没有 900 字重，浏览器只会合成普通粗体；补一圈描边才真的更粗 */
 .bd-quant[data-n="3"]{gap:clamp(8px,1.6vh,14px)}
 .bd-quant[data-n="3"] .bd-q{padding:clamp(8px,1.6vh,15px) clamp(10px,1vw,18px)}
-.bd-quant[data-n="3"] .bd-q-n{font-size:clamp(14px,1.05vw,17px);color:var(--ink)}
-.bd-quant[data-n="3"] .bd-q-v{font-size:clamp(18px,1.5vw,24px)}
+.bd-quant[data-n="3"] .bd-q-n{font-size:clamp(14px,1.05vw,17px);font-weight:600;color:var(--ink)}
+.bd-quant[data-n="3"] .bd-q-v{font-size:clamp(20px,1.65vw,26px);font-weight:800}
+.bd-quant[data-n="4"] .bd-q-v,
+.bd-quant[data-n="5"] .bd-q-v{font-weight:700}
 .bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
 .bd-n{display:flex;gap:12px;min-width:0}
 .bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold-deep);
@@ -5962,7 +5967,13 @@ const Store = (() => {
       const ok = driver.set(NS + key, val);
       // _ 开头的是本机临时状态（上次看哪页、同步时间），不上传也不该触发推送。
       // 少了这个判断，「记录同步时间」本身会再触发一次同步，变成每 4 秒推一次。
-      if (ok && key.charAt(0) !== '_') this._touch();
+      if (ok && key.charAt(0) !== '_'){
+        /* ==5.55== 只给需要防回跳的键上保护戳（当前仅 periods）。
+           早先对所有键都上戳，导致本地写过的通知 / sysProtected 学员
+           45 秒内不接受服务端合并，表现为「还没有通知」「系统保护分组消失」。 */
+        if (this.HOLD_KEYS.includes(key)) this._wroteAt[key] = Date.now();
+        this._touch();
+      }
       return ok;
     },
     remove(key){
@@ -6083,12 +6094,22 @@ const Store = (() => {
        只有教务能写（服务端白名单），别的端全靠 pull 拿 —— 本地留旧值反而把
        新配置挡在门外（教务改了统考日期，学生端轮播卡永远不动）。 */
     REMOTE_WINS: ['examDate', 'sign_rules'],
+    /* ==5.55== 本地写入保护：刚在本机改过的键，45 秒内不参与远端合并。
+       背景（主理人「作息改了没反应、一直在跳」）：15 秒一次的 pull 会把这个键
+       整包按 _u 合并回来；只要服务端那份 _u 比本机大一点（两台机器时钟差、
+       或刚推上去还没落盘），刚改的开始时间就被旧值顶回去，界面上看就是
+       「改完又跳回去」。保护窗口只压这一个键的覆盖，不影响别的键。
+       45 秒是「一次编辑 + 一次 push 落盘」的宽裕上限；过了照常合并。 */
+    _wroteAt: {},
+    HOLD_MS: 45000,
+    HOLD_KEYS: ['periods'],   /* ==5.55== 只有作息表需要防「改完被 pull 顶回去」，别的键照常合并 */
     /** 把远端整包数据合并进本地。数组型逐条合并，单值取时间新的 */
     mergeRemote(remote){
       if (!remote || typeof remote !== 'object') return 0;
       let changed = 0;
       for (const [key, rv] of Object.entries(remote)) {
         if (key.startsWith('_')) continue;
+        if (this.HOLD_KEYS.includes(key) && this._wroteAt[key] && Date.now() - this._wroteAt[key] < this.HOLD_MS) continue;
         const lv = this.get(key, null);
         if (Array.isArray(rv)) {
           const merged = mergeList(Array.isArray(lv) ? lv : [], rv);
@@ -9434,69 +9455,118 @@ const Schedule = {
      每段带 dur（时长/分钟）、gap（到下一段的课间/分钟）、auto（true = 由上一段推算）。
      手动段（auto=false）是锚点，推算链从它重新起步。老数据缺字段先补齐（先全部钉住，
      不悄悄改用户已排好的时间），要用「全表顺延」时再把段落开成自动。 */
+  /* ==5.55== 时间一律写 24 小时制。
+     旧版这里有个 `h >= 13 → h-12`：14:50 存成「02:50」，好去跟课表原件对齐。
+     结果就是主理人看到的「第 7–11 节 02:50 / 01:10 / 01:50 互相重复」——
+     名字是 12 小时制、start 又是另一种写法，两边对不上，还和 12:30 的段撞车。
+     现在统一写 14:50 这种写法；老数据里的「02:50」仍由 _tmin 按下午解读，不会读错。 */
   _fmtMin(m){
-    let h = Math.floor(m / 60);
-    if (h >= 13) h -= 12;                      // 14:50 → 02:50，跟课表原件的 12 小时制写法一致
-    return String(h).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    m = ((Math.round(m) % 1440) + 1440) % 1440;
+    return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   },
   _migratePeriods(){
     const ps = this.periods();
     ps.forEach((p, i) => {
       if (p.dur != null && p.gap != null && p.auto != null) return;
-      const dur = Math.max(1, this._tmin(p.end) - this._tmin(p.start));
+      /* 只剩 id / 空起止的行不补字段：补出来的 dur/gap 会是天文数字，
+         再被 _fmtMin 写成「99:99」这种鬼时间，越修越乱。坏行交给重建流程删。 */
+      const s = this._tmin(p.start), e = this._tmin(p.end);
+      if (s >= 99999 || e >= 99999 || e <= s) return;
+      const dur = Math.max(1, e - s);
       const nxt = ps[i + 1];
-      const gap = nxt ? Math.max(0, this._tmin(nxt.start) - this._tmin(p.end)) : 0;
+      const gap = nxt && this._tmin(nxt.start) < 99999 ? Math.max(0, this._tmin(nxt.start) - e) : 0;
       Store.upsert('periods', Object.assign({}, p, { dur, gap, auto: false }));
     });
   },
+  /* 顺延链：只重算 auto 段，手动段（auto=false）是锚点，一个字都不动。
+     只写真正变了的行（避免每敲一下都盖一次 _u、触发一次同步）。 */
   recalcPeriods(){
     this._migratePeriods();
     const ps = this.periods();
-    /* 课间属于「上一段」（gap = 这一段结束到下一段开始的间隔）：
-       auto 段的 start = 上一段的 end + 上一段的 gap。 */
     let prev = null;   // { end: 分钟, gap: 上一段到本段的课间 }
+    let n = 0;
     ps.forEach(p => {
       const cur = Store.list('periods').find(q => q.id === p.id) || p;
-      if (p.auto && prev){
+      if (p.auto && prev && prev.end < 99999){
         const start = prev.end + (prev.gap || 0);
-        const end = start + (p.dur || 40);
-        Store.upsert('periods', Object.assign({}, cur, { start: this._fmtMin(start), end: this._fmtMin(end) }));
-        prev = { end, gap: p.gap };
+        const end = start + (cur.dur || 40);
+        const s = this._fmtMin(start), e = this._fmtMin(end);
+        if (cur.start !== s || cur.end !== e){
+          Store.upsert('periods', Object.assign({}, cur, { start: s, end: e }));
+          n++;
+        }
+        prev = { end, gap: cur.gap };
       } else {
-        prev = { end: this._tmin(cur.end), gap: p.gap };
+        const e = this._tmin(cur.end);
+        prev = e < 99999 ? { end: e, gap: cur.gap } : null;
       }
     });
+    return n;
   },
   /** 紧凑版作息卡：收起 = 一行 chips；展开 = 每段 名称/开始/时长/课间/自动 */
-  renderPeriods(){
-    this._migratePeriods();
+  renderChips(){
     const ps = this.periods();
     const chips = document.getElementById('ruleChips');
-    if (chips) chips.innerHTML = ps.length
+    if (!chips) return;
+    chips.innerHTML = ps.length
       ? ps.map((p, i) => {
           const nm = p.name && !/^\d{1,2}:\d{2}/.test(p.name) && p.name !== ('第' + (i + 1) + '节') ? Util.esc(p.name) + ' ' : '';
           return `<span class="chip"><b>第${i + 1}节</b> ${nm}${Util.esc(p.start)}–${Util.esc(p.end)}${p.auto ? '' : ' <span class="hint" style="display:inline;margin:0">·手动</span>'}</span>`;
         }).join('')
       : '<span class="hint" style="margin:0">还没有节次，点「编辑 / 统一时间轴」加一段</span>';
+  },
+  renderPanel(){
     const panel = document.getElementById('rulePanel');
-    if (panel && this._ruleOpen){
-      panel.innerHTML =
-        '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">' +
-          '<label class="hint" style="margin:0">早上从 <input type="time" id="ruleMorning" style="max-width:110px" value="' + Util.esc(ps[0] ? ps[0].start : '') + '"></label>' +
-          '<button class="btn" style="padding:4px 12px" onclick="Schedule.setMorning()">全表顺延</button>' +
-          '<button class="btn ghost" style="padding:4px 12px" onclick="Schedule.addRuleSeg()">＋ 加一段</button>' +
-        '</div>' +
-        ps.map((p, i) => `<div class="row" style="gap:6px;align-items:center;margin:8px 0 0;flex-wrap:wrap;font-size:13px">
-            <span style="width:46px;color:var(--dgold);font-weight:600">第${i + 1}节</span>
-            <input type="text" value="${Util.esc(p.name)}" placeholder="名称，如 早功" style="max-width:92px" onchange="Schedule.ruleEdit('${p.id}','name',this.value)">
-            <input type="time" value="${Util.esc(p.start)}" style="max-width:104px" ${p.auto ? 'disabled title="自动段：由上一节推算"' : ''} onchange="Schedule.ruleEdit('${p.id}','start',this.value)">
-            <label class="hint" style="margin:0;white-space:nowrap">时长 <input type="number" min="5" value="${p.dur != null ? p.dur : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','dur',this.value)"> 分</label>
-            <label class="hint" style="margin:0;white-space:nowrap">课间 <input type="number" min="0" value="${p.gap != null ? p.gap : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','gap',this.value)"> 分</label>
-            <label class="hint" style="margin:0;white-space:nowrap"><input type="checkbox" ${p.auto ? 'checked' : ''} style="width:auto" onchange="Schedule.ruleEdit('${p.id}','auto',this.checked)"> 自动顺延</label>
-            <button class="del" onclick="Schedule.delPeriod('${p.id}')" title="删掉这一段">✕</button>
-          </div>`).join('') +
-        '<p class="hint" style="margin:8px 0 0">「自动顺延」的段：开始 = 上一节结束 + 课间。改早上时间点「全表顺延」一起重排；关掉某段的自动，它就变成锚点，后面从它重新算。练声就是一段名字叫「早功 / 午功」的节次，要几次加几段。</p>';
-    }
+    if (!panel || !this._ruleOpen) return;
+    const ps = this.periods();
+    panel.innerHTML =
+      '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<label class="hint" style="margin:0">早上从 <input type="time" id="ruleMorning" style="max-width:110px" value="' + Util.esc(ps[0] ? ps[0].start : '') + '"></label>' +
+        '<button class="btn" style="padding:4px 12px" onclick="Schedule.setMorning()">全表顺延</button>' +
+        '<button class="btn ghost" style="padding:4px 12px" onclick="Schedule.addRuleSeg()">＋ 加一段</button>' +
+      '</div>' +
+      ps.map((p, i) => `<div class="row per-row" data-pid="${p.id}" style="gap:6px;align-items:center;margin:8px 0 0;flex-wrap:wrap;font-size:13px">
+          <span class="per-idx" style="width:46px;color:var(--dgold);font-weight:600">第${i + 1}节</span>
+          <input type="text" data-k="name" value="${Util.esc(p.name)}" placeholder="名称，如 早功" style="max-width:92px" onchange="Schedule.ruleEdit('${p.id}','name',this.value)">
+          <input type="time" data-k="start" value="${Util.esc(p.start)}" style="max-width:104px" title="改开始时间会把这一段钉成手动，不再被上一节顺延覆盖" onchange="Schedule.ruleEdit('${p.id}','start',this.value)">
+          <label class="hint" style="margin:0;white-space:nowrap">时长 <input type="number" data-k="dur" min="5" value="${p.dur != null ? p.dur : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','dur',this.value)"> 分</label>
+          <label class="hint" style="margin:0;white-space:nowrap">课间 <input type="number" data-k="gap" min="0" value="${p.gap != null ? p.gap : ''}" style="max-width:62px" onchange="Schedule.ruleEdit('${p.id}','gap',this.value)"> 分</label>
+          <label class="hint" style="margin:0;white-space:nowrap"><input type="checkbox" data-k="auto" ${p.auto ? 'checked' : ''} style="width:auto" onchange="Schedule.ruleEdit('${p.id}','auto',this.checked)"> 自动顺延</label>
+          <button class="del" onclick="Schedule.delPeriod('${p.id}')" title="删掉这一段">✕</button>
+        </div>`).join('') +
+      '<p class="hint" style="margin:8px 0 0">「自动顺延」的段：开始 = 上一节结束 + 课间。改早上时间点「全表顺延」一起重排；<b>手动改掉某段的开始时间，这一段就自动锁成锚点</b>（勾会自动取消），后面从它重新算，不会再被顺延覆盖。练声就是一段名字叫「早功 / 午功」的节次，要几次加几段。</p>';
+  },
+  renderPeriods(){
+    this._migratePeriods();
+    this.renderChips();
+    this.renderPanel();
+  },
+  /* 顺延改完只把输入框里的值对齐，不重灌整个面板 —— 重灌会把焦点和滚动位置冲掉
+     （主理人「改时间时界面一直在跳」）。正在打字的那个控件不碰。 */
+  syncPeriodInputs(){
+    const panel = document.getElementById('rulePanel');
+    if (!panel || !this._ruleOpen) return;
+    const ps = this.periods();
+    const rows = [...panel.querySelectorAll('.per-row')];
+    rows.forEach(row => {
+      const p = ps.find(q => q.id === row.dataset.pid);
+      if (!p) return;
+      const idx = ps.indexOf(p) + 1;
+      const lab = row.querySelector('.per-idx');
+      if (lab && lab.textContent !== ('第' + idx + '节')) lab.textContent = '第' + idx + '节';
+      row.querySelectorAll('[data-k]').forEach(el => {
+        if (el === document.activeElement) return;
+        const k = el.dataset.k;
+        if (k === 'auto'){ if (el.checked !== !!p.auto) el.checked = !!p.auto; }
+        else if (k === 'start'){ if (el.value !== (p.start || '')) el.value = p.start || ''; }
+        else if (k === 'dur'){ if (String(el.value) !== String(p.dur ?? '')) el.value = p.dur != null ? p.dur : ''; }
+        else if (k === 'gap'){ if (String(el.value) !== String(p.gap ?? '')) el.value = p.gap != null ? p.gap : ''; }
+      });
+    });
+    /* 开始时间一改，排序可能变：按新顺序把行挪一下（挪节点不重灌，输入框内容还在） */
+    const order = new Map(ps.map((p, i) => [p.id, i]));
+    const sorted = rows.slice().sort((a, b) => (order.get(a.dataset.pid) ?? 999) - (order.get(b.dataset.pid) ?? 999));
+    if (sorted.some((r, i) => r !== rows[i])) sorted.forEach(r => panel.appendChild(r));
   },
   toggleRule(){
     this._ruleOpen = !this._ruleOpen;
@@ -9509,13 +9579,31 @@ const Schedule = {
     if (!p) return;
     const o = Object.assign({}, p);
     if (k === 'name') o.name = String(v).trim();
-    else if (k === 'dur') o.dur = Math.max(1, +v || 0);
+    else if (k === 'dur'){
+      o.dur = Math.max(1, +v || 0);
+      /* 手动段改时长：结束时间跟着走（否则 start 没变、end 不动，时长写了等于没写）；
+         auto 段的 end 由 recalc 统一算。 */
+      if (!o.auto){ const s = this._tmin(o.start); if (s < 99999) o.end = this._fmtMin(s + o.dur); }
+    }
     else if (k === 'gap') o.gap = Math.max(0, +v || 0);
-    else if (k === 'auto'){ o.auto = !!v; if (!o.auto){ o.start = p.start; o.end = p.end; } }
-    else if (k === 'start'){ o.start = v; o.auto = false; }
+    else if (k === 'auto'){
+      o.auto = !!v;
+      if (!o.auto){ o.start = p.start; o.end = p.end; }   // 关掉自动 = 就以当前时间为锚点
+    }
+    else if (k === 'start'){
+      /* ==5.55== 手动改开始时间：立刻锁成锚点（auto=false），并按原时长重算结束时间。
+         旧版只写 start、end 留着旧值 —— 改完这一段「看着没动」，后面 auto 段又按旧 end
+         顺延，整条链自然全错。 */
+      const s = this._tmin(v);
+      if (s >= 99999) return;
+      o.start = this._fmtMin(s);
+      o.auto = false;
+      o.end = this._fmtMin(s + (p.dur || Math.max(1, this._tmin(p.end) - this._tmin(p.start)) || 40));
+    }
     Store.upsert('periods', o);
     if (k !== 'name') this.recalcPeriods();
-    this.render();
+    this.renderChips();
+    this.syncPeriodInputs();
   },
   addRuleSeg(){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，作息由教务老师管理');
@@ -9552,7 +9640,7 @@ const Schedule = {
       <div class="page-title" style="font-size:18px">改这一节的时间</div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:10px">
         <input type="text" id="peName" placeholder="名称（如：早功 / 第1节）" value="${Util.esc(p.name || '')}">
-        <label class="hint" style="margin:0">开始 <input type="time" id="peStart" value="${Util.esc(p.start)}" ${p.auto ? 'disabled' : ''} style="max-width:130px"></label>
+        <label class="hint" style="margin:0">开始 <input type="time" id="peStart" value="${Util.esc(p.start)}" style="max-width:130px" title="保存时若与上一节顺延值不同，这一段会自动锁成手动"></label>
         <label class="hint" style="margin:0;white-space:nowrap">时长（分钟）<input type="number" id="peDur" min="5" value="${p.dur != null ? p.dur : ''}" style="max-width:80px"></label>
         <label class="hint" style="margin:0;white-space:nowrap">课间（到下一段，分钟）<input type="number" id="peGap" min="0" value="${p.gap != null ? p.gap : ''}" style="max-width:80px"></label>
         <label class="hint" style="margin:0;white-space:nowrap"><input type="checkbox" id="peAuto" ${p.auto ? 'checked' : ''} style="width:auto" onchange="document.getElementById('peStart').disabled=this.checked"> 自动顺延（由上一节推算）</label>
@@ -9577,7 +9665,16 @@ const Schedule = {
     o.dur = Math.max(1, +document.getElementById('peDur').value || o.dur || 40);
     o.gap = Math.max(0, +document.getElementById('peGap').value || 0);
     o.auto = document.getElementById('peAuto').checked;
-    if (!o.auto) o.start = document.getElementById('peStart').value || o.start;
+    if (!o.auto){
+      /* ==5.55== 开始时间一改就锁成锚点，并按原时长重算结束时间（旧版只写 start，
+         end 留在旧值 → 改完看着没反应，后面整条顺延链跟着错）。 */
+      const v = document.getElementById('peStart').value;
+      const s0 = this._tmin(v);
+      if (v && s0 < 99999){
+        o.start = this._fmtMin(s0);
+        o.end = this._fmtMin(s0 + (o.dur || 40));
+      }
+    }
     Store.upsert('periods', o);
     this.recalcPeriods();
     this.cellClose(); this.render();
@@ -10348,6 +10445,72 @@ const Schedule = {
     if (used && !confirm(`有 ${used} 节课排在这个节次上，删掉后它们会显示不出时间。确定删吗？`)) return;
     Store.softDelete('periods', id);
     this.render();
+  },
+
+  /* ==5.55== 作息重建（一次性数据修复，也给以后「越改越乱」兜底）──────────────
+     slots: [{start:'07:50', end:'08:30', name?}] —— 以真实课表时间为源，按开始时间排好。
+     做的事：
+       ① 同 start 的旧段优先复用它的 id（排课不用大搬家），其余重复段/坏段（空起止、
+          end<=start）软删成墓碑 —— 别的设备拉回来也不会复活；
+       ② 每段补齐 dur/gap/auto=false —— 全部是锚点，谁也不许再被「顺延」改掉；
+       ③ 排课按旧段开始时间（或自己的 time）重挂到最近的新段（90 分钟内才认），
+          认不出来的原样留着 —— 绝不丢课、绝不隐藏；悬空 periodId 用 opts.remap 指定。
+     返回 { periods, moved, removed }，给脚本核对用。 */
+  repairPeriods(slots, opts = {}){
+    if (!Auth.canEdit()) return { err: '只读视角' };
+    const tmin = t => this._tmin(t);
+    const list = (slots || []).map(x => ({
+      start: this._fmtMin(tmin(x.start)), end: this._fmtMin(tmin(x.end)), name: x.name || '',
+    })).filter(x => tmin(x.start) < 99999 && tmin(x.end) > tmin(x.start))
+      .sort((a, b) => tmin(a.start) - tmin(b.start));
+    if (!list.length) return { err: '没有可用的节次' };
+
+    const raw = Store.get('periods', []) || [];
+    const alive = raw.filter(p => p && !p._d);
+    const dead = raw.filter(p => p && p._d);
+    const used = {};
+    Store.list('schedule').forEach(x => { if (x.periodId) used[x.periodId] = (used[x.periodId] || 0) + 1; });
+
+    const taken = new Set();
+    const next = list.map(sl => {
+      const cands = alive.filter(p => p.start === sl.start && tmin(p.end) < 99999 && !taken.has(p.id));
+      cands.sort((a, b) => (used[b.id] || 0) - (used[a.id] || 0));
+      const old = cands[0] || null;
+      if (old) taken.add(old.id);
+      const id = old ? old.id : Util.uid();
+      return { id, name: sl.name || (sl.start + '-' + sl.end), start: sl.start, end: sl.end,
+               dur: tmin(sl.end) - tmin(sl.start), gap: 0, auto: false,
+               _u: Math.max((old && old._u) || 0, Date.now()) + 1 };
+    });
+    next.forEach((p, i) => { p.gap = next[i + 1] ? Math.max(0, tmin(next[i + 1].start) - tmin(p.end)) : 0; });
+
+    const oldById = new Map(alive.map(p => [p.id, p]));
+    const nearest = t => {
+      let best = null, bd = 1e9;
+      next.forEach(p => { const d = Math.abs(tmin(p.start) - t); if (d < bd){ bd = d; best = p; } });
+      return bd <= 90 ? best : null;
+    };
+    const map = (opts && opts.remap) || {};
+    const schedRaw = Store.get('schedule', []) || [];
+    let moved = 0;
+    const sched = schedRaw.map(x => {
+      if (!x || x._d) return x;
+      const old = oldById.get(x.periodId);
+      let t = x.time ? tmin(x.time) : (old ? tmin(old.start) : null);
+      if ((t == null || t >= 99999) && map[x.periodId] != null) t = tmin(map[x.periodId]);
+      if (t == null || t >= 99999) return x;
+      const target = nearest(t);
+      if (!target || target.id === x.periodId) return x;
+      moved++;
+      return Object.assign({}, x, { periodId: target.id, _u: Math.max(x._u || 0, Date.now()) + 1 });
+    });
+
+    const keep = new Set(next.map(p => p.id));
+    const orphans = alive.filter(p => !keep.has(p.id));
+    const tombstones = orphans.map(p => ({ id: p.id, _d: 1, _u: Math.max(p._u || 0, Date.now()) + 1 }));
+    Store.set('periods', [...next, ...dead, ...tombstones]);
+    if (moved) Store.set('schedule', sched);
+    return { periods: next.length, moved, removed: orphans.length };
   },
 
   add(){
