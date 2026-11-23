@@ -4703,7 +4703,7 @@ var Icon = {
         </div>
         <p class="hint" id="acctSync"></p>
         <div class="row" style="margin-top:14px;flex-wrap:wrap">
-          <button class="btn" id="syncNowBtn" onclick="Sync.pull(true)">立即同步</button>
+          <button class="btn" id="syncNowBtn" onclick="Sync.syncNow()">立即同步</button>
           <button class="btn ghost" onclick="Settings.changePass()">改密码</button>
           <button class="btn ghost" onclick="Auth.switchAccount()">切换账号</button>
           <button class="btn ghost" onclick="Auth.logout()">退出登录</button>
@@ -17532,6 +17532,16 @@ const Sync = {
       else UI.staleBar(true);
       if (loud && e.code !== 'AUTH') UI.toast(e.message);
     } finally { this._busy = false; }
+  },
+
+  /* ==5.61b== 设置页那个「立即同步」按钮以前只 pull 不 push ——
+     本地改完的东西（比如刚布置的作业）点它一万次也上不去，只有等下一次
+     别的改动触发防抖才会捎带上去。名字叫同步，就得两半都做：先把手里的推上去，再把云端的拉下来。
+     （2026-11-23 实锤：教务布置完作业看不到学生端有，云端一条都没有，就是这个按钮的问题之一。） */
+  async syncNow(){
+    if (!this.on()) return UI.toast('本机模式不用同步');
+    await this.push();
+    await this.pull(true);
   },
 
   /** 改动后延迟推送，把连续操作合并成一次 */
