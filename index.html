@@ -16460,7 +16460,7 @@ const Settings = {
       if (r.type === 'min') b.push('按分钟');
       if (Array.isArray(r.range)) b.push('区间 ' + r.range[0] + '~' + r.range[1]);
       if (r.note || Number(r.delta) === 0) b.push('不计分');
-      return b.length ? `<span class="chip" style="pointer-events:none;margin:0;font-size:11px;white-space:nowrap">${b.join(' · ')}</span>` : '';
+      return b.length ? `<span class="chip" style="pointer-events:none;margin:0;font-size:11px;white-space:nowrap;flex:none">${b.join(' · ')}</span>` : '';
     };
     const row = r => `
       <div class="row" style="margin-bottom:8px" data-rid="${r.id}">
