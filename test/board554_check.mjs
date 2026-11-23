@@ -309,6 +309,39 @@ try {
     return 'Board.rowsOn：date 优先，day 字符兜底';
   });
 
+  console.log('\n=== 3.5 课表装不下时必须自己上滚（20 节课不许烂在下半截）===');
+  const F = await cdp.eval(`(() => {
+    const box = document.getElementById('bdSched');
+    const tall = Array.from({ length: 40 }, (_, i) =>
+      '<div class="bd-s2"><span class="bd-s2-t">0' + (i % 9) + ':00</span>'
+      + '<span class="bd-s2-n">压测课 ' + i + '</span></div>').join('');
+    Board.fill(box, tall);
+    const looped = box.classList.contains('loop');
+    const doubled = box.querySelectorAll('.bd-s2').length;
+    /* 模拟「首帧量在骨架铺开之前」：内容照样高、却被判成装得下（没有 loop） */
+    box.classList.remove('loop');
+    box.innerHTML = tall;
+    const over = box.scrollHeight > box.parentElement.clientHeight + 2;
+    /* 同内容再跑一趟 —— 5.54 之前这里会直接 return，永远不上滚 */
+    Board.fill(box, tall);
+    const fixed = box.classList.contains('loop');
+    const rows2 = box.querySelectorAll('.bd-s2').length;
+    Board.paint();   // 还原真课表
+    return { looped, doubled, over, fixed, rows2,
+             restored: document.getElementById('bdSched').textContent.includes('指定稿件朗读') };
+  })()`);
+  t('装不下：复制一份开上滚（内容变两份，不再截断）', () => {
+    assert(F.over, '压测内容该比面板高（否则这条断言没意义）');
+    assert(F.looped && F.doubled === 80, '该 40→80 行并挂 .loop，实际 ' + F.doubled + ' 行 / loop=' + F.looped);
+    return '40 行 → 复制 80 行 + loop';
+  });
+  t('同内容但版面变了（首帧误判装得下）→ 下一趟自己补上滚', () => {
+    assert(F.fixed, '同内容复核后该补上 .loop');
+    assert(F.rows2 === 80, '补上滚后该是复制版，实际 ' + F.rows2 + ' 行');
+    assert(F.restored, '压测完该还原成真课表');
+    return 'loop 补上 · 80 行 · 已还原真课表';
+  });
+
   console.log('\n=== 4. 班级量化：2 个班撑满放大 ===');
   const Q2 = await cdp.eval(`(() => {
     Board.paintQuant();

@@ -20345,10 +20345,20 @@ const Board = {
 
   /* 名单 / 课表塞不下面板时，复制一份缓慢上滚循环。
      每次重画先还原成一份再判断 —— 不还原的话复制会一份变两份、两份变四份。
-     内容没变就直接跳过：不然每半分钟刷新一次，滚动会不停跳回开头。 */
+     内容没变就跳过：不然每半分钟刷新一次，滚动会不停跳回开头。
+
+     ==5.54== 但「内容没变」不等于「版面没变」：看板是先进 page 再铺骨架的，
+     首帧量 clientHeight 时面板还没撑开，20 节课被误判成「装得下」——
+     下半截从此永远看不见（生产实测：1238px 内容塞在 753px 面板里，还没有 loop）。
+     现在同内容也复核一次装不装得下，只有状态真的不一致才重灌一次；
+     状态一致仍旧直接跳过，滚动条不会每半分钟跳回开头。 */
   fill(box, html){
-    if (box.dataset.raw === html && box.innerHTML) return;
-    box.dataset.raw = html;
+    if (box.dataset.raw === html && box.innerHTML){
+      const over = box.scrollHeight > box.parentElement.clientHeight + 2;
+      if (over === box.classList.contains('loop')) return;
+    } else {
+      box.dataset.raw = html;
+    }
     box.style.animation = '';
     box.style.animationDuration = '';
     box.classList.remove('loop');
