@@ -3652,6 +3652,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   transition:box-shadow .16s,background-color .16s}
 .nt-k:hover{background:#fff;box-shadow:0 2px 10px rgba(60,50,35,.07)}
 .nt-k[data-st="ok"]{--c:#2C6E52} .nt-k[data-st="un"]{--c:#D8D1C2;border-left-style:dashed}
+/* ==5.59c== 良（勾满两项）：介于「优」的墨绿与「待补」的铜金之间，用墨青区分开 */
+.nt-k[data-st="good"]{--c:#3F6B73}
 .nt-k[data-st="fix"]{--c:#B08A4F} .nt-k[data-st="miss"]{--c:#B23A2E}
 .nt-k[data-st="miss"]{background:#FFFBFA}
 .nt-kh{display:flex;align-items:center;gap:7px}
@@ -3659,6 +3661,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
 .nt-kst{margin-left:auto;font-size:10px;letter-spacing:.08em;color:var(--c);border:1px solid currentColor;
   border-radius:3px;padding:0 5px;line-height:16px;background:#fff}
 .nt-k[data-st="ok"] .nt-kst{background:#2C6E52;border-color:#2C6E52;color:#fff}
+.nt-k[data-st="good"] .nt-kst{background:#3F6B73;border-color:#3F6B73;color:#fff}
 .nt-k[data-st="fix"] .nt-kst{background:#C9AB7C;border-color:#C9AB7C;color:#3B2B12}
 .nt-k[data-st="miss"] .nt-kst{background:#B23A2E;border-color:#B23A2E;color:#fff}
 .nt-k[data-st="un"] .nt-kst{color:#A79E8C;border-style:dashed}
@@ -4442,10 +4445,10 @@ var Icon = {
         </div>
         <div class="nt-prog"><i id="noteProg"></i></div>
         <div class="nt-chips" id="noteChips"></div>
-        <div class="nt-lg">页 / 订 / 字 ＝ 页数够 · 订正到位 · 字迹工整</div>
+        <div class="nt-lg">页 / 记 / 字 ＝ 页数够 · 记录到位 · 字迹工整</div>
         <div class="nt-wall" id="noteWall"></div>
         <div class="nt-foot">
-          <span class="nt-hint" id="noteHint">三个勾 = 页数够 / 订正到位 / 字迹工整；点卡展开备注</span>
+          <span class="nt-hint" id="noteHint">三个勾 = 页数够 / 记录到位 / 字迹工整；三项全中=优、勾满两项=良</span>
           <button class="btn ghost nt-btn" id="noteAll" onclick="Note.allOk()">一键全标已交</button>
         </div>
       </div>
@@ -13229,16 +13232,17 @@ const Night = {
 
 /* ==5.52== 笔记检查（卡片墙）
    数据：Store.list('note:<日期>')，一条一个学员
-        { id, studentId, st:'un|ok|fix|miss', ck:[页,订,签], note, by, at }
+        { id, studentId, st:'un|ok|good|fix|miss', ck:[页,记,字], note, by, at }
    与过关（night:<日期>）完全两套键，互不覆盖。
-   状态不是手点的，是从三个勾推出来的：
-        三勾全 true → ok（优）；有勾且没标未交 → fix（待补）；标未交 → miss；全空 → un。
+   状态不是手点的，是从三个勾推出来的（==5.59c== 主理人定稿）：
+        三勾全 true → ok（优）；勾满两项 → good（良）；勾一项 → fix（待补）；
+        标未交 → miss；全空 → un。
    这样「勾了两次又取消」不会留下一个嘴上说已交、实际没勾的记录。 */
 const Note = {
   KEY: 'note:',
-  ST:  { un: '未查', ok: '优', fix: '待补', miss: '未交' },
-  CHK: ['页数够', '订正到位', '字迹工整'],
-  CH:  ['页', '订', '字'],
+  ST:  { un: '未查', ok: '优', good: '良', fix: '待补', miss: '未交' },
+  CHK: ['页数够', '记录到位', '字迹工整'],
+  CH:  ['页', '记', '字'],
   _filter: 'all',
   _open: null,          // 展开备注的 studentId（只在本机内存里，不落库）
 
@@ -13259,11 +13263,13 @@ const Note = {
     this.recs().forEach(r => { if (r && r.studentId) m[r.studentId] = r; });
     return m;
   },
-  /* 状态推导：miss 优先（手标的），其余看勾数 */
+  /* 状态推导（==5.59c==）：miss 优先（手标的），其余按勾数 ——
+     三项全中=优，勾满两项=良，只勾一项=待补。 */
   derive(ck, miss){
     if (miss) return 'miss';
     const n = (ck || []).filter(Boolean).length;
     if (n >= 3) return 'ok';
+    if (n >= 2) return 'good';
     if (n > 0) return 'fix';
     return 'un';
   },
@@ -13371,12 +13377,15 @@ const Note = {
     const rows = students.map(s => {
       const r = map[s.id];
       const ck = (r && Array.isArray(r.ck) && r.ck.length === 3) ? r.ck : [false, false, false];
-      const st = r ? (this.ST[r.st] ? r.st : this.derive(ck, false)) : 'un';
+      /* ==5.59c== 状态一律按勾数重算（只有「未交」是手标的，保留）：
+         老记录里勾了两项存的是 fix，规则改成「两勾=良」以后要跟着变，不能留旧标签。 */
+      const st = r ? (r.st === 'miss' ? 'miss' : this.derive(ck, false)) : 'un';
       return { s, r, ck, st };
     });
 
     const done = rows.filter(x => x.st !== 'un').length;
     const miss = rows.filter(x => x.st === 'miss').length;
+    const good = rows.filter(x => x.st === 'good').length;
     const fix  = rows.filter(x => x.st === 'fix').length;
     const un   = rows.filter(x => x.st === 'un').length;
     const total = rows.length;
@@ -13399,7 +13408,8 @@ const Note = {
     /* 筛选 chip */
     const chips = document.getElementById('noteChips');
     if (chips){
-      const list = [['all', '全部', total], ['un', '未查', un], ['fix', '待补', fix], ['miss', '未交', miss]];
+      const list = [['all', '全部', total], ['un', '未查', un], ['good', '良', good],
+                    ['fix', '待补', fix], ['miss', '未交', miss]];
       chips.innerHTML = list.map(([k, label, n]) =>
         `<button class="nt-chip ${this._filter === k ? 'on' : ''}" onclick="Note.pick('${k}')">${label}<s>${n}</s></button>`
       ).join('');
@@ -13415,7 +13425,7 @@ const Note = {
       } else {
         const show = this._filter === 'all' ? rows : rows.filter(x => x.st === this._filter);
         wall.innerHTML = show.length ? show.map(x => this._card(x)).join('')
-          : `<div class="empty" style="grid-column:1/-1">${{ un:'都查过了，没有未查的', fix:'没有待补的', miss:'没有人未交' }[this._filter] || '没有符合条件的学员'}</div>`;
+          : `<div class="empty" style="grid-column:1/-1">${{ un:'都查过了，没有未查的', good:'没有良的', fix:'没有待补的', miss:'没有人未交' }[this._filter] || '没有符合条件的学员'}</div>`;
       }
     }
 
@@ -13424,7 +13434,7 @@ const Note = {
     if (allBtn) allBtn.style.display = this._canEdit() ? '' : 'none';
     const hint = document.getElementById('noteHint');
     if (hint) hint.textContent = this._canEdit()
-      ? '三个勾 = 页数够 / 订正到位 / 字迹工整；点卡展开备注，备注里可标「未交」'
+      ? '三个勾 = 页数够 / 记录到位 / 字迹工整；三项全中=优、勾满两项=良；点卡展开备注，备注里可标「未交」'
       : '授课老师为只读视角：勾点和备注看得到，改不了';
   },
 

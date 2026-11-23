@@ -161,12 +161,12 @@ try {
     ok(s.recs === 0, 'note:<日期> 一条都没有');
     ok(s.nightItems === 21, '过关卡原样在（21 行）');
     ok(s.title.startsWith('笔记检查') && s.title.includes('新增'), '标题「笔记检查」+ 金色「新增」签');
-    ok(JSON.stringify(s.chips) === JSON.stringify(['全部21', '未查21', '待补0', '未交0']),
-      `四个筛选 chip 与计数正确（${s.chips.join(' · ')}）`);
+    ok(JSON.stringify(s.chips) === JSON.stringify(['全部21', '未查21', '良0', '待补0', '未交0']),
+      `五个筛选 chip 与计数正确（${s.chips.join(' · ')}）`);
   }
 
   /* ── ② 勾点联动状态 ────────────────────────────────────────────── */
-  console.log('\n② 勾点联动状态（未查 → 待补 → 优 → 未查）');
+  console.log('\n② 勾点联动状态（未查 → 待补 → 良 → 优 → 未查）');
   {
     const first = prep.first;
     const step = async (i) => S(`
@@ -180,12 +180,21 @@ try {
     ok(s.st === 'fix' && s.dom === 'fix', `勾 1 个 → 待补（记录 ${s.st} / 卡片 ${s.dom}）`);
     ok(s.done === '1', '已查从 0 变 1');
 
-    await step(1); await step(2); await sleep(220);
+    await step(1); await sleep(220);
+    s = await S(`
+      const r = Store.list('note:${DATE}').find(x => x.studentId === '${first}');
+      const k = document.querySelector('.nt-k[data-sid="${first}"]');
+      return { st: r && r.st, ck: r && r.ck, dom: k && k.dataset.st,
+               tag: (k && k.querySelector('.nt-kst').textContent) || '' };`);
+    ok(s.st === 'good' && s.dom === 'good' && s.tag === '良',
+       `勾满 2 项 → 良（记录 ${s.st} / 卡片 ${s.dom} / 标签 ${s.tag}）`);
+
+    await step(2); await sleep(220);
     s = await S(`
       const r = Store.list('note:${DATE}').find(x => x.studentId === '${first}');
       return { st: r && r.st, ck: r && r.ck, done: document.getElementById('noteDone').textContent,
                prog: document.getElementById('noteProg').style.width };`);
-    ok(s.st === 'ok' && s.ck.every(Boolean), `勾满 3 个 → 优（st=${s.st}）`);
+    ok(s.st === 'ok' && s.ck.every(Boolean), `勾满 3 项 → 优（st=${s.st}）`);
     ok(s.done === '1' && s.prog === '5%', `进度 ${s.prog}（1/21 ≈ 5%）`);
 
     await step(0); await step(1); await step(2); await sleep(260);
@@ -322,7 +331,7 @@ try {
     await cdp.metrics(390, 900, true); await sleep(420);
     c = await cols();
     ok(c.n === 2, `手机 390 → 2 列（实际 ${c.n}）`);
-    ok(c.ckText !== 'none' && c.tick === 'none', '手机勾点缩成「页 / 订 / 字」');
+    ok(c.ckText !== 'none' && c.tick === 'none', '手机勾点缩成「页 / 记 / 字」');
     ok(c.legend !== 'none', '手机显示图例一行');
     await cdp.shot(path.join(SHOTS, 'note-390.png'));
     await cdp.metrics(1440, 1000, false); await sleep(320);
