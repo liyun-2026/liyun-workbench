@@ -16413,7 +16413,9 @@ const Settings = {
       box.innerHTML = '<b>' + Util.esc(p.code) + '</b> 已于 ' + new Date(p.until).toLocaleString('zh-CN') + ' 过期，学生现在拿它登记不了。';
       return;
     }
-    const hh = Math.floor(left / 3600000), mm = Math.round((left % 3600000) / 60000);
+    /* 剩多久：先落成整分钟再拆小时，否则 59 分 40 秒会被四舍五入成「60 分钟」 */
+    const totalMin = Math.max(0, Math.floor(left / 60000));
+    const hh = Math.floor(totalMin / 60), mm = totalMin % 60;
     box.innerHTML = '生效中：<b class="num" style="letter-spacing:.08em">' + Util.esc(p.code) + '</b> · 到 ' +
       new Date(p.until).toLocaleString('zh-CN') + ' 失效（还剩 ' +
       (hh ? hh + ' 小时 ' : '') + mm + ' 分钟） · <b>每个账号限用一次</b>';
