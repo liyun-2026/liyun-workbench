@@ -132,14 +132,20 @@ try {
     const sel=document.getElementById('sgPid'), inp=document.getElementById('sgStart');
     sel.innerHTML = Sign.signSlots().map(s=>'<option value="'+s.id+'">'+s.name+'</option>').join('');
     const me0 = Auth._me; Auth._me = { isStaff:true, role:'super', name:'测试教务' };
-    sel.value='am'; inp.value='08:30'; Sign.saveRules();
-    const am = { startAt: (Store.get('sign_rules')||{}).startAt, disabled: inp.disabled };
+    /* ==5.59== 跟随作息：开始时间 = 当前这个时段作息里的 start（上午 07:50 / 下午 14:50），
+       手填 08:30 不再生效；存的是 auto，不是 am/pm。 */
+    sel.value='auto'; inp.value='08:30'; Sign.saveRules();
+    const cur = Att.autoPid(new Date());
+    const expect = (Att.slotObj(cur)||{}).start;
+    const auto = { startAt: (Store.get('sign_rules')||{}).startAt, pid: (Store.get('sign_rules')||{}).pid,
+                   disabled: inp.disabled, cur, expect };
     sel.value='custom'; inp.value='19:30'; Sign.saveRules();
     const custom = { startAt: (Store.get('sign_rules')||{}).startAt, customStart:(Store.get('sign_rules')||{}).customStart, disabled: inp.disabled };
     Auth._me = me0;
-    return JSON.stringify({am,custom,held:!!(Store._wroteAt && Store._wroteAt.sign_rules),slots:Att.SLOTS(),slot:Att.slotObj('am')});
+    return JSON.stringify({auto,custom,held:!!(Store._wroteAt && Store._wroteAt.sign_rules),slots:Att.SLOTS(),slot:Att.slotObj('am')});
   })()`));
-  ok(rules.am.startAt === '07:50' && rules.am.disabled, `上午打卡时间跟作息 07:50，手填 08:30 不再生效 → ${rules.am.startAt}`);
+  ok(rules.auto.startAt === rules.auto.expect && rules.auto.pid === 'auto' && rules.auto.disabled,
+     `跟随作息：开始时间取当前时段作息 ${rules.auto.expect}，手填 08:30 不再生效 → ${rules.auto.startAt} / pid=${rules.auto.pid}`);
   ok(rules.custom.startAt === '19:30' && rules.custom.customStart === '19:30' && !rules.custom.disabled,
      `自定义时间可手填 19:30 并保存 → ${rules.custom.startAt}`);
   ok(rules.held, '改完打卡设置上了本地保护戳，15 秒 pull 不会把旧值顶回来');

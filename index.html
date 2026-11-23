@@ -17897,7 +17897,9 @@ const StuSign = {
 
   /** 圈下面那一句：只写跟「现在该不该打」有关的，不写废话 */
   gateText(){
-    const r = Store.get('sign_rules') || {};
+    /* ==5.59== 走 Sign.rules()：开始时间要按「现在这个时段」算（上午 07:50 / 下午 14:50），
+       直接读存档里的 startAt 会把昨天存的 07:50 一直显示到下午。 */
+    const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : (Store.get('sign_rules') || {});
     if (r.startAt) return '打卡时间 ' + r.startAt;
     return '';
   },
@@ -18714,8 +18716,21 @@ const StuHw = {
    ══════════════════════════════════════════════════════════════════ */
 const Sign = {
   /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
-  DEF: { startAt:'07:50', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'', customStart:'19:00' },
+  DEF: { startAt:'07:50', lateAfter:0, windowBefore:60, windowAfter:30, radius:150, pid:'auto', customStart:'19:00' },
   _code: '', _until: 0, _timer: null,
+
+  /* ==5.59== 当前该用哪个考勤时段：按现在的钟点判（上午 / 下午），
+     和看板同一个口径（Att.autoPid，边界 13:00）。 */
+  autoPid(){
+    const d = new Date();
+    if (typeof Att !== 'undefined' && Att.autoPid) return Att.autoPid(d);
+    return (d.getHours() * 60 + d.getMinutes()) < 780 ? 'am' : 'pm';
+  },
+  /* 存档里的口径：'custom' = 自定义时间，其余（含老数据的 am/pm）= 跟随作息 */
+  mode(){
+    const r = Store.get('sign_rules');
+    return (r && r.pid === 'custom') ? 'custom' : 'auto';
+  },
 
   rules(){
     const r = Store.get('sign_rules');
@@ -18725,15 +18740,21 @@ const Sign = {
        否则一台老设备会把「8866」这种永不过期的码一直认下去。
        （不清掉，只是不再读：万一要回看历史设置还在。） */
     delete out.code;
-    /* ==5.58== 打卡上课时间不再让人手填「08:30」然后被同步顶回去：
-       上午跟作息第一节 07:50，下午跟作息下午第一节 14:50，
-       只有「自定义时间」才读自己填的 customStart。 */
-    const pid = out.pid || '';
+    /* ==5.59== 打卡只剩两种口径（主理人 2026-11-23 口述）：
+       · 跟随作息（默认）：上午跟第一节 07:50，下午跟下午第一节 14:50，按当前钟自动切；
+       · 自定义时间：开始时间自己填，考勤仍按当前钟归到上午/下午。
+       以前是「上午 / 下午 / 自定义」三选一让教务自己切，中午没人去切 →
+       下午所有签到都写进上午那条考勤，看板下午永远显示上午（当天的实锤）。
+       out.pid 一律返回**真实考勤时段**，请假/销假那些地方还在读它。 */
+    const mode = out.pid === 'custom' ? 'custom' : 'auto';
+    const pid = this.autoPid();
     const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
-    if (pid === 'custom') out.startAt = out.customStart || out.startAt;
-    else if (slot && slot.start) out.startAt = slot.start;
-    else if (pid === 'am') out.startAt = '07:50';
-    else if (pid === 'pm') out.startAt = '14:50';
+    out.mode = mode;
+    out.pid = pid;
+    out.customStart = out.customStart || '19:00';
+    out.startAt = mode === 'custom'
+      ? out.customStart
+      : ((slot && slot.start) || (pid === 'pm' ? '14:50' : '07:50'));
     return out;
   },
   saveRules(){
@@ -18741,48 +18762,55 @@ const Sign = {
     const num = (id, def) => { const v = Number(document.getElementById(id).value); return isNaN(v) ? def : v; };
     const old = this.rules();
     const sel = document.getElementById('sgPid');
-    const pid = (sel && sel.value) || old.pid || '';
-    const typed = (document.getElementById('sgStart').value || old.startAt);
-    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
-    /* ==5.58== 上午/下午的时间从考勤时段（作息）来；自定义才用输入框的时间。
-       ⚠️ 上次「改了又跳回 08:30」的根因就是这里 set 完本地没 push，
+    const mode = ((sel && sel.value) === 'custom') ? 'custom' : 'auto';
+    const typed = (document.getElementById('sgStart').value || '').trim();
+    /* ==5.59== 跟随作息时，开始时间由「当前该看的那个时段」的作息决定；
+       自定义时才用输入框的时间。存的是 mode（auto/custom），
+       服务端按打卡那一刻的钟点自己挑时段 —— 中午没人切也不会串到上午去。
+       ⚠️ 上次「改了又跳回 08:30」的根因是 set 完本地没 push，
        15 秒后 sign_rules 被 REMOTE_WINS 用云端旧值盖回来。 */
-    const startAt = pid === 'custom' ? typed
-      : ((slot && slot.start) || (pid === 'am' ? '07:50' : pid === 'pm' ? '14:50' : typed));
+    const pid = this.autoPid();
+    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
+    const autoStart = (slot && slot.start) || (pid === 'pm' ? '14:50' : '07:50');
+    const customStart = mode === 'custom'
+      ? (typed || old.customStart || '19:00')
+      : (old.customStart || '19:00');
     Store.set('sign_rules', Object.assign({}, old, {
-      startAt,
-      customStart: pid === 'custom' ? typed : (old.customStart || '19:00'),
+      pid: mode, mode,
+      startAt: mode === 'custom' ? customStart : autoStart,
+      customStart,
       lateAfter: num('sgLate', old.lateAfter),
       windowBefore: num('sgBefore', old.windowBefore),
       windowAfter: num('sgAfter', old.windowAfter),
       radius: num('sgRadius', old.radius),
-      pid,
     }));
     this.syncStartInput();
     this.stat();
     this.pushRules();   /* 立刻推云端，别等下一轮 pull 把旧值带回来 */
   },
 
-  /* 打卡时段选项：考勤时段 + 一个自定义。上午/下午的时间跟着作息走，输入框只读。 */
+  /* 打卡时段选项（==5.59== 收敛成两种）：
+     ① 跟随作息 —— 上午 07:50 / 下午 14:50，按当前时间自动切，不用人去改；
+     ② 自定义时间 —— 比如晚自习签到，自己填一个点。 */
   signSlots(){
-    const base = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id:'am', name:'上午' }];
-    return base.concat([{ id:'custom', name:'自定义时间' }]);
+    return [
+      { id:'auto',   name:'跟随作息（上午 07:50 / 下午 14:50）' },
+      { id:'custom', name:'自定义时间' },
+    ];
   },
   syncStartInput(){
     const sel = document.getElementById('sgPid');
     const input = document.getElementById('sgStart');
     const hint = document.getElementById('sgStartHint');
     if (!sel || !input) return;
-    const pid = sel.value || '';
+    const mode = sel.value === 'custom' ? 'custom' : 'auto';
     const r = this.rules();
-    const slot = (typeof Att !== 'undefined' && Att.slotObj) ? Att.slotObj(pid) : null;
-    const start = pid === 'custom' ? (r.customStart || r.startAt)
-      : ((slot && slot.start) || (pid === 'am' ? '07:50' : pid === 'pm' ? '14:50' : r.startAt));
+    const start = mode === 'custom' ? (r.customStart || '19:00') : r.startAt;
     if (input.value !== start) input.value = start;
-    input.disabled = pid !== 'custom';
-    if (hint) hint.textContent = pid === 'custom'
+    input.disabled = mode !== 'custom';
+    if (hint) hint.textContent = mode === 'custom'
       ? '自定义时间：在这里填几点上课'
-      : `${start} · 跟作息自动走，要自己填就选「自定义时间」`;
+      : `${r.startAt} · 跟作息自动走（上午 / 下午按时间切），要自己填就选「自定义时间」`;
   },
 
   stat(){
@@ -18984,8 +19012,9 @@ const Sign = {
 
     const slots = this.signSlots();
     const sel = document.getElementById('sgPid');
+    const mode = this.mode();
     if (sel) sel.innerHTML = slots.map(s =>
-      `<option value="${s.id}" ${s.id === (r.pid || slots[0].id) ? 'selected' : ''}>${Util.esc(s.name)}</option>`).join('');
+      `<option value="${s.id}" ${s.id === mode ? 'selected' : ''}>${Util.esc(s.name)}</option>`).join('');
     this.syncStartInput();
     this.stat();
 

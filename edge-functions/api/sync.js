@@ -200,6 +200,9 @@ const STUDENT_READ = {
   exam_scores:  'self',        // 只有自己的成绩
   exam_draws:   null,          // 抽签种子（学生端靠它本地算出自己的序号）
   periods:      null,          // 作息
+  /* ==5.59== 考勤时段（上午 07:50 / 下午 14:50 + 看板切段点）：
+     学生端靠它算「现在这一节几点上课」，只含时段名和时间，没有任何个人数据。 */
+  att_slots:    null,
   schedule:     null,          // 课表
   rooms:        null,
   exams:        null,          // 考试安排（题库是公开的练声材料）
@@ -225,7 +228,9 @@ const STUDENT_PREFIX_SELF = ['att:', 'sign:', 'night:', 'hw:', 'hwchk:', 'gresp:
      tickets      —— 只能新增本人的请假工单，且状态只能是 open（批准权在教务） */
 const STUDENT_WRITE_PREFIX = ['sign:', 'gresp:'];
 /* 打卡判定用的配置。坐标（lat/lng）不下发给学生 —— 学生不需要知道校区在哪。 */
-const SIGN_RULE_PUBLIC = ['startAt', 'lateAfter', 'windowBefore', 'windowAfter', 'mode', 'pid'];
+  /* ==5.59== 打卡只剩「跟随作息 / 自定义时间」两种口径：学生端要能自己算出现在
+     这一节上课时间（上午 07:50 / 下午 14:50），所以 customStart 也要下发。 */
+const SIGN_RULE_PUBLIC = ['startAt', 'lateAfter', 'windowBefore', 'windowAfter', 'mode', 'pid', 'customStart'];
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
@@ -806,6 +811,38 @@ function hm2min(t) {
   const m = /^(\d{1,2}):(\d{2})/.exec(String(t || ''));
   return m ? (+m[1]) * 60 + (+m[2]) : null;
 }
+/* ==5.59== 打卡该记到哪个考勤时段：按「打卡那一刻」的钟点判，不再看教务上次手动选了哪一项。
+   根因（2026-11-23 主理人报「下午打的卡还算上午」）：以前 pid 直接取 sign_rules.pid，
+   中午没人去把「上午」切成「下午」，下午所有签到都写进上午那条考勤，看板永远显示上午。
+   现在 ① pid='custom'（自定义时间）→ 开始时间用 customStart，时段仍按钟点归；
+        ② 其余（含老的 'am'/'pm'）→ 开始时间取该时段作息里的 start，时段按钟点归。 */
+function slotByClock(slots, min) {
+  const list = (Array.isArray(slots) ? slots : [])
+    .filter(s => s && !s._d)
+    .map(s => ({ s, a: hm2min(s.boardFrom || s.start), b: hm2min(s.boardTo || s.end) }))
+    .filter(x => x.a !== null)
+    .sort((x, y) => x.a - y.a);
+  if (!list.length) return null;
+  let prev = list[0].s;
+  for (const x of list){
+    if (min >= x.a) prev = x.s;
+    if (min >= x.a && (x.b === null || min < x.b)) return x.s;
+  }
+  return prev;
+}
+function effSign(rules, slots, min){
+  const r = rules || {};
+  const live = (Array.isArray(slots) ? slots : []).filter(s => s && !s._d);
+  const slot = slotByClock(live, min);
+  const isCustom = r.pid === 'custom';
+  const pid = (slot && slot.id)
+    || (r.pid && r.pid !== 'custom' && live.some(s => s.id === r.pid) ? r.pid : '')
+    || (live[0] && live[0].id) || 'am';
+  const startAt = isCustom
+    ? (hm2min(r.customStart) !== null ? r.customStart : r.startAt)
+    : ((slot && slot.start) || r.startAt || null);
+  return { pid, startAt: startAt || null, mode: isCustom ? 'custom' : 'auto' };
+}
 /** 两点直线距离（米）。教务采集的坐标和学生上报的都来自浏览器原生接口，同属 WGS-84，可直接算 */
 function distM(lat1, lng1, lat2, lng2) {
   const R = 6371000, rad = Math.PI / 180;
@@ -904,7 +941,8 @@ function settlePendingSigns(data, now) {
       changed = true;
       const stu = students.find(x => x && x.id === rec.studentId);
       const clsId = stu ? stu.classId : '';
-      const pid = rules.pid || (slots[0] && slots[0].id) || 'am';
+      /* ==5.59== 结算到「那天打卡那一刻」所属的时段，不再看今天教务选的是上午还是下午 */
+      const pid = effSign(rules, slots, cnParts(Number(rec.at) || now).min).pid;
       const akey = 'att:' + date;
       const aarr = Array.isArray(data[akey]) ? data[akey] : [];
       const old = aarr.find(x => x && x.studentId === rec.studentId && (x.pid || 'am') === pid);
@@ -1033,9 +1071,13 @@ async function doSignInner(s, me, body) {
   else if (hasGeo && rules && rules.lat != null && way === 'self') way = 'geo';
 
   /* 迟到：一律按打卡那一刻算，跟学生手机现在几点无关 */
+  /* ==5.59== 该按哪个时段的上课时间判：effSign 用「打卡那一刻的钟点」挑时段，
+     上午看 07:50、下午看 14:50，自定义时间才用 customStart ——
+     教务中午没去切换，下午的卡也不会再被当成迟到一个小时。 */
+  const eff = effSign(rules, data.att_slots, p.min);
   let status = '正常', lateMin = 0;
-  if (rules && rules.startAt) {
-    const start = hm2min(rules.startAt);
+  if (rules && eff.startAt) {
+    const start = hm2min(eff.startAt);
     /* 零宽限：lateAfter 默认 0 —— 到点就迟到，过一分钟都算 */
     const late = Number(rules.lateAfter === undefined ? 0 : rules.lateAfter);
     const before = Number(rules.windowBefore === undefined ? 60 : rules.windowBefore);
@@ -1084,7 +1126,7 @@ async function doSignInner(s, me, body) {
     const stu = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
     const clsId = stu ? stu.classId : '';
     const slots = Array.isArray(data.att_slots) ? data.att_slots : [];
-    const pid = (rules && rules.pid) || (slots[0] && slots[0].id) || 'am';
+    const pid = effSign(rules, data.att_slots, p.min).pid;
     const akey = 'att:' + date;
     const aarr = Array.isArray(data[akey]) ? data[akey] : [];
     const old = aarr.find(x => x && x.studentId === sid && (x.pid || 'am') === pid);
@@ -1116,7 +1158,8 @@ async function doSignInner(s, me, body) {
       const stu2 = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);
       const clsId2 = stu2 ? stu2.classId : '';
       const slots2 = Array.isArray(data.att_slots) ? data.att_slots : [];
-      const pid2 = (rules && rules.pid) || (slots2[0] && slots2[0].id) || 'am';
+      /* ==5.59== 核销回写按「那条待核本来打卡的钟点」定时段（昨天上午的卡就回上午） */
+      const pid2 = effSign(rules, slots2, cnParts(Number(oldRec.at) || now).min).pid;
       const akey2 = 'att:' + keyTarget;
       const aarr2 = Array.isArray(data[akey2]) ? data[akey2] : [];
       const old2 = aarr2.find(x => x && x.studentId === sid && (x.pid || 'am') === pid2);
