@@ -240,6 +240,15 @@ try {
     assert(!FLAT.includes('KEY_QUIET'), 'KEY_QUIET 还残留');
     return '两条';
   });
+  t('5.56c 看板收到新版无条件换（纯展示无表单，不必等空闲2分钟）', () => {
+    assert(FLAT.includes('if (_boardMode()){'), '看板快速换版分支没了');
+    assert(FLAT.includes('看板常亮屏'), '看板换版注释没了');
+    // 快速分支必须在通用守门判断之前
+    const iBoard = FLAT.indexOf('if (_boardMode()){');
+    const iGate = FLAT.indexOf('if (!_mayQuietReload())');
+    assert(iBoard >= 0 && iGate >= 0 && iBoard < iGate, '看板分支该在通用守门之前');
+    return '看板优先换';
+  });
   t('注册后仍主动 reg.update() 问一次新版', () => {
     assert(FLAT.includes('.then((reg) => { try { reg.update(); } catch (e) {} })'), 'reg.update() 主动查询没了');
     return '在';

@@ -21750,6 +21750,17 @@ if ('serviceWorker' in navigator && !/[?&]nosw/.test(location.search)){
   const _onShellReady = () => {
     if (window._swReloading) return;                 // 同一趟里只认一次
     if (!hadController) return;                      // 首次安装，没有「旧版」要换掉
+    /* ==5.56c== 看板常亮屏：纯展示、没有表单会丢，收到新版就直接换，
+       不要再等「空闲2分钟」——主理人实测看板屏卡在旧 SW 缓存，标题改了看不到。 */
+    if (_boardMode()){
+      let bdone = false;
+      try { bdone = sessionStorage.getItem(KEY_DONE) === '1'; } catch (e) {}
+      if (bdone) return;
+      window._swReloading = true;
+      try { sessionStorage.setItem(KEY_DONE, '1'); } catch (e) {}
+      location.reload();
+      return;
+    }
     if (!_mayQuietReload()){ _updateHint(); return; } // 用户已经在用：不硬刷，给一枚提醒
     let done = false;
     try { done = sessionStorage.getItem(KEY_DONE) === '1'; } catch (e) {}
