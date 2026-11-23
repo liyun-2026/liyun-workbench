@@ -225,17 +225,22 @@ try {
   t('课程块显示今天的真实课程名（含班级），不是「今天没有排课」', () => {
     assert(!A.text.includes('今天没有排课'), '还在显示空态：' + A.text);
     ['指定稿件朗读', '新闻播报', '模拟主持', '上镜实训'].forEach(x => assert(A.text.includes(x), '课表缺「' + x + '」：' + A.text));
-    assert(A.text.includes('考前05班 / 考前06班'), '同课两班该并在一行：' + A.text);
-    return '指定稿件朗读 / 新闻播报 / 模拟主持 / 上镜实训 · 班级并列';
+    assert(A.text.includes('考前05班') && A.text.includes('考前06班'), '同节两班该并在一行（各带班级标）：' + A.text);
+    return '指定稿件朗读 / 新闻播报 / 模拟主持 / 上镜实训 · 两班同屏';
   });
   t('老排课只有 teacher 字符串时，右侧照样挂上老师名（不空着）', () => {
     assert(A.text.includes('刘老师'), '只有 teacher 字段的排课右侧该出「刘老师」：' + A.text);
     return '上镜实训 → 刘老师';
   });
-  t('同一节同一门两个班合并成一行（20 条排课 ≠ 20 行）', () => {
-    const n = (A.html.match(/指定稿件朗读/g) || []).length;
-    assert(n === 1, '「指定稿件朗读」该只出 1 行，实际 ' + n);
-    return '两条排课 → 1 行 + 班级并列';
+  t('同一节次两个班并成一行，行内各带金色班级标（5.56 双班同屏）', () => {
+    const allRows = (A.html.match(/class="bd-s2(?:\s|")/g) || []).length;
+    const clsTags = (A.html.match(/bd-s2-cls/g) || []).length;
+    // 今天 3 节次（08:00/09:30/10:30）+ 明日预览 1 行 = 4 行
+    assert(allRows === 4, '今天3节+明日预览1行=4行，实际 ' + allRows);
+    assert(clsTags >= 5, '两个班都该有班级标（含明日预览），实际标数 ' + clsTags);
+    assert(A.html.includes('bd-s2-sep'), '两班之间该有分隔');
+    assert(/考前05班指定稿件朗读｜考前06班指定稿件朗读/.test(A.text), '08:00 同节两班课并一行各带标：' + A.text);
+    return '3 节次 + 明日预览 = 4 行 · 两班同屏各带班级标';
   });
   t('明日预览取的是**明天**的课，昨天的课一条都不许混进来', () => {
     assert(A.text.includes('明日预览'), '缺「明日预览」分组：' + A.text);

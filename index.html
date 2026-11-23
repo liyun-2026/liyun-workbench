@@ -2544,6 +2544,11 @@ body.board-mode .page.on > *{animation:none}
 .bd-s2-n{font-size:clamp(13px,.9vw,17px);letter-spacing:.06em;flex:1;min-width:0;
   color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bd-s2-w{font-size:clamp(10px,.68vw,13px);color:var(--dim);flex:none;white-space:nowrap}
+/* ==5.56== 双班同屏：行内分栏，金色班级标 + 本班课名 */
+.bd-s2-multi{display:flex;align-items:center;gap:clamp(5px,.5vw,10px);white-space:nowrap}
+.bd-s2-seg{display:inline-flex;align-items:center;gap:clamp(3px,.32vw,6px);min-width:0}
+.bd-s2-cls{font-size:clamp(10px,.68vw,13px);font-weight:600;color:var(--gold-deep);white-space:nowrap}
+.bd-s2-sep{font-size:clamp(10px,.66vw,12px);color:var(--dim);opacity:.4;flex:none}
 .bd-s2.on{border-color:rgba(201,171,124,.55);background:rgba(201,171,124,.12)}
 .bd-s2.on .bd-s2-n{color:var(--gold-lite);font-weight:600}
 .bd-s2.on .bd-s2-t{color:var(--gold-deep)}
@@ -20459,32 +20464,44 @@ const Board = {
     const p2 = n => String(n).padStart(2, '0');
     const nowHM = p2(d.getHours()) + ':' + p2(d.getMinutes());
     const periods = this.uniqPeriods();
-    /* 按「节次 + 课程名」合并：同一节课两个班一起上时只占一行，
-       班级并列在后面（20 条排课 = 10 行，墙上扫一眼能读完）。 */
+    /* ==5.56== 按「节次」合并：同一节次的两个班并成一行，行内分两栏，
+       各带金色班级标 + 本班课名。旧逻辑按「节次+课名」合并，两班课上不同内容
+       （如 05 即兴评述 / 06 文稿朗诵）就拆成两行、各只标一个班 —— 主理人反馈
+       「看板只显示一个班」正是这个。现在一节一行、两班同屏一眼读全。 */
     const group = rows => {
       const m = new Map();
       rows.forEach(x => {
         const pd = periods.find(q => q.id === x.periodId) || {};
         const t = x.time || pd.start || '';
-        const key = (x.periodId || t) + '|' + (x.title || '');
-        if (!m.has(key)) m.set(key, { t, x, pd, who: [] });
+        const key = x.periodId || (t + '|' + (x.cls || ''));
+        if (!m.has(key)) m.set(key, { t, pd, segs: [] });
         const g = m.get(key);
-        /* 右侧挂谁：老排课存的是 teacher 字符串（可能是「陈老师、刘老师」），
-           新排课存 teacherId，班课存 cls —— 三条路都认，别让老数据右边空着。 */
-        const w = x.teacher || x.cls || (x.teacherId && typeof Staff !== 'undefined' ? Staff.name(x.teacherId) : '') || '';
-        String(w || '').split(/[、，,]/).forEach(nm => {
-          nm = nm.trim();
-          if (nm && g.who.indexOf(nm) < 0) g.who.push(nm);
-        });
+        /* 班级标只认真正的班级 cls；老排课只有 teacher 时把老师名并进课名，
+           不套金色班级标（那是班级专属视觉），免得「刘老师即兴评述」被误读成班级。 */
+        const cls = String(x.cls || '').trim();
+        const tn = String(x.teacher || (x.teacherId && typeof Staff !== 'undefined' ? Staff.name(x.teacherId) : '') || '').trim();
+        const title = String(x.title || '').trim();
+        if (!title) return;
+        const segTitle = (cls || !tn) ? title : (tn + ' ' + title);
+        /* 按 cls 聚合：同班同节次的课名收进同一段（用 / 连），不同班各一段。
+           无 cls 的老排课（只有 teacher）各自成段，彼此不硬并。 */
+        const hit = cls ? g.segs.find(s => s.cls === cls) : null;
+        if (hit){ if (hit.titles.indexOf(segTitle) < 0) hit.titles.push(segTitle); }
+        else g.segs.push({ cls, titles: [segTitle] });
       });
       return [...m.values()].sort((a, b) => Schedule._tmin(a.t) - Schedule._tmin(b.t));
     };
-    const row = (g, cls, live) => `<div class="bd-s2${cls}">`
-      + `<span class="bd-s2-t">${g.t ? Util.esc(g.t) : '—'}</span>`
-      + `<span class="bd-s2-n">${Util.esc(g.x.title || '')}</span>`
-      + (g.who.length ? `<span class="bd-s2-w">${Util.esc(g.who.join(' / '))}</span>` : '')
-      + (live ? '<span class="bd-live">进行中</span>' : '')
-      + `</div>`;
+    const row = (g, cls, live) => {
+      const segHtml = g.segs.map(s => {
+        const label = String(s.cls || '').replace(/^集训/, '');
+        return `<span class="bd-s2-seg">${label ? `<b class="bd-s2-cls">${Util.esc(label)}</b>` : ''}${Util.esc(s.titles.join('/'))}</span>`;
+      }).join('<span class="bd-s2-sep">｜</span>');
+      return `<div class="bd-s2${cls}">`
+        + `<span class="bd-s2-t">${g.t ? Util.esc(g.t) : '—'}</span>`
+        + `<span class="bd-s2-n bd-s2-multi">${segHtml}</span>`
+        + (live ? '<span class="bd-live">进行中</span>' : '')
+        + `</div>`;
+    };
     const rows = group(this.rowsOn(Util.today()));
     if (!rows.length) return '<div class="bd-s2" style="color:#8B8072">今天没有排课</div>';
     /* 「进行中」= 服务端校过的钟落在这一节的 [start, end) 里（end 缺失借下一节的 start）。

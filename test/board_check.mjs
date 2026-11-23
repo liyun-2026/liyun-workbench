@@ -723,14 +723,14 @@ try {
       w: (e.querySelector('.bd-s2-w') || {}).textContent || '' }));
     return { w: w, got: got, empty: /今天没有排课/.test(document.getElementById('bdSched').textContent) };
   })()`);
-  t('dash 左列今日课表出来了：一行一课，带时间与老师（全部节次上时间轴）', () => {
+  t('dash 左列今日课表出来了：一行一节，时间 + 课名（老师并入课名，全部节次上时间轴）', () => {
     assert(!sched.empty, '课表还是空的（今天 ' + sched.w + '）');
     assert(sched.got.length === 3, '该有 3 行课，实际 ' + sched.got.length);
     assert(sched.got[0].t === '07:30' && sched.got[2].t === '14:00',
       '该按时间排序，实际 ' + sched.got.map(x => x.t).join(' / '));
-    assert(sched.got[1].n === '即兴评述', '课名没对上，实际「' + sched.got[1].n + '」');
-    assert(sched.got[1].w === '刘老师', '右侧该是老师，实际「' + sched.got[1].w + '」');
-    return sched.got.map(x => x.t + ' ' + x.n + '/' + x.w).join(' · ');
+    assert(sched.got[1].n.includes('即兴评述'), '课名没对上，实际「' + sched.got[1].n + '」');
+    assert(sched.got[1].n.includes('刘老师'), '老师该并入课名段，实际「' + sched.got[1].n + '」');
+    return sched.got.map(x => x.t + ' ' + x.n).join(' · ');
   });
 
   /* 顺手把量化榜灌满 5 个班 —— 下面的截图才像真实用途的样子（不是只有一格空榜） */
