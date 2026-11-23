@@ -6400,10 +6400,22 @@ const Util = {
     return Store.list('classes', (a,b) => (a.name||'') > (b.name||'') ? 1 : -1)
                .filter(c => !this.isDemoObj(c));
   },
+  /* ==5.59b== 系统 / 模拟账号（巡检探针、演示、内测这类）**不是真学员**：
+     不进名册人数、不进考勤、更不进看板的应到/实到/未到名单。
+     ⚠️ 只认 sysProtected 标记不够 —— 老设备本地那份学员记录可能没这个标记
+     （合并按 _u 取新，本地写过就压得住云端），标记一丢就冒进「未到」里，
+     主理人当天就抓到「巡检学员 未到」这一条。所以再按名字兜一道底。 */
+  isSystemStu(o){
+    if (!o) return false;
+    if (o.sysProtected === true) return true;
+    const nm = String(o.name || '');
+    if (/巡检|探针|演示|内测|样例|测试/.test(nm)) return true;
+    return /probe/i.test(String(o.id || ''));
+  },
   /** 真学员：同理。名册、人数、出勤、量化一律走这个，不要直接拿 Store.list('students') */
   realStudents(sort){
-    /* 系统保护学员（巡检探针）不进任何真实统计口径 —— 尤其看板应到/实到 */
-    return Store.list('students', sort).filter(s => !this.isDemoObj(s) && s.sysProtected !== true);
+    /* 系统保护学员（巡检探针）与任何巡检/演示/内测账号不进真实统计口径 */
+    return Store.list('students', sort).filter(s => !this.isDemoObj(s) && !this.isSystemStu(s));
   },
 
   /** 学员名。同 clsName：按 id 查名字用 listRaw，统计才滤演示数据。 */
@@ -8022,7 +8034,7 @@ const Roster = {
 
     const demoHidden = classes.length - realClasses.length;
     document.getElementById('clsList').innerHTML = realClasses.length ? realClasses.map(c => {
-      const n = Store.list('students').filter(s => s.classId === c.id && !Util.isDemoObj(s)).length;
+      const n = Store.list('students').filter(s => s.classId === c.id && !Util.isDemoObj(s) && !Util.isSystemStu(s)).length;
       return `<div class="item">
         <span class="grow">${Util.esc(c.name)}</span>
         <span class="cls-count">${n} 人</span>
@@ -8058,8 +8070,8 @@ const Roster = {
     if (!box) return;
     const cur = Store.get('_rosterCls');
     const all = Store.list('students', Util.byName).filter(s => !Util.isDemoObj(s));
-    const students = all.filter(s => s.classId === cur && !s.sysProtected);
-    const guarded = all.filter(s => s.sysProtected);
+    const students = all.filter(s => s.classId === cur && !Util.isSystemStu(s));
+    const guarded = all.filter(s => Util.isSystemStu(s));
     box.innerHTML = (students.length
       ? students.map(s => {
           const o = Store.list('officers').find(x => x && x.studentId === s.id && x.title);
@@ -20381,7 +20393,12 @@ const Board = {
         sign 记录本身不带 pid，用同学生「时间最接近的那条考勤」反推所属时段：
         这样上午打过卡的人，下午没登记时不会又被算成下午已到。 */
   collect(date, pid){
-    const students = Util.realStudents(Util.byName);
+    /* ==5.59b== 只算「挂在真实班级里」的学员：没分班的档案（巡检探针 classId 为空）
+       本来就不属于任何班的名册，不该出现在应到 / 未到里 ——
+       主理人抓到过「看板上还显示巡检学员未到」，这是第二道保险。 */
+    const liveCls = new Set((typeof Util !== 'undefined' && Util.realClasses ? Util.realClasses() : []).map(c => c.id));
+    const students = Util.realStudents(Util.byName)
+      .filter(s => s.classId && (liveCls.size ? liveCls.has(s.classId) : true));
     const want = (pid === undefined || pid === null) ? '*' : pid;
     const pidOf = r => (typeof Att !== 'undefined' && Att.pidOf) ? Att.pidOf(r) : ((r && r.pid) || 'am');
 
