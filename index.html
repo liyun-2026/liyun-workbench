@@ -5536,7 +5536,7 @@ var Icon = {
         </div>
         <div class="row edit-only" style="flex-wrap:wrap;margin-top:8px">
           <span class="hint" style="margin:0;min-width:76px">打卡时段</span>
-          <select id="sgPid" onchange="Sign.saveRules()" style="max-width:150px"></select>
+          <select id="sgPid" onchange="Sign.saveRules()" style="max-width:170px"></select>
           <span class="hint" style="margin:0">课前</span>
           <input type="number" id="sgBefore" min="0" max="240" onchange="Sign.saveRules()" style="max-width:88px">
           <span class="hint" style="margin:0">~ 课后</span>
@@ -18794,7 +18794,7 @@ const Sign = {
      ② 自定义时间 —— 比如晚自习签到，自己填一个点。 */
   signSlots(){
     return [
-      { id:'auto',   name:'跟随作息（上午 07:50 / 下午 14:50）' },
+      { id:'auto',   name:'跟随作息' },
       { id:'custom', name:'自定义时间' },
     ];
   },
