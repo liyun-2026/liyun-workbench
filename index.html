@@ -4739,6 +4739,22 @@ var Icon = {
           <button class="btn" onclick="Settings.devKeyGen()"><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-bolt"></use></svg> 一键生成密钥</button>
         </div>
         <div id="devKeyList" style="margin-top:10px"></div>
+
+        <!-- ==5.60== 统一登记口令：开学那几天几十个学生同时上手，一枚一枚发密钥发不过来 -->
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line,#e8e3d9)">
+          <h3 style="margin:0 0 8px;font-size:15px;font-weight:600">统一登记口令</h3>
+          <p class="hint" style="margin:0 0 10px">
+            给全体学生发<b>同一个口令</b>，每人拿它登记自己那台设备 —— <b>每个账号只能用一次</b>，
+            到截止时间自动失效。学生换第二台设备时才需要单独要密钥。
+          </p>
+          <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
+            <input id="devPassCode" type="text" placeholder="口令，如 boyi2027" autocapitalize="off" spellcheck="false" style="width:190px">
+            <input id="devPassUntil" type="datetime-local" style="width:230px">
+            <button class="btn" onclick="Settings.devPassSave()">保存口令</button>
+            <button class="btn ghost" onclick="Settings.devPassClear()">停用</button>
+          </div>
+          <div id="devPassState" class="hint" style="margin-top:8px"></div>
+        </div>
       </div>
       <!-- ==== 学生换设备密钥 devKeyCard END ==== -->
 
@@ -5652,8 +5668,8 @@ var Icon = {
   <div class="mask"></div>
   <div class="sheet">
     <h3 style="margin:0 0 4px;font-size:17px;font-weight:500" id="devGateTitle">这台设备还没登记</h3>
-    <p class="hint" style="margin:0 0 14px" id="devGateWhy">一个学生账号最多登两台设备。要让这台也能用，找教务要一个密钥（每个密钥只能用一次）。</p>
-    <input type="text" id="devKeyIn" placeholder="教务给的密钥" autocapitalize="off" spellcheck="false">
+    <p class="hint" style="margin:0 0 14px" id="devGateWhy">一个学生账号最多登两台设备。要让这台也能用，输老师给的登记口令（口令每个账号只能用一次）。</p>
+    <input type="text" id="devKeyIn" placeholder="老师给的口令" autocapitalize="off" spellcheck="false">
     <div class="row" style="margin-top:12px">
       <button class="btn" onclick="StuDev.submit()">登记这台</button>
       <button class="btn ghost" id="devGateSwitch" onclick="Auth.logout()">换个账号</button>
@@ -16267,6 +16283,7 @@ const Settings = {
     this.refreshBackupInfo();
     this.renderAcct();
     this.renderDevKeys();
+    this.renderDevPass();
     this.renderDemo();
     if (staff || Auth.role() === 'teacher') this.renderRules();
     if (staff){
@@ -16346,6 +16363,63 @@ const Settings = {
   DEVKEY_TTL: 10 * 60 * 1000,
 
   devKeys(){ const a = Store.get('dev_keys'); return Array.isArray(a) ? a : []; },
+
+  /* ════════ ==5.60== 统一登记口令 ════════
+     开学那几天几十个学生同时上手，一枚一枚发 10 分钟密钥根本发不过来。
+     教务在这里设一个口令 + 截止时间，全体学生拿同一个口令登记自己那台设备。
+     服务端核销：每个账号限用一次（记在 auth.passDevAt），过了截止时间自动不认。 */
+  devPass(){ const p = Store.get('dev_pass'); return (p && p.code) ? p : null; },
+
+  dtLocal(ts){
+    const d = new Date(Number(ts) || 0), p = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+           'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+  },
+
+  async devPassSave(){
+    const code = (((document.getElementById('devPassCode') || {}).value) || '').trim();
+    const untilStr = (((document.getElementById('devPassUntil') || {}).value) || '');
+    if (!code) return UI.toast('先填一个口令');
+    if (!/^[A-Za-z0-9_-]{4,24}$/.test(code)) return UI.toast('口令 4–24 位，只能用字母、数字、下划线');
+    const until = untilStr ? new Date(untilStr).getTime() : 0;
+    if (!(until > Date.now())) return UI.toast('截止时间要晚于现在');
+    try {
+      await Auth.call('dev_pass', { op: 'set', code, until });
+      await Sync.pull(true);
+      this.renderDevPass();
+      UI.toast('口令已生效：' + code + ' · 到 ' + new Date(until).toLocaleString('zh-CN') + ' 失效');
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async devPassClear(){
+    if (!confirm('停用统一口令？\n\n停用后学生再登记设备，就只能一枚一枚单独要密钥了。')) return;
+    try {
+      await Auth.call('dev_pass', { op: 'clear' });
+      await Sync.pull(true);
+      this.renderDevPass();
+      UI.toast('已停用');
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  renderDevPass(){
+    const box = document.getElementById('devPassState');
+    if (!box) return;
+    const inp = document.getElementById('devPassCode');
+    const unt = document.getElementById('devPassUntil');
+    const p = this.devPass();
+    if (!p){ box.innerHTML = '现在没有生效的口令 —— 学生登记设备要走「一键生成密钥」，一枚发一个人。'; return; }
+    const left = Number(p.until || 0) - Date.now();
+    if (left <= 0){
+      box.innerHTML = '<b>' + Util.esc(p.code) + '</b> 已于 ' + new Date(p.until).toLocaleString('zh-CN') + ' 过期，学生现在拿它登记不了。';
+      return;
+    }
+    const hh = Math.floor(left / 3600000), mm = Math.round((left % 3600000) / 60000);
+    box.innerHTML = '生效中：<b class="num" style="letter-spacing:.08em">' + Util.esc(p.code) + '</b> · 到 ' +
+      new Date(p.until).toLocaleString('zh-CN') + ' 失效（还剩 ' +
+      (hh ? hh + ' 小时 ' : '') + mm + ' 分钟） · <b>每个账号限用一次</b>';
+    if (inp && !inp.value) inp.value = p.code;
+    if (unt && !unt.value) unt.value = this.dtLocal(p.until);
+  },
 
   async devKeyGen(){
     try {
@@ -17723,11 +17797,11 @@ const StuDev = {
     const isSwitch = !!(j && j.switchAccount && !j.newDevice);   // 真·同台设备换账号
     if (isSwitch){
       if (t) t.textContent = '换账号要密钥';
-      if (w) w.textContent = '这台设备上登过别的学生账号。要让这个号也能在这儿登，找教务要一个密钥（每个密钥只能用一次）。';
+      if (w) w.textContent = '这台设备上登过别的学生账号。要让这个号也能在这儿登，输老师给的登记口令（也可以单独要一枚密钥）。';
       if (sw) sw.style.display = '';
     } else {
       if (t) t.textContent = '这台设备还没登记';
-      if (w) w.textContent = '新设备首次登录，需要教务给的密钥（一个学生账号最多登两台设备，每个密钥只能用一次）。';
+      if (w) w.textContent = '新设备首次登录，输老师给的登记口令就行（一个学生账号最多登两台设备，口令每个账号只能用一次）。';
       if (sw) sw.style.display = 'none';
     }
     g.classList.add('on');

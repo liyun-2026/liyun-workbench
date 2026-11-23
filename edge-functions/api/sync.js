@@ -1619,6 +1619,33 @@ export async function onRequestPost(context) {
       }
       return json({ error: '未知的密钥操作' }, 400);
     }
+    /* ══ ==5.60== 统一登记口令 ══
+       集训期学生第一次上手，一晚上几十个人要登记设备，一枚一枚生成 10 分钟密钥
+       根本发不过来。教务在这里设一个口令 + 截止时间，全体学生拿同一个口令登记，
+       每个账号限用一次（核销记在 auth 记录的 passDevAt，见 action 'dev'）。 */
+    if (action === 'dev_pass') {
+      if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务可以设登记口令' }, 403);
+      const d = (await s.get('org/data', { type: 'json' })) || {};
+      const op = String(body.op || 'get');
+      if (op === 'get') return json({ ok: true, pass: d.dev_pass || null });
+      if (op === 'clear') {
+        delete d.dev_pass;
+        await s.setJSON('org/data', d);
+        return json({ ok: true, pass: null });
+      }
+      if (op === 'set') {
+        const code = String(body.code || '').trim();
+        if (!/^[A-Za-z0-9_-]{4,24}$/.test(code)) {
+          return json({ error: '口令 4–24 位，只能用字母、数字、下划线' }, 400);
+        }
+        const until = Number(body.until || 0);
+        if (!(until > Date.now())) return json({ error: '截止时间要晚于现在' }, 400);
+        d.dev_pass = { code, until, madeAt: Date.now(), madeBy: me.name || me.user || '' };
+        await s.setJSON('org/data', d);
+        return json({ ok: true, pass: d.dev_pass });
+      }
+      return json({ error: '未知的口令操作' }, 400);
+    }
     if (action === 'reset_password') {
       if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务可以重置学生密码' }, 403);
       const id = String(body.id || '');
@@ -1854,9 +1881,51 @@ export async function onRequestPost(context) {
                       devs: map.devs.length });
       }
       const d = (await s.get('org/data', { type: 'json' })) || {};
+
+      /* 登记这台设备（密钥门的三条路最后都走这里）：
+         设备最多两台，满了挤掉后来那台（第一台是认证设备，永远留着）；
+         这台设备记住这个号，下次再登同一个号就不用再要密钥。 */
+      const bindDev = async () => {
+        let replaced = false;
+        if (!knownDev){
+          if (map.devs.length >= 2){ map.devs = [map.devs[0], dev]; replaced = true; }
+          else map.devs.push(dev);
+          if (!map.first) map.first = dev;
+          await s.setJSON(`devmap/${me.id}`, map);
+        }
+        if (!knownAcct){
+          da.uids.push(me.id);
+          if (da.uids.length > 5) da.uids = da.uids.slice(-5);
+          await s.setJSON(`devacct/${dev}`, da);
+        }
+        return replaced;
+      };
+
       const keys = Array.isArray(d.dev_keys) ? d.dev_keys : [];
       const hit = keys.find(k => k && String(k.code || '').trim() === key && !k.used);
-      if (!hit) return json({ error: '密钥不对，或者已经被用过了' }, 403);
+      if (!hit){
+        /* ==5.60== 统一登记口令：集训期教务在设置页设一个口令 + 截止时间
+           （见 action dev_pass），全体学生都能拿它登记自己那台设备。
+           约束：① 只在截止前有效；② **每个学生账号只能用它一次** ——
+           用过的账号记在 auth 记录的 passDevAt 上，第二次必须找教务单独要密钥。
+           这样既不用一晚上生成 39 枚码，也不至于一个口令无限次换设备刷号。 */
+        const dp = d.dev_pass;
+        const sameCode = dp && dp.code && String(dp.code).trim().toLowerCase() === key.toLowerCase();
+        if (sameCode && Date.now() < Number(dp.until || 0)){
+          const auth = await s.get(`auth/${me.id}`, { type: 'json' });
+          if (!auth) return json({ error: '账号不存在' }, 404);
+          if (auth.passDevAt) {
+            return json({ error: '这个口令你已经用过了，再换设备要找老师单独要一枚密钥' }, 403);
+          }
+          auth.passDevAt = Date.now();
+          auth.passDevIp = '';   /* 不记设备指纹原文，只留用了没 */
+          await s.setJSON(`auth/${me.id}`, auth);
+          const replaced = await bindDev();
+          return json({ ok: true, bound: true, replaced, passUsed: true,
+                        switchAccount: !knownAcct, devs: map.devs.length });
+        }
+        return json({ error: '密钥不对，或者已经被用过了' }, 403);
+      }
       /* ==5.37== 方案A：密钥 10 分钟有效 —— 过期的当作不存在，逼着走「重新生成」 */
       if (Date.now() - (hit.madeAt || 0) > DEVKEY_TTL) {
         return json({ error: '密钥已过期（10 分钟有效），找教务重新生成一枚' }, 403);
@@ -1869,20 +1938,8 @@ export async function onRequestPost(context) {
       d.dev_keys = keys;
       await s.setJSON('org/data', d);
 
-      /* 设备：最多两台，满了就挤掉后来那台（第一台是认证设备，永远留着） */
-      let replaced = false;
-      if (!knownDev){
-        if (map.devs.length >= 2){ map.devs = [map.devs[0], dev]; replaced = true; }
-        else map.devs.push(dev);
-        if (!map.first) map.first = dev;
-        await s.setJSON(`devmap/${me.id}`, map);
-      }
-      /* 账号：这台设备记住这个号，下次再登就不用重复要密钥 */
-      if (!knownAcct){
-        da.uids.push(me.id);
-        if (da.uids.length > 5) da.uids = da.uids.slice(-5);
-        await s.setJSON(`devacct/${dev}`, da);
-      }
+      /* 设备与账号登记 —— 与「统一口令」那条路共用 bindDev（见上） */
+      const replaced = await bindDev();
       return json({ ok: true, bound: true, replaced,
                     switchAccount: !knownAcct, devs: map.devs.length });
     }
