@@ -1647,30 +1647,39 @@ export async function onRequestPost(context) {
       return json({ error: '未知的口令操作' }, 400);
     }
     /* ══ ==5.60== 释放学生已登记的设备 ══
-       两个真实诉求：
-       ① 学生旧手机丢了/换了，说「我登录要密钥」—— 教务一键放回「一台都没登记」，
-          他新手机再登就是第一台，直接放行，不用发密钥；
-       ② 教务自己拿一台手机挨个试学生账号查问题，试完这台设备就记住了这些号，
-          学生拿自己手机反而变成「第二台」要密钥。开学前用 op:'all' 一把清干净。
-       只清 devmap（这个账号登记过哪几台），不动 auth、不动密码、不动口令次数。 */
+       真实诉求：学生旧手机丢了/换了，说「我登录要密钥」—— 教务一键放回「一台都没登记」，
+       他新手机再登就是第一台，直接放行，不用发密钥。
+       只清 devmap（这个账号登记过哪几台），不动 auth、不动密码、不动口令次数。
+       ⚠️ 绝不遍历全库：2026-11-23 第一版写过 op:'all' 挨个读 42 个 auth + 42 个 devmap，
+       直接把 EdgeOne Blob 打成 504（sys/users 都读不出来，教务端账号页当场挂）。
+       现在只认显式 id 列表，一次最多 20 个，调用方自己分批。 */
     if (action === 'dev_reset') {
       if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务能释放学生设备' }, 403);
-      if (String(body.op || '') === 'all') {
-        const idx = await uidIndex(s);
-        let n = 0, people = 0;
-        for (const uid of idx.ids) {
-          const a = await s.get(`auth/${uid}`, { type: 'json' });
-          if (!a || (a.role || '') !== STUDENT) continue;
-          const m = await s.get(`devmap/${uid}`, { type: 'json' });
-          if (m && Array.isArray(m.devs) && m.devs.length) {
-            await s.setJSON(`devmap/${uid}`, { devs: [] });
-            n += m.devs.length; people++;
-          }
+
+      const clearOne = async id1 => {
+        try {
+          const target = id1 ? await s.get(`auth/${id1}`, { type: 'json' }) : null;
+          if (!target || (target.role || '') !== STUDENT) return -1;
+          const m = (await s.get(`devmap/${id1}`, { type: 'json' })) || { devs: [] };
+          const n = Array.isArray(m.devs) ? m.devs.length : 0;
+          if (n) await s.setJSON(`devmap/${id1}`, { devs: [] });
+          return n;
+        } catch (e) { return -2; }   /* 单条读失败别连累整批 */
+      };
+
+      if (Array.isArray(body.list) && body.list.length) {
+        if (body.list.length > 20) return json({ error: '一次最多 20 个账号' }, 400);
+        let n = 0, people = 0, failed = 0;
+        for (const id1 of body.list) {
+          const r = await clearOne(String(id1 || ''));
+          if (r < 0) failed++; else { n += r; if (r) people++; }
         }
-        return json({ ok: true, scope: 'all', cleared: n, people });
+        return json({ ok: true, scope: 'batch', cleared: n, people, failed });
       }
+
       const id1 = String(body.id || '');
-      const target = id1 ? await s.get(`auth/${id1}`, { type: 'json' }) : null;
+      if (!id1) return json({ error: '要指定账号，或传 list 批量' }, 400);
+      const target = await s.get(`auth/${id1}`, { type: 'json' });
       if (!target) return json({ error: '账号不存在' }, 404);
       if ((target.role || '') !== STUDENT) return json({ error: '只用于学生账号' }, 403);
       const m = (await s.get(`devmap/${id1}`, { type: 'json' })) || { devs: [] };

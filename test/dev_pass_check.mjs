@@ -164,14 +164,17 @@ try {
   ok(afterReset.j.ok && afterReset.j.first === true,
      `释放后新设备直接放行，不再要任何密钥（${JSON.stringify(afterReset.j)}）`);
 
-  const resetAll = await api('dev_reset', { op: 'all' }, staff.token);
-  ok(resetAll.j.ok && resetAll.j.scope === 'all',
-     `一键全清（people=${resetAll.j.people} / 设备 ${resetAll.j.cleared}）`);
+  const ids = [meA.profile.id, (await must('me', {}, tok['乙'])).profile.id];
+  const resetAll = await api('dev_reset', { list: ids }, staff.token);
+  ok(resetAll.j.ok && resetAll.j.scope === 'batch',
+     `批量释放（people=${resetAll.j.people} / 设备 ${resetAll.j.cleared} / 失败 ${resetAll.j.failed}）`);
   const afterAll = await api('dev', { dev: 'dev-b-9' }, tok['乙']);
   ok(afterAll.j.ok && afterAll.j.first === true, `全清后乙换设备也直接放行（${JSON.stringify(afterAll.j)}）`);
 
-  const byStu2 = await api('dev_reset', { op: 'all' }, tok['乙']);
+  const byStu2 = await api('dev_reset', { list: ids }, tok['乙']);
   ok(byStu2.code === 403, `学生调不动释放接口（${byStu2.code}）`);
+  const tooMany = await api('dev_reset', { list: new Array(21).fill('x') }, staff.token);
+  ok(tooMany.code === 400, `一次超过 20 个被挡（${tooMany.code}）`);
 } catch (e) {
   fail++; fails.push('异常：' + e.message);
   console.log('\n❌ 异常：', e.message);
