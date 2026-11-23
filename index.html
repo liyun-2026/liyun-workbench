@@ -6019,6 +6019,10 @@ const Store = (() => {
         if (it) { alive.push(it); keep.push(it); }
       }
       if (keep.length !== raw.length) driver.set(NS + key, keep);  // 静默清理，不算一次写
+      /* 课表的星期统一成「周一」再交给上层 —— 老数据（以及大课表单元格编辑）存的是
+         「一」，各页面拿「周一」去比就全对不上，我的课表会整页空白、排序也会乱。
+         只在读的时候归一，不动磁盘上的原值，所以写法新旧都能显示。 */
+      if (key === 'schedule') for (const it of alive) it.day = Util.dw(it.day);
       const out = sort ? alive.sort(sort) : alive;
       return (opts && opts.demo) ? out : demoFilter(key, out);
     },
@@ -6395,6 +6399,15 @@ const Util = {
     const out = [];
     for (let i = 1; i <= n; i++) out.push(month + '-' + String(i).padStart(2, '0'));
     return out;
+  },
+
+  /** 星期归一：老数据 schedule.day 存的是「一」（dayOfDate 的产出），
+      而界面上一律拿「周一」去比 —— 差一个「周」字，我的课表就整页空白。
+      凡是拿 day 做比较/排序的地方，先过这一道。 */
+  dw(d){
+    const s = String(d || '');
+    if (!s) return '';
+    return s.charAt(0) === '周' ? s : '周' + s;
   },
 
   /** 班级名。⚠️ 这里用 listRaw：按 id 查名字是「具名取用」，不是统计 ——
@@ -10085,7 +10098,7 @@ const Schedule = {
     const merge = document.getElementById('cmMerge') ? document.getElementById('cmMerge').checked : false;
     const perEl = document.getElementById('cmPeriod');
     const pid = perEl ? perEl.value : (periodId || '');
-    const obj = { date, day: this.dayOfDate(date), periodId: pid, time: '', title, cls, teacherId, room, merge, kind: 'big' };
+    const obj = { date, day: Util.dw(this.dayOfDate(date)), periodId: pid, time: '', title, cls, teacherId, room, merge, kind: 'big' };
     if (editId) obj.id = editId;
     Store.upsert('schedule', obj);
     this.cellClose(); this.renderGrid(); UI.toast('已保存');
@@ -10485,7 +10498,7 @@ const Schedule = {
       const periodId = this.matchPeriod(r.time);
       const tid = this.teacherMatch(r._tname || '');
       Store.upsert('schedule', {
-        date: r.date, day: this.dayOfDate(r.date),
+        date: r.date, day: Util.dw(this.dayOfDate(r.date)),
         periodId, time: periodId ? '' : (r.time || ''),
         title: r.title, cls: r.cls || '', room: r.room || '',
         teacherId: tid, _tname: tid ? '' : (r._tname || ''),
