@@ -3389,6 +3389,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visi
   .xd-stat .n em{font-style:normal;font-size:13px;color:var(--ink-3);margin-left:4px}
   .xd-stat.hot .n{color:var(--gold-deep)}
   .xd-stat .l{font-size:11.5px;letter-spacing:3px;color:var(--ink-2);margin-top:9px}
+  /* ==5.53== 到课卡的第二行：迟到 / 请假 / 未到。主数字是「到课（含迟到）」，
+     这一行把口径摊开，免得把迟到当缺席看 */
+  .xd-stat .sub{font-size:11px;letter-spacing:.02em;color:var(--ink-3);margin-top:7px;white-space:nowrap}
+  .xd-stat .sub b{font-weight:500;color:var(--gold-deep);font-variant-numeric:tabular-nums}
 
   /* ── ⑤ home 内容区栅格：时间轴居左（1.6fr）· 倒计时卡居右（1fr）
          （.page#page-home 前缀压过 3079 行的旧单列栅格；行序全走 auto-flow——
@@ -3956,7 +3960,7 @@ var Icon = {
         <div class="xd-rule"></div>
         <div class="xd-stats">
           <div class="xd-stat"><div class="n"><span class="cnt" id="xdStuCnt">0</span><em>人</em></div><div class="l">在册学员</div></div>
-          <div class="xd-stat hot"><div class="n"><span class="cnt" id="xdAttCnt">0</span><em>人</em></div><div class="l">今日到课</div></div>
+          <div class="xd-stat hot"><div class="n"><span class="cnt" id="xdAttCnt">0</span><em>人</em></div><div class="l">今日到课</div><div class="sub" id="xdAttSub"></div></div>
           <div class="xd-stat"><div class="n"><span class="cnt" id="xdHwCnt">0</span><em>份</em></div><div class="l">今日未交作业</div></div>
           <div class="xd-stat"><div class="n"><span class="cnt" id="xdHrsCnt">0</span><em>节</em></div><div class="l">本周课时</div></div>
         </div>
@@ -7395,7 +7399,18 @@ const Home = {
   /** 刻度列表：Schedule.periods() 有就用；没有就拿考勤时段兜底，再补一条「晚自习」 */
   ticks(){
     const ps = (typeof Schedule !== 'undefined' && Schedule.periods) ? Schedule.periods() : [];
-    if (ps.length) return { list: ps.map(p => ({ name: p.name, start: p.start, end: p.end })), fallback: false };
+    /* ==5.53== 老库里有一批「只剩 id」的作息行（迁移时写坏的）：没有 start/end。
+       以前照单全收 → 时间轴上多出几个空白刻度（标签空、时间空、「本节无事项」），
+       看着就像「每节课都没有课」。这里只认有起止时间的段。 */
+    const valid = ps.filter(p => p && p.start && p.end);
+    if (valid.length){
+      return {
+        list: valid.map((p, i) => ({
+          id: p.id, name: p.name || ('第' + (i + 1) + '节'), start: p.start, end: p.end,
+        })),
+        fallback: false,
+      };
+    }
     /* 兜底（§7.1.3）：periods 为空 → 读考勤时段 Att.SLOTS() 造刻度，时间取作息默认档，再补「晚自习」，
        不塌也不空白。先配默认时间，再按 Schedule._tmin 排序（时段本身没有先后）。 */
     const def = [{ start: '08:00', end: '12:00' }, { start: '13:30', end: '17:10' }];
@@ -7437,7 +7452,39 @@ const Home = {
     for (let i = 0; i < list.length; i++) if (/晚自习|晚课|夜自修/.test(list[i].name)){ nightIdx = i; break; }
     const out = [];
 
-    /* ① 考勤：一天点几次名就有几条，只列已经登记过的时段（没登记的不摆空节点） */
+    /* ⓪ 课表：今天排的每一节课都挂到它那一节的刻度上（==5.53==）
+       以前这里只攒考勤 / 作业 / 晚自习，课表（schedule 键，按 date 存）根本没接进来 ——
+       于是时间轴上每一节都写「本节无事项」，看着像「今天一节没排」。
+       现在按 periodId 找刻度；没挂节次的按 time、再不行按当天第一节兜底。
+       教务看全校，授课老师只看自己的（teacherId 对上，或老数据没填老师时按班级名对）。 */
+    (() => {
+      const meId = (typeof Auth !== 'undefined' && Auth.me && Auth.me()) ? Auth.me().id : '';
+      const mine = (typeof Auth !== 'undefined' && Auth.classIds) ? Auth.classIds() : [];
+      const myCls = Store.list('classes').filter(c => mine.indexOf(c.id) >= 0).map(c => c.name).filter(Boolean);
+      const isTeacher = (typeof Auth !== 'undefined' && Auth.role) ? /teacher|both/.test(Auth.role()) : false;
+      Store.list('schedule').filter(x => x && x.date === t && (x.kind || 'big') === 'big').forEach(x => {
+        if (isTeacher && !Auth.isStaff()){
+          const own = x.teacherId ? x.teacherId === meId : (!!x.cls && myCls.some(n => x.cls.indexOf(n) >= 0));
+          if (!own) return;
+        }
+        const idx = list.findIndex(p => p.id && p.id === x.periodId);
+        const anchor = idx >= 0 ? list[idx].start : (x.time || (list[0] || {}).start);
+        if (!anchor) return;
+        const tn = (x.teacherId && typeof Staff !== 'undefined') ? Staff.name(x.teacherId) : '';
+        const where = [x.cls, tn ? tn + ' 老师' : '', x.room].filter(Boolean).join(' · ');
+        out.push({
+          at: anchor, kind: 'class',
+          title: Util.esc(x.title || '（未填上课内容）'),
+          sub: where || '今日课程',
+          state: idx >= 0 ? ('第' + (idx + 1) + '节') : '今日',
+          done: 1,
+          body: '<b>' + Util.esc(x.title || '') + '</b>' + (where ? '<br>' + Util.esc(where) : '')
+              + (idx >= 0 ? '<br><span class="hint" style="display:inline;margin:0">' + Util.esc(list[idx].start + '–' + list[idx].end) + '</span>' : '')
+              + '<br><a href="#" onclick="App.go(\'timetable\');return false">去课表看全表 →</a>'
+        });
+      });
+    })();
+
     const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
     const dayRecs = Store.list('att:' + t);
     slots.forEach((sl, i) => {
@@ -8739,14 +8786,85 @@ const Att = {
     const sid  = btn.getAttribute('data-sid');
     const want = btn.getAttribute('data-s');
     if (!sid || !want) return;
+    /* ==5.53== 迟到要先报分钟数（细则：10 分钟内 2 分/分钟，超 10 分钟一律 20 分）。
+       已经标过迟到的，再点这一下是「改分钟」，不是撤销 —— 撤销走弹窗里的「取消登记」。 */
+    if (want === '迟到') return this.lateAsk(sid);
     const row = btn.closest('.rrow');
     const cur = row ? row.getAttribute('data-cur') : 'none';
     if (want === cur) this.write(sid, null);     // 再点一下撤销
     else this.write(sid, want);
   },
 
+  /* ══ 迟到分钟（==5.53== 《考前集训量化管理细则》二·1）══
+     迟到 10 分钟以内：每人次扣 2 分/分钟（迟到 3 分钟 → 扣 6 分）；
+     迟到 10 分钟以上：每人次扣 20 分（不再按分钟累加）。
+     分钟数落在考勤记录上（lateMin），量化重算时照它算一次，反复点不会叠加。 */
+  LATE_PER_MIN: 2,
+  LATE_CAP_MIN: 10,
+  LATE_FLAT: 20,
+  latePoints(min){
+    const m = Math.max(1, Math.round(+min || 0));
+    return m <= this.LATE_CAP_MIN ? -(this.LATE_PER_MIN * m) : -this.LATE_FLAT;
+  },
+  lateOf(date, pid, sid){
+    const r = Store.list('att:' + date).find(x => x.studentId === sid && this.pidOf(x) === pid && x.status === '迟到');
+    return r && r.lateMin ? r.lateMin : 0;
+  },
+  lateAsk(sid){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
+    if (this.curPid() === '*') return UI.toast('先在上面选一个具体时段');
+    const date = Store.get('_attDate') || Util.today();
+    const pid  = this.curPid();
+    const rec  = Store.list('att:' + date).find(r => r.studentId === sid && this.pidOf(r) === pid);
+    const cur  = (rec && rec.status === '迟到' && rec.lateMin) ? rec.lateMin : 1;
+    const name = Util.esc((Util.stuName ? Util.stuName(sid) : '') || '该学生');
+    const old  = document.getElementById('lateMask');
+    if (old) old.remove();
+    const div = document.createElement('div');
+    div.id = 'lateMask';
+    div.className = 'picker on';
+    div.innerHTML = `<div class="sheet" style="width:min(330px,92vw)">
+      <div class="page-title" style="font-size:17px">${name} · 迟到几分钟？</div>
+      <p class="hint" style="margin:2px 0 10px">10 分钟以内每分钟扣 2 分；超过 10 分钟一律扣 20 分。</p>
+      <div class="row" style="align-items:center;gap:8px">
+        <input type="number" id="lateMin" min="1" max="240" step="1" value="${cur}" style="max-width:110px">
+        <span class="hint" style="margin:0">分钟</span>
+        <span class="hint" style="margin-left:auto" id="latePreview"></span>
+      </div>
+      <div class="row" style="margin-top:16px;justify-content:space-between">
+        ${(rec && rec.status === '迟到') ? `<button class="btn ghost" style="color:#c0392b" onclick="Att.lateClear('${sid}')">取消登记</button>` : '<span></span>'}
+        <div class="row" style="margin:0;gap:8px">
+          <button class="btn ghost" onclick="Att.lateClose()">取消</button>
+          <button class="btn" onclick="Att.lateOk('${sid}')">确认</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(div);
+    const inp = document.getElementById('lateMin');
+    const paint = () => {
+      const v = parseInt(inp.value, 10);
+      const pv = document.getElementById('latePreview');
+      if (pv) pv.textContent = (v >= 1) ? ('扣 ' + Math.abs(this.latePoints(v)) + ' 分') : '填一下分钟数';
+    };
+    inp.addEventListener('input', paint);
+    paint();
+    inp.focus(); inp.select();
+  },
+  lateClose(){ const m = document.getElementById('lateMask'); if (m) m.remove(); },
+  lateClear(sid){
+    this.lateClose();
+    this.write(sid, null);
+  },
+  lateOk(sid){
+    const inp = document.getElementById('lateMin');
+    const v = inp ? parseInt(inp.value, 10) : NaN;
+    if (!v || v < 1) return UI.toast('填一下迟到分钟数（至少 1 分钟）');
+    this.lateClose();
+    this.write(sid, '迟到', { lateMin: Math.min(240, v) });
+  },
+
   /** 把一个人的状态写进当前时段（原 mark() 的按钮版改成印章版）；写完重画并重算量化 */
-  write(sid, st){
+  write(sid, st, extra){
     if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
     const date = Store.get('_attDate') || Util.today();
     const pid = this.curPid();
@@ -8754,10 +8872,19 @@ const Att = {
     const key = 'att:' + date;
     const rec = Store.list(key).find(r => r.studentId === sid && this.pidOf(r) === pid);
     if (rec && st === null){ Store.softDelete(key, rec.id); }   // 再点一下取消
-    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, status: st, pid });
+    else {
+      const o = { id: rec ? rec.id : null, studentId: sid, status: st, pid };
+      /* 迟到必须带分钟；改成别的状态就把旧分钟清零，免得「正常」还挂着 lateMin 被重算捡走 */
+      if (st === '迟到'){
+        const m = Math.round(+((extra && extra.lateMin) || (rec && rec.lateMin) || 1));
+        o.lateMin = Math.min(240, Math.max(1, m || 1));
+      } else o.lateMin = 0;
+      Store.upsert(key, o);
+    }
     /* 读屏器播报：写在 #roster 之外的常驻 live region 里，render 重画名单抹不掉它 */
     const nm = (Util.stuName ? Util.stuName(sid) : '') || '该学生';
-    this._say(nm + (st === null ? ' 已取消登记' : ' 已标为 ' + st));
+    this._say(nm + (st === null ? ' 已取消登记' : ' 已标为 ' + st
+      + (st === '迟到' ? '（' + ((extra && extra.lateMin) || (rec && rec.lateMin) || 1) + ' 分钟）' : '')));
     if (st !== null) this._saveFlash();
     this.render();
     this.syncQuant(date);      // 迟到/病假/事假 立刻反映到量化；未到没有对应细则，syncAtt 会安全跳过
@@ -8849,11 +8976,21 @@ const Att = {
           : '<span class="only-desk">状态（只读 · 由教务登记）</span>')
       + '<span class="only-mob">状态</span></span></div>';
 
+    /* ==5.53== 迟到分钟：一次扫出来，回显在「迟到」这枚章上（迟到 3′），点一下就能改 */
+    const lateMap = {};
+    Store.list('att:' + date).forEach(r => {
+      if (r && r.status === '迟到' && r.lateMin) lateMap[r.studentId + '|' + this.pidOf(r)] = r.lateMin;
+    });
+
     box.innerHTML = head + students.map((s, i) => {
       const mine = map[s.id] || {};
       const idx = String(i + 1).padStart(2, '0');
       if (all){   // 「全部时段」只能看，不能改 —— 免得一键把别的时段也覆盖掉
-        const txt = slots.map(sl => Util.esc(sl.name) + ' ' + (mine[sl.id] || '未登记')).join(' · ');
+        const txt = slots.map(sl => {
+          const st = mine[sl.id] || '未登记';
+          const lm = lateMap[s.id + '|' + sl.id];
+          return Util.esc(sl.name) + ' ' + (st === '迟到' && lm ? ('迟到 ' + lm + '′') : st);
+        }).join(' · ');
         return '<div class="rrow" role="listitem">'
           + '<span class="idx">' + idx + '</span>'
           + '<span class="who">' + Util.esc(s.name) + '</span>'
@@ -8862,6 +8999,9 @@ const Att = {
       }
       const cur = mine[pid] || 'none';
       const nm  = Util.esc(s.name);
+      /* ==5.53== 迟到带了分钟就回显在章上（迟到 3′）；点这枚章是改分钟 */
+      const lmin = (cur === '迟到') ? (lateMap[s.id + '|' + pid] || 0) : 0;
+      const stampText = st => (st === '迟到' && lmin) ? ('迟到 ' + lmin + '′') : st;
       const slotCell = slots.map(sl => {
         const bad = mine[sl.id] && mine[sl.id] !== '正常';
         return '<span class="sl"><i class="' + (bad ? 'bad' : '') + '"></i>' + Util.esc(sl.name) + '</span>';
@@ -8870,7 +9010,7 @@ const Att = {
          看得见每个人的登记结果，但点不动 */
       if (!Auth.canEdit()){
         const roStat = '<button class="stamp ro-stamp" type="button" aria-pressed="' + (cur !== 'none' ? 'true' : 'false') + '"'
-          + ' aria-label="' + nm + ' 当前状态：' + (cur === 'none' ? '未登记' : cur) + '" tabindex="-1">' + (cur === 'none' ? '未登记' : cur) + '</button>';
+          + ' aria-label="' + nm + ' 当前状态：' + (cur === 'none' ? '未登记' : cur + (lmin ? ' ' + lmin + ' 分钟' : '')) + '" tabindex="-1">' + (cur === 'none' ? '未登记' : stampText(cur)) + '</button>';
         return '<div class="rrow" role="listitem" data-cur="' + cur + '">'
           + '<span class="idx">' + idx + '</span>'
           + '<span class="who">' + nm + '</span>'
@@ -8884,7 +9024,7 @@ const Att = {
       const mini = this.STATUSES.map(st =>
         '<button class="stamp" type="button" data-s="' + st + '" data-sid="' + s.id + '"'
         + ' aria-pressed="' + (st === cur ? 'true' : 'false') + '"'
-        + ' aria-label="把' + nm + '标成' + st + '">' + st + '</button>').join('');
+        + ' aria-label="把' + nm + '标成' + st + (st === '迟到' ? '（填分钟数）' : '') + '">' + stampText(st) + '</button>').join('');
       return '<div class="rrow" role="listitem" data-cur="' + cur + '">'
         + '<span class="idx">' + idx + '</span>'
         + '<span class="who">' + nm + '</span>'
@@ -13092,7 +13232,7 @@ const Note = {
 const Quant = {
   /* 需要现场问数量的规则：key → { q, d(默认值), calc(答案→分值), labelFn(可选，名目带数量) } */
   ASK: {
-    'cls:late':     { q: '迟到共几分钟？\n每分钟扣 2 分；满 10 分钟按一次扣 20 分', d: 3, calc: v => -(v >= 10 ? 20 : 2 * v), labelFn: v => `迟到${v}分钟` },
+    'cls:late':     { q: '迟到共几分钟？\n10 分钟以内每分钟扣 2 分（迟到 3 分钟扣 6 分）；超过 10 分钟一律扣 20 分', d: 3, calc: v => -(v > 10 ? 20 : 2 * v), labelFn: v => `迟到${v}分钟` },
     'cls:interact': { q: '课堂互动突出，加几分？（1~10）', d: 5, calc: v => Math.abs(v) },
     'cls:evalPass': { q: '即兴评述集体通关，加几分？（10~20）', d: 15, calc: v => Math.abs(v) },
     'cls:evalLazy': { q: '评述消极对待，扣几分？（10~20）', d: 15, calc: v => -Math.abs(v) },
@@ -13147,7 +13287,7 @@ const Quant = {
   /* ── 快捷按钮：quant_rules 里 key 以 cls: 开头的条目 ── */
   renderBtns(){
     const el = document.getElementById('qBtns');
-    const rules = Store.list('quant_rules').filter(r => (r.key || '').indexOf('cls:') === 0);
+    const rules = Store.list('quant_rules').filter(r => (r.key || '').indexOf('cls:') === 0 && !r.note);
     if (!rules.length){
       el.innerHTML = '<div class="empty">还没有班级名目的细则，去设置页「量化细则」加</div>';
       return;
@@ -13365,20 +13505,39 @@ const Quant = {
      在「考勤」里把学生标成迟到 / 病假 / 事假，量化里立刻出现对应的扣分，
      不用再回量化页手动点一遍。考勤是源头，重算天生幂等：
      先清掉该班该天由考勤生成的记录，再按当前考勤重建，所以反复标也不会重复。
-     分值取自设置页「量化细则」里的 att:{状态}（默认 迟到/事假 −2、病假 −1）。 */
+     分值取自设置页「量化细则」里的 att:{状态}（默认 迟到/事假 −2、病假 −1）。
+     ==5.53== 迟到改成按分钟：细则二·1「10 分钟内 2 分/分钟、超 10 分钟一律 20 分」。
+     分钟数从考勤记录（lateMin）读，重算时整条重算一次 —— 不是往旧分上再叠一笔。 */
   syncAtt(clsId, date){
     if (!clsId || !date) return;
     Store.list('quant_log')
       .filter(x => !x._d && x._src === 'att' && x.clsId === clsId && x.date === date)
       .forEach(x => Store.softDelete('quant_log', x.id));
     const rules = Store.list('quant_rules');
-    /* 一天点好几次名时取最重的那次：一次迟到就算迟到，后一次「正常」不能把前一次盖掉 */
-    const byStu = (typeof Att !== 'undefined' && Att.worst) ? Att.worst(date) : {};
+    /* 一天点好几次名时取最重的那次：一次迟到就算迟到，后一次「正常」不能把前一次盖掉。
+       迟到还要记住分钟 —— 取「最重那次」里分钟最多的那条。 */
+    const byStu = {};
+    Store.list('att:' + date).forEach(r => {
+      if (!r || !r.studentId) return;
+      const cur = byStu[r.studentId];
+      const rank = st => (typeof Att !== 'undefined' && Att.RANK && Att.RANK[st]) || 0;
+      if (!cur || rank(r.status) > rank(cur.status)
+        || (rank(r.status) === rank(cur.status) && (r.lateMin || 0) > (cur.lateMin || 0))) byStu[r.studentId] = r;
+    });
     Store.list('students').filter(s => s.classId === clsId).forEach(s => {
-      const st = byStu[s.id];
+      const rec = byStu[s.id];
+      const st = rec ? rec.status : '';
       if (!st || st === '正常') return;                    // 出勤正常不扣分
       const r = rules.find(x => x.key === 'att:' + st);
-      if (!r || !r.delta) return;                          // 没有对应细则就不记
+      if (!r) return;                                      // 没有对应细则就不记
+      if (st === '迟到'){
+        const min = Math.max(1, Math.round(+(rec.lateMin || 1)));
+        const pts = (typeof Att !== 'undefined' && Att.latePoints) ? Att.latePoints(min) : -(2 * min);
+        if (!pts) return;
+        Store.upsert('quant_log', { clsId, date, label: '考勤·迟到 ' + min + ' 分钟', delta: pts, lateMin: min, _src: 'att' });
+        return;
+      }
+      if (!r.delta) return;
       Store.upsert('quant_log', { clsId, date, label: r.label || st, delta: r.delta, _src: 'att' });
     });
   },
@@ -15490,7 +15649,9 @@ const Today = {
       else if (st === '病假' || st === '事假') leave.push(s.name + '（' + st + '）');
       else if (st === '未打卡') absent.push(s.name);
     });
-    if (meta) meta.textContent = `已到 ${n['正常']}/${students.length} 人 · 迟到 ${n['迟到']} · 请假 ${n['病假'] + n['事假']} · 未到 ${n['未到']} · 没打卡 ${n['未打卡']}`;
+    /* ==5.53== 口径同今日页：到课 = 正常 + 迟到；迟到单独点出来，不算缺席 */
+    const arrived = n['正常'] + n['迟到'];
+    if (meta) meta.textContent = `到课 ${arrived}/${students.length} 人 · 迟到 ${n['迟到']} · 请假 ${n['病假'] + n['事假']} · 未到 ${n['未到']} · 未登记 ${n['未打卡']}`;
 
     const line = (t, arr, cls) => arr.length
       ? `<p class="hint" style="margin:10px 0 2px">${t}（${arr.length}）</p>
@@ -16214,8 +16375,8 @@ const Settings = {
 
   /** 占位细则：只初始化一次。老师们开会定稿后在设置页改 */
   initRules(){
+    const rid = k => 'r_' + k;   // 固定 id：跨设备合并时同一条规则不会重复
     if (!Store.get('_rulesInit')){
-      const rid = k => 'r_' + k;   // 固定 id：跨设备合并时同一条规则不会重复
       [
         ['att:正常','出勤正常',1], ['att:迟到','迟到',-2],
         ['att:病假','病假',-1],   ['att:事假','事假',-2],
@@ -16224,23 +16385,57 @@ const Settings = {
       ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
       Store.set('_rulesInit', Date.now());
     }
-    /* 班级名目（考前集训量化管理细则）：驱动量化页的快捷加减分按钮。
-       独立标记，老设备升级后也能补种。 */
-    if (!Store.get('_rulesClsInit')){
-      const rid = k => 'r_' + k;
-      [
-        ['cls:late','迟到（每分钟）',-2],      ['cls:earlyLeave','早退',-20],
-        ['cls:absent','无故请假',-30],         ['cls:fullAtt','全勤奖励',30],
-        ['cls:phone','上课玩手机',-20],        ['cls:interact','课堂互动突出',5],
-        ['cls:hwGood','作业全部按时交齐',20],  ['cls:hwBad','作业迟交/敷衍',-10],
-        ['cls:dialect','专业时间说方言',-5],   ['cls:evalPass','即兴评述集体通关',15],
-        ['cls:evalLazy','评述消极对待',-15],   ['cls:examMiss','模考缺考（每人）',-20],
-        ['cls:examTop','模考平均分最高',20],   ['cls:examUp','模考进步最大',20],
-        ['cls:cleanGreat','卫生优秀',20],      ['cls:cleanOk','卫生合格',10],
-        ['cls:cleanBad','卫生不合格',-10],     ['cls:equip','损坏设备/公物',-20],
-        ['cls:dress','仪容不整（拖鞋/睡衣/帽子）',-5], ['cls:water','换水',10]
-      ].forEach(([key,label,delta]) => Store.upsert('quant_rules', { id:rid(key), key, label, delta }));
-      Store.set('_rulesClsInit', Date.now());
+    /* ==5.53== 《考前集训量化管理细则》全量入库（主理人 2026-11-23 定稿）——
+       一、总则：每班每周起始 100 分，每日统计、每周汇总公示。
+       逐条映射成计分项，cat 分类（att 考勤 / disc 课堂纪律 / exam 模考 /
+       env 学习环境 / reward 奖惩），scope 区分「班级级 cls」与「个人级 stu」。
+       带变量的照原样留成变量：
+         · 迟到 = 按分钟（type:'min'，2 分/分钟，满 10 分钟一律 20 分）；
+         · 互动 1–10、集体通关 10–20、消极对待 −10~−20 = range（默认取中值，可改）；
+         · 「缺考 N 人 ×20」「迟到自己填分钟」这类在量化页按钮里现场问数量。
+       已经存在的同名条目**不覆盖老师改过的名字和分值**，只补分类与变量字段。 */
+    if (!Store.get('_rulesDetailInit')){
+      const T = [
+        /* 二、考勤 */
+        ['cls:late', '迟到（10 分钟内 2 分/分钟；超 10 分钟一次 20 分）', -2, 'att', 'stu', { type:'min', capMin:10, capDelta:-20 }],
+        ['cls:earlyLeave', '早退（每人次）', -20, 'att', 'stu'],
+        ['cls:absent', '无故旷课、无家长请假手续（每人次，并通报批评）', -30, 'att', 'stu'],
+        ['cls:fullAtt', '全勤（无请假 / 迟到 / 早退 / 旷课，班级）', 30, 'att', 'cls'],
+        /* 三、课堂纪律 */
+        ['cls:phone', '上课玩手机或做与学习无关的事（刷视频/游戏/社聊，每人次）', -20, 'disc', 'stu'],
+        ['cls:interact', '积极回答提问、主动参与互动与示范（每次 1–10 分）', 5, 'disc', 'cls', { range:[1,10] }],
+        ['cls:hwGood', '作业全部按时交齐且质量高（班级）', 20, 'disc', 'cls'],
+        ['cls:hwBad', '缺交漏交 / 整体完成度差、态度敷衍（班级）', -10, 'disc', 'cls'],
+        ['cls:dialect', '专业课堂及指定练习时段说方言（每人次）', -5, 'disc', 'stu'],
+        ['cls:evalPass', '每日即兴评述集体通关（10–20 分，按质量浮动）', 15, 'disc', 'cls', { range:[10,20] }],
+        ['cls:evalLazy', '评述消极对待 / 集体敷衍拒绝参与（10–20 分）', -15, 'disc', 'cls', { range:[-20,-10] }],
+        ['cls:noteBad', '每日笔记检查未达要求（字迹干净整齐、内容无遗漏）', -20, 'disc', 'cls'],
+        ['cls:printMiss', '每周学习稿件未打印 / 晨练未用纸质版', -20, 'disc', 'cls'],
+        /* 四、每周专业模考 */
+        ['cls:examMiss', '每周专业模考缺考（无正当理由，每人次）', -20, 'exam', 'stu'],
+        ['cls:examTop', '本周模考平均分最高的班级', 20, 'exam', 'cls'],
+        ['cls:examUp', '本周模考平均分进步最大（对比上周，可与最高分叠加）', 20, 'exam', 'cls'],
+        /* 五、学习环境 */
+        ['cls:cleanGreat', '教室卫生与安全排查 优秀（地面洁净/桌椅整齐/物品归位/电源关闭）', 20, 'env', 'cls'],
+        ['cls:cleanOk', '教室卫生与安全排查 合格', 10, 'env', 'cls'],
+        ['cls:cleanBad', '教室卫生与安全排查 不合格（明显垃圾、桌椅凌乱）', -10, 'env', 'cls'],
+        ['cls:safeMiss', '安全排查遗漏（电器、电源插排等）', -10, 'env', 'cls'],
+        ['cls:equip', '损坏话筒/音响/摄像机等专业器材及公物', -20, 'env', 'stu'],
+        ['cls:dress', '仪容仪表不合规（拖鞋 / 睡衣 / 帽子，每人次）', -5, 'env', 'stu'],
+        ['cls:water', '换水（值日）', 10, 'env', 'cls'],
+        /* 六、奖惩（只做记录，本身不计分） */
+        ['cls:weekTop', '周量化优秀班级（每周评选，不计分）', 0, 'reward', 'cls', { note:true }],
+        ['cls:weekLast', '周量化末位班级（全体每人 10 元班费，奖励第一名班级，不计分）', 0, 'reward', 'cls', { note:true }],
+      ];
+      const have = {};
+      Store.list('quant_rules').forEach(r => { if (r && r.id) have[r.id] = r; });
+      T.forEach(([key, label, delta, cat, scope, ext]) => {
+        const id = rid(key), old = have[id];
+        const base = old ? Object.assign({}, old, { id, key, cat, scope }, ext || {})
+                         : Object.assign({ id, key, label, delta, cat, scope }, ext || {});
+        Store.upsert('quant_rules', base);
+      });
+      Store.set('_rulesDetailInit', Date.now());
     }
   },
 
@@ -16251,24 +16446,42 @@ const Settings = {
     const rules = Store.list('quant_rules', (a,b) => (a.key||'') > (b.key||'') ? 1 : -1);
     /* 设置页那张入口卡上的一句话：先报条数，再说明加减分都在这页里做 */
     if (cnt) cnt.textContent = rules.length
-      ? `共 ${rules.length} 条计分项。加减分、加新名目都在里面，单独一页，不会在设置里误触。`
+      ? `共 ${rules.length} 条计分项（考勤 / 课堂纪律 / 模考 / 学习环境 / 奖惩）。加减分、加新名目都在里面，单独一页，不会在设置里误触。`
       : '还没有细则，进去加第一条。';
     if (!rules.length){
       el.innerHTML = '<div class="empty">还没有细则，用下面那行加一条</div>';
       return;
     }
     const ro = !Auth.canEdit();   // ==5.27== 只读视角：名目与分值看得见，改不了也删不了
+    /* ==5.53== 每条右边加一枚小签：班/人（适用范围）、按分钟 / 区间 / 不计分（分值语义） */
+    const badge = r => {
+      const b = [];
+      if ((r.key || '').indexOf('cls:') === 0) b.push(r.scope === 'stu' ? '人' : '班');
+      if (r.type === 'min') b.push('按分钟');
+      if (Array.isArray(r.range)) b.push('区间 ' + r.range[0] + '~' + r.range[1]);
+      if (r.note || Number(r.delta) === 0) b.push('不计分');
+      return b.length ? `<span class="chip" style="pointer-events:none;margin:0;font-size:11px;white-space:nowrap">${b.join(' · ')}</span>` : '';
+    };
     const row = r => `
       <div class="row" style="margin-bottom:8px" data-rid="${r.id}">
         <input type="text" class="rule-label" value="${Util.esc(r.label)}" style="flex:1;min-width:0" ${ro ? 'disabled' : ''}>
+        ${badge(r)}
         <input type="number" class="rule-delta" value="${r.delta}" step="1" style="max-width:95px" ${ro ? 'disabled' : ''}>
         ${ro ? '' : `<button class="del" onclick="Settings.delRule('${r.id}')">✕</button>`}
       </div>`;
-    const legacy = rules.filter(r => (r.key || '').indexOf('cls:') !== 0);
-    const cls = rules.filter(r => (r.key || '').indexOf('cls:') === 0);
+    const CATS = [['att','考勤'], ['disc','课堂纪律'], ['exam','模考'], ['env','学习环境'], ['reward','奖惩']];
+    const auto = rules.filter(r => (r.key || '').indexOf('cls:') !== 0);
+    const cls  = rules.filter(r => (r.key || '').indexOf('cls:') === 0);
+    const other = cls.filter(r => !CATS.some(([k]) => k === r.cat));
     el.innerHTML =
-      (legacy.length ? `<p class="hint" style="margin:2px 0 8px">自动计分（考勤 / 作业 / 晚自习）</p>${legacy.map(row).join('')}` : '') +
-      (cls.length ? `<p class="hint" style="margin:10px 0 8px">班级名目</p>${cls.map(row).join('')}` : '');
+      '<p class="hint" style="margin:2px 0 10px">《考前集训量化管理细则》· 一、总则：每班每周起始 <b>100 分</b>，按下列名目加减分，'
+      + '每日统计、每周汇总公示。五·2「爱护话筒 / 音响 / 摄像机等专业器材及公物」无固定分值，按损坏情况用「损坏设备/公物」记。</p>'
+      + (auto.length ? `<p class="hint" style="margin:10px 0 8px">自动计分（考勤 / 作业 / 晚自习）</p>${auto.map(row).join('')}` : '')
+      + CATS.map(([k, name]) => {
+          const one = cls.filter(r => r.cat === k);
+          return one.length ? `<p class="hint" style="margin:12px 0 8px">${name}（${one.length} 条）</p>${one.map(row).join('')}` : '';
+        }).join('')
+      + (other.length ? `<p class="hint" style="margin:12px 0 8px">其他名目</p>${other.map(row).join('')}` : '');
   },
 
   addRule(){
@@ -20924,20 +21137,25 @@ const XF2 = {
     requestAnimationFrame(tick);
   },
 
-  /* 数据速览：在册学员 / 今日到课（正常）/ 今日未交作业 / 本周课时 —— 全真数 */
+  /* 数据速览：在册学员 / 今日到课（含迟到）/ 今日未交作业 / 本周课时 —— 全真数 */
   stats(){
     const t = Util.today();
     const stus = Store.list('students');
-    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
-    let ok = 0;
-    if (slots.length){
-      const seen = new Set();
-      slots.forEach(sl => {
-        const map = Att.byStu(t, sl.id);
-        stus.forEach(s => { if (map[s.id] === '正常' && !seen.has(s.id)) { seen.add(s.id); ok++; } });
-      });
-    }
-    const miss = Store.list('hwchk:' + t).filter(x => x.done === 0).length;
+    /* ==5.53== 到课口径（主理人 2026-11-23 定）：
+       到课 = 正常 + 迟到（迟到也是来了，只是晚了 → 单独计数，不再当缺席）；
+       缺席只算「请假」和「未到」。没登记的既不进到课也不进未到，
+       但会在第二行末尾点出来，免得「到课 30 + 请假 2 + 未到 1」对不上 37 人时没人说得清。 */
+    const w = (typeof Att !== 'undefined' && Att.worst) ? Att.worst(t) : {};
+    let arrive = 0, late = 0, leave = 0, miss = 0, none = 0;
+    stus.forEach(s => {
+      const st = w[s.id];
+      if (st === '迟到' || st === '早退'){ late++; arrive++; }
+      else if (st === '正常') arrive++;
+      else if (st === '病假' || st === '事假') leave++;
+      else if (st === '未到') miss++;
+      else none++;
+    });
+    const miss2 = Store.list('hwchk:' + t).filter(x => x.done === 0).length;
     const monday = new Date(); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
     const weekDays = new Set();
     for (let i = 0; i < 7; i++){
@@ -20946,9 +21164,15 @@ const XF2 = {
     }
     const hrs = Store.list('schedule').filter(x => weekDays.has(x.day)).length;
     this._count(document.getElementById('xdStuCnt'), stus.length);
-    this._count(document.getElementById('xdAttCnt'), ok);
-    this._count(document.getElementById('xdHwCnt'), miss);
+    this._count(document.getElementById('xdAttCnt'), arrive);
+    this._count(document.getElementById('xdHwCnt'), miss2);
     this._count(document.getElementById('xdHrsCnt'), hrs);
+    const sub = document.getElementById('xdAttSub');
+    if (sub) sub.innerHTML = '迟到 <b>' + late + '</b> · 请假 <b>' + leave + '</b> · 未到 <b>' + miss + '</b>'
+      + (none ? ' · 未登记 <b>' + none + '</b>' : '');
+    const tile = document.getElementById('xdAttCnt');
+    if (tile && tile.parentElement && tile.parentElement.parentElement)
+      tile.parentElement.parentElement.title = '到课 = 正常 + 迟到；缺席只算请假和未到';
   },
 
   /* 快捷入口：八枚常用功能，按当前身份 App.can 过滤（越权不画） */

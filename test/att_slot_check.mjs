@@ -138,8 +138,8 @@ try {
   console.log('\n【3/7】上午、下午各记各的，互不覆盖…');
   const split = await cdp.eval(`(() => {
     const d = Store.get('_attDate');
-    Store.set('_attSlot', 'am'); Att.mark('s1', '迟到');
-    Store.set('_attSlot', 'pm'); Att.mark('s1', '正常');
+    Store.set('_attSlot', 'am'); Att.write('s1', '迟到', { lateMin: 5 });
+    Store.set('_attSlot', 'pm'); Att.write('s1', '正常');
     const am = Att.byStu(d, 'am'), pm = Att.byStu(d, 'pm');
     Store.set('_attSlot', 'am'); Att.render();
     const sumAm = document.getElementById('attSum').textContent;
@@ -178,8 +178,8 @@ try {
     const d = Store.get('_attDate');
     // 清掉前面的测试留下来的痕迹，重新摆一个「上午迟到 + 下午正常」
     Store.list('att:' + d).forEach(r => Store.softDelete('att:' + d, r.id));
-    Store.set('_attSlot', 'am'); Att.mark('s1', '迟到');
-    Store.set('_attSlot', 'pm'); Att.mark('s1', '正常');
+    Store.set('_attSlot', 'am'); Att.write('s1', '迟到', { lateMin: 5 });
+    Store.set('_attSlot', 'pm'); Att.write('s1', '正常');
     Att.syncQuant(d);
     const logs = Store.list('quant_log').filter(x => x._src === 'att' && x.date === d && !x._d);
     Att.syncQuant(d); Att.syncQuant(d);
@@ -188,7 +188,8 @@ try {
     return { n: logs.length, delta: (logs[0] || {}).delta, again: again.length, worst };
   })()`);
   ok(quant.worst === '迟到', '上午迟到 + 下午正常 → 当天取最重的一次：' + quant.worst);
-  ok(quant.n === 1 && quant.delta === -2, '量化记了一条扣分（' + quant.delta + '），不是两条');
+  /* ==5.53== 迟到按分钟：5 分钟 = 2×5 = −10（原来固定 −2） */
+  ok(quant.n === 1 && quant.delta === -10, '量化记了一条扣分（' + quant.delta + ' = 5 分钟 × 2），不是两条');
   ok(quant.again === 1, '反复重算也不会重复记（仍然 ' + quant.again + ' 条）');
 
   console.log('\n【6/7】按日期区间导出…');
@@ -236,7 +237,7 @@ try {
     const d = Store.get('_attDate');
     Store.set('_attSlot', 's_add');
     const pid = Att.SLOTS()[2] && Att.SLOTS()[2].id;
-    Store.set('_attSlot', pid); Att.mark('s1', '事假');
+    Store.set('_attSlot', pid); Att.write('s1', '事假');
     const has = Att.byStu(d, pid)['s1'];
     window.confirm = () => true;
     Settings.slotDel(pid);

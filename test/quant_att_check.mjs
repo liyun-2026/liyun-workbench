@@ -87,15 +87,15 @@ try {
     Store.set('_attDate', Util.today());
     App.go('att');
     await new Promise(r => setTimeout(r, 300));
-    Att.mark(${JSON.stringify(setup.a)}, '迟到');
-    Att.mark(${JSON.stringify(setup.b)}, '事假');
+    Att.write(${JSON.stringify(setup.a)}, '迟到', { lateMin: 1 });   /* ==5.53== 迟到要带分钟，1 分钟 = −2 分 */
+    Att.write(${JSON.stringify(setup.b)}, '事假');
     await new Promise(r => setTimeout(r, 200));
     const att = Store.list('quant_log').filter(x => x._src === 'att' && x.clsId === ${JSON.stringify(setup.cid)});
     return { n: att.length, labels: att.map(x => x.label + x.delta).sort().join(','), score: Quant.score(${JSON.stringify(setup.cid)}) };
   })()`);
   console.log('   自动生成的量化记录：', s1.labels, '｜总分', s1.score);
   ok(s1.n === 2, '考勤两点 → 量化自动生成 2 条记录');
-  ok(s1.labels === '事假-2,迟到-2', '分值正确（迟到−2、事假−2，取自量化细则）');
+  ok(s1.labels === '事假-2,考勤·迟到 1 分钟-2', '分值正确（迟到 1 分钟 −2、事假 −2，取自量化细则）');
   ok(s1.score === 96, '班级总分自动变成 96（100−2−2）');
 
   console.log('\n② 量化页：区间是日历选日期，且能筛出考勤来的记录');
@@ -134,7 +134,7 @@ try {
     const ae = document.getElementById('attDate'); if (ae) ae.value = D;   // 日期框是页面上的源头
     App.go('att');
     await new Promise(r => setTimeout(r, 300));
-    Att.mark(${JSON.stringify(setup.d)}, '事假');
+    Att.write(${JSON.stringify(setup.d)}, '事假');
     await new Promise(r => setTimeout(r, 200));
     App.go('quant');
     await new Promise(r => setTimeout(r, 300));
@@ -154,7 +154,7 @@ try {
     const ae = document.getElementById('attDate'); if (ae) ae.value = Util.today();
     App.go('att');
     await new Promise(r => setTimeout(r, 300));
-    Att.mark(${JSON.stringify(setup.a)}, '正常');     // 甲 由迟到改正常
+    Att.write(${JSON.stringify(setup.a)}, '正常');     // 甲 由迟到改正常
     await new Promise(r => setTimeout(r, 200));
     const att = Store.list('quant_log').filter(x => x._src === 'att' && x.clsId === ${JSON.stringify(setup.cid)});
     return { n: att.length, labels: att.map(x => x.label).sort().join(','), score: Quant.score(${JSON.stringify(setup.cid)}) };
