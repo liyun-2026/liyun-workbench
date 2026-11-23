@@ -16946,6 +16946,13 @@ const Settings = {
     setT('acctName', Auth.name() || '—');
     let scope;
     if (Auth.isStaff()) scope = '全部班级';
+    else if (Auth.isStudent()){
+      /* ==5.61b== 学生账号的 classIds 是空的（那是给授课老师用的字段），
+         在这儿读它永远得到「还没分班」。学生要看的是**档案挂在哪个班** ——
+         走 Stu.clsId()，跟「我的」「本班量化」同一个来源。 */
+      const n = (typeof Stu !== 'undefined' && Stu.clsId) ? Util.clsName(Stu.clsId()) : '';
+      scope = n || '还没分班';
+    }
     else {
       const names = Auth.classIds().map(id => Util.clsName(id)).filter(Boolean);
       scope = names.length ? '带 ' + names.join('、') : '还没分班';
@@ -17598,6 +17605,22 @@ const Sync = {
     });
     window.addEventListener('focus', () => this.pull());
     window.addEventListener('online', () => this.push());
+    /* ==5.61b== 关页面 / 切后台时把「还没发出去的那一发」补掉。
+       实锤：教务布置完作业就锁屏走人，防抖 4 秒没到点，改动只留在本机 →
+       学生端永远看不到。只在**确实有待推改动**时补发，平时不多打扰云端；
+       用 keepalive 让这一发在页面卸载后仍能发完（太大就放弃，正常 push 会补）。 */
+    const flush = () => {
+      if (!this.on() || !this._timer) return;
+      clearTimeout(this._timer); this._timer = null;
+      try {
+        const { shared, personal } = this.split();
+        const body = JSON.stringify({ action: 'push', token: Auth.token(), shared, personal });
+        if (body.length > 60000) return;
+        fetch('/api/sync', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true }).catch(() => {});
+      } catch(e){}
+    };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+    window.addEventListener('pagehide', flush);
   },
 
   /* ==5.28== 软登出配套：停掉轮询与在途的延迟推送，并重置 _inited ——
@@ -18009,10 +18032,22 @@ const StuSign = {
   /** 圈下面那一句：只写跟「现在该不该打」有关的，不写废话 */
   gateText(){
     /* ==5.59== 走 Sign.rules()：开始时间要按「现在这个时段」算（上午 07:50 / 下午 14:50），
-       直接读存档里的 startAt 会把昨天存的 07:50 一直显示到下午。 */
+       直接读存档里的 startAt 会把昨天存的 07:50 一直显示到下午。
+       ==5.61b== 只写「14:50」会让人以为是现在的时间（学生 22:43 打卡看到 14:50 直接懵）：
+       ① 带时段名 —— 上午 / 下午；
+       ② 过了本时段的打卡窗（startAt + windowAfter）就明说「现在打会记为待核」，
+          别让学生以为深夜打一下也算准时。 */
     const r = (typeof Sign !== 'undefined' && Sign.rules) ? Sign.rules() : (Store.get('sign_rules') || {});
-    if (r.startAt) return '打卡时间 ' + r.startAt;
-    return '';
+    if (!r.startAt) return '';
+    const hm = t => { const m = String(t || '').match(/^(\d{1,2}):(\d{2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+    const st = hm(r.startAt);
+    const d = new Date();
+    const nowMin = d.getHours() * 60 + d.getMinutes();
+    if (r.mode === 'custom') return '打卡时间 ' + r.startAt;
+    const base = (r.pid === 'pm' ? '下午时段' : '上午时段') + ' · ' + r.startAt + ' 前打卡';
+    const after = Number(r.windowAfter === undefined ? 30 : r.windowAfter);
+    if (st !== null && nowMin > st + after) return base + '（已过本时段，现在打卡会记为待核）';
+    return base;
   },
 
   /** 圈下面那一句（v51）：写「现在这一步该干什么」。
