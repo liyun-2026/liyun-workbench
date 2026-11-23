@@ -154,6 +154,24 @@ try {
   console.log('\n⑩ 大小写');
   const c2 = await api('dev', { dev: 'dev-c-2', key: 'BOYI2027' }, tok['丙']);
   ok(c2.j.ok === true, `输入大写 BOYI2027 也认（${JSON.stringify(c2.j).slice(0, 60)}）`);
+
+  /* ── 11. 释放已登记设备（给「直接发账号密码给学生」铺路） ── */
+  console.log('\n⑪ 释放设备');
+  const meA = await must('me', {}, tok['甲']);
+  const reset1 = await api('dev_reset', { id: meA.profile.id }, staff.token);
+  ok(reset1.j.ok && reset1.j.cleared >= 1, `单账号释放成功（清掉 ${reset1.j.cleared} 台 / ${reset1.j.name}）`);
+  const afterReset = await api('dev', { dev: 'dev-a-9' }, tok['甲']);
+  ok(afterReset.j.ok && afterReset.j.first === true,
+     `释放后新设备直接放行，不再要任何密钥（${JSON.stringify(afterReset.j)}）`);
+
+  const resetAll = await api('dev_reset', { op: 'all' }, staff.token);
+  ok(resetAll.j.ok && resetAll.j.scope === 'all',
+     `一键全清（people=${resetAll.j.people} / 设备 ${resetAll.j.cleared}）`);
+  const afterAll = await api('dev', { dev: 'dev-b-9' }, tok['乙']);
+  ok(afterAll.j.ok && afterAll.j.first === true, `全清后乙换设备也直接放行（${JSON.stringify(afterAll.j)}）`);
+
+  const byStu2 = await api('dev_reset', { op: 'all' }, tok['乙']);
+  ok(byStu2.code === 403, `学生调不动释放接口（${byStu2.code}）`);
 } catch (e) {
   fail++; fails.push('异常：' + e.message);
   console.log('\n❌ 异常：', e.message);

@@ -1646,6 +1646,38 @@ export async function onRequestPost(context) {
       }
       return json({ error: '未知的口令操作' }, 400);
     }
+    /* ══ ==5.60== 释放学生已登记的设备 ══
+       两个真实诉求：
+       ① 学生旧手机丢了/换了，说「我登录要密钥」—— 教务一键放回「一台都没登记」，
+          他新手机再登就是第一台，直接放行，不用发密钥；
+       ② 教务自己拿一台手机挨个试学生账号查问题，试完这台设备就记住了这些号，
+          学生拿自己手机反而变成「第二台」要密钥。开学前用 op:'all' 一把清干净。
+       只清 devmap（这个账号登记过哪几台），不动 auth、不动密码、不动口令次数。 */
+    if (action === 'dev_reset') {
+      if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务能释放学生设备' }, 403);
+      if (String(body.op || '') === 'all') {
+        const idx = await uidIndex(s);
+        let n = 0, people = 0;
+        for (const uid of idx.ids) {
+          const a = await s.get(`auth/${uid}`, { type: 'json' });
+          if (!a || (a.role || '') !== STUDENT) continue;
+          const m = await s.get(`devmap/${uid}`, { type: 'json' });
+          if (m && Array.isArray(m.devs) && m.devs.length) {
+            await s.setJSON(`devmap/${uid}`, { devs: [] });
+            n += m.devs.length; people++;
+          }
+        }
+        return json({ ok: true, scope: 'all', cleared: n, people });
+      }
+      const id1 = String(body.id || '');
+      const target = id1 ? await s.get(`auth/${id1}`, { type: 'json' }) : null;
+      if (!target) return json({ error: '账号不存在' }, 404);
+      if ((target.role || '') !== STUDENT) return json({ error: '只用于学生账号' }, 403);
+      const m = (await s.get(`devmap/${id1}`, { type: 'json' })) || { devs: [] };
+      const n = Array.isArray(m.devs) ? m.devs.length : 0;
+      await s.setJSON(`devmap/${id1}`, { devs: [] });
+      return json({ ok: true, scope: 'one', cleared: n, name: target.name || target.user || '' });
+    }
     if (action === 'reset_password') {
       if (!ACCT_OPS.includes(me.role)) return json({ error: '只有教务可以重置学生密码' }, 403);
       const id = String(body.id || '');
