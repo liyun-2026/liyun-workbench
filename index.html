@@ -5614,6 +5614,7 @@ var Icon = {
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="sgDate" onchange="Sign.pickDate(this.value)" style="max-width:170px">
           <select id="sgCls" onchange="Sign.pickCls(this.value)" style="max-width:180px"></select>
+          <select id="sgSlotSel" onchange="Sign.pickSlot(this.value)" style="max-width:120px"></select>
           <button class="btn ghost" onclick="Sign.exportDay()">导出这一天</button>
         </div>
         <div id="signToday" style="margin-top:10px"></div>
@@ -19250,31 +19251,52 @@ const Sign = {
     const clsId = Util.fillCls('sgCls', '_signCls');
     const box = document.getElementById('signToday');
     const meta = document.getElementById('signTodayMeta');
+
+    /* ==5.63c== 时段选择器：上午 / 下午。默认跟当前钟（13:00 后落下午），
+       手动选只对今天有效 —— 否则昨天点了下午，今早打开还停在下午。 */
+    const pid = this.curPid();
+    const slotSel = document.getElementById('sgSlotSel');
+    if (slotSel){
+      const list = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id: 'am', name: '上午' }];
+      const html = list.map(s =>
+        `<option value="${s.id}"${s.id === pid ? ' selected' : ''}>${Util.esc(s.name || s.id)}</option>`).join('');
+      if (slotSel.innerHTML !== html) slotSel.innerHTML = html;
+    }
+
     if (!box) return;
     if (!clsId){ box.innerHTML = '<div class="empty">先去「名册」建班级和学员</div>'; return; }
 
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
     const signs = Store.list('sign:' + date);
+    /* ⚠️ 一人一天一条记录，里面装着上午/下午两次。以前这里只看「有没有这条记录」，
+       所以上午打过之后，全天都显示上午那次的时间、21/21 也是按全天算的 ——
+       下午到底谁没打，在这个卡上根本看不出来（主理人 2026-11-24 反馈）。 */
     const bySid = {};
-    signs.forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
+    signs.forEach(s => {
+      if (!s || !s.studentId) return;
+      const one = this.slotRec(s, pid);
+      if (one) bySid[s.studentId] = one;
+    });
     /* 同一台设备出现多个学生 → 标黄（不是惩罚，是提醒看一眼） */
     const devN = {};
     signs.forEach(s => { if (s && s.dev) devN[s.dev] = (devN[s.dev] || 0) + 1; });
 
     /* 这个时段的考勤 —— 请假（病假/事假 + 请假几分钟这个备注）记在考勤那边，
        打卡这边也得读出来，不然两处对不上。 */
-    const pid = this.curPid();
     const byAtt = {};
     Store.list('att:' + date).forEach(x => {
       if (x && x.studentId && ((x.pid || 'am') === pid)) byAtt[x.studentId] = x;
     });
 
     const done = students.filter(s => bySid[s.id]).length;
-    if (meta) meta.textContent = `${date} · ${done}/${students.length} 人已打卡`;
+    const pidName = (typeof Att !== 'undefined' && Att.slotName) ? (Att.slotName(pid) || pid) : pid;
+    if (meta) meta.textContent = `${date} · ${pidName} · ${done}/${students.length} 人已打卡`;
 
     /* ==5.28== 待核规矩（主理人 2026-11-11 拍板）挂在待核区最上面：
        有「待核 / 需核对」条目的时候才出现 —— 规矩要写在用得上的地方。 */
-    const pendN = signs.filter(s => s && (s.status === '待核' || s.status === '缺卡')).length;
+    const pendN = Object.keys(bySid).filter(k => {
+      const r = bySid[k]; return r && (r.status === '待核' || r.status === '缺卡');
+    }).length;
     const ruleHint = pendN
       ? `<div class="hint" style="margin:0 0 8px;padding:8px 10px;border:1px solid var(--rule,#e8e3d9);border-radius:8px">
            <b>待核规矩</b>：代打卡没用 —— 打卡码每 <b>30 秒</b>更换一次，且需位置校验。
@@ -19287,7 +19309,8 @@ const Sign = {
       const shared = rec && rec.dev && devN[rec.dev] > 1;
       const flag = !rec ? '' : (rec.status === '待核' || rec.way === 'geo-none' || rec.way === 'geo-far' || shared || rec.offline)
         ? '<span class="chip chip-no" style="pointer-events:none;margin-left:6px">需核对</span>' : '';
-      const st = rec ? rec.status : '未打卡';
+      /* 状态以「这个时段的考勤」为准（教务改判写的就在那儿），没考勤才退回打卡记录 */
+      const st = (att && att.status) || (rec && rec.status) || '未打卡';
       return `<div class="item" style="flex-wrap:wrap">
         <span class="grow">${Util.esc(s.name)} ${flag}
           <br><span class="hint" style="display:inline;margin:0">${
@@ -19298,11 +19321,11 @@ const Sign = {
               rec.leaveMin ? ' · 请假 ' + rec.leaveMin + ' 分钟' : ''}${
               rec.fix ? ' · 教务已改判为准时到' : ''}${
               rec.offline ? (rec.recvAt ? ' · 断网，' + new Date(rec.recvAt).toLocaleTimeString('zh-CN') + ' 补传' : ' · 断网补传') : ''}`
-              : (att && att.leaveMin ? '今天还没打卡 · 已记请假 ' + att.leaveMin + ' 分钟' : '今天还没打卡')}</span></span>
+              : (att && att.leaveMin ? '本时段还没打卡 · 已记请假 ' + att.leaveMin + ' 分钟' : '本时段还没打卡')}</span></span>
         <span class="chip ${st === '正常' ? 'chip-on' : (st === '未打卡' ? '' : 'chip-no')}" style="pointer-events:none">${st}</span>
         <div class="row" style="margin-top:6px;width:100%;flex-wrap:wrap">
           ${['正常','迟到','病假','事假','未到'].map(x =>
-            `<button class="chip ${rec && rec.status === x ? 'chip-on' : ''}" onclick="Sign.setStatus('${s.id}','${x}')">${x}</button>`).join('')}
+            `<button class="chip ${st === x ? 'chip-on' : ''}" onclick="Sign.setStatus('${s.id}','${x}')">${x}</button>`).join('')}
           <button class="chip" onclick="Sign.setStatus('${s.id}','')">清除</button>
           <i style="width:1px;align-self:stretch;background:var(--rule,#e8e3d9);margin:0 5px"></i>
           <button class="chip" onclick="Sign.fixOntime('${s.id}')" title="把这条改回准时到，迟到扣的分一起退">改为准时到</button>
@@ -19329,9 +19352,60 @@ const Sign = {
     return (el && el.value) || Store.get('_signDate') || Util.today();
   },
   curPid(){
+    /* ==5.63c== 「今日打卡」卡上可以切上午/下午 —— 切了就以切的那个为准（只认今天选的）。
+       这一条同时决定：列表显示哪个时段、顶上的「N/M 人已打卡」、以及下面
+       正常/迟到/病假… 那些按钮写进哪个时段的考勤。两边必须同一个 pid，否则
+       看着上午、写进下午，越点越乱。 */
+    const v = Store.get('_signSlot');
+    if (v && (typeof Att !== 'undefined' && Att.slotObj) && Att.slotObj(v)
+        && Store.get('_signSlotDay') === Util.today()) return v;
     const r = this.rules();
     const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id: 'am' }];
     return r.pid || (slots[0] && slots[0].id) || 'am';
+  },
+  pickSlot(v){
+    Store.set('_signSlot', v);
+    Store.set('_signSlotDay', Util.today());
+    this.render();
+  },
+  slotName(pid){ return (typeof Att !== 'undefined' && Att.slotName) ? (Att.slotName(pid) || '') : ''; },
+  /** 打卡记录里「某个时段那一次」：新数据在 slots 里，老数据按打卡时刻反推 */
+  slotRec(rec, pid){
+    if (!rec) return null;
+    if (rec.slots && typeof rec.slots === 'object'){
+      const e = rec.slots[pid];
+      return e ? Object.assign({}, rec, e) : null;
+    }
+    const p0 = (typeof Att !== 'undefined' && Att.autoPid && rec.at)
+      ? Att.autoPid(new Date(rec.at)) : 'am';
+    return p0 === pid ? rec : null;
+  },
+  /** 改完某个时段后，把顶层字段重新对齐到「最近一次」—— 老的读者（档案/看板/导出）不受影响 */
+  syncTop(rec){
+    if (!rec || !rec.slots || typeof rec.slots !== 'object') return rec;
+    let best = null;
+    Object.keys(rec.slots).forEach(k => {
+      const e = rec.slots[k];
+      if (e && e.at && (!best || e.at > best.at)) best = e;
+    });
+    if (best) {
+      rec.at = best.at; rec.way = best.way; rec.status = best.status;
+      rec.lateMin = best.lateMin; rec.dist = best.dist;
+    }
+    return rec;
+  },
+  /** 只改「某个时段」那一次。老记录没有 slots 的，先按打卡时刻把另一次补进去，别让它被顶掉。 */
+  slotSet(sr, pid, extra, base){
+    const slots = {};
+    if (sr && sr.slots && typeof sr.slots === 'object'){
+      Object.keys(sr.slots).forEach(k => { if (sr.slots[k]) slots[k] = Object.assign({}, sr.slots[k]); });
+    } else if (sr && sr.at){
+      const p0 = (typeof Att !== 'undefined' && Att.autoPid) ? Att.autoPid(new Date(sr.at)) : 'am';
+      slots[p0] = { at: sr.at, way: sr.way, status: sr.status, lateMin: sr.lateMin, dist: sr.dist };
+    }
+    slots[pid] = Object.assign({ at: Date.now(), way: 'manual', by: 'manual', status: '正常', lateMin: 0 },
+                               slots[pid] || {}, extra || {});
+    return this.syncTop(Object.assign({}, sr || base || {}, { slots }));
   },
   /** 写一条考勤（打卡页的补正都走这儿）+ 量化跟着重算。
       ⚠️ 永远是**合并**不是替换：请假分钟这类备注得留在记录上，不能被下一次改判抹掉。 */
@@ -19354,16 +19428,22 @@ const Sign = {
          改判只该改定性，不该改事实（回查的时候还得看得见）。 */
   fixOntime(sid){
     const date = this.curDate();
-    const sr = Store.list('sign:' + date).find(x => x && x.studentId === sid);
-    if (!sr) return UI.toast('这位同学今天还没打卡 —— 下面用「正常」补一条就行');
-    const from = sr.status;
-    if (from === '正常') return UI.toast('这条已经是准时到了');
-    Store.upsert('sign:' + date, Object.assign({}, sr, {
-      status: '正常', lateMin: 0,
-      fix: { by: 'manual', at: Date.now(), from },
-    }));
+    const pid = this.curPid();
+    const skey = 'sign:' + date;
+    const sr = Store.list(skey).find(x => x && x.studentId === sid);
+    /* ==5.63c== 只认「当前时段」那一次：切到下午点这个，改的是下午 |
+       上午那条迟到原样留着，两段各算各的。 */
+    const one = this.slotRec(sr, pid);
+    if (!one) return UI.toast('这位同学这个时段还没打卡 —— 下面用「正常」补一条就行');
+    const from = one.status;
+    if (from === '正常') return UI.toast('这个时段已经是准时到了');
+    const fixInfo = { by: 'manual', at: Date.now(), from };
+    const out = this.slotSet(sr, pid, { status: '正常', lateMin: 0, fix: fixInfo },
+                             { id: sid, studentId: sid, date });
+    out.fix = fixInfo;
+    Store.upsert(skey, out);
     this.writeAtt(date, sid, '正常');
-    UI.toast('已改为准时到（原来：' + from + '）· 迟到扣的分一起退了');
+    UI.toast('已改为准时到（' + this.slotName(pid) + '，原来：' + from + '）· 迟到扣的分一起退了');
     this.render();
   },
 
@@ -19382,8 +19462,9 @@ const Sign = {
     const kind = (old && (old.status === '病假' || old.status === '事假')) ? old.status : '事假';
     this.writeAtt(date, sid, kind, { leaveMin: min });
     const sr = Store.list('sign:' + date).find(x => x && x.studentId === sid);
-    if (sr) Store.upsert('sign:' + date, Object.assign({}, sr, { status: kind, lateMin: 0, leaveMin: min }));
-    UI.toast('已记请假 ' + min + ' 分钟（' + kind + '）· 不计迟到、不扣迟到那笔分');
+    /* ==5.63c== 请假也只记到当前时段那一次，另一个时段不动 */
+    if (sr) Store.upsert('sign:' + date, this.slotSet(sr, pid, { status: kind, lateMin: 0, leaveMin: min }));
+    UI.toast('已记请假 ' + min + ' 分钟（' + kind + ' · ' + this.slotName(pid) + '）· 不计迟到、不扣迟到那笔分');
     this.render();
   },
 
@@ -19393,29 +19474,42 @@ const Sign = {
     const pid = this.curPid();
     const key = 'att:' + date;
     const skey = 'sign:' + date;
+    const base = { id: sid, studentId: sid, date };
 
     if (!st){
       const had = Store.list(key).some(x => x && x.studentId === sid && (x.pid || 'am') === pid);
       Store.list(key).filter(x => x && x.studentId === sid && (x.pid || 'am') === pid)
         .forEach(x => Store.softDelete(key, x.id));
+      /* ==5.63c== 清除只清**这个时段**那一次。以前是整天整条删掉 ——
+         切到下午点「清除」，上午那条打卡记录跟着一起没了。 */
       const sr = Store.list(skey).find(x => x && x.studentId === sid);
-      if (sr) Store.softDelete(skey, sr.id);
+      if (sr){
+        if (sr.slots && typeof sr.slots === 'object'){
+          const slots = {};
+          Object.keys(sr.slots).forEach(k => { if (k !== pid && sr.slots[k]) slots[k] = sr.slots[k]; });
+          if (Object.keys(slots).length) Store.upsert(skey, this.syncTop(Object.assign({}, sr, { slots })));
+          else Store.softDelete(skey, sr.id);
+        } else if (this.slotRec(sr, pid)){
+          Store.softDelete(skey, sr.id);   /* 老数据没有分时段，只有对得上才整条删 */
+        }
+      }
       /* 删掉的那条要是「迟到」，量化里跟着扣的分也得一起退 ——
          这里以前漏了这一句，删完分还挂着（syncAtt 幂等，重算一次就对了） */
       if (had && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(Store.get('_signCls'), date);
     } else {
       this.writeAtt(date, sid, st);
       const sr = Store.list(skey).find(x => x && x.studentId === sid);
+      const one = this.slotRec(sr, pid);
       /* ==5.62c== 学生自己已经打过卡（有 at / way / dist）→ 改判只改「定性」，
-         不许把他的打卡时刻和方式抹成「教务补签」：
-         那是事实，回查「他几点按的、扫的还是补的」全靠这两个字段。
-         只有一条都没有（他真的没打）时，才留一条 way:'manual' 的补签记录。 */
-      const patch = sr
-        ? { status: st, lateMin: st === '正常' ? 0 : (sr.lateMin || 0) }
-        : { id: sid, studentId: sid, status: st, at: Date.now(), way: 'manual', by: 'manual', lateMin: 0 };
-      Store.upsert(skey, Object.assign({}, sr || {}, patch));
+         不许把他的打卡时刻和方式抹成「教务补签」：那是事实，回查全靠这两个字段。
+         ==5.63c== 只改「当前时段」那一次，另一个时段原样留着。 */
+      const lateMin = st === '正常' ? 0 : ((one && one.lateMin) || 0);
+      const extra = one
+        ? { status: st, lateMin }
+        : { status: st, lateMin: 0, at: Date.now(), way: 'manual', by: 'manual', manualAt: Date.now() };
+      Store.upsert(skey, this.slotSet(sr, pid, extra, base));
     }
-    UI.toast(st ? '已改判为「' + st + '」' : '已清除这一条');
+    UI.toast(st ? '已改判为「' + st + '」（' + this.slotName(pid) + '）' : '已清除这一条（' + this.slotName(pid) + '）');
     this.render();
   },
 
@@ -19425,12 +19519,18 @@ const Sign = {
     const clsId = Store.get('_signCls');
     if (!clsId) return UI.toast('先选个班级');
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
+    /* ==5.63c== 导出的是「当前这个时段」那一次，不再整天混在一起 */
+    const pid = this.curPid();
     const bySid = {};
-    Store.list('sign:' + date).forEach(s => { if (s && s.studentId) bySid[s.studentId] = s; });
-    const rows = [['姓名','日期','状态','迟到分钟','请假分钟','打卡时间','方式','距离(米)','教务改判','设备']];
+    Store.list('sign:' + date).forEach(s => {
+      if (!s || !s.studentId) return;
+      const one = this.slotRec(s, pid);
+      if (one) bySid[s.studentId] = one;
+    });
+    const rows = [['姓名','日期','时段','状态','迟到分钟','请假分钟','打卡时间','方式','距离(米)','教务改判','设备']];
     students.forEach(s => {
       const r = bySid[s.id];
-      rows.push([s.name, date, r ? r.status : '未打卡', r ? (r.lateMin || 0) : '',
+      rows.push([s.name, date, this.slotName(pid) || pid, r ? r.status : '未打卡', r ? (r.lateMin || 0) : '',
                  r && r.leaveMin ? r.leaveMin : '',
                  r ? new Date(r.at).toLocaleTimeString('zh-CN') : '',
                  (r && r.way) ? Util.wayText(r.way) : '',
@@ -19438,8 +19538,8 @@ const Sign = {
                  (r && r.fix) ? ('已改为准时到（原：' + (r.fix.from || '') + '）') : '',
                  r ? (r.dev || '') : '']);
     });
-    Util.download(`打卡_${Util.clsName(clsId)}_${date}.csv`, Util.csv(rows));
-    UI.toast('已导出这一天的打卡');
+    Util.download(`打卡_${Util.clsName(clsId)}_${date}_${this.slotName(pid) || pid}.csv`, Util.csv(rows));
+    UI.toast('已导出这一天（' + this.slotName(pid) + '）的打卡');
   }
 };
 
