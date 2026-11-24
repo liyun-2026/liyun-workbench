@@ -1647,6 +1647,33 @@ export async function onRequestPost(context) {
         await s.setJSON('org/data', d);
         return json({ ok: true });
       }
+      /* ==5.64== 删除：只删「已经没用的」（已用 / 已作废 / 已过期）。
+         有效期内还在等学生输的那枚一律不许删 —— 那等于绕过「作废」，
+         学生手上拿着的码会静默失效，比明说「已作废」更糟。
+         ⚠️ 必须打墓碑（_d + _u）而不是把数组成员滤掉：教务端本地留着一份副本，
+         pull 是「按 id 合并、_u 新的赢」，滤掉的那种在本地合并时会被旧副本顶回来
+         （实测删了没反应）。墓碑带上新 _u，本地才会认这条已经没了。
+         删的只是这枚码本身，设备授权记在 auth.devId，已经登记过的设备不受影响。 */
+      if (op === 'purge' || op === 'purgeDead') {
+        const now = Date.now();
+        const isDead = k => !!k && !k._d && (k.used === true || now - (Number(k.madeAt) || 0) > DEVKEY_TTL);
+        const bury = k => { k._d = true; k._u = now; };
+        if (op === 'purge') {
+          const id = String(body.id || '');
+          const k = keys.find(x => x && x.id === id && !x._d);
+          if (!k) return json({ error: '没找到这枚密钥' }, 404);
+          if (!isDead(k)) return json({ error: '这枚还在有效期内，先用「作废」' }, 400);
+          bury(k);
+          d.dev_keys = keys;
+          await s.setJSON('org/data', d);
+          return json({ ok: true, left: keys.filter(x => x && !x._d).length });
+        }
+        let removed = 0;
+        keys.forEach(k => { if (isDead(k)) { bury(k); removed++; } });
+        d.dev_keys = keys;
+        await s.setJSON('org/data', d);
+        return json({ ok: true, removed, left: keys.filter(x => x && !x._d).length });
+      }
       return json({ error: '未知的密钥操作' }, 400);
     }
     /* ══ ==5.60== 统一登记口令 ══

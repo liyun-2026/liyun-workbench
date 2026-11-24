@@ -2729,11 +2729,16 @@ body.board-mode .bd-fab:hover,body.board-mode:hover .bd-fab{opacity:1;transform:
   --line-strong:#8A857C;      /* P2-13：强分隔/ghost 描边，白卡上 ≥3:1 */
   --fs-h1:26px;               /* 桌面页题（衬线）基准字号；@1100 提到 30px */
   --hover:color-mix(in srgb,var(--text) 6%,transparent);
-  --stamp-ok:#2A6E50; --stamp-late:#7C5B0D; --stamp-sick:#1B4B5A; --stamp-leave:#B23A2E;
-  /* 未到（没来也没请假，比已批准的事假重）：墨色，浅色主题下最沉的一格 */
-  --stamp-absent:#26241F;
-  /* 「填色上的字」：五个语义色块被选中时的文字色。浅色下 5 个填充都是深色 → 白字 */
-  --stamp-ink:#FFFFFF;
+  /* ==VoxOS 5.64== 全站考勤语义色统一到学生档案方块那套（主理人 2026-11-24 定稿）：
+     绿=正常 · 蓝=迟到 · 黄=请假（病假/事假同色，字上分） · 红=未到。
+     色值取自主理人给的参照图深档。⚠️ 这四色明度都在 0.35~0.55，
+     白字只有 2.4~3.0 看不清，所以 --stamp-ink 从白改成深墨（对比 5.0~6.2）。
+     别单独把这四色调暗又忘了 ink —— 两者是一套的。 */
+  --stamp-ok:#42B47B; --stamp-late:#4A98ED; --stamp-sick:#F9A710; --stamp-leave:#F9A710;
+  /* 未到（没来也没请假，比已批准的事假重） */
+  --stamp-absent:#EF745F;
+  /* 「填色上的字」：语义色块被选中时的文字色 */
+  --stamp-ink:#20201C;
   /* 未选中方块（文字 + 描边）。⚠️ 这两个值**故意不跟随端口皮肤**：
      端口主题把 --text-dim 调得很浅（super 浅色 #A6997C 白底只有 2.81:1、学生端 2.71:1、
      教务端 3.31:1），未选中的格子在白卡上几乎看不见，而它是要点的控件 —— 不能只当装饰。
@@ -3721,6 +3726,37 @@ body.no-edit .nt-k, body.no-edit .nt-ck{cursor:default}
   .nt-ta{font-size:16px}   /* iOS 小于 16px 会整页放大 */
 }
 
+/* ══════════ ==VoxOS 5.64== 学生档案方块日历（作业 / 考勤明细）══════════
+   2026-11-24 主理人定稿。配色取自主理人给的参照图：
+     绿 #42B47B 正常·已交 / 蓝 #4A98ED 迟到 / 黄 #F9A710 请假 / 红 #EF745F 未到·未交
+   深档铺底 + 深墨日期字 —— 这套深档配白字只有 2.4~3.0，看不清，
+   所以字统一压深墨 #20201c（对比 5.9~10，四种都够）。
+   作业用「极浅底 + 深彩字」，考勤用「上下两格实心」，两者一眼能分。
+   2027 若换色，只改 ATT_C / HW_C 两张表，别在下面逐个改色值。 */
+.sqgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:8px}
+.sqgrid>div{border-radius:9px;position:relative;overflow:hidden;height:48px}
+.sq-day{background:#fff;border:1px solid var(--line)}
+.sq-day i{position:absolute;left:0;right:0;height:50%;display:block}
+.sq-day i.u{top:0}
+.sq-day i.v{bottom:0}
+.sq-day b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:#20201c;letter-spacing:.01em}
+.sq-hw{border:1px solid;text-align:center;padding:7px 1px 5px;height:auto!important;min-height:48px}
+.sq-hw b{display:block;font-size:14px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.sq-hw span{display:block;font-size:9.5px;margin-top:1px;letter-spacing:.02em}
+.sqlg{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:11px;color:var(--text-dim)}
+.sqlg i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:-1px}
+@media (max-width:560px){
+  .sqgrid{gap:6px}
+  .sqgrid>div{height:44px;border-radius:8px}
+  .sq-day b,.sq-hw b{font-size:13px}
+  .sq-hw span{font-size:9px}
+  .sqlg{gap:10px;font-size:10.5px}
+}
+/* ==5.64== 已失效密钥的「删除」：和「作废」区分开 —— 作废是把还能用的弄坏，
+   删除是把已经坏了的从列表里清掉。红框、只在失效行出现。 */
+.chip.chip-x{border-color:rgba(192,57,43,.40);color:#b23a2e;background:transparent}
+.chip.chip-x:hover{background:rgba(192,57,43,.07)}
 </style>
 </head>
 <body>
@@ -4730,7 +4766,10 @@ var Icon = {
             <div id="advBody">
 
       <div class="card wide" id="devKeyCard" style="display:none">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-key"></use></svg> 学生换设备密钥</h2>
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-key"></use></svg> 学生换设备密钥
+          <span style="flex:1"></span>
+          <button class="fold" type="button" onclick="Settings.devKeyPurgeDead()" style="text-decoration:none">清空失效的</button>
+        </h2>
         <p class="hint" style="margin:0 0 10px">
           学生换手机、或者要在第三台设备上登录，点一下给他一枚<b>一次性密钥</b>（8 位随机码，不含易混的 0O1I）。
           <b>10 分钟内有效、用一次即废</b>，过期作废——重新生成就行，不用手编、不用记。
@@ -8616,6 +8655,7 @@ body{font-family:'PingFang SC','Helvetica Neue',sans-serif;color:#2b3446;backgro
 .a4-foot{position:absolute;bottom:26px;left:54px;right:54px;display:flex;justify-content:space-between;
   font-size:11px;color:#8d877b;border-top:1px solid #E7E3DA;padding-top:12px}
 .a4-foot b{color:#7E6637}
+
 </style></head><body>
 ${pages.map(p => `<div class="a4">
   <div class="a4-head">
@@ -14692,6 +14732,23 @@ const Student = {
     const attTotal = attRecent.length;
     const pct = attTotal ? Math.round(attCount['正常'] / attTotal * 100) : null;
 
+    /* ==5.64== 方块用：按天聚合。一天一个块，上半格=上午、下半格=下午，
+       同一天上下午各一条也能在一个块里同时看到（以前是两行文字）。 */
+    const ATT_C = { '正常':'#42b47b', '迟到':'#4a98ed', '病假':'#f9a710', '事假':'#f9a710', '未到':'#ef745f' };
+    const attDayMap = new Map();
+    attSeen.forEach(r => {
+      const o = attDayMap.get(r._d) || {};
+      o[r._pid === 'pm' ? 'pm' : 'am'] = r.status;
+      attDayMap.set(r._d, o);
+    });
+    const attDays = [...attDayMap.entries()].sort((a, b) => a[0] < b[0] ? 1 : -1).slice(0, 15);
+    const attHTML = attDays.map(([d, o]) => {
+      const am = ATT_C[o.am] || '#efece6', pm = ATT_C[o.pm] || '#efece6';
+      return `<div class="sq-day" title="${d}｜上午 ${o.am || '无记录'} · 下午 ${o.pm || '无记录'}">`
+        + `<i class="u" style="background:${am}"></i><i class="v" style="background:${pm}"></i>`
+        + `<b>${Number(d.slice(8, 10))}</b></div>`;
+    }).join('');
+
     /* ── 晚自习过关 ── */
     let nightOk = 0, nightNo = 0;
     keys.filter(k => k.indexOf('night:') === 0).forEach(k => {
@@ -14703,6 +14760,8 @@ const Student = {
     /* ── 作业：==5.26== 走查 Y6 —— 与学生作业同口径（以布置为准）。
        三态：已交 / 未交 / 待检查（没人登记检查也算数，不再「整条消失」） */
     let hwDone = 0, hwMiss = 0, hwPending = 0;
+    /* ==5.64== 作业方块配色：浅底用同色 12%，字用加深版（极浅底上用原色只有 2.5，读不了） */
+    const HW_C = { '已交':['#42b47b', '#1e6b48'], '未交':['#ef745f', '#a83a26'], '待检查':['#8a8578', '#6b665c'] };
     const hwRows = Homework.flow(sid, s.classId)
       .sort((a,b) => (a.date || '') < (b.date || '') ? 1 : -1)
       .map(x => {
@@ -14782,21 +14841,35 @@ const Student = {
       </div>
 
       <div class="card">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 考勤明细</h2>
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 考勤明细
+          <span class="hint" style="display:inline;margin:0 0 0 6px">最近 15 天</span></h2>
         <p class="hint" style="margin-top:0">${['正常','迟到','病假','事假','未到'].map(k => k + ' ' + attCount[k]).join(' · ')}</p>
-        ${attRecent.length ? attRecent.slice(-14).reverse().map(r =>
-          `<div class="item"><span class="grow num">${r.date}${r.slot ? ' ' + Util.esc(r.slot) : ''}</span>
-             <span class="chip ${r.status === '正常' ? '' : 'chip-no'}" style="pointer-events:none">${r.status}</span></div>`).join('')
+        ${attDays.length ? `<div class="sqgrid">${attHTML}</div>
+          <div class="sqlg">
+            <span><i style="background:#42b47b"></i>正常</span>
+            <span><i style="background:#4a98ed"></i>迟到</span>
+            <span><i style="background:#f9a710"></i>请假</span>
+            <span><i style="background:#ef745f"></i>未到</span>
+            <span><i style="background:#efece6"></i>无记录</span>
+          </div>
+          <p class="hint" style="margin:9px 0 0">上半格＝上午，下半格＝下午${attDayMap.size > 15 ? ` · 还有 ${attDayMap.size - 15} 天更早的没显示` : ''}</p>`
           : '<div class="empty">还没有考勤记录</div>'}
       </div>
 
       <div class="card">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg> 作业</h2>
-        ${hwRows.length ? hwRows.slice(0, 12).map(h =>
-          `<div class="item">
-             <span class="grow">${Util.esc(h.text || '今日作业')}${h.due && h.due !== h.date ? ` <span class="hint" style="display:inline;margin:0">截止 ${Util.esc(h.due)}</span>` : ''}<br><span class="hint" style="display:inline;margin:0">${h.date}</span></span>
-             <span class="chip ${h.st === '未交' ? 'chip-no' : (h.st === '已交' ? 'chip-on' : '')}" style="pointer-events:none">${h.st}</span>
-           </div>`).join('')
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg> 作业
+          <span class="hint" style="display:inline;margin:0 0 0 6px">最近 15 次</span></h2>
+        ${hwRows.length ? `<div class="sqgrid">${hwRows.slice(0, 15).map(h => {
+            const c = HW_C[h.st] || HW_C['待检查'];
+            return `<div class="sq-hw" style="color:${c[1]};background:${c[0]}1f;border-color:${c[0]}59"
+              title="${h.date}｜${h.text || '作业'}｜${h.st}"><b>${Number(String(h.date || '').slice(8, 10)) || '—'}</b><span>${h.st}</span></div>`;
+          }).join('')}</div>
+          <div class="sqlg">
+            <span><i style="background:#42b47b"></i>已交</span>
+            <span><i style="background:#ef745f"></i>未交</span>
+            <span><i style="background:#8a8578"></i>待检查</span>
+          </div>
+          <p class="hint" style="margin:9px 0 0">最近一次：${hwRows[0].date}${hwRows[0].text ? ' · ' + Util.esc(hwRows[0].text) : ''} · ${hwRows[0].st}${hwRows.length > 15 ? ` · 还有 ${hwRows.length - 15} 次更早的没显示` : ''}</p>`
           : '<div class="empty">这个班还没布置过作业</div>'}
       </div>
 
@@ -16393,7 +16466,11 @@ const Settings = {
      留痕：生成时间 / 生成人 / 使用状态（谁用的、什么时候用的），本地这份只是展示副本。 */
   DEVKEY_TTL: 10 * 60 * 1000,
 
-  devKeys(){ const a = Store.get('dev_keys'); return Array.isArray(a) ? a : []; },
+  /* ==5.64== 删掉的密钥留墓碑（_d），这里滤掉 —— 服务端也是墓碑式删除 */
+  devKeys(){
+    const a = Store.get('dev_keys');
+    return Array.isArray(a) ? a.filter(k => k && !k._d) : [];
+  },
 
   /* ════════ ==5.60== 统一登记口令 ════════
      开学那几天几十个学生同时上手，一枚一枚发 10 分钟密钥根本发不过来。
@@ -16473,6 +16550,32 @@ const Settings = {
     } catch(e){ UI.toast(e.message); }
   },
 
+  /* ==5.64== 删除一枚「已经没用的」密钥（已用 / 已作废 / 已过期）。
+     有效期内还在等学生输的那枚不给删 —— 服务端也拦，等于绕过「作废」这一步。
+     只是从列表里清掉，不影响已经登记过的设备：设备授权在 auth.devId 上，和这枚码无关。 */
+  async devKeyPurge(id){
+    if (!confirm('删掉这枚密钥？\n\n只是把它从列表里去掉，已经登记过的设备不受影响。')) return;
+    try {
+      await Auth.call('device_key', { op: 'purge', id });
+      await Sync.pull(true);
+      this.renderDevKeys();
+      UI.toast('已删除');
+    } catch(e){ UI.toast(e.message); }
+  },
+
+  async devKeyPurgeDead(){
+    const now = Date.now();
+    const dead = this.devKeys().filter(k => k && (k.used || now - (k.madeAt || 0) > this.DEVKEY_TTL));
+    if (!dead.length) return UI.toast('没有失效的密钥要清');
+    if (!confirm(`清掉 ${dead.length} 枚已用 / 已过期 / 已作废的密钥？\n\n有效期内那几枚会留着。`)) return;
+    try {
+      const j = await Auth.call('device_key', { op: 'purgeDead' });
+      await Sync.pull(true);
+      this.renderDevKeys();
+      UI.toast('清掉 ' + (j.removed || dead.length) + ' 枚，还剩 ' + (j.left || 0) + ' 枚');
+    } catch(e){ UI.toast(e.message); }
+  },
+
   devKeyCopy(code){ Util.copy(code); UI.toast('已复制：' + code); },
 
   renderDevKeys(){
@@ -16495,6 +16598,7 @@ const Settings = {
           <br><span class="hint" style="display:inline;margin:0">${made}${k.madeBy ? ' · ' + Util.esc(k.madeBy) + ' 生成' : ''} · ${st}</span></span>
         ${(!k.used && !expired) ? `<button class="chip" onclick="Settings.devKeyCopy('${Util.esc(k.code)}')">复制</button>` : ''}
         <button class="chip ${k.used || expired ? '' : 'chip-no'}" onclick="Settings.devKeyRevoke('${k.id}')">作废</button>
+        ${(k.used || expired) ? `<button class="chip chip-x" onclick="Settings.devKeyPurge('${k.id}')">删除</button>` : ''}
       </div>`;
     }).join('');
   },
@@ -18791,6 +18895,8 @@ const StuProfile = {
 
     /* 作业（==5.26== 与学生端同口径：以布置为准，三态） */
     let hwDone = 0, hwMiss = 0, hwPending = 0;
+    /* ==5.64== 作业方块配色：浅底用同色 12%，字用加深版（极浅底上用原色只有 2.5，读不了） */
+    const HW_C = { '已交':['#42b47b', '#1e6b48'], '未交':['#ef745f', '#a83a26'], '待检查':['#8a8578', '#6b665c'] };
     const hwRows = (typeof Homework !== 'undefined' && Homework.flow)
       ? Homework.flow(sid, clsId).sort((a,b) => (a.date||'') < (b.date||'') ? 1 : -1) : [];
     hwRows.forEach(x => {
