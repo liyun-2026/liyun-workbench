@@ -8804,7 +8804,13 @@ const Att = {
   },
   curPid(){
     const pid = Store.get('_attSlot');
-    return (pid === '*' || this.slotObj(pid)) ? pid : (this.SLOTS()[0] || {}).id;
+    if (pid === '*') return '*';
+    /* ==5.63b== 没手动选过（或上次选的还是昨天）→ 跟当前钟走。
+       以前这里默认永远落在第一个时段：教务下午打开考勤页，看到的一直是上午那一片
+       签到记录，还以为「没有下午的选项」（2026-11-24 主理人反馈）。
+       手动选过就当次有效，但只认「今天选的」—— 否则昨天点了下午，今早还停在下午。 */
+    if (pid && this.slotObj(pid) && Store.get('_attSlotDay') === Util.today()) return pid;
+    return this.autoPid();
   },
   /* ==5.57== 看板用：按「当前时间」自动判该看哪个时段。
      优先级：① 时段自己配了 start/end（HH:MM）就按配置走；
@@ -9323,7 +9329,7 @@ const Att = {
     this.syncQuant(date);
   },
 
-  pickSlot(v){ Store.set('_attSlot', v || this.SLOTS()[0].id); this.render(); },
+  pickSlot(v){ Store.set('_attSlot', v || this.SLOTS()[0].id); Store.set('_attSlotDay', Util.today()); this.render(); },
   pickDate(v){ Store.set('_attDate', v || Util.today()); this.render(); },
   pickCls(v){ Store.set('_attCls', v); this.render(); },
 
