@@ -933,24 +933,36 @@ function settlePendingSigns(data, now) {
     const slots = Array.isArray(data.att_slots) ? data.att_slots : [];
     const rules = data.sign_rules || {};
     for (const rec of arr) {
-      if (!rec || rec.status !== '待核') continue;
-      if (now - (Number(rec.at) || 0) <= 24 * 3600 * 1000) continue;   // 24 小时核销窗未关
-      rec.status = '缺卡';
-      rec.settledAt = now;
-      rec.settleNote = '待核跨日未核销（超 24 小时），自动结算为缺卡';
-      changed = true;
-      const stu = students.find(x => x && x.id === rec.studentId);
-      const clsId = stu ? stu.classId : '';
-      /* ==5.59== 结算到「那天打卡那一刻」所属的时段，不再看今天教务选的是上午还是下午 */
-      const pid = effSign(rules, slots, cnParts(Number(rec.at) || now).min).pid;
-      const akey = 'att:' + date;
-      const aarr = Array.isArray(data[akey]) ? data[akey] : [];
-      const old = aarr.find(x => x && x.studentId === rec.studentId && (x.pid || 'am') === pid);
-      if (old && (old.status === '病假' || old.status === '事假')) continue;   // 假是教务批的，不覆盖
-      data[akey] = aarr.filter(x => !(x && x.studentId === rec.studentId && (x.pid || 'am') === pid))
-                       .concat([{ id: old ? old.id : 'a' + rec.studentId + date + pid,
-                                  studentId: rec.studentId, status: '缺卡', pid, _u: now }]);
-      syncAttQuant(data, clsId, date);
+      if (!rec) continue;
+      /* ==5.63== 待核可能躺在两处：顶层（最近一次）或 slots.<时段>（更早的那次）。
+         两处都得结算 —— 否则「上午待核、下午正常打了」的那条上午待核永远没人管。 */
+      const pend = [];
+      if (rec.status === '待核')
+        pend.push({ obj: rec, pid: effSign(rules, slots, cnParts(Number(rec.at) || now).min).pid, top: true });
+      if (rec.slots && typeof rec.slots === 'object')
+        for (const [spid, e] of Object.entries(rec.slots))
+          if (e && e.status === '待核' && !pend.some(x => x.pid === spid))
+            pend.push({ obj: e, pid: spid, top: false });
+      for (const it of pend) {
+        if (now - (Number(it.obj.at) || 0) <= 24 * 3600 * 1000) continue;   // 24 小时核销窗未关
+        it.obj.status = '缺卡';
+        it.obj.settledAt = now;
+        it.obj.settleNote = '待核跨日未核销（超 24 小时），自动结算为缺卡';
+        if (it.top) { rec.settledAt = now; rec.settleNote = it.obj.settleNote; }
+        changed = true;
+        const stu = students.find(x => x && x.id === rec.studentId);
+        const clsId = stu ? stu.classId : '';
+        /* ==5.59== 结算到「那天打卡那一刻」所属的时段，不再看今天教务选的是上午还是下午 */
+        const pid = it.pid;
+        const akey = 'att:' + date;
+        const aarr = Array.isArray(data[akey]) ? data[akey] : [];
+        const old = aarr.find(x => x && x.studentId === rec.studentId && (x.pid || 'am') === pid);
+        if (old && (old.status === '病假' || old.status === '事假')) continue;   // 假是教务批的，不覆盖
+        data[akey] = aarr.filter(x => !(x && x.studentId === rec.studentId && (x.pid || 'am') === pid))
+                         .concat([{ id: old ? old.id : 'a' + rec.studentId + date + pid,
+                                    studentId: rec.studentId, status: '缺卡', pid, _u: now }]);
+        syncAttQuant(data, clsId, date);
+      }
     }
   }
   return changed;
@@ -1099,10 +1111,23 @@ async function doSignInner(s, me, body) {
   if (way === 'geo-none' || way === 'geo-far') status = '待核';
   if (way === 'self') status = '待核';
 
-  /* 一天一人一条：重复打卡是覆盖，不会堆成一片，但每次尝试都留痕 */
+  /* 一天一人一条：重复打卡是覆盖，不会堆成一片，但每次尝试都留痕。
+     ==5.63== 一天有上午/下午两个时段，这条规矩**只对同一个时段成立**：
+     以前顶层字段就是全部，下午再打一次会把上午那次整个顶掉 ——
+     学生端那边又只看「今天有没有记录」，上午打完下午就再也不给打。
+     现在每个时段那次事实另存进 slots（键=时段 id），顶层字段仍是「最近一次」，
+     老读者（教务端、看板、结算）一字不用改。 */
   const key = 'sign:' + date;
   const arr = Array.isArray(data[key]) ? data[key] : [];
   const prev = arr.find(x => x && x.id === sid);
+  const pidOfSign = eff.pid;
+  const slotsPrev = Object.assign({}, (prev && prev.slots && typeof prev.slots === 'object') ? prev.slots : {});
+  /* 老数据只有顶层、没有 slots：按「上一次打卡那一刻」把它补进对应时段，别让它凭空消失 */
+  if (prev && prev.at && !slotsPrev[pidOfSign]) {
+    const prevPid = effSign(rules, data.att_slots, cnParts(Number(prev.at) || now).min).pid;
+    if (!slotsPrev[prevPid])
+      slotsPrev[prevPid] = { at: prev.at, way: prev.way, status: prev.status, lateMin: prev.lateMin };
+  }
   const rec = {
     id: sid, studentId: sid, userId: me.id,
     at, date, way, status, lateMin,
@@ -1114,6 +1139,11 @@ async function doSignInner(s, me, body) {
     /* 断网打卡：记下「什么时候按的」和「什么时候传上来的」，教务一眼能看出差别 */
     recvAt: now,
     offline: offline || undefined,
+    slots: Object.assign(slotsPrev, {
+      [pidOfSign]: { at, way, status, lateMin, pid: pidOfSign,
+                     dist: dist === null ? undefined : dist,
+                     keyId: keyHit ? keyHit.id : undefined, by: 'self' },
+    }),
     attempts: (prev && Array.isArray(prev.attempts) ? prev.attempts : []).concat(
       [{ at, way, dist, status }]).slice(-5),
   };

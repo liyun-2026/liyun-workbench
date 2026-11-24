@@ -17784,7 +17784,20 @@ const Stu = {
     const lv = this.leaveOf(d);
     if (lv && lv.status === 'done') return { ok:false, text:'今日已请假' };
     const s = this.signOf(d);
-    return { ok:true, signed: !!s, rec:s };
+    /* ==5.63== 一天两个时段，各打各的。
+       以前这里只问「今天有没有记录」—— 上午打完，下午的圈就一直是灰的
+       「已打卡」，学生根本没有下午的入口（2026-11-24 下午实锤）。 */
+    const pid = (typeof Att !== 'undefined' && Att.autoPid) ? Att.autoPid() : 'am';
+    let rec = null;
+    if (s){
+      if (s.slots && typeof s.slots === 'object'){
+        const e = s.slots[pid];
+        if (e) rec = Object.assign({}, s, e, { at: e.at || s.at });
+      } else if (typeof Att !== 'undefined' && Att.autoPid && Att.autoPid(new Date(s.at)) === pid){
+        rec = s;   /* 老数据没有 slots：按「那次打卡的时刻」反推它属于哪个时段 */
+      }
+    }
+    return { ok:true, signed: !!rec, rec, pid, all: s };
   }
 };
 
@@ -18019,6 +18032,7 @@ const StuSign = {
           <div class="p-state">${Util.esc(Stu.statusText(s))} · ${Util.esc(way)}
             ${s.dist != null ? ' · 距校区 ' + s.dist + ' 米' : ''}
             ${s.offline ? '<br>当时没网，' + this.hms(s.recvAt || s.at) + ' 补传上来（按按下那一刻算的）' : ''}</div>
+          ${this.otherSlotLine(g) ? `<div class="hint" style="margin:8px 0 0">${this.otherSlotLine(g)}</div>` : ''}
         </div>`;
       } else {
         /* 还没打卡：圈本身就是按钮 —— v51 起按下去是**开始取码**（不再先定位）。
@@ -18032,6 +18046,7 @@ const StuSign = {
                         live: !this._codeAt,
                         act: st === '' ? 'StuSign.start()' : '' })}
           <div class="p-state" id="punchState">${this.stepText()}</div>
+          ${this.otherSlotLine(g) ? `<div class="hint" style="margin:8px 0 0">${this.otherSlotLine(g)}</div>` : ''}
         </div>`;
       }
     }
@@ -18069,6 +18084,26 @@ const StuSign = {
     const after = Number(r.windowAfter === undefined ? 30 : r.windowAfter);
     if (st !== null && nowMin > st + after) return base + '（已过本时段，现在打卡会记为待核）';
     return base;
+  },
+
+  /** ==5.63== 另一个时段怎么样 —— 上午打完了，还得让学生看得见「下午 14:50 前还能打」 */
+  otherSlotLine(g){
+    const all = g && g.all;
+    if (!all) return '';
+    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
+    if (slots.length < 2) return '';
+    const cur = g.pid;
+    const out = [];
+    for (const sl of slots){
+      if (!sl || sl.id === cur) continue;
+      const nm = Util.esc(sl.name || sl.id);
+      let e = null;
+      if (all.slots && typeof all.slots === 'object') e = all.slots[sl.id] || null;
+      else if (typeof Att !== 'undefined' && Att.autoPid && all.at && Att.autoPid(new Date(all.at)) === sl.id) e = all;
+      if (e && e.at) out.push(`${nm} ${this.hms(e.at)} 已打卡（${Util.esc(Stu.statusText(e) || '')}）`);
+      else out.push(`${nm}还没打${sl.start ? '（' + Util.esc(sl.start) + ' 前）' : ''}`);
+    }
+    return out.join(' · ');
   },
 
   /** 圈下面那一句（v51）：写「现在这一步该干什么」。
@@ -18381,12 +18416,22 @@ const StuSign = {
     Object.keys(Store.dump()).filter(k => k.indexOf('sign:') === 0).sort().reverse().forEach(k => {
       const d = k.slice(5);
       const r = Store.list(k).find(x => x && (x.id === sid || x.studentId === sid));
-      if (r) rows.push(Object.assign({ date:d }, r));
+      if (!r) return;
+      /* ==5.63== 一天可能有上午、下午两次：slots 里各摆一行，别只显示最后一次 */
+      if (r.slots && typeof r.slots === 'object'){
+        const order = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS().map(s => s.id) : ['am', 'pm'];
+        Object.keys(r.slots)
+          .sort((a, b) => order.indexOf(a) - order.indexOf(b))
+          .forEach(pid => {
+            const e = r.slots[pid];
+            if (e && e.at) rows.push(Object.assign({}, r, e, { date: d, _pid: pid }));
+          });
+      } else rows.push(Object.assign({ date:d }, r));
     });
     el.innerHTML = rows.length ? rows.map(r => `
       <div class="item">
         <span class="hint num" style="margin:0;width:56px;flex-shrink:0">${r.date.slice(5)}</span>
-        <span class="grow">${Stu.statusText(r)}
+        <span class="grow">${r._pid ? `<span class="hint" style="display:inline;margin:0">${Util.esc((typeof Att !== 'undefined' && Att.slotName) ? (Att.slotName(r._pid) || '') : '')} · </span>` : ''}${Stu.statusText(r)}
           <br><span class="hint" style="display:inline;margin:0">
             ${new Date(r.at).toLocaleTimeString('zh-CN')} ·
             ${Util.esc(Util.wayText(r.way))}</span></span>
