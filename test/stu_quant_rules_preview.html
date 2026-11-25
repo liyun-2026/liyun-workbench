@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>学生端量化细则 · 设计稿（未上线）</title>
+<style>
+:root{
+  --bg:#F7F5F0; --card:#ffffff; --text:#26241f; --text-dim:#57544c;
+  --accent:#26241f; --btn-text:#ffffff; --radius:14px;
+  --shadow:0 1px 4px rgba(60,50,35,.07);
+  --font:-apple-system,"PingFang SC",system-ui,sans-serif;
+  --line:#E7E3DA; --line-strong:#CFC9BC; --gold:#c9ab7c;
+  --fs-body:16px; --fs-meta:13px; --pad:18px;
+  --c-ok:#42B47B; --c-late:#4A98ED; --c-leave:#F9A710; --c-miss:#EF745F;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:var(--font);color:var(--text);
+  -webkit-font-smoothing:antialiased;font-size:var(--fs-body);line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:34px 28px 70px}
+.doc-hd{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:30px}
+.doc-hd .kick{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+.doc-hd h1{font-size:29px;font-weight:500;margin:0 0 8px;letter-spacing:-.01em}
+.doc-hd p{margin:0;color:var(--text-dim);font-size:14px;max-width:840px}
+.badge-noline{display:inline-block;margin-left:10px;font-size:11px;letter-spacing:2px;
+  color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:2px 9px;vertical-align:5px}
+.sec{margin-bottom:42px}
+.sec > h2{font-size:17px;font-weight:500;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+.sec > h2 .no{width:22px;height:22px;border-radius:999px;background:var(--accent);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.sec > .lead{font-size:13px;color:var(--text-dim);margin:0 0 18px;max-width:900px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.opt{background:#FBFAF7;border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px}
+.opt .tag{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.opt .tag b{font-size:15px;font-weight:500}
+.opt .tag i{font-style:normal;font-size:11px;letter-spacing:2px;color:var(--gold);
+  border:1px solid var(--gold);border-radius:999px;padding:1px 8px}
+.opt .desc{font-size:12.5px;color:var(--text-dim);margin:0 0 14px;line-height:1.6}
+.phone{width:390px;margin:0 auto;background:var(--bg);border-radius:22px;
+  border:1px solid var(--line-strong);padding:14px;box-shadow:0 8px 24px rgba(60,50,35,.09)}
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--line);
+  box-shadow:var(--shadow);padding:var(--pad);margin-bottom:12px}
+.card h2{font-size:17px;font-weight:500;margin:0 0 12px;display:flex;align-items:center;gap:7px}
+.hint{font-size:var(--fs-meta);color:var(--text-dim);margin-top:8px;line-height:1.6}
+.hero{font-size:38px;font-weight:500;line-height:1.1;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+/* 细则行 */
+.rule{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.rule:last-child{border-bottom:none}
+.rule .nm{flex:1;font-size:13.5px;line-height:1.45}
+.rule .v{font-size:13.5px;font-weight:500;font-variant-numeric:tabular-nums;flex:none}
+.v.plus{color:#c25650}
+.v.minus{color:#2e7d4f}
+.v.zero{color:#9a958a}
+.grp{font-size:11.5px;letter-spacing:2px;color:var(--gold);margin:12px 0 2px}
+.grp:first-child{margin-top:0}
+/* 我的加扣分 */
+.mine{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.mine:last-child{border-bottom:none}
+.mine .nm{flex:1;font-size:13.5px}
+.mine .n{font-size:12.5px;color:var(--text-dim);flex:none}
+.mine .v{font-size:13.5px;font-weight:500;flex:none;font-variant-numeric:tabular-nums}
+.mine.dim{opacity:.45}
+.note{background:#FBF5E9;border:1px solid #EADFC8;border-radius:12px;padding:14px 16px;
+  font-size:13px;color:#6b5730;line-height:1.75}
+.note b{color:#4a3c1c}
+@media (max-width:1080px){.duo{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-hd">
+    <div class="kick">砺蕴 · 设计稿 · 2026-11-25</div>
+    <h1>学生端量化：把细则摊开给他看<span class="badge-noline">未上线 · 待确认</span></h1>
+    <p>学生端现在只有「班分 + 我的加扣分」两块，看不到规则表 —— 学生只知道被扣了分，不知道一分值多少、哪些能加分。加一张细则卡：加分、扣分全部列出来。</p>
+  </div>
+
+  <section class="sec">
+    <h2><span class="no">1</span>两种排法（390px 手机 · 真实字号）</h2>
+    <p class="lead">细则按来源分组（考勤 / 作业 / 晚自习 / 班级），加分用红、扣分用绿（中式口径：涨红跌绿）。</p>
+    <div class="duo">
+
+      <div class="opt">
+        <div class="tag"><i>方案 A</i><b>按来源分组</b></div>
+        <p class="desc">同一类规则排在一起，一眼找到「迟到到底扣几分」。缺点是要往下滑一屏。</p>
+        <div class="phone">
+          <div class="card">
+            <h2>本班量化</h2>
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div class="hero">237</div>
+              <span class="hint" style="margin:0">分 · 考前06班（起始 100）</span>
+            </div>
+          </div>
+          <div class="card">
+            <h2>量化细则</h2>
+            <div class="grp">考勤</div>
+            <div class="rule"><span class="nm">出勤正常</span><span class="v plus">+1</span></div>
+            <div class="rule"><span class="nm">迟到（10 分钟内 2 分/分钟；超 10 分钟一次 20 分）</span><span class="v minus">−2/分</span></div>
+            <div class="rule"><span class="nm">病假</span><span class="v minus">−1</span></div>
+            <div class="rule"><span class="nm">事假</span><span class="v minus">−2</span></div>
+            <div class="rule"><span class="nm">无故旷课（每人次，并通报批评）</span><span class="v minus">−30</span></div>
+            <div class="grp">作业</div>
+            <div class="rule"><span class="nm">作业按时提交</span><span class="v plus">+1</span></div>
+            <div class="rule"><span class="nm">作业未交</span><span class="v minus">−2</span></div>
+            <div class="grp">晚自习</div>
+            <div class="rule"><span class="nm">晚自习过关</span><span class="v plus">+1</span></div>
+            <div class="rule"><span class="nm">晚自习未过</span><span class="v minus">−1</span></div>
+            <div class="grp">班级</div>
+            <div class="rule"><span class="nm">全勤（无请假 / 迟到 / 早退 / 旷课）</span><span class="v plus">+30</span></div>
+            <div class="rule"><span class="nm">教室卫生与安全排查 合格</span><span class="v plus">+10</span></div>
+            <div class="rule"><span class="nm">换水（值日）</span><span class="v plus">+10</span></div>
+            <div class="rule"><span class="nm">上课玩手机或做与学习无关的事</span><span class="v minus">−5</span></div>
+            <div class="rule"><span class="nm">仪容仪表不合规（拖鞋 / 睡衣 / 帽子）</span><span class="v minus">−5</span></div>
+            <div class="rule"><span class="nm">损坏话筒 / 音响 / 摄像机等器材</span><span class="v minus">−20</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="opt">
+        <div class="tag"><i>方案 B</i><b>加分一段、扣分一段</b></div>
+        <p class="desc">不分类别，只按「能加分 / 会扣分」两段，各自从高到低排。学生只关心「怎么拿分、怎么丢分」。</p>
+        <div class="phone">
+          <div class="card">
+            <h2>本班量化</h2>
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div class="hero">237</div>
+              <span class="hint" style="margin:0">分 · 考前06班（起始 100）</span>
+            </div>
+          </div>
+          <div class="card">
+            <h2>量化细则</h2>
+            <div class="grp">能加分</div>
+            <div class="rule"><span class="nm">全勤（无请假 / 迟到 / 早退 / 旷课）</span><span class="v plus">+30</span></div>
+            <div class="rule"><span class="nm">教室卫生与安全排查 合格</span><span class="v plus">+10</span></div>
+            <div class="rule"><span class="nm">换水（值日）</span><span class="v plus">+10</span></div>
+            <div class="rule"><span class="nm">积极回答提问、主动参与互动与示范</span><span class="v plus">+1~10</span></div>
+            <div class="rule"><span class="nm">作业按时提交</span><span class="v plus">+1</span></div>
+            <div class="rule"><span class="nm">出勤正常</span><span class="v plus">+1</span></div>
+            <div class="rule"><span class="nm">晚自习过关</span><span class="v plus">+1</span></div>
+            <div class="grp">会扣分</div>
+            <div class="rule"><span class="nm">无故旷课（每人次，并通报批评）</span><span class="v minus">−30</span></div>
+            <div class="rule"><span class="nm">损坏话筒 / 音响 / 摄像机等器材</span><span class="v minus">−20</span></div>
+            <div class="rule"><span class="nm">教室卫生与安全排查 不合格</span><span class="v minus">−10</span></div>
+            <div class="rule"><span class="nm">安全排查遗漏（电器、电源插排等）</span><span class="v minus">−10</span></div>
+            <div class="rule"><span class="nm">上课玩手机或做与学习无关的事</span><span class="v minus">−5</span></div>
+            <div class="rule"><span class="nm">仪容仪表不合规（拖鞋 / 睡衣 / 帽子）</span><span class="v minus">−5</span></div>
+            <div class="rule"><span class="nm">事假</span><span class="v minus">−2</span></div>
+            <div class="rule"><span class="nm">作业未交</span><span class="v minus">−2</span></div>
+            <div class="rule"><span class="nm">迟到（10 分钟内 2 分/分钟；超 10 分钟一次 20 分）</span><span class="v minus">−2/分</span></div>
+            <div class="rule"><span class="nm">病假</span><span class="v minus">−1</span></div>
+            <div class="rule"><span class="nm">晚自习未过</span><span class="v minus">−1</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2><span class="no">2</span>「我的加扣分」：没有的项也列出来（写 0 次）</h2>
+    <p class="lead">现在只列他有记录的项，看着像「我就被扣了这一条」。改成把每一项都列出来：有记录的显示次数和得分，没记录的灰掉写 0 次 —— 加分项也列，学生才知道哪些能挣。</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden">
+      <thead><tr>
+        <th style="text-align:left;padding:10px 14px;background:#F3F1EB;font-weight:500;font-size:12px;color:#57544c">项目</th>
+        <th style="text-align:left;padding:10px 14px;background:#F3F1EB;font-weight:500;font-size:12px;color:#57544c;width:90px">次数</th>
+        <th style="text-align:left;padding:10px 14px;background:#F3F1EB;font-weight:500;font-size:12px;color:#57544c;width:90px">得分</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:9px 14px;border-top:1px solid var(--line)">出勤正常</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c">18 次</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#c25650;font-weight:500">+18</td></tr>
+        <tr><td style="padding:9px 14px;border-top:1px solid var(--line)">作业按时提交</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c">12 次</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#c25650;font-weight:500">+12</td></tr>
+        <tr><td style="padding:9px 14px;border-top:1px solid var(--line)">迟到</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c">2 次</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#2e7d4f;font-weight:500">−4</td></tr>
+        <tr style="opacity:.45"><td style="padding:9px 14px;border-top:1px solid var(--line)">全勤</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c">0 次</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#9a958a">0</td></tr>
+        <tr style="opacity:.45"><td style="padding:9px 14px;border-top:1px solid var(--line)">晚自习过关</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c">0 次</td><td style="padding:9px 14px;border-top:1px solid var(--line);color:#9a958a">0</td></tr>
+        <tr style="padding:0"><td colspan="3" style="padding:9px 14px;border-top:1px solid var(--line);color:#57544c;font-size:12.5px">…其余项同样列出，0 次的灰掉</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="sec">
+    <h2><span class="no">3</span>要看清的一件事</h2>
+    <div class="note">
+      <b>「班分」和「我的分」不是一回事，页面得写明白。</b><br>
+      班分（比如 237）= 100 + 全班所有加减分，是<b>班级</b>的；<br>
+      我的加扣分 = 只算<b>你自己</b>那几条，是<b>个人</b>的。<br>
+      学生拿个人分跟班分比，永远对不上 —— 现在这句解释藏在底部小字里，我建议挪到数字下面、写大一号。
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

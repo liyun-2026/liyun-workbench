@@ -3853,6 +3853,18 @@ body.no-edit .nt-k, body.no-edit .nt-ck{cursor:default}
 /* 看板中栏：临时假那一行（浅蓝，跟请假/未到分开） */
 .bd-row.tmp{color:#2a4a70}
 .bd-row.tmp em{font-style:normal;font-size:.82em;opacity:.8;margin-left:4px}
+
+/* ==5.69== 学生端量化细则：按来源分组，加分红、扣分绿（与教务端量化页同一口径） */
+.sq-grp{font-size:11.5px;letter-spacing:2px;color:var(--gold);margin:14px 0 2px}
+.sq-grp:first-child{margin-top:0}
+.sq-rule{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.sq-rule:last-child{border-bottom:none}
+.sq-rule .nm{flex:1;font-size:13.5px;line-height:1.45}
+.sq-rule .v{font-size:13.5px;font-weight:500;flex:none;font-variant-numeric:tabular-nums}
+.sq-rule .v.plus{color:#c25650}
+.sq-rule .v.minus{color:#2e7d4f}
+.sq-rule .v.zero{color:var(--text-dim);font-weight:400;font-size:12.5px}
+.sq-rule.dim{opacity:.45}
 </style>
 </head>
 <body>
@@ -5644,6 +5656,11 @@ var Icon = {
       <div class="card wide">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-receipt"></use></svg> 我的加扣分</h2>
         <div id="stuQuantMine"></div>
+      </div>
+      <!-- ==5.69== 量化细则：学生原来只能看到自己那几条，不知道一分值多少、哪些能加分 -->
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-receipt"></use></svg> 量化细则</h2>
+        <div id="stuQuantRules"></div>
       </div>
     </section>
     <!-- ==== 功能：学生本班量化 END ==== -->
@@ -19207,9 +19224,45 @@ const StuQuant = {
   },
   isOfficer(){ return !!this.myTitle(); },
 
+  /* ==5.69== 量化细则（主理人：「量化细则看不上，要显示加分扣分都要显示」）
+     按来源分组，加分红、扣分绿 —— 跟教务端量化页同一个口径。
+     以前学生端只有「我的加扣分」，看不到一分值多少、哪些能加分。 */
+  GROUPS: [
+    { p:'att:',   name:'考勤' },
+    { p:'hw:',    name:'作业' },
+    { p:'night:', name:'晚自习' },
+    { p:'cls:',   name:'班级' },
+  ],
+  rules(){
+    return Store.list('quant_rules').filter(r => r && r.key && !r.note);
+  },
+  valText(d){
+    const n = Number(d) || 0;
+    if (!n) return { txt:'不计分', cls:'zero' };
+    return n > 0 ? { txt:'+' + n, cls:'plus' } : { txt:'−' + Math.abs(n), cls:'minus' };
+  },
+  renderRules(){
+    const box = document.getElementById('stuQuantRules');
+    if (!box) return;
+    const all = this.rules();
+    if (!all.length){ box.innerHTML = '<div class="empty">教务还没有设量化细则</div>'; return; }
+    const html = this.GROUPS.map(g => {
+      const rows = all.filter(r => String(r.key).indexOf(g.p) === 0)
+        .sort((a, b) => (Number(b.delta) || 0) - (Number(a.delta) || 0) || (a.label > b.label ? 1 : -1));
+      if (!rows.length) return '';
+      return `<div class="sq-grp">${g.name}</div>` + rows.map(r => {
+        const v = this.valText(r.delta);
+        return `<div class="sq-rule"><span class="nm">${Util.esc(r.label || r.key)}</span>` +
+               `<span class="v ${v.cls}">${v.txt}</span></div>`;
+      }).join('');
+    }).join('');
+    box.innerHTML = html || '<div class="empty">还没有细则</div>';
+  },
+
   render(){
     const clsId = Stu.clsId();
     const title = this.myTitle();
+    this.renderRules();
     const head = document.getElementById('stuQuantHead');
     if (head){
       if (!clsId){ head.innerHTML = '<div class="empty">还没有关联到班级</div>'; }
@@ -19222,7 +19275,7 @@ const StuQuant = {
             <div class="hero">${total}</div>
             <span class="hint" style="margin:0">分 · ${Util.esc(Util.clsName(clsId))}（起始 100）</span>
           </div>
-          <p class="hint">班分是老师手动加减分的累计；下面「我的加扣分」含考勤折算（迟到 / 请假按细则自动算），两边对不上是正常的。</p>
+          <p class="hint" style="font-size:13.5px;color:var(--text)">这是<b>班级</b>的总分（100 + 全班所有加减分）；下面「我的加扣分」只算<b>你自己</b>那几条 —— 两个数本来就不一样，别拿个人分跟班分比。</p>
           <p class="hint">${recent.length ? '最近：' + recent.map(x => `${x.date.slice(5)} ${Util.esc(x.label)} ${x.delta > 0 ? '+' : ''}${x.delta}`).join(' · ') : '这个班还没有加减分记录'}</p>`;
       }
     }
@@ -19269,18 +19322,31 @@ const StuQuant = {
       } catch(e){ me = null; }
       const r = Stu.rec();
       if (!me){ box.innerHTML = '<div class="empty">这段时间没有你的加扣分</div>'; return; }
-      const parts = partList(me.parts);
+      /* ==5.69== 全列：有记录的排前面（按得分），没记录的灰在后面写 0 次 ——
+         只列他被扣的那几条，学生会以为「我就被扣了这一笔」，也不知道哪些能加分。 */
+      const rulesAll = this.rules().filter(ru => String(ru.key).indexOf('cls:') !== 0);
+      const counted = rulesAll.map(ru => {
+        const k = ru.key;
+        const n = (me.parts && me.parts[k]) || 0;
+        return { label: ru.label || k, n, delta: Number(ru.delta) || 0, score: (Number(ru.delta) || 0) * n };
+      });
+      counted.sort((a, b) => {
+        if (!!a.n !== !!b.n) return a.n ? -1 : 1;
+        if (a.n) return Math.abs(b.score) - Math.abs(a.score);
+        return b.delta - a.delta;
+      });
       box.innerHTML = `
-        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px">
           <b class="num" style="font-size:24px">${me.score > 0 ? '+' : ''}${me.score}</b>
           <span class="hint" style="margin:0">分 · ${Util.esc(r ? r.name : '')}</span>
         </div>
-        ${parts.length ? parts.map(p => `
-          <div class="item">
-            <span class="grow">${Util.esc(p.label)}
-              <br><span class="hint" style="display:inline;margin:0">${p.n} 次</span></span>
-            <b class="num" style="font-size:16px;flex-shrink:0;color:${p.delta > 0 && p.n > 0 ? '#2e7d4f' : '#c25650'}">${p.delta * p.n > 0 ? '+' : ''}${p.delta * p.n}</b>
-          </div>`).join('') : '<div class="empty">这段时间没有你的加扣分</div>'}
+        <p class="hint" style="margin:0 0 8px">这一栏只算<b>你自己</b>的加减分，跟上面的班级总分不是一回事（班分是全班合在一起的）。<br>全勤、卫生这些是<b>班级层面</b>的，算在班分里，分值看下面「量化细则」的「班级」那段。</p>
+        ${counted.map(x => {
+          const v = this.valText(x.score);
+          return `<div class="sq-rule${x.n ? '' : ' dim'}">` +
+            `<span class="nm">${Util.esc(x.label)}${x.n ? ` <span class="hint" style="display:inline;margin:0">${x.n} 次</span>` : ''}</span>` +
+            `<span class="v ${x.n ? v.cls : 'zero'}">${x.n ? v.txt : '0 次'}</span></div>`;
+        }).join('')}
         `;
     }
   }
