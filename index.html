@@ -3827,6 +3827,32 @@ body.no-edit .nt-k, body.no-edit .nt-ck{cursor:default}
 /* 审批列表 / 我请过的假 上的时段标签 —— 用请假黄，不是打卡那种状态色 */
 .chip-lv{background:rgba(249,167,16,.15);border-color:rgba(212,150,30,.5);color:#8a5c00;
   font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap}
+
+/* ==5.68== 临时假（VoxOS 8.21）：请假窗口的第三种类型。
+   病假 / 事假 = 这段时间不算出勤；临时假 = 人会来、只是晚点。
+   所以它单开一处填「预计几点到校」，不进请假名单、也不算未到。 */
+.lv-kind{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.lv-kd{border:1px solid var(--line-strong,var(--line));border-radius:10px;padding:9px 4px;
+  text-align:center;font-size:14px;color:var(--text-dim);background:var(--card);
+  font-family:inherit;position:relative;cursor:pointer}
+.lv-kd.on{border-color:var(--accent);background:var(--accent);color:var(--btn-text)}
+.lv-kd small{display:block;font-size:10.5px;opacity:.72;margin-top:2px}
+.lv-kd:active{opacity:.8}
+.lv-eta{margin-top:10px;border:1px dashed var(--line-strong,var(--line));border-radius:12px;
+  padding:12px;background:rgba(201,171,124,.07)}
+.lv-eta .lb{font-size:12px;color:var(--text-dim);margin-bottom:8px}
+.lv-eta .lb b{color:var(--text);font-weight:500}
+.lv-eta .big{display:flex;align-items:center;gap:10px}
+.lv-eta .big input{width:132px;text-align:center;font-size:20px;font-variant-numeric:tabular-nums;
+  padding:9px 6px;flex:none}
+.lv-eta .big span{font-size:13px;color:var(--text-dim)}
+.lv-qc{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.lv-qc button{font-size:12px;border:1px solid rgba(128,128,128,.30);border-radius:999px;
+  padding:5px 11px;color:var(--text-dim);background:transparent;font-family:inherit}
+.lv-qc button.on{background:var(--accent);color:var(--btn-text);border-color:transparent}
+/* 看板中栏：临时假那一行（浅蓝，跟请假/未到分开） */
+.bd-row.tmp{color:#2a4a70}
+.bd-row.tmp em{font-style:normal;font-size:.82em;opacity:.8;margin-left:4px}
 </style>
 </head>
 <body>
@@ -5538,15 +5564,28 @@ var Icon = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-hospital"></use></svg> 请假</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="lvDate" style="max-width:170px">
-          <select id="lvKind" style="max-width:120px">
-            <option>病假</option>
-            <option>事假</option>
-          </select>
         </div>
+        <!-- ==5.68== 第三种「临时假」：人会来、只是晚点。选了它就不用选时段，
+             改成填「预计几点到校」—— 临时假只关系到当下这一节。 -->
+        <div class="lv-kind" id="lvKindBox"></div>
+        <input type="hidden" id="lvKind" value="事假">
         <!-- ==5.67== 请假按时段：上午 / 下午 / 晚自习，可多选也可只选一个。
              以前只有「哪一天」，一批准整天都算请假（2026-11-25 张晗依实例）。 -->
         <div class="lv-pick" id="lvPick"></div>
         <p class="hint" id="lvPickHint">请哪几节就点哪几块，可多选</p>
+        <div class="lv-eta" id="lvEta" style="display:none">
+          <div class="lb"><b>预计几点到校</b> · 到了照常打卡</div>
+          <div class="big">
+            <input type="time" id="lvEtaTime" value="">
+            <span>今天</span>
+          </div>
+          <div class="lv-qc">
+            <button type="button" onclick="StuLeave.quickEta(30)">30 分钟后</button>
+            <button type="button" onclick="StuLeave.quickEta(60)">1 小时后</button>
+            <button type="button" onclick="StuLeave.quickEta(120)">2 小时后</button>
+          </div>
+          <p class="hint" style="margin:8px 0 0">临时假不算请假、不扣缺勤 —— 真正算分还是看你几点到。</p>
+        </div>
         <textarea id="lvText" placeholder="说清楚原因，例如：上午去医院复查，下午回校"></textarea>
         <div class="row" style="margin-top:8px">
           <button class="btn" onclick="StuLeave.send()">提交请假</button>
@@ -8928,6 +8967,9 @@ const Leave = {
   /** 工单是否已批准并覆盖「这一天 + 这个时段」；pid 省略 = 只要那天有假 */
   covers(t, date, pid){
     if (!t || t.type !== '学生请假' || t.status !== 'done' || !t.studentId) return false;
+    /* ==5.68== 临时假不是「这段时间不来」，是「晚点到」——它不进请假名单，
+       也不算未到，所以在这一律挡住；要看它走 temps()。 */
+    if (t.kind === '临时假') return false;
     if (!this.onDay(t, date)) return false;
     if (!pid) return true;
     return this.pids(t).indexOf(pid) >= 0;
@@ -8946,6 +8988,38 @@ const Leave = {
   },
   /** 一条工单的时段标签：「上午」「上午 · 下午」 */
   label(t){ return this.pids(t).map(p => this.name(p)).join(' · '); },
+
+  /* ── 临时假（==5.68==）──────────────────────────────
+     语义跟请假相反：请假 = 这段时间不算出勤；临时假 = 人会来、只是晚点。
+     所以它不写考勤、不锁打卡、不进请假名单、也不算未到 —— 只在中栏占一小条，
+     等人打了卡（或教务点「已到校」）就把 arrivedAt 盖上，那条自己收掉。 */
+  isTemp(t){ return !!(t && t.type === '学生请假' && t.kind === '临时假'); },
+
+  /** 那天那个时段还挂着的临时假：[{ studentId, eta, id }] */
+  temps(date, pid){
+    const out = [];
+    Store.list('tickets').forEach(t => {
+      if (!this.isTemp(t) || t.arrivedAt || t.status === 'rejected' || !t.studentId) return;
+      if (!this.onDay(t, date)) return;
+      if (pid && pid !== '*' && this.pids(t).indexOf(pid) < 0) return;
+      out.push({ id: t.id, studentId: t.studentId, eta: t.eta || '' });
+    });
+    return out;
+  },
+  etaText(t){ return this.isTemp(t) && t.eta ? ('预计 ' + t.eta + ' 到') : ''; },
+
+  /** 人到了：把这一节还挂着的临时假收掉（打卡成功 / 教务点「已到校」都走这里） */
+  arrived(date, sid, pid){
+    let n = 0;
+    Store.list('tickets').forEach(t => {
+      if (!this.isTemp(t) || t.arrivedAt || !sid || t.studentId !== sid) return;
+      if (!this.onDay(t, date)) return;
+      if (pid && pid !== '*' && this.pids(t).indexOf(pid) < 0) return;
+      Store.upsert('tickets', Object.assign({}, t, { arrivedAt: Date.now(), _u: Date.now() }));
+      n++;
+    });
+    return n;
+  },
 
   /* 「晚自习」要不要出现在请假窗口里 —— 考勤时段里已经有人配了同名时段就不重复给 */
   hasNightSlot(){
@@ -9392,9 +9466,11 @@ const Att = {
     box.innerHTML = list.slice(0, 12).map(t => {
       const done = t.status === 'done' || t.status === 'rejected';
       /* ==5.27== 授课老师只读：请假看得见，批准 / 驳回 / 删除是教务的动作 */
+      const temp = Leave.isTemp(t);
       const acts = Auth.canEdit() ? `
           <div class="row" style="margin-top:8px;flex-wrap:wrap">
-            <button class="btn" onclick="Att.leave('${t.id}', true)">批准（写进考勤）</button>
+            <button class="btn" onclick="Att.leave('${t.id}', true)">${temp ? '批准（不写考勤）' : '批准（写进考勤）'}</button>
+            ${temp ? `<button class="btn ghost" onclick="Att.arrive('${t.id}')">已到校</button>` : ''}
             <button class="btn ghost" onclick="Att.leave('${t.id}', false)">驳回</button>
           </div>` : '';
       return `<div class="item" style="flex-direction:column;align-items:stretch">
@@ -9410,12 +9486,30 @@ const Att = {
              塞在第一行会被窄栏挤得日期断成两截（1920 侧栏实测）。 -->
         <div class="hint" style="margin:2px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span>${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span>
-          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.label(t))}</span>
+          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.isTemp(t) ? ('临时假 · ' + (Leave.etaText(t) || '待定')) : Leave.label(t))}</span>
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         ${done ? '' : acts}
       </div>`;
     }).join('');
+  },
+
+  /* ==5.68== 临时假「已到校」：收掉这条临时假，并把这一节记成正常。
+     跟学生自己打卡走的是同一个结论（打卡那边也会收）。 */
+  arrive(id){
+    if (!Auth.canEdit()) return UI.toast('授课老师为只读视角，考勤由教务老师操作');
+    const t = Store.list('tickets').find(x => x.id === id);
+    if (!t) return;
+    const date = t.date || Util.today();
+    const pid = Leave.pids(t)[0] || 'am';
+    Leave.arrived(date, t.studentId, pid);
+    const key = 'att:' + date;
+    const old = Store.list(key).find(x => x.studentId === t.studentId && (x.pid || 'am') === pid);
+    Store.upsert(key, { id: old ? old.id : null, studentId: t.studentId, status: '正常', pid });
+    const stu = Store.list('students').find(s => s.id === t.studentId);
+    if (stu && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(stu.classId, date);
+    UI.toast('已记到校：' + (Util.stuName(t.studentId) || '学生') + ' ' + Att.slotName(pid) + ' 正常');
+    this.render();
   },
 
   /** 批准 / 驳回：动作本身复用协作页那套，批完把考勤主体也刷一遍 */
@@ -15251,6 +15345,17 @@ const Coop = {
       return;
     }
     const date = t.date || Util.today();
+    /* ==5.68== 临时假：批准也不写考勤（他根本没请这一节，只是晚点到）。
+       回执里把预计到校时间写清楚，学生端与考勤页都看得到。 */
+    if (t.kind === '临时假'){
+      Store.upsert('tickets', Object.assign({}, t, {
+        status: 'done', reply: `已批准 · 临时假（${t.eta || '待定'} 到）· 到了照常打卡`,
+        repliedAt: Date.now(),
+      }));
+      UI.toast('已批准：临时假（' + (t.eta || '待定') + ' 到），不写考勤、不扣缺勤');
+      this.renderList();
+      return;
+    }
     const st = t.kind === '病假' ? '病假' : '事假';
     /* ==5.67== 按学生选的时段逐个写考勤。
        以前这里写的是「点批准那一刻是哪个时段」—— 上午请假、下午点批准，
@@ -18780,6 +18885,8 @@ const StuSign = {
          圈立刻变「已打卡」，不用等这一轮 pull（弱网下 pull 拉不动也不会显示成没打）。
          用 mergeRemote 而不是 upsert：它不触发 push，省一次 182KB 上行。 */
       if (j.rec) Store.mergeRemote({ ['sign:' + (j.date || Util.today())]: [j.rec] });
+      /* ==5.68== 人到校了：当天这一节挂着的临时假当场收掉（不用教务再点一次） */
+      try { Leave.arrived(j.date || Util.today(), Stu.sid(), Att.autoPid()); } catch(e){}
       await Sync.pull();            // 把服务端写好的 att / sign 拉回来      this._stage = '';
       this._geo = null;
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
@@ -18878,6 +18985,54 @@ const StuLeave = {
      晚自习不默认勾 —— 绝大多数人请假是白天的事；要请晚自习再点一下。
      选择只放内存，不落库：这是一次性的表单状态，关掉页面就该回到默认。 */
   _pick: null,
+  _kind: '事假',
+  KINDS: [
+    { k:'病假', sub:'' },
+    { k:'事假', sub:'' },
+    { k:'临时假', sub:'马上到' },
+  ],
+
+  /* 类型三选：病假 / 事假 / 临时假（==5.68==） */
+  renderKind(){
+    const box = document.getElementById('lvKindBox');
+    if (!box) return;
+    box.innerHTML = this.KINDS.map(x =>
+      `<button type="button" class="lv-kd${this._kind === x.k ? ' on' : ''}" onclick="StuLeave.pickKind('${x.k}')">` +
+      `${x.k}${x.sub ? `<small>${x.sub}</small>` : ''}</button>`).join('');
+    const hid = document.getElementById('lvKind');
+    if (hid) hid.value = this._kind;
+    /* 临时假只关系当下这一节，不用选时段；两块的显示切换在这里一处管 */
+    const temp = this._kind === '临时假';
+    const eta = document.getElementById('lvEta');
+    const pick = document.getElementById('lvPick');
+    const ph = document.getElementById('lvPickHint');
+    if (eta) eta.style.display = temp ? '' : 'none';
+    if (pick) pick.style.display = temp ? 'none' : '';
+    if (ph) ph.style.display = temp ? 'none' : '';
+    if (temp){
+      const t = document.getElementById('lvEtaTime');
+      if (t && !t.value){
+        const d = new Date(Date.now() + 30 * 60000);
+        t.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+    }
+    const btn = document.querySelector('#lvCard .btn');
+    if (btn) btn.textContent = temp ? '提交临时假' : '提交请假';
+  },
+
+  pickKind(k){
+    this._kind = k;
+    this.renderKind();
+  },
+
+  /* 快捷：30 / 60 / 120 分钟后，按本机当前时间折算成时刻 */
+  quickEta(min){
+    const d = new Date(Date.now() + min * 60000);
+    const t = document.getElementById('lvEtaTime');
+    if (t) t.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    document.querySelectorAll('#lvEta .lv-qc button').forEach(b => b.classList.remove('on'));
+    if (event && event.target) event.target.classList.add('on');
+  },
 
   _initPick(){
     if (this._pick) return;
@@ -18912,6 +19067,7 @@ const StuLeave = {
   render(){
     const el = document.getElementById('lvDate');
     if (el && !el.value) el.value = Util.today();
+    this.renderKind();
     this.renderPick();
     const box = document.getElementById('lvList');
     if (!box) return;
@@ -18921,7 +19077,7 @@ const StuLeave = {
     box.innerHTML = list.length ? list.map(t => `
       <div class="item">
         <span class="grow">${Util.esc(t.date || Util.today())} · ${Util.esc(t.kind || '请假')}
-          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.label(t))}</span>
+          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.isTemp(t) ? (Leave.etaText(t) || '临时假') : Leave.label(t))}</span>
           <br><span class="hint" style="display:inline;margin:0">${Util.esc(t.text || '')}</span></span>
         <span class="chip ${t.status === 'rejected' ? 'chip-no' : (t.status === 'done' ? 'chip-on' : '')}" style="pointer-events:none">${
           t.status === 'rejected' ? '已驳回' : t.status === 'done' ? '已批准' : '待处理'}</span>
@@ -18932,8 +19088,22 @@ const StuLeave = {
     const sid = Stu.sid();
     if (!sid) return UI.toast('这个账号还没关联到学员档案，请联系教务');
     const date = document.getElementById('lvDate').value || Util.today();
-    const kind = document.getElementById('lvKind').value || '事假';
+    const kind = this._kind || '事假';
     const text = (document.getElementById('lvText').value || '').trim();
+    if (kind === '临时假'){
+      /* ==5.68== 临时假：不选时段，只填预计几点到；它落在「现在这一节」上 */
+      const eta = (document.getElementById('lvEtaTime') || {}).value || '';
+      if (!/^\d{1,2}:\d{2}$/.test(eta)) return UI.toast('填一下预计几点到校');
+      const pid = (typeof Att !== 'undefined' && Att.autoPid) ? Att.autoPid() : 'am';
+      Store.upsert('tickets', {
+        type:'学生请假', text, status:'open', createdAt: Date.now(),
+        studentId: sid, kind, date, eta, pids: [pid],
+      });
+      document.getElementById('lvText').value = '';
+      UI.toast('已提交临时假（预计 ' + eta + ' 到）—— 到了照常打卡，不算缺勤');
+      this.render();
+      return;
+    }
     this._initPick();
     const pids = [...this._pick];
     if (!pids.length) return UI.toast('先点一下请哪几节（上午 / 下午 / 晚自习）');
@@ -21116,6 +21286,10 @@ const Board = {
     /* ==5.67== 请假按时段：这一屏显示的是 want 那一节，就只认这一节的假。
        张晗依上午请假、下午正常 —— 下午这台屏上她必须回到「正常」。 */
     const away = this.leavers(date, want);
+    /* ==5.68== 临时假：人在路上。单列一组，不进请假、不算未到、不计缺勤 —— */
+    const tmpMap = {};
+    Leave.temps(date, want).forEach(x => { tmpMap[x.studentId] = x.eta || ''; });
+    const tmp = [];
     const miss = [];
     const leaveNames = [];
     /* ==5.65== 中栏要同时列「请假 / 迟到 / 未到」三组名单，迟到名单原来只数不记名 */
@@ -21137,10 +21311,13 @@ const Board = {
       /* 「未到」= 明确标了没来，必须进 miss。
          大屏上「实到 = ok + late」，漏了这一支会被当成「已到」，
          值班老师看一眼以为人都到齐了 —— 这是这一轮最危险的一处。 */
+      /* 临时假且还没打卡：算「在路上」，既不进未到也不进请假 */
+      if (!st2 && tmpMap[st.id]){ tmp.push({ name: st.name, eta: tmpMap[st.id] }); return; }
       if (!st2 || st2 === '未到'){ miss.push(st); return; }
       if (st2 === '迟到'){ late++; lateNames.push(st.name); } else ok++;
     });
     return { total: students.length, should: students.length - leave, ok, late, leave, miss, leaveNames, lateNames,
+             tmp, tmpNames: tmp.map(x => x.name),
              slotPid: want, slotName: want === '*' ? '全天' : this.slotLabel(want) };
   },
 
@@ -21296,7 +21473,21 @@ const Board = {
     };
     paint('bdLeave', 'leavetag', (D.leaveNames || []), '没人请假', '无');
     paint('bdLate', 'latetag', (D.lateNames || []), '没人迟到', '无');
-    paint('bdMiss', 'misstag', D.miss.map(s => s.name), '全部到齐', '全部到齐');
+    /* ==5.68== 临时假单独一小条排在最前：浅蓝、写清预计几点到，别跟「没来」混在一起。
+       ⚠️ misstag 上的人数只数真正未到的 —— 临时假不算缺勤。 */
+    const tmpRows = (D.tmp || []).map(x =>
+      `<div class="bd-row tmp">${Util.esc(x.name)}${x.eta ? `<em>${Util.esc(x.eta)} 到</em>` : '<em>在路上</em>'}</div>`);
+    const missRows = D.miss.map(s => `<div class="bd-row">${Util.esc(s.name)}</div>`);
+    const allRows = tmpRows.concat(missRows);
+    const mb = document.getElementById('bdMiss');
+    if (mb){
+      const shown = allRows.slice(0, 8);
+      const html = allRows.length
+        ? shown.join('') + (allRows.length > 8 ? `<div class="bd-row calm">等 ${allRows.length} 人</div>` : '')
+        : '<div class="bd-row calm">全部到齐</div>';
+      this.fill(mb, html);
+    }
+    this.setAll('misstag', D.miss.length ? `${D.miss.length} 人` : '全部到齐');
   },
 
   /* dash 底部跑马灯：最新 3 条 ×2 复制（translateX(-50%) 无缝循环）。

@@ -265,6 +265,70 @@ try {
   })()`);
   t('25 一个时段都不选 → 不许提交', empty.n0 === empty.n1, JSON.stringify(empty));
 
+  /* ══════════ 8. 临时假（VoxOS 8.21）══════════ */
+  const tmp = await cdp.eval(`(async () => {
+    const D = Util.today();
+    const out = {};
+    /* 造一条临时假：今天、当前这一节、预计 10:30 到 */
+    /* 单开一个干净的学员：别的同学这一节已经有请假/事假，请假优先，会把临时假盖住 */
+    Store.upsert('students', { id:'s_tp', classId:'c_t5', name:'柯临时' });
+    Store.upsert('tickets', { id:'t_tmp', type:'学生请假', studentId:'s_tp', kind:'临时假',
+      date:D, eta:'10:30', pids:['am'], text:'路上堵车', status:'open', createdAt:Date.now() });
+    out.coverTemp = Leave.covers(Store.list('tickets').find(t=>t.id==='t_tmp'), D, 'am');
+    out.temps = Leave.temps(D, 'am').map(x => x.studentId + '@' + x.eta);
+    const c1 = Board.collect(D, 'am');
+    out.inTmp = c1.tmpNames.includes('柯临时');
+    out.inMiss = c1.miss.some(x => x.name === '柯临时');
+    out.inLeave = c1.leaveNames.includes('柯临时');
+    /* 批准：不该写考勤 */
+    const nBefore = Store.list('att:'+D).filter(r=>r.studentId==='s_tp').length;
+    Coop.leave('t_tmp', true);
+    await new Promise(r=>setTimeout(r,120));
+    out.attAdded = Store.list('att:'+D).filter(r=>r.studentId==='s_tp').length - nBefore;
+    const tk = Store.list('tickets').find(t=>t.id==='t_tmp');
+    out.reply = tk.reply;
+    /* 到校 */
+    const n = Leave.arrived(D, 's_tp', 'am');
+    out.arrivedN = n;
+    out.tempsAfter = Leave.temps(D, 'am').filter(x => x.studentId === 's_tp').length;
+    out.tkArrived = !!Store.list('tickets').find(t=>t.id==='t_tmp').arrivedAt;
+    return out;
+  })()`);
+  t('26 临时假不算「请假」（covers 挡住）', tmp.coverTemp === false, JSON.stringify(tmp));
+  t('27 临时假进 Leave.temps', tmp.temps.join(',') === 's_tp@10:30', JSON.stringify(tmp.temps));
+  t('28 看板：临时假单列，不进请假、不算未到', tmp.inTmp && !tmp.inMiss && !tmp.inLeave, JSON.stringify(tmp));
+  t('29 批准临时假不写考勤', tmp.attAdded === 0, String(tmp.attAdded));
+  t('30 批准回执写清是临时假', /临时假/.test(tmp.reply || ''), tmp.reply);
+  t('31 到校后临时假自动收掉', tmp.arrivedN >= 1 && tmp.tempsAfter === 0 && tmp.tkArrived, JSON.stringify(tmp));
+
+  const tmpForm = await cdp.eval(`(() => {
+    const _sid = Stu.sid; Stu.sid = () => 's_sy';
+    StuLeave._kind = '事假'; StuLeave._pick = null;
+    StuLeave.render();
+    const eta0 = document.getElementById('lvEta').style.display;
+    const pick0 = document.getElementById('lvPick').style.display;
+    StuLeave.pickKind('临时假');
+    const eta1 = document.getElementById('lvEta').style.display;
+    const pick1 = document.getElementById('lvPick').style.display;
+    const btn = document.querySelector('#lvCard .btn').textContent;
+    const tEl = document.getElementById('lvEtaTime');
+    tEl.value = '10:30';
+    document.getElementById('lvText').value = '路上堵车';
+    const n0 = Store.list('tickets').filter(t=>t.studentId==='s_sy').length;
+    StuLeave.send();
+    const list = Store.list('tickets').filter(t=>t.studentId==='s_sy');
+    const last = list[list.length-1];
+    StuLeave._kind = '事假';
+    Stu.sid = _sid;
+    return { eta0, pick0, eta1, pick1, btn, n0, n1: list.length,
+             kind: last && last.kind, eta: last && last.eta, pids: last && last.pids };
+  })()`);
+  t('32 选临时假 → 出时间框、收起时段方块', tmpForm.eta0 === 'none' && tmpForm.pick0 !== 'none'
+      && tmpForm.eta1 !== 'none' && tmpForm.pick1 === 'none', JSON.stringify(tmpForm));
+  t('33 按钮文案跟着换成「提交临时假」', tmpForm.btn === '提交临时假', tmpForm.btn);
+  t('34 提交临时假写入 kind / eta / pids', tmpForm.n1 === tmpForm.n0 + 1
+      && tmpForm.kind === '临时假' && tmpForm.eta === '10:30' && (tmpForm.pids || []).length === 1, JSON.stringify(tmpForm));
+
   const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
   const { writeFile } = await import('node:fs/promises');
   await writeFile(path.join(OUT, 'leave_slot_check.png'), Buffer.from(shot.data, 'base64'));

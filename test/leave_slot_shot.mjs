@@ -109,6 +109,10 @@ try {
       date:D, pids:['am','pm'], text:'发烧，医院证明已交教务', status:'open', createdAt:Date.now()-2e5 });
     Store.upsert('tickets', { id:'t_yn', type:'学生请假', studentId:'s_yn', kind:'事假',
       date:D, pids:['night'], text:'家里有事，晚自习请假，白天正常', status:'done', createdAt:Date.now()-1e5 });
+    /* 临时假：路上堵车，预计 10:30 到 */
+    Store.upsert('tickets', { id:'t_tp', type:'学生请假', studentId:'s_tp', kind:'临时假',
+      date:D, eta:'10:30', pids:['am'], text:'路上堵车，十点半到', status:'open', createdAt:Date.now()-5e4 });
+    Store.upsert('students', { id:'s_tp', classId:'c_t5', name:'柯临时' });
   })()`);
 
   /* ── ① 教务端审批列表 ── */
@@ -118,7 +122,8 @@ try {
     Att.render();
     await new Promise(r => setTimeout(r, 500));
     const el = document.getElementById('attLeaveList');
-    if (el) el.scrollIntoView({ block:'center' });
+    if (el){ el.scrollIntoView({ block:'start' }); el.scrollTop = 0;
+      let p = el.parentElement; while (p){ try { p.scrollTop = 0; } catch(e){} p = p.parentElement; } }
     await new Promise(r => setTimeout(r, 300));
   })()`);
   await shotOf('#attLeaveList', 'leave_admin_list.png');
@@ -142,6 +147,10 @@ try {
   })()`);
   await sleep(600);
   await shotOf('#lvCard', 'leave_student_pick.png', 10);
+  await cdp.eval(`(() => { StuLeave.pickKind('临时假'); document.getElementById('lvEtaTime').value='10:30';
+    document.querySelectorAll('#lvEta .lv-qc button')[0].classList.add('on'); })()`);
+  await sleep(400);
+  await shotOf('#lvCard', 'leave_student_temp.png', 10);
 
   /* ── ③ 晚自习页 ── */
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1200, deviceScaleFactor: 2, mobile: false });
