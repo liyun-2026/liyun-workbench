@@ -3865,6 +3865,25 @@ body.no-edit .nt-k, body.no-edit .nt-ck{cursor:default}
 .sq-rule .v.minus{color:#2e7d4f}
 .sq-rule .v.zero{color:var(--text-dim);font-weight:400;font-size:12.5px}
 .sq-rule.dim{opacity:.45}
+/* ==5.70== 看板量化：加分｜扣分 左右两栏（金＝加分，朱红＝扣分）
+   两栏装在一个 `.bd-q-w2` 行盒里，这样 1~2 个班（`.bd-q-why` 是竖排）和 3 个班以上
+   （单行省略）两种密度下都不用改结构。 */
+.bd-q-w2{display:flex;align-items:flex-start;width:100%;flex:0 1 auto;min-width:0}
+.bd-q-col{display:flex;flex-direction:column;justify-content:flex-start;gap:1px;flex:1 1 0;min-width:0}
+.bd-q-col .bd-q-ch{font-style:normal;font-size:.82em;letter-spacing:.16em;color:var(--gold);opacity:.75;line-height:1.5}
+.bd-q-col.m .bd-q-ch{color:var(--red);opacity:.72}
+.bd-q-col b{display:block;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:1}
+.bd-q-why b.p{color:var(--gold-lite)}
+.bd-q-why b.m{color:var(--red);opacity:.92}
+.bd-q-vline{width:1px;align-self:stretch;background:rgba(201,171,124,.3);margin:0 .75em 0 .5em;flex:none}
+/* 3 个班以上是紧凑档（一行一行挤），抬头「加分/扣分」占一整行会撑爆 —— 这时候藏掉抬头，
+   靠颜色和正负号区分，条目缩到每栏 2 条（CAP 在 paintQuant 里按 data-n 算）。 */
+.bd-quant[data-n="3"] .bd-q-ch,
+.bd-quant[data-n="4"] .bd-q-ch,
+.bd-quant[data-n="5"] .bd-q-ch{display:none}
+.bd-quant[data-n="3"] .bd-q-col b,
+.bd-quant[data-n="4"] .bd-q-col b,
+.bd-quant[data-n="5"] .bd-q-col b{font-size:.94em;line-height:1.32}
 </style>
 </head>
 <body>
@@ -21593,31 +21612,52 @@ const Board = {
   paintQuant(){
     const box = document.getElementById('bdQuant');
     if (!box) return;
-    /* ==5.65== 班名下面带 3 条「为什么扣分」：只取负分流水，最近 3 笔。
-       主理人要求「不要影响现在原有的展示它分数的字体大小」—— 分数 .bd-q-v 的字号一个字没动。 */
-    const whys = clsId => Store.list('quant_log')
-      .filter(x => x && !x._d && x.clsId === clsId && Number(x.delta) < 0)
-      .sort((a, b) => (String(b.date || '') + String(b._u || 0))
-        .localeCompare(String(a.date || '') + String(a._u || 0)))
-      .slice(0, 3);
+    /* ==5.70== 加分、扣分都要看得见（主理人 2026-11-25：「既要显示它的扣分，也要显示它的加分项，
+       不能全都显示扣分项」）。方案 B：加分｜扣分 左右两栏，各最多 3 条（班多时 2 条）。
+       同名项合并（全勤连两天 = 「全勤 ×2 +60」），按分数量级排序，长名目压短 —— 屏就那么大。
+       分数 .bd-q-v 的字号一个字没动（主理人 2026-11-25 早前要求）。 */
+    const short = s => String(s || '')
+      .replace(/^考勤[·・]/, '')
+      .replace(/（[^）]*）/g, '')
+      .replace(/或做与学习无关的事/, '')
+      .replace(/与安全排查/, '')
+      .replace(/\s+/g, ' ').trim();
+    const merge = (logs, sign) => {
+      const m = new Map();
+      logs.forEach(x => {
+        const d = Number(x.delta) || 0;
+        if (sign > 0 ? d <= 0 : d >= 0) return;
+        const k = short(x.label) || '其他';
+        const o = m.get(k) || { label: k, n: 0, sum: 0 };
+        o.n++; o.sum += d; m.set(k, o);
+      });
+      return [...m.values()].sort((a, b) => Math.abs(b.sum) - Math.abs(a.sum));
+    };
     const rows = Util.realClasses()
-      .map(c => ({ name: c.name || '', v: Quant.score(c.id), w: whys(c.id) }))
+      .map(c => {
+        const logs = Store.list('quant_log').filter(x => x && !x._d && x.clsId === c.id);
+        return { name: c.name || '', v: Quant.score(c.id), plus: merge(logs, 1), minus: merge(logs, -1) };
+      })
       .sort((a, b) => b.v - a.v).slice(0, 5);
     /* ==5.54== 只有 2 个班时把行撑满整块高度、字放大；3 个班以上回落紧凑密度。
        密度只看 data-n（CSS 里按 1/2/3/4/5 分档），不写死行数。 */
     box.dataset.n = String(rows.length);
-    /* 扣分名目去掉尾巴上的「 5 分钟」和前缀「考勤·」，一屏塞得下 */
-    const whyHtml = w => w.length
-      ? w.map(x => `<b>${Util.esc(String(x.label || '扣分')
-            .replace(/\s*\d+\s*分钟$/, '').replace(/^考勤[·・]/, ''))} ${Number(x.delta)}</b>`).join('')
-      : '<b class="up">暂无扣分</b>';
+    const CAP = rows.length <= 2 ? 3 : 2;
+    const chip = (x, cls) => `<b class="${cls}">${Util.esc(x.label)}${x.n > 1 ? ' ×' + x.n : ''} `
+      + `${x.sum > 0 ? '+' : '−'}${Math.abs(x.sum)}</b>`;
+    const col = (arr, neg) => `<span class="bd-q-col${neg ? ' m' : ''}">`
+      + `<i class="bd-q-ch">${neg ? '扣分' : '加分'}</i>`
+      + (arr.length ? arr.slice(0, CAP).map(x => chip(x, neg ? 'm' : 'p')).join('')
+                    : `<b class="${neg ? 'm' : 'p'}">—</b>`)
+      + `</span>`;
     const html = rows.length
       ? rows.map((r, i) => {
           const cls = r.v > 100 ? 'up' : (r.v < 100 ? 'down' : '');
           return `<div class="bd-q ${cls}">`
                + `<span class="bd-q-k">${String(i + 1).padStart(2, '0')}</span>`
                + `<span class="bd-q-mid"><span class="bd-q-n">${Util.esc(r.name)}</span>`
-               + `<span class="bd-q-why">${whyHtml(r.w)}</span></span>`
+               + `<span class="bd-q-why"><span class="bd-q-w2">${col(r.plus)}`
+               + `<i class="bd-q-vline"></i>${col(r.minus, 1)}</span></span></span>`
                + `<b class="bd-q-v">${r.v}</b></div>`;
         }).join('')
       : '<div class="bd-q"><span class="bd-q-n" style="color:#8B8072">还没有班级</span></div>';
