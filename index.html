@@ -14743,6 +14743,15 @@ const Weight = {
 
   /** 档案里那一块。canEdit=false 时没有录入框和删除键 */
   block(sid, canEdit){
+    return `<div class="card">
+      <h2>⚖️ 体重</h2>
+      ${this.blockBody(sid, canEdit)}
+    </div>`;
+  },
+
+  /** ==5.71== 卡片内容单独拿出来 —— 学生端「我的档案」也用这一份（标题与图标那边自己给，
+      数字、曲线、列表全走同一套代码，不会两边对不上）。canEdit=false 时只读。 */
+  blockBody(sid, canEdit){
     const recs = this.of(sid);
     const last = recs[recs.length - 1];
     const shown = recs.slice(-12);
@@ -14771,17 +14780,14 @@ const Weight = {
         ${canEdit ? `<button class="del" onclick="Weight.del('${x.id}','${sid}')">✕</button>` : ''}
       </div>`).join('');
 
-    return `<div class="card">
-      <h2>⚖️ 体重</h2>
-      ${last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次 ${last.date}</span></div>` : ''}
+    return `${last ? `<div class="hero num">${last.value}<span class="unit">kg · 最近一次 ${last.date}</span></div>` : ''}
       ${canEdit ? `<div class="row" style="margin-top:14px;flex-wrap:wrap">
         <input type="date" id="wDate" value="${Util.today()}" style="max-width:170px">
         <input type="number" id="wVal" step="0.1" inputmode="decimal" placeholder="kg" style="max-width:108px">
         <button class="btn" onclick="Weight.add('${sid}')">记录</button>
       </div>` : ''}
       <div style="margin-top:14px">${svg}</div>
-      <div style="margin-top:4px">${list || '<div class="empty">还没有记录</div>'}</div>
-    </div>`;
+      <div style="margin-top:4px">${list || '<div class="empty">还没有记录</div>'}</div>`;
   },
 
   add(sid){
@@ -19462,6 +19468,10 @@ const StuProfile = {
             <div class="item"><span class="hint num" style="margin:0;width:56px;flex-shrink:0">${x.date.slice(5)}</span>
               <span class="grow">${Util.esc(x.status)}</span></div>`).join('')
           : '<div class="empty">还没有考勤记录</div>'}</div>
+      </div>
+      <div class="card">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-chart"></use></svg> 体重</h2>
+        ${Weight.blockBody(sid, false)}
       </div>
       <div class="card">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-chat"></use></svg>  老师评语</h2>
