@@ -1328,12 +1328,15 @@ try {
     Object.defineProperty(navigator, 'geolocation', { configurable: true,
       value: { getCurrentPosition: (ok, err) => setTimeout(() => err(new Error('denied')), 10) } });
     StuSign._stage = 'code'; StuSign._scanned = '246813'; StuSign._code = '246813';
-    StuSign._codeAt = 333333; StuSign._geo = null;
+    /* ==5.66== v159 起「码取到 40 秒以上就不再等定位」，这里必须给当前时刻，
+       否则 locate() 会直接跳过定位去提交 —— 那是另一条断言在管的事 */
+    const AT = Date.now() - 1000;
+    StuSign._codeAt = AT; StuSign._geo = null;
     StuSign.locate();
     const mid = StuSign._stage;
     await new Promise(r => setTimeout(r, 300));
     const out = { mid: mid, n: n, code: got && got.code, hasLat: got && got.lat != null,
-                  at: got && got.at, stage: StuSign._stage, geo: StuSign._geo };
+                  at: got && got.at, AT: AT, stage: StuSign._stage, geo: StuSign._geo };
     if (desc) Object.defineProperty(navigator, 'geolocation', desc);
     else { try { delete navigator.geolocation; } catch (e) {} }
     StuSign.doSign = orig;
@@ -1343,7 +1346,7 @@ try {
   t('locate()：定位失败也照样把打卡提交上去（定位降级成证据，不是关卡）', () => {
     assert(locateFlow.mid === 'geo', '一调 locate 该立刻进「正在定位」，实际「' + locateFlow.mid + '」');
     assert(locateFlow.n === 1, '定位失败也该提交一次，实际 ' + locateFlow.n + ' 次');
-    assert(locateFlow.code === '246813' && locateFlow.at === 333333, '码和「那一刻」都该原样带上');
+    assert(locateFlow.code === '246813' && locateFlow.at === locateFlow.AT, '码和「那一刻」都该原样带上');
     assert(!locateFlow.hasLat, '没取到位置就不带 lat/lng（服务端据此记 geo-none + 待核）');
     assert(locateFlow.geo && locateFlow.geo.fail === true, '_geo 该记成 {fail:true}');
     assert(locateFlow.stage === 'send', '提交时该进到「提交中」，实际「' + locateFlow.stage + '」');

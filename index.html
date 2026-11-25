@@ -3803,6 +3803,30 @@ body.no-edit .nt-k, body.no-edit .nt-ck{cursor:default}
    删除是把已经坏了的从列表里清掉。红框、只在失效行出现。 */
 .chip.chip-x{border-color:rgba(192,57,43,.40);color:#b23a2e;background:transparent}
 .chip.chip-x:hover{background:rgba(192,57,43,.07)}
+
+/* ==5.67== 请假按时段（VoxOS 8.20）：三张方块卡，主理人定的方案 B。
+   为什么要有这个：请假原来只记「哪一天」，一批准就整天算请假 ——
+   上午请假、下午照常出勤的学生，看板上也显示请假，量化跟着全天扣。
+   现在工单多存一个 pids 数组，请假只作用于选中的那几个时段。
+   晚自习不在考勤时段里（它是单独一页的过关记录），所以用虚拟 id 'night'，
+   批准后不写考勤，只在晚自习页把人标成请假、不算未过。 */
+.lv-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.lv-tile{border:1px solid var(--line-strong,var(--line));border-radius:12px;padding:9px 4px 8px;
+  background:var(--card);text-align:center;font-family:inherit;color:var(--text);
+  position:relative;cursor:pointer;transition:background var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.lv-tile b{display:block;font-size:14px;font-weight:500;line-height:1.3}
+.lv-tile span{display:block;font-size:10.5px;color:var(--text-dim);margin-top:3px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.lv-tile.on{border-color:var(--gold);background:rgba(201,171,124,.15);
+  box-shadow:0 0 0 1px var(--gold) inset}
+.lv-tile.on b{color:#7a5f27}
+.lv-tile.on span{color:#8d7339}
+.lv-tile.on::after{content:"✓";position:absolute;top:5px;right:6px;width:14px;height:14px;
+  border-radius:999px;background:var(--gold);color:#fff;font-size:9px;line-height:14px;text-align:center}
+.lv-tile:active{opacity:.8}
+/* 审批列表 / 我请过的假 上的时段标签 —— 用请假黄，不是打卡那种状态色 */
+.chip-lv{background:rgba(249,167,16,.15);border-color:rgba(212,150,30,.5);color:#8a5c00;
+  font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -5510,7 +5534,7 @@ var Icon = {
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-calendar"></use></svg>  我这个月的打卡</h2>
         <div id="stuSignList"></div>
       </div>
-      <div class="card wide">
+      <div class="card wide" id="lvCard">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-hospital"></use></svg> 请假</h2>
         <div class="row" style="flex-wrap:wrap">
           <input type="date" id="lvDate" style="max-width:170px">
@@ -5519,6 +5543,10 @@ var Icon = {
             <option>事假</option>
           </select>
         </div>
+        <!-- ==5.67== 请假按时段：上午 / 下午 / 晚自习，可多选也可只选一个。
+             以前只有「哪一天」，一批准整天都算请假（2026-11-25 张晗依实例）。 -->
+        <div class="lv-pick" id="lvPick"></div>
+        <p class="hint" id="lvPickHint">请哪几节就点哪几块，可多选</p>
         <textarea id="lvText" placeholder="说清楚原因，例如：上午去医院复查，下午回校"></textarea>
         <div class="row" style="margin-top:8px">
           <button class="btn" onclick="StuLeave.send()">提交请假</button>
@@ -8874,6 +8902,76 @@ const Weekend = {
 
 
 /* ==== 功能：考勤 START ==== */
+/* ══════════ 请假按时段（==5.67==）══════════
+   请假工单原来只有 date，没有「哪半天」。于是批准之后，这个人整天都被算成请假：
+   上午请假、下午照常到校的学生，看板上也显示请假，量化跟着全天扣（2026-11-25 张晗依）。
+   现在工单多存一个 pids 数组，请假只作用于选中的那几个时段。
+
+   · pids 缺省（老工单、以及别的入口写的工单）→ 一律按「整天」，历史考勤不会被翻旧账；
+   · 'night' 是虚拟时段：晚自习不在考勤时段表里（它是单独一页的过关记录），
+     所以批准时**不写考勤**，只在晚自习页把人标成请假、不算未过。 */
+const Leave = {
+  /** 考勤时段表里的全部时段 id —— 老工单没有 pids 时就按这些算「整天」 */
+  ALL(){
+    const sl = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
+    return sl.length ? sl.map(x => x.id) : ['am', 'pm'];
+  },
+  /** 这条工单覆盖哪几个时段 */
+  pids(t){
+    const a = (t && Array.isArray(t.pids)) ? t.pids.filter(Boolean) : [];
+    return a.length ? a : this.ALL();
+  },
+  /** 工单是否落在这一天（单日写法与起止区间两种都认） */
+  onDay(t, date){
+    return !!(t && (t.date === date || (t.from && t.from <= date && t.to && t.to >= date)));
+  },
+  /** 工单是否已批准并覆盖「这一天 + 这个时段」；pid 省略 = 只要那天有假 */
+  covers(t, date, pid){
+    if (!t || t.type !== '学生请假' || t.status !== 'done' || !t.studentId) return false;
+    if (!this.onDay(t, date)) return false;
+    if (!pid) return true;
+    return this.pids(t).indexOf(pid) >= 0;
+  },
+  /** 那天那个时段请假的学员 Set */
+  setOf(date, pid){
+    const set = new Set();
+    Store.list('tickets').forEach(t => { if (this.covers(t, date, pid)) set.add(t.studentId); });
+    return set;
+  },
+  /** 时段中文名（含晚自习这个虚拟时段） */
+  name(pid){
+    if (pid === 'night') return '晚自习';
+    const n = (typeof Att !== 'undefined' && Att.slotName) ? Att.slotName(pid) : '';
+    return n || pid;
+  },
+  /** 一条工单的时段标签：「上午」「上午 · 下午」 */
+  label(t){ return this.pids(t).map(p => this.name(p)).join(' · '); },
+
+  /* 「晚自习」要不要出现在请假窗口里 —— 考勤时段里已经有人配了同名时段就不重复给 */
+  hasNightSlot(){
+    const sl = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
+    return sl.some(x => /晚自习|晚课|夜自修/.test(x.name || ''));
+  },
+  /** 请假窗口上那几块：考勤时段 + 晚自习；带起止时间小字 */
+  choices(){
+    const sl = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [];
+    const DEF = { am: ['07:50', '13:00'], pm: ['14:50', '18:00'] };
+    const out = sl.map((s, i) => {
+      const d = DEF[s.id] || ['', ''];
+      const from = s.start || d[0];
+      const next = sl[i + 1];
+      /* 结束时间：下个时段配了上课时间就用它；没配就用默认档的收尾
+         （上午 13:00 / 下午 18:00），跟打卡口径的 13:00 边界同源 */
+      const to = (next && next.start) || d[1] || '';
+      /* 起止都没配就别硬编时间，省得印一个假钟点上去 */
+      const range = from && to ? `${from}–${to}` : (from ? `${from} 起` : '');
+      return { id: s.id, name: s.name, range };
+    });
+    if (!this.hasNightSlot()) out.push({ id: 'night', name: '晚自习', range: '19:00–21:30' });
+    return out;
+  }
+};
+
 const Att = {
   STATUSES: ['正常', '迟到', '病假', '事假', '未到'],
   /* 一个人一天可能被点好几次名，汇总时取最重的那次：
@@ -9300,12 +9398,19 @@ const Att = {
             <button class="btn ghost" onclick="Att.leave('${t.id}', false)">驳回</button>
           </div>` : '';
       return `<div class="item" style="flex-direction:column;align-items:stretch">
-        <div class="row" style="justify-content:space-between">
-          <b style="font-weight:500">${Util.esc(Util.stuName(t.studentId) || '学生')} 请假
-            <span class="hint" style="display:inline;margin:0;font-weight:400"> · ${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span></b>
-          <span class="chip ${t.status === 'done' ? 'chip-on' : (t.status === 'rejected' ? 'chip-no' : '')}" style="pointer-events:none">${
-            t.status === 'done' ? '已批准' : t.status === 'rejected' ? '已驳回' : '待批'}</span>
-          ${Auth.canEdit() ? `<button class="del" onclick="Att.delLeave('${t.id}')" title="删除这条请假">✕</button>` : ''}
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <b style="font-weight:500;min-width:0">${Util.esc(Util.stuName(t.studentId) || '学生')} 请假</b>
+          <span style="display:flex;gap:6px;align-items:center;flex:none">
+            <span class="chip ${t.status === 'done' ? 'chip-on' : (t.status === 'rejected' ? 'chip-no' : '')}" style="pointer-events:none">${
+              t.status === 'done' ? '已批准' : t.status === 'rejected' ? '已驳回' : '待批'}</span>
+            ${Auth.canEdit() ? `<button class="del" onclick="Att.delLeave('${t.id}')" title="删除这条请假">✕</button>` : ''}
+          </span>
+        </div>
+        <!-- ==5.67== 时段标签跟「病假/事假 · 日期」一起放第二行：
+             塞在第一行会被窄栏挤得日期断成两截（1920 侧栏实测）。 -->
+        <div class="hint" style="margin:2px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span>${Util.esc(t.kind || '')} · ${Util.esc(t.date || '')}</span>
+          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.label(t))}</span>
         </div>
         <div class="pre" style="margin-top:4px">${Util.esc(t.text || '')}</div>
         ${done ? '' : acts}
@@ -9328,11 +9433,13 @@ const Att = {
     if (!confirm('删除这条请假记录？' + (approved ? '它已写进考勤，删除会一并撤销当天的请假标记、量化自动回算。' : ''))) return;
     if (approved){
       const date = t.date || Util.today();
-      const pid = (typeof Sign !== 'undefined' && Sign.rules && Sign.rules().pid)
-        || ((typeof Att !== 'undefined' && Att.SLOTS) ? (Att.SLOTS()[0] || {}).id : 'am') || 'am';
       const key = 'att:' + date;
-      const rec = Store.list(key).find(r => r.studentId === t.studentId && (r.pid || 'am') === pid);
-      if (rec) Store.softDelete(key, rec.id);
+      /* ==5.67== 这条工单批准时写了几段考勤，就撤几段。
+         以前只撤「当前时段」那一条，上午下午都请的假删掉之后，另一半还挂着（删了像没删）。 */
+      Leave.pids(t).filter(p => p !== 'night').forEach(pid => {
+        const rec = Store.list(key).find(r => r.studentId === t.studentId && (r.pid || 'am') === pid);
+        if (rec) Store.softDelete(key, rec.id);
+      });
       const stu = Store.list('students').find(s => s.id === t.studentId);
       if (stu && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(stu.classId, date);
     }
@@ -13338,9 +13445,18 @@ const Night = {
     const recs = Store.list('night:' + date);
     const byStu = {};
     recs.forEach(r => { byStu[r.studentId] = r.st; });
+    /* ==5.67== 晚自习请假（工单 pids 里有 'night'）：显示「请假」，不给点过 / 未过，
+       也不算进「未登记」—— 请假的人本来就没来，标未过等于又罚一次。 */
+    const lvSet = Leave.setOf(date, 'night');
 
     body.innerHTML = students.length ? students.map(s => {
       const cur = byStu[s.id];
+      if (lvSet.has(s.id)){
+        return `<div class="item">
+          <span class="grow" style="min-width:64px;flex-shrink:0">${Util.esc(s.name)}</span>
+          <span class="chip chip-lv" style="pointer-events:none">晚自习请假</span>
+        </div>`;
+      }
       /* ==5.27== 授课老师只读：过 / 未过看得见，点不动 */
       if (!Auth.canEdit()){
         return `<div class="item">
@@ -13359,7 +13475,9 @@ const Night = {
 
     const ok = recs.filter(r => r.st === '过').length;
     const no = recs.filter(r => r.st === '未过').length;
-    sum.textContent = `过关 ${ok} · 未过 ${no} · 未登记 ${students.length - recs.length}`;
+    const lvN = students.filter(s => lvSet.has(s.id)).length;
+    sum.textContent = `过关 ${ok} · 未过 ${no}` + (lvN ? ` · 请假 ${lvN}` : '') +
+      ` · 未登记 ${Math.max(0, students.length - recs.length - lvN)}`;
     Note.render();
   },
 
@@ -15134,17 +15252,23 @@ const Coop = {
     }
     const date = t.date || Util.today();
     const st = t.kind === '病假' ? '病假' : '事假';
-    const slots = (typeof Att !== 'undefined' && Att.SLOTS) ? Att.SLOTS() : [{ id:'am', name:'上午' }];
-    const pid = (typeof Sign !== 'undefined' && Sign.rules().pid) || (slots[0] && slots[0].id) || 'am';
+    /* ==5.67== 按学生选的时段逐个写考勤。
+       以前这里写的是「点批准那一刻是哪个时段」—— 上午请假、下午点批准，
+       假就记到下午去了，上午反而空着（2026-11-25 张晗依那一条）。
+       'night'（晚自习）不在考勤表里，跳过：它只在晚自习页显示为请假。 */
     const key = 'att:' + date;
-    const old = Store.list(key).find(x => x.studentId === t.studentId && (x.pid || 'am') === pid);
-    Store.upsert(key, { id: old ? old.id : null, studentId: t.studentId, status: st, pid });
+    const pids = Leave.pids(t).filter(p => p !== 'night');
+    pids.forEach(pid => {
+      const old = Store.list(key).find(x => x.studentId === t.studentId && (x.pid || 'am') === pid);
+      Store.upsert(key, { id: old ? old.id : null, studentId: t.studentId, status: st, pid });
+    });
     const stu = Store.list('students').find(s => s.id === t.studentId);
     if (stu && typeof Quant !== 'undefined' && Quant.syncAtt) Quant.syncAtt(stu.classId, date);
+    const lvTxt = Leave.label(t);
     Store.upsert('tickets', Object.assign({}, t, {
-      status: 'done', reply: `已批准 · ${date} 记为${st}`, repliedAt: Date.now(),
+      status: 'done', reply: `已批准 · ${date} ${lvTxt} 记为${st}`, repliedAt: Date.now(),
     }));
-    UI.toast(`已批准：${date} 记为${st}，量化自动扣分`);
+    UI.toast(`已批准：${date} ${lvTxt} 记为${st}，量化自动扣分`);
     this.renderList();
   },
 
@@ -17954,22 +18078,26 @@ const Stu = {
   },
 
   /** 今天请的假（教务批准后才有） */
-  leaveOf(date){
+  /* ==5.67== 带上时段：只请了上午的人，下午照样要打卡、照样能打。
+     pid 不传 = 只要那天有假（老调用点 / 「今天请假了没」这种粗问）。 */
+  leaveOf(date, pid){
     const sid = this.sid();
     return Store.list('tickets').find(t => t && t.type === '学生请假' && t.studentId === sid &&
-      (t.date === date || (t.from && t.from <= date && t.to && t.to >= date))) || null;
+      Leave.onDay(t, date) && (!pid || Leave.pids(t).indexOf(pid) >= 0)) || null;
   },
 
   /** 打卡按钮上写什么、能不能点 —— 请假优先于打卡 */
   gate(){
     const d = Util.today();
-    const lv = this.leaveOf(d);
-    if (lv && lv.status === 'done') return { ok:false, text:'今日已请假' };
+    /* ==5.67== 先算「现在该打哪一节」，再判这一节有没有请假 ——
+       原来先判假、不看时段，上午请假的人整个下午都显示「今日已请假」，打不了卡。 */
+    const pid = (typeof Att !== 'undefined' && Att.autoPid) ? Att.autoPid() : 'am';
+    const lv = this.leaveOf(d, pid);
+    if (lv && lv.status === 'done') return { ok:false, text: Leave.name(pid) + '已请假', pid, onLeave: true };
     const s = this.signOf(d);
     /* ==5.63== 一天两个时段，各打各的。
        以前这里只问「今天有没有记录」—— 上午打完，下午的圈就一直是灰的
        「已打卡」，学生根本没有下午的入口（2026-11-24 下午实锤）。 */
-    const pid = (typeof Att !== 'undefined' && Att.autoPid) ? Att.autoPid() : 'am';
     let rec = null;
     if (s){
       if (s.slots && typeof s.slots === 'object'){
@@ -18746,9 +18874,45 @@ const StuSign = {
    请假不是另开一套审批表，而是现有工单的一个新类型：
    教务不用学新东西，数据也不会分叉。批准后自动写考勤 → 自动进量化。 */
 const StuLeave = {
+  /* ==5.67== 请假按时段：默认「上午 + 下午」全选（等于原来的整天请假），
+     晚自习不默认勾 —— 绝大多数人请假是白天的事；要请晚自习再点一下。
+     选择只放内存，不落库：这是一次性的表单状态，关掉页面就该回到默认。 */
+  _pick: null,
+
+  _initPick(){
+    if (this._pick) return;
+    this._pick = new Set(Leave.choices().filter(c => c.id !== 'night').map(c => c.id));
+  },
+
+  renderPick(){
+    const box = document.getElementById('lvPick');
+    if (!box) return;
+    this._initPick();
+    const cs = Leave.choices();
+    /* 时段被教务删掉 / 新增之后，把已经不存在的选项剔掉，别让表单带着幽灵值提交 */
+    const ids = cs.map(c => c.id);
+    this._pick = new Set([...this._pick].filter(id => ids.indexOf(id) >= 0));
+    box.innerHTML = cs.map(c =>
+      `<button type="button" class="lv-tile${this._pick.has(c.id) ? ' on' : ''}" onclick="StuLeave.toggle('${c.id}')">` +
+      `<b>${Util.esc(c.name)}</b>` + (c.range ? `<span>${Util.esc(c.range)}</span>` : '') + `</button>`).join('');
+    const h = document.getElementById('lvPickHint');
+    if (h){
+      const n = [...this._pick].map(id => Leave.name(id));
+      h.textContent = n.length ? ('已选：' + n.join(' · ')) : '请至少选一个时段';
+      h.style.color = n.length ? '' : '#c25650';
+    }
+  },
+
+  toggle(pid){
+    this._initPick();
+    if (this._pick.has(pid)) this._pick.delete(pid); else this._pick.add(pid);
+    this.renderPick();
+  },
+
   render(){
     const el = document.getElementById('lvDate');
     if (el && !el.value) el.value = Util.today();
+    this.renderPick();
     const box = document.getElementById('lvList');
     if (!box) return;
     const sid = Stu.sid();
@@ -18757,7 +18921,8 @@ const StuLeave = {
     box.innerHTML = list.length ? list.map(t => `
       <div class="item">
         <span class="grow">${Util.esc(t.date || Util.today())} · ${Util.esc(t.kind || '请假')}
-          <br><span class="hint" style="display:inline;margin:0 pre">${Util.esc(t.text || '')}</span></span>
+          <span class="chip chip-lv" style="pointer-events:none">${Util.esc(Leave.label(t))}</span>
+          <br><span class="hint" style="display:inline;margin:0">${Util.esc(t.text || '')}</span></span>
         <span class="chip ${t.status === 'rejected' ? 'chip-no' : (t.status === 'done' ? 'chip-on' : '')}" style="pointer-events:none">${
           t.status === 'rejected' ? '已驳回' : t.status === 'done' ? '已批准' : '待处理'}</span>
       </div>`).join('') : '<div class="empty">还没有请过假</div>';
@@ -18769,13 +18934,16 @@ const StuLeave = {
     const date = document.getElementById('lvDate').value || Util.today();
     const kind = document.getElementById('lvKind').value || '事假';
     const text = (document.getElementById('lvText').value || '').trim();
+    this._initPick();
+    const pids = [...this._pick];
+    if (!pids.length) return UI.toast('先点一下请哪几节（上午 / 下午 / 晚自习）');
     if (!text) return UI.toast('写一句原因再提交');
     Store.upsert('tickets', {
       type:'学生请假', text, status:'open', createdAt: Date.now(),
-      studentId: sid, kind, date,
+      studentId: sid, kind, date, pids,
     });
     document.getElementById('lvText').value = '';
-    UI.toast('已提交，教务批准后会自动写进考勤');
+    UI.toast('已提交（' + pids.map(id => Leave.name(id)).join('、') + '），教务批准后自动写进考勤');
     this.render();
   }
 };
@@ -20945,7 +21113,9 @@ const Board = {
       const prev = att[r.studentId];
       if (!prev || (r._u || 0) >= (prev._u || 0)) att[r.studentId] = r;
     });
-    const away = this.leavers(date);
+    /* ==5.67== 请假按时段：这一屏显示的是 want 那一节，就只认这一节的假。
+       张晗依上午请假、下午正常 —— 下午这台屏上她必须回到「正常」。 */
+    const away = this.leavers(date, want);
     const miss = [];
     const leaveNames = [];
     /* ==5.65== 中栏要同时列「请假 / 迟到 / 未到」三组名单，迟到名单原来只数不记名 */
@@ -20975,14 +21145,10 @@ const Board = {
   },
 
   /* 今天批过假的学员 id：走协作里的请假工单（已批 = status done）。
-     和 Stu.leaveOf 同一套判据，日期写法两种都认（单日与起止区间）。 */
-  leavers(date){
-    const set = new Set();
-    Store.list('tickets').forEach(t => {
-      if (!t || t.type !== '学生请假' || t.status !== 'done' || !t.studentId) return;
-      if (t.date === date || (t.from && t.from <= date && t.to && t.to >= date)) set.add(t.studentId);
-    });
-    return set;
+     和 Stu.leaveOf 同一套判据，日期写法两种都认（单日与起止区间）。
+     ==5.67== 带上时段：pid 给了就只取覆盖这一节的假；'*' 或省略 = 全天任一时段有假都算。 */
+  leavers(date, pid){
+    return Leave.setOf(date, (pid && pid !== '*') ? pid : null);
   },
 
   /* ── 画 ── */
@@ -21569,7 +21735,8 @@ const M2Pages = {
       const g = Stu.gate();
       const s = g.rec;
       let bt = '进入打卡 →', bs = '';
-      if (!g.ok){ bt = '今日不用打卡'; bs = g.text || '已请假'; }
+      /* ==5.67== 请假只锁请的那一节，按钮文案跟着说清楚是哪一节 */
+      if (!g.ok){ bt = g.onLeave ? '这一节不用打卡' : '今日不用打卡'; bs = g.text || '已请假'; }
       else if (g.signed && s){
         bt = '已打卡 · 看记录 →';
         bs = Stu.statusText(s) +

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>请假按时段 · 设计稿 v1（未上线）</title>
+<style>
+:root{
+  --bg:#F7F5F0; --card:#ffffff; --text:#26241f; --text-dim:#57544c;
+  --accent:#26241f; --btn-text:#ffffff; --radius:14px;
+  --shadow:0 1px 4px rgba(60,50,35,.07);
+  --font:-apple-system,"PingFang SC",system-ui,sans-serif;
+  --line:#E7E3DA; --line-strong:#CFC9BC; --gold:#c9ab7c;
+  --fs-hero:40px; --fs-title:22px; --fs-body:16px; --fs-meta:13px;
+  --pad:18px; --gap:12px;
+  /* 考勤四色定稿 */
+  --c-ok:#42B47B; --c-late:#4A98ED; --c-leave:#F9A710; --c-miss:#EF745F;
+  --stamp-ink:#20201C;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:var(--font);color:var(--text);
+  -webkit-font-smoothing:antialiased;font-size:var(--fs-body);line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding:36px 28px 80px}
+
+/* ── 文档头 ── */
+.doc-hd{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:34px}
+.doc-hd .kick{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+.doc-hd h1{font-size:30px;font-weight:500;margin:0 0 8px;letter-spacing:-.01em}
+.doc-hd p{margin:0;color:var(--text-dim);font-size:14px;max-width:760px}
+.badge-noline{display:inline-block;margin-left:10px;font-size:11px;letter-spacing:2px;
+  color:var(--gold);border:1px solid var(--gold);border-radius:999px;padding:2px 9px;vertical-align:5px}
+
+/* ── 区块 ── */
+.sec{margin-bottom:46px}
+.sec > h2{font-size:17px;font-weight:500;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+.sec > h2 .no{width:22px;height:22px;border-radius:999px;background:var(--accent);color:#fff;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.sec > .lead{font-size:13px;color:var(--text-dim);margin:0 0 20px;max-width:880px}
+
+/* ── 方案对照 ── */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.opt{background:#FBFAF7;border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px}
+.opt .tag{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.opt .tag b{font-size:15px;font-weight:500}
+.opt .tag i{font-style:normal;font-size:11px;letter-spacing:2px;color:var(--gold);
+  border:1px solid var(--gold);border-radius:999px;padding:1px 8px}
+.opt .desc{font-size:12.5px;color:var(--text-dim);margin:0 0 16px;line-height:1.6}
+
+/* ── 手机真身 390px ── */
+.phone{width:390px;margin:0 auto;background:var(--bg);border-radius:22px;
+  border:1px solid var(--line-strong);padding:14px;box-shadow:0 8px 24px rgba(60,50,35,.09)}
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--line);
+  box-shadow:var(--shadow);padding:var(--pad);margin-bottom:12px}
+.card h2{font-size:17px;font-weight:500;margin:0 0 12px;display:flex;align-items:center;gap:7px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input,select,textarea{font-family:inherit;font-size:var(--fs-body);color:var(--text);
+  background:var(--card);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:78px;resize:none;line-height:1.6}
+.btn{padding:11px 18px;font-size:15px;font-family:inherit;border:none;
+  border-radius:8px;background:var(--accent);color:var(--btn-text)}
+.hint{font-size:var(--fs-meta);color:var(--text-dim);margin-top:8px;line-height:1.6}
+
+/* 方案A：三枚胶囊 */
+.pills{display:flex;gap:8px;margin-top:2px}
+.pill{flex:1;text-align:center;padding:10px 0;font-size:14px;border-radius:10px;
+  border:1px solid rgba(128,128,128,.32);color:var(--text-dim);background:transparent;
+  position:relative;letter-spacing:.5px}
+.pill.on{background:var(--accent);color:#fff;border-color:transparent}
+.pill.on::after{content:"";position:absolute;top:-1px;right:-1px;width:0;height:0;
+  border-top:12px solid var(--gold);border-left:12px solid transparent;
+  border-top-right-radius:10px}
+.pill .sub{display:block;font-size:10.5px;letter-spacing:0;opacity:.62;margin-top:3px}
+.pill.on .sub{opacity:.72}
+
+/* 方案B：三张方块卡 */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}
+.tile{border:1px solid var(--line-strong);border-radius:12px;padding:10px 6px;text-align:center;
+  background:var(--card);position:relative}
+.tile b{display:block;font-size:14px;font-weight:500;color:var(--text)}
+.tile span{display:block;font-size:10.5px;color:var(--text-dim);margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.tile.on{border-color:var(--gold);background:#FBF5E9;box-shadow:0 0 0 1px var(--gold) inset}
+.tile.on b{color:#7a5f27}
+.tile.on span{color:#92773c}
+.tile .ck{position:absolute;top:5px;right:6px;width:14px;height:14px;border-radius:999px;
+  background:var(--gold);color:#fff;font-size:9px;line-height:14px;display:none}
+.tile.on .ck{display:block}
+
+/* ── 审批列表 ── */
+.adm{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:var(--pad);max-width:560px}
+.adm .item{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:6px}
+.adm .item:first-of-type{border-top:none;padding-top:2px}
+.adm .l1{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.adm .nm{font-size:14.5px}
+.adm .nm em{font-style:normal;color:var(--text-dim);font-size:12.5px}
+.adm .why{font-size:12.5px;color:var(--text-dim)}
+.chip{border:1px solid rgba(128,128,128,.32);background:transparent;color:var(--text-dim);
+  font-size:13px;font-family:inherit;padding:5px 10px;border-radius:9px;white-space:nowrap}
+.chip-on{background:var(--accent);color:#fff;border-color:transparent}
+.chip-lv{background:rgba(249,167,16,.13);border-color:rgba(249,167,16,.55);color:#8a5c00;
+  font-size:12px;padding:3px 9px;border-radius:999px;white-space:nowrap}
+
+/* ── 效果对比 ── */
+.cmp{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.cmp th{font-weight:500;text-align:left;padding:11px 14px;background:#F3F1EB;
+  font-size:12px;letter-spacing:.5px;color:var(--text-dim);border-bottom:1px solid var(--line)}
+.cmp td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.cmp tr:last-child td{border-bottom:none}
+.cmp .who{font-size:13.5px}
+.st{display:inline-block;font-size:12px;padding:3px 9px;border-radius:999px;margin-right:5px;
+  color:var(--stamp-ink);font-weight:500}
+.st.ok{background:rgba(66,180,123,.20)}
+.st.lv{background:rgba(249,167,16,.26)}
+.st.no{background:rgba(239,116,95,.18)}
+.st.late{background:rgba(74,152,237,.20)}
+.old{color:#b04a3c}
+.new{color:#2f7a56}
+
+/* ── 改动清单 ── */
+.fix{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.fix .it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.fix .it b{display:block;font-size:14px;font-weight:500;margin-bottom:5px}
+.fix .it p{margin:0;font-size:12.5px;color:var(--text-dim);line-height:1.65}
+.fix .it code{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11.5px;
+  background:#F3F1EB;border-radius:4px;padding:1px 5px;color:#6b5730}
+
+.note{background:#FBF5E9;border:1px solid #EADFC8;border-radius:12px;padding:14px 16px;
+  font-size:13px;color:#6b5730;line-height:1.7}
+.note b{color:#4a3c1c}
+@media (max-width:1080px){.duo,.fix{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-hd">
+    <div class="kick">砺蕴 · 设计稿 · 2026-11-25</div>
+    <h1>请假按时段：上午 / 下午 / 晚自习<span class="badge-noline">未上线 · 待确认</span></h1>
+    <p>现在请假只记「哪一天」，不记「哪半天」。所以一批准，系统就把这个人整天都算成请假 —— 上午请假、下午照常出勤的学生，看板上也显示请假，量化也跟着全天扣。这个稿子补的就是这个缺口。</p>
+  </div>
+
+  <!-- 1 -->
+  <section class="sec">
+    <h2><span class="no">1</span>先看问题：张晗依今天这一例</h2>
+    <p class="lead">她上午请假、下午正常到校。教务批准后，考勤里下午那条已经被改成「正常」，但看板仍然把她列进请假名单 —— 因为判请假的那行代码只看「今天有没有已批准的请假工单」，命中就直接算请假，后面的正常 / 迟到判定全被跳过。</p>
+    <table class="cmp">
+      <thead>
+        <tr><th style="width:120px">学生</th><th style="width:230px">实际</th><th style="width:200px">系统现在显示</th><th>原因</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="who">张晗依</td>
+          <td><span class="st lv">上午 请假</span><span class="st ok">下午 正常</span></td>
+          <td><span class="st lv">请假</span><span class="old" style="font-size:12px">（全天）</span></td>
+          <td class="old">请假工单没时段字段 → 一票判全天</td>
+        </tr>
+        <tr>
+          <td class="who">（其他同学）</td>
+          <td><span class="st ok">上午 正常</span><span class="st ok">下午 正常</span></td>
+          <td><span class="st ok">正常</span></td>
+          <td style="color:var(--text-dim)">不受影响</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2 -->
+  <section class="sec">
+    <h2><span class="no">2</span>学生端请假窗口 · 两个样式方案</h2>
+    <p class="lead">位置不动，就在现有的「日期 / 病假事假 / 原因」下面加一行时段。三个时段可以同时选，也可以只选一个；一个都不选不让提交。以下都是 390px 手机宽度、真实字号。</p>
+    <div class="duo">
+
+      <!-- 方案 A -->
+      <div class="opt">
+        <div class="tag"><i>方案 A</i><b>一排胶囊</b></div>
+        <p class="desc">三枚等宽胶囊，选中的变墨色、右上角一枚小金牌。高度只占一行，跟全站 chip 一个手感；下面小字标起止时间。</p>
+        <div class="phone">
+          <div class="card">
+            <h2>请假</h2>
+            <div class="row" style="margin-bottom:10px">
+              <input type="date" value="2026-11-25" style="max-width:170px">
+              <select style="max-width:120px"><option>病假</option><option>事假</option></select>
+            </div>
+            <div class="pills">
+              <div class="pill on">上午<span class="sub">07:50–13:00</span></div>
+              <div class="pill">下午<span class="sub">14:50–18:00</span></div>
+              <div class="pill">晚自习<span class="sub">19:00–21:30</span></div>
+            </div>
+            <textarea style="margin-top:10px" placeholder="说清楚原因，例如：上午去医院复查，下午回校">上午去医院复查，下午回校</textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn">提交请假</button>
+            </div>
+          </div>
+          <p class="hint" style="padding:0 4px;margin:0">已选：上午 · 下午出勤照常，不用再单独说明</p>
+        </div>
+      </div>
+
+      <!-- 方案 B -->
+      <div class="opt">
+        <div class="tag"><i>方案 B</i><b>三张方块卡</b></div>
+        <p class="desc">三个方块并排，每块上写时段名、下标起止时间。选中的描金线、垫极浅金底、右上打勾。一眼看得出「这半天不上课」。</p>
+        <div class="phone">
+          <div class="card">
+            <h2>请假</h2>
+            <div class="row" style="margin-bottom:10px">
+              <input type="date" value="2026-11-25" style="max-width:170px">
+              <select style="max-width:120px"><option>病假</option><option>事假</option></select>
+            </div>
+            <div class="tiles">
+              <div class="tile on"><i class="ck">✓</i><b>上午</b><span>07:50–13:00</span></div>
+              <div class="tile"><i class="ck">✓</i><b>下午</b><span>14:50–18:00</span></div>
+              <div class="tile"><i class="ck">✓</i><b>晚自习</b><span>19:00–21:30</span></div>
+            </div>
+            <textarea style="margin-top:10px" placeholder="说清楚原因，例如：上午去医院复查，下午回校">上午去医院复查，下午回校</textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn">提交请假</button>
+            </div>
+          </div>
+          <p class="hint" style="padding:0 4px;margin:0">已选：上午 · 下午出勤照常，不用再单独说明</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="sec">
+    <h2><span class="no">3</span>教务审批：一眼看到请的是哪半天</h2>
+    <p class="lead">考勤页的「学生请假」列表，名字后面跟一枚金色时段标签。批准时按学生选的时段逐个写考勤，不再按「点批准那一刻是哪个时段」乱写。</p>
+    <div class="adm">
+      <div class="item">
+        <div class="l1">
+          <span class="nm">张晗依 <em>· 事假 · 2026-11-25</em> <span class="chip chip-lv">上午</span></span>
+        </div>
+        <div class="why">上午去医院复查，下午回校</div>
+        <div class="row" style="margin-top:4px">
+          <button class="btn" style="padding:8px 14px;font-size:14px">批准（写进考勤）</button>
+          <button class="btn" style="padding:8px 14px;font-size:14px;background:transparent;color:var(--text);border:1px solid var(--line-strong)">驳回</button>
+        </div>
+      </div>
+      <div class="item">
+        <div class="l1">
+          <span class="nm">李思远 <em>· 病假 · 2026-11-26</em> <span class="chip chip-lv">上午 · 下午</span></span>
+        </div>
+        <div class="why">发烧，医院开的证明已交教务</div>
+        <div class="row" style="margin-top:4px">
+          <button class="btn" style="padding:8px 14px;font-size:14px">批准（写进考勤）</button>
+          <button class="btn" style="padding:8px 14px;font-size:14px;background:transparent;color:var(--text);border:1px solid var(--line-strong)">驳回</button>
+        </div>
+      </div>
+      <div class="item">
+        <div class="l1">
+          <span class="nm">王一诺 <em>· 事假 · 2026-11-24</em> <span class="chip chip-lv">晚自习</span></span>
+          <span class="chip chip-on" style="font-size:12px;padding:3px 10px">已批准</span>
+        </div>
+        <div class="why">家里有事，晚自习请假，白天正常</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section class="sec">
+    <h2><span class="no">4</span>改完以后，同一批学生在看板上长什么样</h2>
+    <p class="lead">判请假从「按人」改成「按人 + 按时段」：只有当前显示的这个时段被请假，才算请假；另一个时段该正常就正常、该迟到就迟到。</p>
+    <table class="cmp">
+      <thead>
+        <tr><th style="width:130px">学生</th><th style="width:150px">请假申请</th><th style="width:270px">上午看板</th><th style="width:270px">下午看板</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="who">张晗依</td><td><span class="chip chip-lv">上午</span></td>
+          <td><span class="st lv">请假</span><span class="old" style="font-size:12px">请假名单 ✓</span></td>
+          <td><span class="st ok">正常</span><span class="new" style="font-size:12px">已到 +1（原来是请假）</span></td>
+        </tr>
+        <tr>
+          <td class="who">李思远</td><td><span class="chip chip-lv">上午 · 下午</span></td>
+          <td><span class="st lv">请假</span></td>
+          <td><span class="st lv">请假</span></td>
+        </tr>
+        <tr>
+          <td class="who">王一诺</td><td><span class="chip chip-lv">晚自习</span></td>
+          <td><span class="st ok">正常</span><span class="new" style="font-size:12px">白天照常算</span></td>
+          <td><span class="st ok">正常</span><span class="new" style="font-size:12px">晚自习那栏记请假</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 5 -->
+  <section class="sec">
+    <h2><span class="no">5</span>要跟着改的四处（说明用，不用您看代码）</h2>
+    <p class="lead">加一个字段能贯通全站，因为请假本来就只有一条审批链。老数据（以前那些没时段的请假）一律按「整天」处理，不会因为这次改版把历史考勤翻掉。</p>
+    <div class="fix">
+      <div class="it">
+        <b>① 请假工单加时段字段</b>
+        <p>工单多存一项 <code>pids:['am']</code>。没有这一项的旧工单 = 整天请假，照旧。</p>
+      </div>
+      <div class="it">
+        <b>② 批准时逐个时段写考勤</b>
+        <p>现在批准只写「当前那个时段」一条，这正是容易写错的地方。改成学生选了几个时段就写几条。</p>
+      </div>
+      <div class="it">
+        <b>③ 看板判请假带上时段</b>
+        <p>请假名单按时段取数。上午只认选了上午的，下午只认选了下午的 —— 张晗依下午就回到「正常」。</p>
+      </div>
+      <div class="it">
+        <b>④ 学生打卡入口只锁半天</b>
+        <p>现在请了假整天显示「今日已请假」、打卡圈全灰。改成只锁请假那几个时段，另一半照常能打。</p>
+      </div>
+    </div>
+    <div class="note" style="margin-top:16px">
+      <b>关于晚自习：</b>考勤只有上午 / 下午两个时段，晚自习是单独一页的过关记录。所以「晚自习请假」不进考勤表，只在晚自习页把那几位标成请假、不算未过；白天出勤完全不受影响。如果您希望晚自习也算进考勤时段，那要另外加一个时段，可以下一轮单独做。
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
