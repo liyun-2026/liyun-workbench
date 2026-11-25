@@ -5236,7 +5236,7 @@ var Icon = {
               </div>
             </div>
             <div class="bd-pnl">
-              <h3 class="bd-h">班级量化 <span class="bd-tag">前 5</span></h3>
+              <h3 class="bd-h">班级量化 <span class="bd-tag">今日 · 前 5</span></h3>
               <div class="bd-quant" id="bdQuant"></div>
               <h3 class="bd-h">最新通知 <span class="bd-tag">3 条</span></h3>
               <div class="bd-news" id="bdNews"></div>
@@ -21614,8 +21614,9 @@ const Board = {
     if (!box) return;
     /* ==5.70== 加分、扣分都要看得见（主理人 2026-11-25：「既要显示它的扣分，也要显示它的加分项，
        不能全都显示扣分项」）。方案 B：加分｜扣分 左右两栏，各最多 3 条（班多时 2 条）。
-       同名项合并（全勤连两天 = 「全勤 ×2 +60」），按分数量级排序，长名目压短 —— 屏就那么大。
+       同名项合并（同一天里迟到两次 = 「迟到 ×2 −4」），按分数量级排序，长名目压短 —— 屏就那么大。
        分数 .bd-q-v 的字号一个字没动（主理人 2026-11-25 早前要求）。 */
+    const D = this.serverDate();
     const short = s => String(s || '')
       .replace(/^考勤[·・]/, '')
       .replace(/（[^）]*）/g, '')
@@ -21635,7 +21636,9 @@ const Board = {
     };
     const rows = Util.realClasses()
       .map(c => {
-        const logs = Store.list('quant_log').filter(x => x && !x._d && x.clsId === c.id);
+        /* ==5.71== 只列**当天**的加减分（主理人 2026-11-25：「看板端量化细则只显示当天的就好」）。
+           班分 Quant.score 仍是累计总分，行内理由只解释「今天这一笔」，跨天的旧账不往屏上搬。 */
+        const logs = Store.list('quant_log').filter(x => x && !x._d && x.clsId === c.id && x.date === D);
         return { name: c.name || '', v: Quant.score(c.id), plus: merge(logs, 1), minus: merge(logs, -1) };
       })
       .sort((a, b) => b.v - a.v).slice(0, 5);

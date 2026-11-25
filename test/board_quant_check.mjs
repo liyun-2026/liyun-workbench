@@ -87,12 +87,14 @@ try {
     let u = Date.now();
     const add = (cls, label, delta, d) => Store.upsert('quant_log',
       { id: Util.uid(), clsId: cls.id, date: d || today, label, delta, _u: (u += 1000) });
-    add(c1, '全勤', 30, '2026-11-20'); add(c1, '教室卫生与安全排查 合格', 10, '2026-11-22');
-    add(c1, '晚自习过关', 6); add(c1, '迟到（10 分钟内 2 分/分钟）', -2);
-    add(c1, '作业未交', -2); add(c1, '课堂违纪', -3);
-    add(c2, '全勤', 30, '2026-11-18'); add(c2, '全勤', 30, '2026-11-23');
+    /* ==5.71== 故意掺几条**昨天**的流水：屏上只许出今天的，但班分仍要算全 */
+    const Y = '2026-11-24';
+    add(c1, '全勤', 30); add(c1, '教室卫生与安全排查 合格', 10);
+    add(c1, '迟到（10 分钟内 2 分/分钟）', -2); add(c1, '作业未交', -2);
+    add(c1, '课堂违纪', -3, Y);
+    add(c2, '全勤', 30); add(c2, '全勤', 30, Y);
     add(c2, '教室卫生与安全排查 合格', 10); add(c2, '晚自习过关', 6);
-    add(c2, '上课玩手机或做与学习无关的事', -5); add(c2, '迟到（10 分钟内 2 分/分钟）', -2);
+    add(c2, '上课玩手机或做与学习无关的事', -5, Y); add(c2, '迟到（10 分钟内 2 分/分钟）', -2);
     Store.upsert('notices', { text: '本周六上午 9 点统考模拟，全体学员务必到场', date: today });
     Board.setMode('dash'); Board.enter();
     await new Promise(r => setTimeout(r, 1200));
@@ -123,12 +125,13 @@ try {
 
   t('两栏抬头是「加分 | 扣分」，左加右扣', JSON.stringify(q6.heads) === '["加分","扣分"]', JSON.stringify(q6.heads));
   t('每题行里加分、扣分都有（不再只显示扣分）', (q6.p || []).length >= 1 && (q6.m || []).length >= 1, JSON.stringify([q6.p, q6.m]));
-  t('加分项排到了第一位（大分在前）', (q6.p || [])[0] === '全勤 ×2 +60', JSON.stringify(q6.p));
-  t('同名加分项合并成一条（×2）', (q6.p || []).filter(x => x.indexOf('全勤') === 0).length === 1, JSON.stringify(q6.p));
+  t('加分项排到了第一位（大分在前）', (q6.p || [])[0] === '全勤 +30', JSON.stringify(q6.p));
+  t('只显示当天的：昨天的全勤不进屏（不是 ×2 +60）', !!q6.p && !(q6.p || []).some(x => x.indexOf('×2') >= 0) && (q6.p || []).filter(x => x.indexOf('全勤') === 0).length === 1, JSON.stringify(q6.p));
+  t('只显示当天的：昨天的扣分（玩手机）不进屏', !!q6.m && !(q6.m || []).some(x => x.indexOf('玩手机') >= 0), JSON.stringify(q6.m));
   t('扣分项都带负号（−）', (q6.m || []).every(x => x.indexOf('−') > 0), JSON.stringify(q6.m));
   t('长名目压短了（卫生那句不带「与安全排查」）', !(q6.p || []).join('').includes('与安全排查'), JSON.stringify(q6.p));
   t('加分金色 / 扣分朱红（两栏不同色）', q6.pColor && q6.mColor && q6.pColor !== q6.mColor, q6.pColor + ' vs ' + q6.mColor);
-  t('分数没被这次改版动过（06班 169 / 05班 139）', q6.v === '169' && q5.v === '139', q6.v + ' / ' + q5.v);
+  t('班分仍是累计（含昨天的账）：06班 169 / 05班 133', q6.v === '169' && q5.v === '133', q6.v + ' / ' + q5.v);
   t('行没有被撑爆（无溢出）', d.every(x => !x.over), JSON.stringify(d.map(x => x.h)));
 
   /* 2 个班 / 1600×900 的成品图（生产就是这个规模） */
