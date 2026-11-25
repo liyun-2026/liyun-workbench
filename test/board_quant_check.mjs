@@ -131,6 +131,21 @@ try {
   t('分数没被这次改版动过（06班 169 / 05班 139）', q6.v === '169' && q5.v === '139', q6.v + ' / ' + q5.v);
   t('行没有被撑爆（无溢出）', d.every(x => !x.over), JSON.stringify(d.map(x => x.h)));
 
+  /* 2 个班 / 1600×900 的成品图（生产就是这个规模） */
+  const snap = async (name) => {
+    await cdp.eval(`(() => { Board.paintQuant(); })()`);
+    await sleep(300);
+    const r2 = await cdp.eval(`(() => {
+      const p = document.getElementById('bdQuant').closest('.bd-pnl').getBoundingClientRect();
+      return { x: p.x + window.scrollX, y: p.y + window.scrollY, w: p.width, h: p.height };
+    })()`);
+    const res2 = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, fromSurface: true,
+      clip: { x: Math.max(0, r2.x - 10), y: Math.max(0, r2.y - 10), width: r2.w + 20, height: r2.h + 20, scale: 1 } });
+    await writeFile(path.join(OUT, name), Buffer.from(res2.data, 'base64'));
+    console.log('  📸 ' + name);
+  };
+  await snap('qp_prod.png');
+
   /* 空数据：两栏都出「—」，不能空白 */
   const empty = await cdp.eval(`(async () => {
     const c3 = Store.upsert('classes', { name: '空班测试' });
@@ -189,8 +204,8 @@ try {
   })()`);
   const res = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, fromSurface: true,
     clip: { x: Math.max(0, r.x - 10), y: Math.max(0, r.y - 10), width: r.w + 20, height: r.h + 20, scale: 1 } });
-  await writeFile(path.join(OUT, 'qp_prod.png'), Buffer.from(res.data, 'base64'));
-  console.log('  📸 qp_prod.png');
+  await writeFile(path.join(OUT, 'qp_prod_5cls.png'), Buffer.from(res.data, 'base64'));
+  console.log('  📸 qp_prod_5cls.png');
 } finally {
   try { chrome && chrome.kill('SIGKILL'); } catch {}
   try { server.kill('SIGKILL'); } catch {}
