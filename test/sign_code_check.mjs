@@ -198,11 +198,13 @@ try {
     return 'sync.js 零引用 · index.html 零残迹 · rules() 显式 delete code';
   });
   t('上一窗口的码也认（学生抄完到按下去可能刚跨过换码点）', () => {
-    assert(/for \(const q of \[slot, slot - 1\]\)/.test(SRC), 'codeCheck 该同时认当前与上一窗口');
-    return 'for (const q of [slot, slot - 1])';
+    /* ==5.66== 实现改成 extraOk 参数（默认 1 = 当前窗 + 上一窗），口径没变 */
+    assert(/extraOk = 1/.test(SRC), 'codeCheck 默认该认当前与上一窗口（extraOk = 1）');
+    assert(/for \(let k = 0; k <= extraOk; k\+\+\)/.test(SRC), 'codeCheck 该从 slot 往回数 extraOk 个窗口都算 ok');
+    return 'extraOk=1 → slot, slot-1';
   });
   t('==5.26== 输错与过期分开：往前多验 4 窗的旧码判「过期」（==5.28== 30 秒口径即 60~150 秒前），更远的判「不对」', () => {
-    assert(/for \(const q of \[slot - 2, slot - 3, slot - 4, slot - 5\]\)/.test(SRC), '该往前多验 4 个窗口识别过期码');
+    assert(/for \(let k = extraOk \+ 1; k <= extraOk \+ 4; k\+\+\)/.test(SRC), '该往前多验 4 个窗口识别过期码（默认即 slot-2 ~ slot-5）');
     assert(/code: 'BADCODE'/.test(SRC), '输错该回 BADCODE（不再冒充过期）');
     return 'stale→EXPIRED · bad→BADCODE';
   });
