@@ -2502,7 +2502,7 @@ body.board-mode .page.on > *{animation:none}
 .bd-cls .bd-fresh2.warn{color:var(--s-miss)}
 
 /* ════ dash · 信息中枢（深蓝数据墙）══════════════════════════════
-   三列：课程全节次 / 考勤 2×2 大格 + 还没到名单 / 量化前 5 + 通知 3 条。
+   三列：课程全节次 / 考勤 2×2 大格 + 请假·迟到 两栏 + 未到名单 / 量化前 5（带扣分原因）+ 通知 3 条。
    无二维码板块（不承担扫码）、无内部管理内容。 */
 .bdv-dash{
   --ink:#f3efe6; --dim:rgba(243,239,230,.60); --rule:rgba(201,171,124,.22);
@@ -2583,8 +2583,35 @@ body.board-mode .page.on > *{animation:none}
 .bd-row::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--red);flex:none}
 .bd-row.calm{background:rgba(143,194,166,.10);border-color:rgba(143,194,166,.26);color:var(--green)}
 .bd-row.calm::before{display:none}
-/* 右列：量化前 5 + 最新通知 3 条 */
-.bd-quant{display:flex;flex-direction:column;gap:clamp(4px,.75vh,8px);flex:1;min-height:0;
+/* ==5.65== 中列：请假 / 迟到 并排两栏，未到在下面一行（主理人定稿：今日考勤用方案 B）
+   两栏等宽；名单条按组换色 —— 请假蓝、迟到琥珀、未到红，和四宫格的数字颜色一一对应。 */
+.bd-duo{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1.1vw,20px);min-height:0}
+/* 三组纵排时别再 space-between（会把三组拉开成一条条真空隙）——
+   改成贴顶顺排，让最后「未到」那块吃掉剩余高度 */
+.bd-pnl.mid{justify-content:flex-start}
+.bd-pnl.mid>.bd-grp[data-k="miss"]{flex:1 1 auto;min-height:0}
+/* 分到剩余高度后，里面的名单盒也要跟着伸开/收窄 —— fill() 是按 .bd-list 的 clientHeight
+   判断要不要上滚的，盒子没定高它就量不准。⚠️ 必须允许收窄（1 1 auto）：
+   1920×1080 上这组吃满剩余高度；1600×900 上四宫格 + 两栏已经把高度吃掉，
+   不许收就会把名单顶出屏幕。 */
+.bd-pnl.mid>.bd-grp[data-k="miss"]>.bd-miss{flex:1 1 auto;min-height:0}
+/* 矮屏（1600×900 这类笔记本 / 有人把窗口拖小）三组一起压一压，别把「未到」名单挤没 */
+@media (max-height:1000px){
+  .bd-num4 .n{padding:clamp(9px,1.7vh,20px) 6px clamp(7px,1.4vh,16px)}
+  .bd-num4 b{font-size:clamp(32px,3.4vw,60px)}
+  .bd-num4 span{margin-top:clamp(3px,.7vh,8px)}
+  .bd-row{padding:clamp(5px,1.05vh,13px) clamp(9px,.8vw,15px);font-size:clamp(11px,.8vw,15px)}
+  .bd-duo{gap:clamp(8px,.9vw,14px)}
+  .bd-grp{gap:clamp(5px,.9vh,10px)}
+}
+.bd-grp[data-k="leave"] .bd-row{background:rgba(76,150,235,.09);border-color:rgba(76,150,235,.42)}
+.bd-grp[data-k="leave"] .bd-row::before{background:var(--blue)}
+.bd-grp[data-k="late"] .bd-row{background:rgba(233,168,60,.09);border-color:rgba(233,168,60,.42)}
+.bd-grp[data-k="late"] .bd-row::before{background:var(--amber)}
+/* 右列：量化前 5 + 最新通知 3 条
+   ==5.65== 配比从 1:1 改成 3.2:0.7 —— 量化块拉大（主理人要求），通知压到底部只留三行。
+   分数字号、名字字号一字未改，只多了一行「为什么扣分」。 */
+.bd-quant{display:flex;flex-direction:column;gap:clamp(4px,.75vh,8px);flex:3.2;min-height:0;
   justify-content:center}
 .bd-q{display:flex;align-items:center;gap:clamp(8px,.7vw,13px);min-width:0;
   padding:clamp(5px,.85vh,9px) clamp(9px,.75vw,14px);
@@ -2621,7 +2648,26 @@ body.board-mode .page.on > *{animation:none}
 .bd-quant[data-n="3"] .bd-q-v{font-size:clamp(20px,1.65vw,26px);font-weight:800}
 .bd-quant[data-n="4"] .bd-q-v,
 .bd-quant[data-n="5"] .bd-q-v{font-weight:700}
-.bd-news{flex:1;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
+/* ==5.65== 名额行三段式：名次 | 班名 + 扣分原因（纵排） | 分数
+   理由要「站远了也读得出」，1~2 个班时占满卡片剩余高度、均匀铺开；
+   3 个班以上回到紧凑（一行、省略号），不挤爆高度。 */
+.bd-q{align-items:flex-start}
+.bd-q-k,.bd-q-v{padding-top:.16em}
+.bd-q-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bd-q-mid .bd-q-n{flex:none;width:auto}
+.bd-q-why{font-size:clamp(9.5px,.62vw,12px);line-height:1.45;color:var(--dim);letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bd-q-why b{font-weight:400;color:var(--red);opacity:.9;margin-right:.6em}
+.bd-q-why b.up{color:var(--green)}
+.bd-quant[data-n="1"] .bd-q-mid,
+.bd-quant[data-n="2"] .bd-q-mid{height:100%}
+.bd-quant[data-n="1"] .bd-q-why,
+.bd-quant[data-n="2"] .bd-q-why{flex:1;display:flex;flex-direction:column;
+  justify-content:space-evenly;white-space:normal;
+  font-size:clamp(12px,.86vw,16px);line-height:1.6;padding:4px 0 2px}
+.bd-quant[data-n="1"] .bd-q-why b,
+.bd-quant[data-n="2"] .bd-q-why b{display:block;margin:0}
+.bd-news{flex:.7;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,.85vh,9px)}
 .bd-n{display:flex;gap:12px;min-width:0}
 .bd-n-t{flex:0 0 auto;font-size:clamp(10px,.68vw,13px);color:var(--gold-deep);
   font-variant-numeric:tabular-nums;letter-spacing:.06em}
@@ -5092,8 +5138,19 @@ var Icon = {
                   <div class="n lv"><b data-bd="leave">0</b><span>请假</span></div>
                 </div>
               </div>
-              <div class="bd-grp">
-                <h3 class="bd-h">还没到 <span class="bd-tag" data-bd="misstag">—</span></h3>
+              <!-- ==5.65== 请假 / 迟到 并排两栏，「未到」单独在下（原「还没到」改名） -->
+              <div class="bd-duo">
+                <div class="bd-grp" data-k="leave">
+                  <h3 class="bd-h">请假 <span class="bd-tag" data-bd="leavetag">—</span></h3>
+                  <div class="bd-miss"><div class="bd-list"><div class="bd-rows" id="bdLeave"></div></div></div>
+                </div>
+                <div class="bd-grp" data-k="late">
+                  <h3 class="bd-h">迟到 <span class="bd-tag" data-bd="latetag">—</span></h3>
+                  <div class="bd-miss"><div class="bd-list"><div class="bd-rows" id="bdLate"></div></div></div>
+                </div>
+              </div>
+              <div class="bd-grp" data-k="miss">
+                <h3 class="bd-h">未到 <span class="bd-tag" data-bd="misstag">—</span></h3>
                 <div class="bd-miss"><div class="bd-list"><div class="bd-rows" id="bdMiss"></div></div></div>
               </div>
             </div>
@@ -20860,6 +20917,8 @@ const Board = {
     const away = this.leavers(date);
     const miss = [];
     const leaveNames = [];
+    /* ==5.65== 中栏要同时列「请假 / 迟到 / 未到」三组名单，迟到名单原来只数不记名 */
+    const lateNames = [];
     let ok = 0, late = 0, leave = 0;
     students.forEach(st => {
       const r  = bySid[st.id];   // 打卡记录（学生自己在门口打的）
@@ -20878,9 +20937,9 @@ const Board = {
          大屏上「实到 = ok + late」，漏了这一支会被当成「已到」，
          值班老师看一眼以为人都到齐了 —— 这是这一轮最危险的一处。 */
       if (!st2 || st2 === '未到'){ miss.push(st); return; }
-      if (st2 === '迟到') late++; else ok++;
+      if (st2 === '迟到'){ late++; lateNames.push(st.name); } else ok++;
     });
-    return { total: students.length, should: students.length - leave, ok, late, leave, miss, leaveNames,
+    return { total: students.length, should: students.length - leave, ok, late, leave, miss, leaveNames, lateNames,
              slotPid: want, slotName: want === '*' ? '全天' : this.slotLabel(want) };
   },
 
@@ -21023,19 +21082,24 @@ const Board = {
     this.setAll('leavenames', (D.leaveNames || []).length ? cut6(D.leaveNames) : '—');
   },
 
-  /* dash「还没到」名单：≤8 人，超出补一条「等 N 人」；装不下走 fill 的上滚循环 */
+  /* ==5.65== dash 中列三组名单：请假 / 迟到 / 未到。
+     各≤8 人，超出补一条「等 N 人」；盒子装不下走 fill 的上滚循环（老机制不动）。 */
   paintMiss(D){
-    const miss = document.getElementById('bdMiss');
-    if (miss){
-      const names = D.miss.map(s => s.name);
-      const shown = names.slice(0, 8);
-      const html = names.length
-        ? shown.map(n => `<div class="bd-row">${Util.esc(n)}</div>`).join('')
-          + (names.length > 8 ? `<div class="bd-row calm">等 ${names.length} 人</div>` : '')
-        : '<div class="bd-row calm">全部到齐</div>';
-      this.fill(miss, html);
-    }
-    this.setAll('misstag', D.miss.length ? `${D.miss.length} 人` : '全部到齐');
+    const paint = (id, tag, names, emptyTxt, zeroTxt) => {
+      const box = document.getElementById(id);
+      if (box){
+        const shown = names.slice(0, 8);
+        const html = names.length
+          ? shown.map(n => `<div class="bd-row">${Util.esc(n)}</div>`).join('')
+            + (names.length > 8 ? `<div class="bd-row calm">等 ${names.length} 人</div>` : '')
+          : `<div class="bd-row calm">${emptyTxt}</div>`;
+        this.fill(box, html);
+      }
+      this.setAll(tag, names.length ? `${names.length} 人` : zeroTxt);
+    };
+    paint('bdLeave', 'leavetag', (D.leaveNames || []), '没人请假', '无');
+    paint('bdLate', 'latetag', (D.lateNames || []), '没人迟到', '无');
+    paint('bdMiss', 'misstag', D.miss.map(s => s.name), '全部到齐', '全部到齐');
   },
 
   /* dash 底部跑马灯：最新 3 条 ×2 复制（translateX(-50%) 无缝循环）。
@@ -21075,18 +21139,31 @@ const Board = {
   paintQuant(){
     const box = document.getElementById('bdQuant');
     if (!box) return;
+    /* ==5.65== 班名下面带 3 条「为什么扣分」：只取负分流水，最近 3 笔。
+       主理人要求「不要影响现在原有的展示它分数的字体大小」—— 分数 .bd-q-v 的字号一个字没动。 */
+    const whys = clsId => Store.list('quant_log')
+      .filter(x => x && !x._d && x.clsId === clsId && Number(x.delta) < 0)
+      .sort((a, b) => (String(b.date || '') + String(b._u || 0))
+        .localeCompare(String(a.date || '') + String(a._u || 0)))
+      .slice(0, 3);
     const rows = Util.realClasses()
-      .map(c => ({ name: c.name || '', v: Quant.score(c.id) }))
+      .map(c => ({ name: c.name || '', v: Quant.score(c.id), w: whys(c.id) }))
       .sort((a, b) => b.v - a.v).slice(0, 5);
     /* ==5.54== 只有 2 个班时把行撑满整块高度、字放大；3 个班以上回落紧凑密度。
        密度只看 data-n（CSS 里按 1/2/3/4/5 分档），不写死行数。 */
     box.dataset.n = String(rows.length);
+    /* 扣分名目去掉尾巴上的「 5 分钟」和前缀「考勤·」，一屏塞得下 */
+    const whyHtml = w => w.length
+      ? w.map(x => `<b>${Util.esc(String(x.label || '扣分')
+            .replace(/\s*\d+\s*分钟$/, '').replace(/^考勤[·・]/, ''))} ${Number(x.delta)}</b>`).join('')
+      : '<b class="up">暂无扣分</b>';
     const html = rows.length
       ? rows.map((r, i) => {
           const cls = r.v > 100 ? 'up' : (r.v < 100 ? 'down' : '');
           return `<div class="bd-q ${cls}">`
                + `<span class="bd-q-k">${String(i + 1).padStart(2, '0')}</span>`
-               + `<span class="bd-q-n">${Util.esc(r.name)}</span>`
+               + `<span class="bd-q-mid"><span class="bd-q-n">${Util.esc(r.name)}</span>`
+               + `<span class="bd-q-why">${whyHtml(r.w)}</span></span>`
                + `<b class="bd-q-v">${r.v}</b></div>`;
         }).join('')
       : '<div class="bd-q"><span class="bd-q-n" style="color:#8B8072">还没有班级</span></div>';
