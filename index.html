@@ -6071,10 +6071,17 @@ const Store = (() => {
   /** 按 id 逐条合并两个列表：同 id 取修改时间更新的那条 */
   function mergeList(a, b){
     const m = new Map();
+    /* ==5.65== 时间戳口径要认两种：_store 自己写的记录一律有 _u；
+       但服务端 doSign 写的 sign:{date} 记录**只有 recvAt、没有 _u** ——
+       以前两边都按 0 算，`0 > 0` 不成立就「保留本地」，于是同一个学生同一天
+       第二次（下午）打卡永远合并不进来：教务端一直停在上午那条（只有 am 槽），
+       今日打卡卡按下午取 rec 取不到 → 显示「未打卡」，只能教务手动签一下。
+       （2026-11-25 下午主理人报的正是这个。） */
+    const stamp = it => (it && (it._u || it.recvAt)) || 0;
     for (const it of [...(a || []), ...(b || [])]) {
       if (!it || !it.id) continue;
       const prev = m.get(it.id);
-      if (!prev || (it._u || 0) > (prev._u || 0)) m.set(it.id, it);
+      if (!prev || stamp(it) > stamp(prev)) m.set(it.id, it);
     }
     return [...m.values()];
   }

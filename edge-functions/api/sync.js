@@ -1138,6 +1138,12 @@ async function doSignInner(s, me, body) {
     by: 'self',
     /* 断网打卡：记下「什么时候按的」和「什么时候传上来的」，教务一眼能看出差别 */
     recvAt: now,
+    /* ==5.65== 这条 _u 必须有：教务端本地也存着同一个学生的同一 id 记录（上午那条），
+       pull 合并是「_u 大的赢」，服务端这条没有 _u 就算 0 → 合并不进去，
+       同一天**第二次（下午）打卡**永远进不到教务端，卡片一直显示「未打卡」，
+       只能教务手动签（2026-11-25 下午主理人报的 bug）。
+       前端 mergeList 现在也认 recvAt 兜底，但新记录一律带上 _u，别让兜底当主力。 */
+    _u: now,
     offline: offline || undefined,
     slots: Object.assign(slotsPrev, {
       [pidOfSign]: { at, way, status, lateMin, pid: pidOfSign,
@@ -1183,6 +1189,7 @@ async function doSignInner(s, me, body) {
       oldRec.status = status; oldRec.way = 'key'; oldRec.keyId = keyHit.id;
       oldRec.redeemedAt = now;
       oldRec.redeemNote = '位置密钥核销（24 小时窗内）';
+      oldRec._u = now;              /* ==5.65== 同上：改了就要换 _u，否则教务端合并不进来 */
       data['sign:' + keyTarget] = oldArr;
       redeemed = keyTarget;
       const stu2 = (Array.isArray(data.students) ? data.students : []).find(x => x && x.id === sid);

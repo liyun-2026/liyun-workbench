@@ -126,7 +126,7 @@ try {
     Store.upsert('students', { id:'s2', name:'李四', classId:'c1' });
     if (typeof Settings !== 'undefined' && Settings.initRules) Settings.initRules();
     const d = Util.today();
-    Store.set('_attCls', 'c1'); Store.set('_attDate', d); Store.set('_attSlot', 'am');
+    Store.set('_attCls', 'c1'); Store.set('_attDate', d); Store.set('_attSlot', 'am'); Store.set('_attSlotDay', Util.today());
     App.go('att');
     Att.render();
     const opts = [...document.querySelectorAll('#attSlot option')].map(o => o.value);
@@ -138,14 +138,14 @@ try {
   console.log('\n【3/7】上午、下午各记各的，互不覆盖…');
   const split = await cdp.eval(`(() => {
     const d = Store.get('_attDate');
-    Store.set('_attSlot', 'am'); Att.write('s1', '迟到', { lateMin: 5 });
-    Store.set('_attSlot', 'pm'); Att.write('s1', '正常');
+    Store.set('_attSlot', 'am'); Store.set('_attSlotDay', Util.today()); Att.write('s1', '迟到', { lateMin: 5 });
+    Store.set('_attSlot', 'pm'); Store.set('_attSlotDay', Util.today()); Att.write('s1', '正常');
     const am = Att.byStu(d, 'am'), pm = Att.byStu(d, 'pm');
-    Store.set('_attSlot', 'am'); Att.render();
+    Store.set('_attSlot', 'am'); Store.set('_attSlotDay', Util.today()); Att.render();
     const sumAm = document.getElementById('attSum').textContent;
-    Store.set('_attSlot', 'pm'); Att.render();
+    Store.set('_attSlot', 'pm'); Store.set('_attSlotDay', Util.today()); Att.render();
     const sumPm = document.getElementById('attSum').textContent;
-    Store.set('_attSlot', '*'); Att.render();
+    Store.set('_attSlot', '*'); Store.set('_attSlotDay', Util.today()); Att.render();
     const sumAll = document.getElementById('attSum').textContent;
     return { amS1: am['s1'], pmS1: pm['s1'], sumAm, sumPm, sumAll, n: Store.list('att:' + d).length };
   })()`);
@@ -158,13 +158,13 @@ try {
   console.log('\n【4/7】一键全部正常只动当前时段…');
   const oneKey = await cdp.eval(`(() => {
     const d = Store.get('_attDate');
-    Store.set('_attSlot', 'pm'); Att.render();
+    Store.set('_attSlot', 'pm'); Store.set('_attSlotDay', Util.today()); Att.render();
     Att.allNormal();
     const pmS1 = Att.byStu(d, 'pm')['s1'];
     const pmS2 = Att.byStu(d, 'pm')['s2'];
     const amS1 = Att.byStu(d, 'am')['s1'];
     const amS2 = Att.byStu(d, 'am')['s2'];
-    Store.set('_attSlot', 'am'); Att.render();
+    Store.set('_attSlot', 'am'); Store.set('_attSlotDay', Util.today()); Att.render();
     const sum = document.getElementById('attSum').textContent;
     return { pmS1, pmS2, amS1, amS2, sum };
   })()`);
@@ -178,8 +178,8 @@ try {
     const d = Store.get('_attDate');
     // 清掉前面的测试留下来的痕迹，重新摆一个「上午迟到 + 下午正常」
     Store.list('att:' + d).forEach(r => Store.softDelete('att:' + d, r.id));
-    Store.set('_attSlot', 'am'); Att.write('s1', '迟到', { lateMin: 5 });
-    Store.set('_attSlot', 'pm'); Att.write('s1', '正常');
+    Store.set('_attSlot', 'am'); Store.set('_attSlotDay', Util.today()); Att.write('s1', '迟到', { lateMin: 5 });
+    Store.set('_attSlot', 'pm'); Store.set('_attSlotDay', Util.today()); Att.write('s1', '正常');
     Att.syncQuant(d);
     const logs = Store.list('quant_log').filter(x => x._src === 'att' && x.date === d && !x._d);
     Att.syncQuant(d); Att.syncQuant(d);
@@ -235,9 +235,9 @@ try {
     const opts = [...document.querySelectorAll('#attSlot option')].map(o => o.value);
     const labels = [...document.querySelectorAll('#attSlot option')].map(o => o.textContent);
     const d = Store.get('_attDate');
-    Store.set('_attSlot', 's_add');
+    Store.set('_attSlot', 's_add'); Store.set('_attSlotDay', Util.today());
     const pid = Att.SLOTS()[2] && Att.SLOTS()[2].id;
-    Store.set('_attSlot', pid); Att.write('s1', '事假');
+    Store.set('_attSlot', pid); Store.set('_attSlotDay', Util.today()); Att.write('s1', '事假');
     const has = Att.byStu(d, pid)['s1'];
     window.confirm = () => true;
     Settings.slotDel(pid);
