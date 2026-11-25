@@ -19397,33 +19397,91 @@ const StuProfile = {
     const sid = r.id, clsId = r.classId;
     const keys = Object.keys(Store.dump());
 
-    /* 考勤 */
+    /* ==5.71== 我的档案与教务端「学员档案」同一口径（主理人 2026-11-25：
+       「学生的作业、考勤、体重这些出现在学员档案中的，该和学生同步就和学生同步」）。
+       数据全是服务端本来就发给本人的那几个键（att: / hw: / night: / weights / records / exam_*），
+       这次补的是**页面**：考勤与作业的方块日历、晚自习过关、模考总分与三科明细。
+
+       ── 考勤：按 日期+时段 去重（与教务端同一条规则：打卡一条 + 教务补签一条只算一次） ── */
+    const ATT_C = { '正常':'#42b47b', '迟到':'#4a98ed', '病假':'#f9a710', '事假':'#f9a710', '未到':'#ef745f' };
     const cnt = { '正常':0, '迟到':0, '病假':0, '事假':0, '未到':0 };
-    const attRows = [];
-    keys.filter(k => k.indexOf('att:') === 0).sort().reverse().forEach(k => {
+    const seen = new Map();
+    keys.filter(k => k.indexOf('att:') === 0).forEach(k => {
       const d = k.slice(4);
       Store.list(k).filter(x => x.studentId === sid).forEach(x => {
-        if (cnt[x.status] !== undefined) cnt[x.status]++;
-        attRows.push({ date:d, status:x.status });
+        const pid = (typeof Att !== 'undefined') ? Att.pidOf(x) : (x.pid || 'am');
+        const u = d + '|' + pid;
+        const prev = seen.get(u);
+        if (prev && (Number(prev._u) || 0) >= (Number(x._u) || 0)) return;
+        seen.set(u, Object.assign({}, x, { _d: d, _pid: pid }));
       });
     });
-    const tot = attRows.length;
-    const pct = tot ? Math.round(cnt['正常'] / tot * 100) : null;
+    seen.forEach(x => { if (cnt[x.status] !== undefined) cnt[x.status]++; });
+    const attTotal = seen.size;
+    const pct = attTotal ? Math.round(cnt['正常'] / attTotal * 100) : null;
+    const dayMap = new Map();
+    seen.forEach(x => {
+      const o = dayMap.get(x._d) || {};
+      o[x._pid === 'pm' ? 'pm' : 'am'] = x.status;
+      dayMap.set(x._d, o);
+    });
+    const attDays = [...dayMap.entries()].sort((a, b) => a[0] < b[0] ? 1 : -1).slice(0, 15);
 
-    /* 作业（==5.26== 与学生端同口径：以布置为准，三态） */
-    let hwDone = 0, hwMiss = 0, hwPending = 0;
-    /* ==5.64== 作业方块配色：浅底用同色 12%，字用加深版（极浅底上用原色只有 2.5，读不了） */
+    /* ── 作业（以布置为准，三态） ── */
     const HW_C = { '已交':['#42b47b', '#1e6b48'], '未交':['#ef745f', '#a83a26'], '待检查':['#8a8578', '#6b665c'] };
     const hwRows = (typeof Homework !== 'undefined' && Homework.flow)
-      ? Homework.flow(sid, clsId).sort((a,b) => (a.date||'') < (b.date||'') ? 1 : -1) : [];
+      ? Homework.flow(sid, clsId).sort((a, b) => (a.date || '') < (b.date || '') ? 1 : -1) : [];
+    let hwDone = 0, hwMiss = 0, hwPending = 0;
     hwRows.forEach(x => {
       if (x.done === true) hwDone++;
       else if (x.done === false) hwMiss++;
       else hwPending++;
     });
 
-    /* 模考三科强弱 */
+    /* ── 晚自习过关（night:<日期> 一人一条，与学生端其他页同一份键） ── */
+    const nightRows = [];
+    keys.filter(k => k.indexOf('night:') === 0).sort().reverse().forEach(k => {
+      const rec = Store.list(k).find(x => x.studentId === sid);
+      if (!rec || !rec.st) return;
+      nightRows.push({ date: k.slice(6), st: rec.st });
+    });
+    const nightOk = nightRows.filter(x => x.st === '过').length;
+    const nightNo = nightRows.filter(x => x.st === '未过').length;
+
+    /* ── 模考：本班场次 × 本人成绩 ── */
     const mine = Store.list('exam_scores').filter(x => x.studentId === sid);
+    const recOf = {};
+    mine.forEach(x => { recOf[x.sheetId] = x; });
+    const myScores = Store.list('exam_sheets', (a, b) => (a.date || '') < (b.date || '') ? -1 : 1)
+      .filter(sh => sh.clsId === clsId)
+      .map(sh => {
+        const x = recOf[sh.id];
+        const total = x ? EXAM.totalOf(x) : undefined;
+        return {
+          name: sh.name, date: sh.date,
+          read: x && x.scoreRead, news: x && x.scoreNews, talk: x && x.scoreTalk,
+          score: total,
+          tier: total !== undefined ? EXAM.tierTotal(total) : null,
+          pass: total !== undefined ? total >= EXAM.PASS_LINE : null,
+          ug: total !== undefined ? total >= EXAM.UG_LINE : null,
+        };
+      })
+      .filter(x => x.score !== undefined && x.score !== '');
+
+    /* 模考曲线（最近 8 场） */
+    const scoreFew = myScores.slice(-8);
+    let scoreSvg = '';
+    if (scoreFew.length >= 2){
+      const vals = scoreFew.map(x => Number(x.score));
+      const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+      const pts = scoreFew.map((x, i) =>
+        `${(i / (scoreFew.length - 1) * 300 + 10).toFixed(1)},${(110 - (Number(x.score) - min) / span * 90).toFixed(1)}`).join(' ');
+      scoreSvg = `<svg viewBox="0 0 320 120" style="width:100%;height:auto;display:block;margin-top:12px">
+          <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+    }
+
+    /* 三科强弱 */
     const avg = { read:[], news:[], talk:[] };
     mine.forEach(x => ['read','news','talk'].forEach(k => {
       const v = x['score' + k[0].toUpperCase() + k.slice(1)];
@@ -19450,24 +19508,99 @@ const StuProfile = {
           ${this.metric('作业已交', hwDone + ' 次')}
           ${this.metric('作业未交', hwMiss + ' 次')}
           ${hwPending ? this.metric('待检查', hwPending + ' 次') : ''}
+          ${this.metric('晚自习过关', nightOk + (nightNo ? '/' + (nightOk + nightNo) : ''))}
         </div>
       </div>
-      <div class="card wide">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-mic"></use></svg> 三科强弱</h2>
-        ${weak.map(w => `
-          <div class="item">
-            <span class="grow">${w.name}</span>
-            <b class="num" style="font-size:16px">${w.avg === null ? '—' : w.avg.toFixed(1)}</b>
-            ${w.tier ? `<span class="tier ${w.tier.cls}">${w.tier.name}</span>` : ''}
-          </div>`).join('')}
-      </div>
+
       <div class="card">
-        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 考勤明细</h2>
-        <div style="max-height:320px;overflow:auto">${
-          attRows.length ? attRows.slice(0, 40).map(x => `
-            <div class="item"><span class="hint num" style="margin:0;width:56px;flex-shrink:0">${x.date.slice(5)}</span>
-              <span class="grow">${Util.esc(x.status)}</span></div>`).join('')
-          : '<div class="empty">还没有考勤记录</div>'}</div>
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-clipboard"></use></svg> 考勤明细
+          <span class="hint" style="display:inline;margin:0 0 0 6px">最近 15 天</span></h2>
+        <p class="hint" style="margin-top:0">${['正常','迟到','病假','事假','未到'].map(k => k + ' ' + cnt[k]).join(' · ')}</p>
+        ${attDays.length ? `<div class="sqgrid">${attDays.map(([d, o]) => {
+            const am = ATT_C[o.am] || '#efece6', pm = ATT_C[o.pm] || '#efece6';
+            return `<div class="sq-day" title="${d}｜上午 ${o.am || '无记录'} · 下午 ${o.pm || '无记录'}">`
+              + `<i class="u" style="background:${am}"></i><i class="v" style="background:${pm}"></i>`
+              + `<b>${Number(d.slice(8, 10))}</b></div>`;
+          }).join('')}</div>
+          <div class="sqlg">
+            <span><i style="background:#42b47b"></i>正常</span>
+            <span><i style="background:#4a98ed"></i>迟到</span>
+            <span><i style="background:#f9a710"></i>请假</span>
+            <span><i style="background:#ef745f"></i>未到</span>
+            <span><i style="background:#efece6"></i>无记录</span>
+          </div>
+          <p class="hint" style="margin:9px 0 0">上半格＝上午，下半格＝下午${dayMap.size > 15 ? ` · 还有 ${dayMap.size - 15} 天更早的没显示` : ''}</p>`
+          : '<div class="empty">还没有考勤记录</div>'}
+      </div>
+
+      <div class="card">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-memo"></use></svg> 作业
+          <span class="hint" style="display:inline;margin:0 0 0 6px">最近 15 次</span></h2>
+        ${hwRows.length ? `<div class="sqgrid">${hwRows.slice(0, 15).map(h => {
+            const st = h.done === true ? '已交' : (h.done === false ? '未交' : '待检查');
+            const c = HW_C[st] || HW_C['待检查'];
+            return `<div class="sq-hw" style="color:${c[1]};background:${c[0]}1f;border-color:${c[0]}59"
+              title="${h.date}｜${Util.esc(h.text || '作业')}｜${st}"><b>${Number(String(h.date || '').slice(8, 10)) || '—'}</b><span>${st}</span></div>`;
+          }).join('')}</div>
+          <div class="sqlg">
+            <span><i style="background:#42b47b"></i>已交</span>
+            <span><i style="background:#ef745f"></i>未交</span>
+            <span><i style="background:#8a8578"></i>待检查</span>
+          </div>
+          <p class="hint" style="margin:9px 0 0">最近一次：${hwRows[0].date}${hwRows[0].text ? ' · ' + Util.esc(hwRows[0].text) : ''} · ${
+            hwRows[0].done === true ? '已交' : (hwRows[0].done === false ? '未交' : '待检查')}${hwRows.length > 15 ? ` · 还有 ${hwRows.length - 15} 次更早的没显示` : ''}</p>`
+          : '<div class="empty">这个班还没布置过作业</div>'}
+      </div>
+
+      <div class="card">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-moon"></use></svg> 晚自习过关
+          <span class="hint" style="display:inline;margin:0 0 0 6px">最近 15 次</span></h2>
+        ${nightRows.length ? `
+          <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 8px">
+            <b class="num" style="font-size:24px">${nightOk}</b>
+            <span class="hint" style="margin:0">过关${nightNo ? ' · 未过 ' + nightNo + ' 次' : ' · 没有未过'}</span>
+          </div>
+          ${nightRows.slice(0, 15).map(x => `
+            <div class="item"><span class="hint num" style="margin:0;width:60px;flex-shrink:0">${x.date.slice(5)}</span>
+              <span class="grow">${x.st === '过' ? '过关' : (x.st === '未过' ? '未过' : Util.esc(x.st))}</span></div>`).join('')}`
+          : '<div class="empty">还没有晚自习过关记录</div>'}
+      </div>
+
+      <div class="card wide">
+        <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-mic"></use></svg> 模考成绩</h2>
+        ${myScores.length ? (() => {
+          const m = myScores[myScores.length - 1];
+          return `<div class="hero num">${m.score}<span class="unit">分 · ${Util.esc(m.name)}</span></div>
+            <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              ${m.tier ? `<span class="tier ${m.tier.cls}">${m.tier.name}·${m.tier.desc}</span>` : ''}
+              ${m.pass ? '<span class="tier pass">已过合格线 200</span>' : '<span class="tier fail">未过合格线 200</span>'}
+              ${m.ug ? '<span class="tier pass">达本科线 212</span>' : ''}
+            </div>`;
+        })() : ''}
+        ${scoreSvg}
+        ${weak.some(w => w.avg !== null) ? `<div style="margin-top:14px">
+          <p class="hint" style="margin:0 0 6px">三科强弱（历次平均）</p>
+          ${weak.map(w => `
+            <div class="item">
+              <span class="grow">${w.name}</span>
+              <b class="num" style="font-size:16px">${w.avg === null ? '—' : w.avg.toFixed(1)}</b>
+              ${w.tier ? `<span class="tier ${w.tier.cls}">${w.tier.name}</span>` : ''}
+            </div>`).join('')}
+        </div>` : ''}
+        ${myScores.length ? myScores.slice().reverse().map(x => `
+          <div class="item" style="flex-direction:column;align-items:stretch;gap:6px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="grow">${Util.esc(x.name)}<br><span class="hint" style="display:inline;margin:0">${x.date}</span></span>
+              <b class="num" style="flex-shrink:0">${x.score}</b>
+              ${x.tier ? `<span class="tier ${x.tier.cls}">${x.tier.name}</span>` : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <span class="hint" style="text-align:center">朗读 ${x.read === undefined ? '—' : x.read}</span>
+              <span class="hint" style="text-align:center">播报 ${x.news === undefined ? '—' : x.news}</span>
+              <span class="hint" style="text-align:center">评述 ${x.talk === undefined ? '—' : x.talk}</span>
+            </div>
+          </div>`).join('')
+          : '<div class="empty">还没有模考成绩</div>'}
       </div>
       <div class="card">
         <h2><svg class="ic ic-inline" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#ic-chart"></use></svg> 体重</h2>
