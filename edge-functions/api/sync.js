@@ -881,13 +881,20 @@ async function codeOK(sec, code, ts) {
    当前窗 / 上一窗都认（codeOK 原语义）；再往前 4 个窗（1~2.5 分钟前的旧码）认得出是过期；
    全都对不上才是真的输错。学生看到的提示从此不再是含糊的一句「过期了」。
    （==5.28== 换码窗缩到 30 秒后，「往前 4 个窗」覆盖的是 60~150 秒前。） */
-async function codeCheck(sec, code, ts) {
+async function codeCheck(sec, code, ts, extraOk = 1) {
   const want = String(code == null ? '' : code).trim();
   if (!want) return 'bad';
   if (!new RegExp('^\\d{' + CODE_LEN + '}$').test(want)) return 'bad';
   const slot = Math.floor(ts / CODE_WINDOW_MS);
-  for (const q of [slot, slot - 1]) if ((await codeAt(sec, q)) === want) return 'ok';
-  for (const q of [slot - 2, slot - 3, slot - 4, slot - 5]) if ((await codeAt(sec, q)) === want) return 'stale';
+  /* ==5.66== extraOk：从 ts 那个窗口往回再认几个窗口。
+     默认 1（=当前窗 + 上一个窗，最多 60 秒）；断网补传那条路要给到 20（≈10 分钟）。
+     ⚠️ 判码的时间点必须是**学生取到码那一刻**（at），不是请求到达的 now ——
+     学生扫完码要先跑定位（最多 12 秒）、再走一趟跨境请求（1~2 秒），
+     高峰 30 人同时打卡时服务端排队还可能排十几秒；按 now 算就会出现
+     「人明明对着屏幕扫的码，系统说过期了」——2026-11-25 下午大量学生打不上就是这个。
+     at 在下面已经被夹到 [now-90s, now+2min]，放宽不会变成「拿昨天的码来补卡」。 */
+  for (let k = 0; k <= extraOk; k++) if ((await codeAt(sec, slot - k)) === want) return 'ok';
+  for (let k = extraOk + 1; k <= extraOk + 4; k++) if ((await codeAt(sec, slot - k)) === want) return 'stale';
   return 'bad';
 }
 
@@ -1061,7 +1068,10 @@ async function doSignInner(s, me, body) {
      人确实在教室、只是手机定位飘的，找教务要一枚位置密钥，输进来当场算正常。 */
   let way = 'self', dist = null, geoNone = false, geoFar = false;
   if (body.code != null && String(body.code) !== '') {
-    const codeVerdict = await codeCheck(sec, body.code, now);
+    /* 判码按「取到码那一刻」at 算，不按请求到达的 now（见 codeCheck 注释）。
+       断网补传：at 可能是几十分钟前，放宽到 20 个窗口（≈10 分钟）——
+       以前这里按 now 判，补传必然是「过期」，队列永远清不掉（学生以为自己打上了，其实没有）。 */
+    const codeVerdict = await codeCheck(sec, body.code, at, offline ? 20 : 1);
     if (codeVerdict === 'stale')
       return json({ error: '那个码过期了 —— 看一眼现在屏幕上的 6 位数字再输一次', code: 'EXPIRED' }, 400);
     if (codeVerdict !== 'ok')
@@ -1234,7 +1244,13 @@ async function doSignInner(s, me, body) {
     await s.setJSON('org/data', back);
   }
 
-  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote, at, offline: !!offline, redeemed: redeemed || undefined, retried: verified ? undefined : true });
+  /* ==5.66== 把刚写好的那条 sign 记录一起回给客户端：
+     学生会当场看到「已打卡」，不用等下一轮 pull（以前要等最多 15 秒，
+     等不到就以为没打上、再去打一次 —— 主理人反馈的「打上了还显示未打卡」）。
+     客户端拿到用 Store.mergeRemote 静默并进本地（不触发 push，省流量）。 */
+  return json({ ok: true, serverNow: now, date, status, lateMin, dist, way, wrote, at,
+                rec, offline: !!offline, redeemed: redeemed || undefined,
+                retried: verified ? undefined : true });
 }
 
 /* ══ 考试抽签 ══

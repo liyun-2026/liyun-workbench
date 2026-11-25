@@ -8936,10 +8936,17 @@ const Att = {
     const timed = slots.map(s => ({ s, a: toMin(s.boardFrom || s.start), b: toMin(s.boardTo || s.end) }))
                        .filter(x => x.a != null).sort((x, y) => x.a - y.a);
     if (timed.length){
+      /* ==5.66== 时段只配了「开始」没配「结束」时，这条要算到**下一个时段的开始**，
+         不能一见 b == null 就直接 return —— 否则上午那条（07:50 开始、没写结束）
+         会把下午 14:50 之后的每一分钟都吞掉：学生 14:53 打开打卡页，被判成「上午」，
+         而上午那条早就打过了 → 页面就成「已打卡」、没有下午的入口。
+         （2026-11-25 主理人反馈「有些学生没有下午的打卡入口」，这是其中一条成因。） */
       let prev = timed[0].s.id;
-      for (const x of timed){
+      for (let i = 0; i < timed.length; i++){
+        const x = timed[i], next = timed[i + 1];
+        const end = (x.b != null) ? x.b : (next ? next.a : 24 * 60 + 1);
+        if (mins >= x.a && mins < end) return x.s.id;
         if (mins >= x.a) prev = x.s.id;
-        if (mins >= x.a && (x.b == null || mins < x.b)) return x.s.id;
       }
       return prev;
     }
@@ -18545,6 +18552,10 @@ const StuSign = {
     /* 兜底：个别机型权限弹窗挂起，两个回调都不来。等 12 秒就当没取到 ——
        不能让学生攥着手机站在那儿，眼看着时间往迟到那边走。 */
     this._geoTo = setTimeout(() => done({ fail: true }), 12000);
+    /* ==5.66== 码已经取到 40 秒以上就别再等定位了 —— 码 30 秒一换，
+       越等越容易被判过期（以前「码过期了，再扫一次」十有八九是等定位等出来的）。
+       定位本来就是「证据」不是关卡，取不到照样打得上。 */
+    if (this._codeAt && Date.now() - this._codeAt > 40000) return done({ fail: true });
     if (!navigator.geolocation) return done({ fail: true });
     try {
       navigator.geolocation.getCurrentPosition(
@@ -18637,8 +18648,11 @@ const StuSign = {
                  ? '已记录（待核）—— 位置没对上，教务会核对。人在教室里可以找教务要位置密钥当场改'
                  : '已记录，等教务核对（这不算缺卡）')
              : `打上了，${this.hm(payload.at)} · 正常`);
-      await Sync.pull();            // 把服务端写好的 att / sign 拉回来
-      this._stage = '';
+      /* ==5.66== 服务端把刚写好的那条记录一起回来了 —— 先静默并进本地，
+         圈立刻变「已打卡」，不用等这一轮 pull（弱网下 pull 拉不动也不会显示成没打）。
+         用 mergeRemote 而不是 upsert：它不触发 push，省一次 182KB 上行。 */
+      if (j.rec) Store.mergeRemote({ ['sign:' + (j.date || Util.today())]: [j.rec] });
+      await Sync.pull();            // 把服务端写好的 att / sign 拉回来      this._stage = '';
       this._geo = null;
       this._scanned = '';           // 码已经用掉了，别留着下一轮又替他填上
       this._code = '';
@@ -18700,8 +18714,18 @@ const StuSign = {
       try {
         const j = await Auth.call('sign', p);
         this.syncClock(j.serverNow);
+        if (j.rec) Store.mergeRemote({ ['sign:' + (j.date || Util.today())]: [j.rec] });
         this._saveQ(this.queue().filter(x => x !== p));
-      } catch(e){ return; }        // 还连不上，下次再试
+      } catch(e){
+        /* ==5.66== 码真过期了就别死循环重试（以前 catch 一律 return，
+           这几条永远躺在队列里、学生以为打了其实没打）—— 清掉并说清楚 */
+        if (e.code === 'EXPIRED' || e.code === 'BADCODE'){
+          this._saveQ(this.queue().filter(x => x !== p));
+          UI.toast('断网太久，那枚打卡码已经过期了 —— 请重新打一次');
+          continue;
+        }
+        return;        // 还连不上，下次再试
+      }
     }
     await Sync.pull();
     UI.toast('断网时记的打卡已补传（按当时按下的时间算的）');
