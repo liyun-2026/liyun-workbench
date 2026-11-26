@@ -23,12 +23,22 @@
 <link rel="icon" href="favicon.ico?v=31" sizes="any">
 <link rel="icon" href="favicon-192.png?v=31" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<!-- ==5.73== 首屏关键资源提前抓：① 登录门三张图原本埋在下面那块超长 <style> 里，
+     浏览器要等整段 CSS 解析完才发现 → 首访时门先出一片纯色再把影像贴上来。
+     ② 思源宋体标题是 font-display:block，不提前抓就是「标题先空白 1~3 秒」。
+     五个文件都在 SW 的 SHELL 里，第二次打开本来就是本地读盘，这行不产生额外请求。 -->
+<link rel="preload" as="image" href="img/gate-2.webp" type="image/webp" media="(max-width:1099px)">
+<link rel="preload" as="image" href="img/gate-4.webp" type="image/webp" media="(max-width:1099px)">
+<link rel="preload" as="image" href="img/seal.png" type="image/png">
+<link rel="preload" as="font" href="assets/NotoSerifSC-Titles-400.woff2" type="font/woff2" crossorigin>
+<link rel="preload" as="font" href="assets/NotoSerifSC-Titles-500.woff2" type="font/woff2" crossorigin>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="砺蕴">
 <meta name="theme-color" content="#f6f5f2">
 <!-- ==5.35== 全端口浅色：深色模式已整体移除，theme-color 只剩浅色一枚，登录后由 Port.syncChrome() 按端口改写。 -->
-<!-- 字体已内嵌，无需再 preload（preload 一个用不上的字体会被浏览器警告） -->
+<!-- 行书标题（LiYunXingShu）是 base64 内嵌的，不占请求，无需 preload；
+     上面 preload 的是思源宋体两档 —— 那是外部 woff2，不提前抓会先空白。 -->
 
 <style>
 /* ==== 主题变量 · 极简·暖（浅色默认，跟随系统切深色） ==== */
