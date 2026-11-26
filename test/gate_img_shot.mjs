@@ -1,7 +1,7 @@
 /**
  * ==5.72== 登录门底图外置后的真机渲染核验
  *   node test/gate_img_shot.mjs [端口]
- * 图片从 base64 内嵌改成 img/*.webp|png 之后，必须确认真的画出来了 ——
+ * 图片从 base64 内嵌改成 img/*.jpg|png 之后，必须确认真的画出来了 ——
  * 这类改动最容易「代码对、图不显示」，所以这里同时读 DOM 与资源加载记录。
  */
 import { spawn } from 'node:child_process';
@@ -72,9 +72,9 @@ try {
     return { list, b2, b4,
       leftBase64: (document.documentElement.innerHTML.match(/data:image\\/[a-z+]*;base64,/g) || []).length };
   })()`);
-  t('登录门两张底图按 webp 路径加载', /gate-2\.webp/.test(res.b2) && /gate-4\.webp/.test(res.b4), res.b2.slice(0, 60) + ' | ' + res.b4.slice(0, 60));
+  t('登录门两张底图按原始 JPEG 路径加载（未重压）', /gate-2\.jpg/.test(res.b2) && /gate-4\.jpg/.test(res.b4), res.b2.slice(0, 60) + ' | ' + res.b4.slice(0, 60));
   t('两张底图都真的下下来了（HTTP 200 且有字节）',
-    res.list.filter(x => /gate-[24]\.webp/.test(x.name) && x.status === 200 && x.size > 0).length === 2, JSON.stringify(res.list));
+    res.list.filter(x => /gate-[24]\.jpg/.test(x.name) && x.status === 200 && x.size > 0).length === 2, JSON.stringify(res.list));
   /* 印章图用在桌面门户条与页脚（≥1100 才显示），手机视口下不在 DOM 可视区 —— 直接解码验文件本身 */
   const seal = await cdp.eval(`new Promise(r => { const i = new Image();
     i.onload = () => r({ ok: true, w: i.naturalWidth, h: i.naturalHeight });
@@ -100,6 +100,30 @@ try {
   try { chrome && chrome.kill('SIGKILL'); } catch {}
   try { server.kill('SIGKILL'); } catch {}
 }
+/* ── 硬约束：这三张图必须是「原封不动的原始字节」 ──
+   2026-11-26 主理人明令：「不要为了流畅度把该正常显示的东西压了」。
+   曾经把它们转成 WebP q78（40KB/19KB），门第 2 屏 PSNR 只有 38.3dB、
+   最大像素差 61/255 —— 凑近看得出。这轮改回原始 JPEG 字节。
+   下面的 md5 取自 v166（优化前）内联 base64 解码后的字节，是唯一基准；
+   谁再"顺手压一下"，这里会直接红。 */
+{
+  const { readFileSync } = await import('node:fs');
+  const { createHash } = await import('node:crypto');
+  const LOCK = {
+    'img/gate-2.jpg': '9fed95629809ce10f71903cbb635f9f9',
+    'img/gate-4.jpg': '548bc491b13e750da3266737f41c1353',
+    'img/seal.png':   '42df83fa71555eaed3ddbcb6ef62fd0c',
+  };
+  for (const [f, want] of Object.entries(LOCK)) {
+    try {
+      const got = createHash('md5').update(readFileSync(path.join(dir, f))).digest('hex');
+      t(`${f} 与优化前逐字节相同（未重压）`, got === want, `当前 ${got} ≠ 基准 ${want}`);
+    } catch (e) {
+      t(`${f} 与优化前逐字节相同（未重压）`, false, String(e.message || e));
+    }
+  }
+}
+
 const bad = R.filter(x => !x.ok);
 R.forEach(x => console.log((x.ok ? '  ✅ ' : '  ❌ ') + x.n + (x.ok || !x.ex ? '' : '   → ' + x.ex)));
 console.log('\n' + (bad.length ? `❌ ${bad.length} / ${R.length}` : `✅ 全部通过（${R.length} 项）`));

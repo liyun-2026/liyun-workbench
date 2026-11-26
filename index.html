@@ -27,8 +27,8 @@
      浏览器要等整段 CSS 解析完才发现 → 首访时门先出一片纯色再把影像贴上来。
      ② 思源宋体标题是 font-display:block，不提前抓就是「标题先空白 1~3 秒」。
      五个文件都在 SW 的 SHELL 里，第二次打开本来就是本地读盘，这行不产生额外请求。 -->
-<link rel="preload" as="image" href="img/gate-2.webp" type="image/webp" media="(max-width:1099px)">
-<link rel="preload" as="image" href="img/gate-4.webp" type="image/webp" media="(max-width:1099px)">
+<link rel="preload" as="image" href="img/gate-2.jpg" type="image/jpeg" media="(max-width:1099px)">
+<link rel="preload" as="image" href="img/gate-4.jpg" type="image/jpeg" media="(max-width:1099px)">
 <link rel="preload" as="image" href="img/seal.png" type="image/png">
 <link rel="preload" as="font" href="assets/NotoSerifSC-Titles-400.woff2" type="font/woff2" crossorigin>
 <link rel="preload" as="font" href="assets/NotoSerifSC-Titles-500.woff2" type="font/woff2" crossorigin>
@@ -1208,7 +1208,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
 
   /* 屏 2 · 传媒高校录音棚剪影（==5.16== 用户 2026-10-26 验收方案二：AI 底图 base64 内嵌，
      上部压暗保字 / 中段透光 / 下缘渐白融入 #fff 圆角登录板；金杠 + 衬线标题见 .pbk） */
-  .gm-s2{background:url(img/gate-2.webp) center 45%/cover no-repeat}
+  .gm-s2{background:url(img/gate-2.jpg) center 45%/cover no-repeat}
   .gm-s2::before,.gm-s4::before{content:"";position:absolute;inset:0;
     background:linear-gradient(180deg,rgba(15,21,38,.80) 0%,rgba(15,21,38,.42) 26%,
       rgba(24,33,56,.10) 48%,rgba(24,33,56,.06) 62%,rgba(64,79,116,.42) 84%,
@@ -1231,7 +1231,7 @@ body.stu .punch .p-ring::before{border-color:rgba(91,127,166,.42)}
   .gm-pol.p3{right:22px;top:34px;transform:rotate(4deg)}
 
   /* 屏 4 · 传媒高校摄影棚剪影（==5.16== 同方案二；文案沿用「梦开始的地方」屏） */
-  .gm-s4{background:url(img/gate-4.webp) center 62%/cover no-repeat}
+  .gm-s4{background:url(img/gate-4.jpg) center 62%/cover no-repeat}
 
   /* 左上品牌胶囊：绝对定位在轮播外层，不随滚动 */
   .gm-brand{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:14px;z-index:4;
