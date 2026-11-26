@@ -229,6 +229,21 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .chip-on{background:var(--accent);color:var(--btn-text);border-color:transparent}
 .chip-no{border-color:#c25650;color:#c25650}
 .chip:active{opacity:.7}
+/* ==5.75== 「班委」来源小标：这条交没交不是教务点的，是班委在学生端登记的。
+   做得极轻 —— 一行 10.5px 淡金字，跟在姓名后面，不抢「已交/未交」的视线。 */
+.hk-src{margin-left:6px;font-size:10.5px;line-height:1;padding:2px 5px;border-radius:4px;
+  color:var(--gold);border:1px solid var(--gold);background:transparent;
+  vertical-align:1.5px;white-space:nowrap}
+/* ==5.75== 「账号没挂到学籍」提示卡：暖黄细框，不报错红 —— 这不是学生的错，
+   是要教务去补挂。三行话讲清「什么现象 / 为什么 / 找谁怎么弄」。 */
+.roster-miss{border:1px solid var(--gold);border-radius:12px;padding:14px 16px;background:var(--tint,#f4f2ed)}
+/* ⚠️ 只让**第一句标题**占整行，正文里的 <b> 必须照常内联 ——
+   写成 .roster-miss b 会把「学生账号」「补挂到名册里的本人档案」这些词
+   全部挤成独立一行，读起来像断句错乱（2026-11-26 出图时实锤）。 */
+.roster-miss>b:first-child{display:block;font-size:15px;margin-bottom:6px}
+.roster-miss p{margin:0 0 6px;font-size:13.5px;color:var(--text-dim);line-height:1.7}
+.roster-miss p:last-child{margin-bottom:0}
+.roster-miss b{font-weight:600;color:var(--text)}
 /* ==5.38== 「系统」金框徽章：白卡风格克制 —— 只描一圈金线、金字，不填底。
    挂在账号列表的 sys 行（老师管理 / 学生账号）与设置页「系统工作号」区块。 */
 .sys-badge{
@@ -8370,7 +8385,48 @@ const Roster = {
           </div>`).join('')
           : '<p class="hint" style="margin:0 0 8px">这个班还没有班干部。</p>'}
         <button class="btn ghost" onclick="Roster.addOfficer()">＋ 加一个职务</button>
+        <button class="btn ghost" onclick="Roster.checkOfficers()" style="margin-left:6px">检查能不能用</button>
+        <div id="officerChk" style="margin-top:10px"></div>
       </div>`;
+  },
+
+  /* ==5.75== 班干部自检（主理人 2026-11-26「两个班委看不到统计入口」的直接产物）──
+     导致「学生端入口消失」有四种原因，以前它们在界面上长得一模一样：
+       ① 职务名没填  ② 没选是哪位学员  ③ 选的学员已不在名册（重导过）
+       ④ 学员没有学生账号 / 账号没挂到档案
+     四种都不报错、不提示，教务只能干瞪眼。这里一次全摆出来，并写清怎么修。 */
+  async checkOfficers(){
+    const box = document.getElementById('officerChk');
+    if (!box) return;
+    const clsId = Store.get('_rosterCls');
+    const list = this.officers(clsId);
+    if (!list.length){ box.innerHTML = '<p class="hint" style="margin:0">这个班还没有班干部。</p>'; return; }
+    box.innerHTML = '<p class="hint" style="margin:0">正在核对账号…</p>';
+    let users = [];
+    try {
+      const j = await Auth.call('users', { op: 'list-light' });
+      users = (j && j.users) || [];
+    } catch(e){
+      box.innerHTML = '<p class="hint" style="margin:0">查不到账号列表：' + Util.esc(e.message || '网络问题') + '</p>';
+      return;
+    }
+    const all = Store.list('students');
+    box.innerHTML = list.map(o => {
+      const s = all.find(x => x && x.id === o.studentId);
+      const acc = users.filter(u => u && u.role === 'student' && u.studentId && u.studentId === o.studentId);
+      const bad = [];
+      if (!String(o.title || '').trim()) bad.push('职务名没填 —— 空名字不算班干部，权限不生效');
+      if (!o.studentId) bad.push('还没选是哪位学员');
+      else if (!s) bad.push('指定的学员名册里已经没有了（名册重导过？）—— 重新选一次就好');
+      if (o.studentId && s && !acc.length) bad.push('这位学员没有学生账号，或账号没挂到他档案上 —— 去「学生账号」页点「一键为学生建账号」补挂');
+      return `<div style="padding:9px 0;border-top:1px solid var(--line)">
+        <b>${Util.esc(o.title || '（职务名空着）')}</b>
+        <span style="color:var(--text-dim)"> · ${s ? Util.esc(s.name) : '（查不到这位学员）'}</span>
+        ${bad.length
+          ? '<div style="margin-top:4px;font-size:13px;line-height:1.7;color:#b4452f">' + bad.map(t => '· ' + Util.esc(t)).join('<br>') + '</div>'
+          : '<div style="margin-top:4px;font-size:13px;color:#2e7d4f">正常 —— 学生端能看到登记入口。</div>'}
+      </div>`;
+    }).join('');
   },
   addOfficer(){
     const clsId = Store.get('_rosterCls');
@@ -13330,9 +13386,64 @@ const Homework = {
     }
     const dEl = document.getElementById('hwDate');
     if (!dEl.value) dEl.value = Util.today();
+    /* ==5.76== 开班就把班委近几天的登记并进来（只跑一次，结果会写回云端） */
+    if (Auth.canEdit() && !this._mergedOnce){
+      this._mergedOnce = true;
+      const n = this.mergeOfficerIntoChk(7);
+      if (n){
+        UI.toast('已把班委近 7 天的 ' + n + ' 条登记并入今日检查');
+        if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
+      }
+    }
     this.renderPick();
     this.renderChk();
     this.renderList();
+  },
+
+  /* ==5.76== 把班委的登记并进教务这本账 ──
+     主理人 2026-11-26：「班委和我是同一本检查记录，我的记录可以覆盖班委的，
+     同时将前两天班委的记录同步一下给我」。
+     从此 hwchk:{日期} 是唯一账本：
+       · 教务点过的 —— 一个字不改（他的口径优先）
+       · 教务没点过的 —— 按班委那本（hw:{作业id}）折成一人一条补进来，盖 by/src 标记来源
+     只补空白、绝不覆盖；重复跑没有副作用（已有的人直接跳过）。
+     班委只点了当天一部分作业时不下结论，宁可留在「未登记」，也不冤枉学生。 */
+  mergeOfficerIntoChk(days = 7){
+    if (!Auth.canEdit()) return 0;
+    const dayStr = (offset) => {
+      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - offset);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    };
+    let n = 0;
+    for (let i = 0; i < days; i++){
+      const d = dayStr(i);
+      const hws = Store.list('homework').filter(h => h && !h._d && h.date === d);
+      if (!hws.length) continue;
+      const have = new Set(Store.list('hwchk:' + d).map(x => x.studentId));
+      const perCls = {};                                    /* 每个班当天有几次作业 */
+      hws.forEach(h => { perCls[h.clsId] = (perCls[h.clsId] || 0) + 1; });
+      const acc = {};
+      hws.forEach(h => {
+        Store.list('hw:' + h.id).forEach(r => {
+          if (!r || !r.studentId) return;
+          const o = acc[r.studentId] || (acc[r.studentId] = { yes: 0, no: 0, clsId: h.clsId, by: '' });
+          if (r.done === 1 || r.done === true) o.yes++; else o.no++;
+          if (r.by) o.by = r.by;
+        });
+      });
+      Object.keys(acc).forEach(sid => {
+        if (have.has(sid)) return;                          /* 教务点过的，绝不覆盖 */
+        const o = acc[sid], total = perCls[o.clsId] || 0;
+        const v = o.no > 0 ? 0 : (total && o.yes >= total ? 1 : null);
+        if (v === null) return;                             /* 只点了一部分，不下结论 */
+        Store.upsert('hwchk:' + d, {
+          studentId: sid, classId: o.clsId, date: d, done: v,
+          by: o.by || '', src: 'officer',
+        });
+        n++;
+      });
+    }
+    return n;
   },
 
   /* ── 今日作业检查（教务端）──
@@ -13367,29 +13478,77 @@ const Homework = {
     if (!clsId){ box.innerHTML = '<div class="empty">先在「名册」里建一个班</div>'; setPct(0, 0); return; }
     const students = Store.list('students', Util.byName).filter(s => s.classId === clsId);
     if (!students.length){ box.innerHTML = '<div class="empty">这个班还没有学员</div>'; setPct(0, 0); return; }
-    const chk = {};
-    Store.list('hwchk:' + date).forEach(x => { chk[x.studentId] = x.done; });
-    let done = 0, miss = 0;
-    students.forEach(s => { if (chk[s.id] === 1) done++; else if (chk[s.id] === 0) miss++; });
+    /* ── ==5.75== 两本账合并读 ──
+       主理人 2026-11-26：「晚上班委统计完当晚作业，我这边还是空白，没有统计的痕迹」。
+       根因：同一件事在系统里有两本账 ——
+         · 教务在这块逐人点 → hwchk:{日期}（一人一天一条）
+         · 班委在学生端按作业逐人点 → hw:{作业id}（一人一作业一条）
+       以前这块只读 hwchk:，于是班委登记得再全，教务这里照样一片空白。
+       现在的口径：**教务自己点过的以教务为准**（他才是最终口径），
+       教务没点过的就看班委那本；两本都没有才算「未登记」。 */
+    const chkRec = {};
+    Store.list('hwchk:' + date).forEach(x => { chkRec[x.studentId] = x; });
+    const hws = Store.list('homework').filter(h => h && h.clsId === clsId && h.date === date);
+    const nHw = hws.length;
+    const off = {};                       /* sid → { yes, no, by:Set } 班委那本 */
+    hws.forEach(h => {
+      Store.list('hw:' + h.id).forEach(r => {
+        if (!r || !r.studentId) return;
+        const o = off[r.studentId] || (off[r.studentId] = { yes: 0, no: 0, by: new Set() });
+        if (r.done === 1 || r.done === true) o.yes++; else o.no++;
+        if (r.by) o.by.add(r.by);
+      });
+    });
+    /* 班委那本的三态：有一项点名「没交」就是未交；当天的作业全点过才算已交；
+       只点了一部分不硬下结论（宁可留在「未登记」，也不冤枉学生）。 */
+    const offVal = (sid) => {
+      const o = off[sid];
+      if (!o) return undefined;
+      if (o.no > 0) return 0;
+      return (nHw && o.yes >= nHw) ? 1 : undefined;
+    };
+    const valOf = (sid) => {
+      const rec = chkRec[sid];
+      /* hwchk 里这条如果是「班委并进来的」（带 by 或 src=officer），照样算班委来源 ——
+         教务点过的那条会把 by/src 清掉，标签自动消失。 */
+      if (rec) return { v: rec.done, src: (rec.by || rec.src === 'officer') ? 'officer' : 'self' };
+      const v = offVal(sid);
+      return v === undefined ? { v: undefined, src: '' } : { v, src: 'officer' };
+    };
+    let done = 0, miss = 0, fromOff = 0;
+    const byNames = new Set();
+    students.forEach(s => {
+      const r = valOf(s.id);
+      if (r.v === 1 || r.v === true) done++;
+      else if (r.v === 0 || r.v === false) miss++;
+      if (r.src === 'officer'){
+        fromOff++;
+        const nm = (chkRec[s.id] && chkRec[s.id].by) || '';
+        if (nm) byNames.add(nm);
+        else if (off[s.id] && off[s.id].by) off[s.id].by.forEach(b => byNames.add(b));
+      }
+    });
     setPct(students.length, done);
     box.innerHTML =
       `<p class="hint" style="margin:0 0 8px">${Util.esc(Util.clsName(clsId))} · ${date} · 未交 <b class="num">${miss}</b> · 未登记 <b class="num">${students.length - done - miss}</b></p>` +
+      (fromOff ? `<p class="hint" style="margin:0 0 8px">其中 <b class="num">${fromOff}</b> 人来自<b>班委登记</b>${byNames.size ? '（' + [...byNames].map(x => Util.esc(x)).join('、') + '）' : ''} —— 你在这块点一下会覆盖班委的记录。</p>` : '') +
       students.map(s => {
-        const v = chk[s.id];
+        const r = valOf(s.id), v = r.v;
         /* ==5.27== 授课老师只读：检查结果看得见，「已交 / 未交」点不动 */
         if (!Auth.canEdit()){
-          const done = v === 1 || v === true;            /* done 存储有数字也有布尔（与 flow 同口径） */
-          const st = done ? '已交' : (v === 0 || v === false) ? '未交' : '未登记';
-          const cls = done ? 'chip-on' : (v === 0 || v === false) ? 'chip-no' : '';
+          const done2 = v === 1 || v === true;            /* done 存储有数字也有布尔（与 flow 同口径） */
+          const st = done2 ? '已交' : (v === 0 || v === false) ? '未交' : '未登记';
+          const cls = done2 ? 'chip-on' : (v === 0 || v === false) ? 'chip-no' : '';
           return `<div class="item" role="listitem">
             <span class="grow">${Util.esc(s.name)}</span>
             <span class="chip ${cls}" style="pointer-events:none">${st}</span>
           </div>`;
         }
+        const on = v === 1, no = v === 0;
         return `<div class="item" role="listitem">
-          <span class="grow">${Util.esc(s.name)}</span>
-          <button class="chip ${v === 1 ? 'chip-on' : ''}" onclick="Homework.markChk('${s.id}',1)">已交</button>
-          <button class="chip ${v === 0 ? 'chip-no' : ''}" onclick="Homework.markChk('${s.id}',0)">未交</button>
+          <span class="grow">${Util.esc(s.name)}${r.src === 'officer' ? '<span class="hk-src">班委</span>' : ''}</span>
+          <button class="chip ${on ? 'chip-on' : ''}" onclick="Homework.markChk('${s.id}',1)">已交</button>
+          <button class="chip ${no ? 'chip-no' : ''}" onclick="Homework.markChk('${s.id}',0)">未交</button>
         </div>`;
       }).join('');
   },
@@ -13400,9 +13559,22 @@ const Homework = {
     if (!s) return;
     const date = this.chkDate(), key = 'hwchk:' + date;
     const rec = Store.list(key).find(x => x.studentId === sid);
-    if (rec && rec.done === done){ Store.softDelete(key, rec.id); }   // 再点一下 = 取消
-    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, classId: s.classId, date, done });
+    const off = rec && rec.done === done;
+    if (off){ Store.softDelete(key, rec.id); }   // 再点一下 = 取消
+    else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, classId: s.classId, date, done, by: '', src: '' });
+    /* ==5.75== 顺手把第二本账（hw:{作业id}）也写掉。
+       那一本是班委登记、「已布置」列表的「已交 N · 未交 M」在读的地方。
+       只写 hwchk: 的话，教务在这儿点完，作业列表照样显示 0 —— 反过来也是空白。 */
+    Store.list('homework').filter(h => h && h.clsId === s.classId && h.date === date).forEach(h => {
+      const hk = 'hw:' + h.id;
+      const hr = Store.list(hk).find(x => x.studentId === sid);
+      if (off){ if (hr) Store.softDelete(hk, hr.id); }
+      else Store.upsert(hk, { id: hr ? hr.id : null, studentId: sid, done });
+    });
     this.renderChk();
+    this.renderList();
+    /* 立刻推，不等 4 秒防抖 —— 教务点完常常直接锁屏走人 */
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
   },
 
   /** 一人一份的作业流水（==5.26== 走查 R2 重做：以「布置」为准）。
@@ -13535,6 +13707,8 @@ const Homework = {
     if (next === null){ if (rec) Store.softDelete(key, rec.id); }
     else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, done: next });
     this.render();
+    /* ==5.75== 同上：点完就推，别指望 4 秒后那次防抖 */
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
   },
 
   add(){
@@ -19633,6 +19807,13 @@ const StuHw = {
     this.renderEntry();
     const el = document.getElementById('stuHwList');
     if (!el) return;
+    /* ==5.75== 没关联到班级的学生，一条作业都不该看见。
+       Homework.flow 的过滤条件是「没给 clsId 就不筛班级」（教务侧导流水要用这条路），
+       学生端如果 clsId 是空的就会把**全校**作业都端出来 —— 2026-11-26 出图时实锤。 */
+    if (!Stu.clsId()){
+      el.innerHTML = '<div class="empty">还没有关联到班级，看不到作业</div>';
+      return;
+    }
     const rows = (typeof Homework !== 'undefined' && Homework.flow)
       ? Homework.flow(Stu.sid(), Stu.clsId()).sort((a,b) => (a.date||'') < (b.date||'') ? 1 : -1) : [];
     /* ==5.26== 走查 R2：显示作业内容原文 + 截止日期（就是布置时填的那个日期）+
@@ -19655,6 +19836,23 @@ const StuHw = {
     const card = document.getElementById('stuHwEntryCard');
     const box = document.getElementById('stuHwEntry');
     if (!box) return;
+    /* ==5.75== 账号没跟名册对上时，明说原因 —— 不再整块静默消失。
+       主理人 2026-11-26：「还有两个班委他看不到统计的入口」。
+       查下来是这个班子的账号 studentId 空着、或指向已经删掉的旧档案（名册重导过），
+       服务端按「只看自己」把 officers/students/homework 全滤成空，前端什么都不知道，
+       于是入口凭空没了 —— 学生以为系统坏了，教务也查不出所以然。 */
+    const sid = Stu.sid();
+    const inRoster = !!sid && Store.list('students').some(x => x && x.id === sid);
+    if (!inRoster){
+      if (card) card.style.display = '';
+      box.innerHTML = `<div class="roster-miss">
+        <b>这台账号还没和名册里的学籍对上</b>
+        <p>所以你看不到自己的作业，也看不到班干部的登记入口。这不是你操作的问题。</p>
+        <p>把这个提示截屏发给教务老师，请他在电脑上：<b>学生账号</b> 页 →「一键为学生建账号」，
+          或把你这台账号<b>补挂到名册里的本人档案</b>。弄好之后重新登录就正常了。</p>
+      </div>`;
+      return;
+    }
     const title = (typeof StuQuant !== 'undefined') ? StuQuant.myTitle() : '';
     if (card) card.style.display = title ? '' : 'none';
     if (!title){ box.innerHTML = ''; return; }
@@ -19692,6 +19890,10 @@ const StuHw = {
     if (next === null){ if (rec) Store.softDelete(key, rec.id); }
     else Store.upsert(key, { id: rec ? rec.id : null, studentId: sid, done: next });
     this.renderEntry();
+    /* ==5.75== 点完立刻推。以前只靠 Store.set 的 4 秒防抖 —— 班委统计完往往
+       当场就锁屏/退出，防抖没到点，那几个 ✓ 就只留在他的手机里，教务那边永远空白。
+       push() 内部有 _busy 排队，连点几下不会打爆。 */
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
   }
 };
 
