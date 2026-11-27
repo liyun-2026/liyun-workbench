@@ -227,6 +227,38 @@ try {
   })()`);
   ok(r6.after === r6.before, '重复跑不会把同一个学生记两遍', JSON.stringify(r6));
 
+  section('▶ 7. 班干部入口：昨天的作业今天还能不能登记（连两晚点不了的现场）');
+  const r7 = await cdp.eval(`(() => {
+    const dayOff = (n) => { const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+n);
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+    const y = dayOff(-1), t = dayOff(0);
+    /* 昨天布置的作业（教务填的「截止日期」其实是布置日）—— 班委昨天没来得及点 */
+    const hwY = Store.upsert('homework', { clsId: ${JSON.stringify(seeded.cls)}, date: y, text: '昨天的绕口令', abbr: '绕口' });
+    /* 把今天那条删掉，还原「今晚教务还没布置 / 或者布置时日期填成了明天」的现场 */
+    Store.list('homework').filter(h => h && h.clsId === ${JSON.stringify(seeded.cls)} && h.date === t)
+      .forEach(h => Store.softDelete('homework', h.id));
+    const oldSid = Stu.sid, oldCls = Stu.clsId, oldTitle = StuQuant.myTitle;
+    Stu.sid = () => ${JSON.stringify(seeded.ids[0])};
+    Stu.clsId = () => ${JSON.stringify(seeded.cls)};
+    StuQuant.myTitle = () => '学习委员';
+    StuHw._entryDate = '';
+    StuHw.renderEntry();
+    const box = document.getElementById('stuHwEntry');
+    const txt = box ? box.innerText.replace(/\\s+/g, ' ') : '';
+    const sel = box ? box.querySelector('select') : null;
+    const opts = sel ? [...sel.options].map(o => o.value) : [];
+    /* 而且真点一下要落账 */
+    let markOk = null;
+    if (txt.indexOf('绕口') >= 0) { StuHw.mark(hwY.id, ${JSON.stringify(seeded.ids[1])}); markOk = !!Store.list('hw:' + hwY.id).find(x => x.studentId === ${JSON.stringify(seeded.ids[1])}); }
+    StuSid: { }
+    Stu.sid = oldSid; Stu.clsId = oldCls; StuQuant.myTitle = oldTitle;
+    return { txt: txt.slice(0, 260), opts, def: sel ? sel.value : '', markOk, today: t, y };
+  })()`);
+  ok(r7.txt.indexOf('绕口') >= 0, '今天没作业时，昨天的作业依然摆在入口里（这就是连两晚点不了的解）', r7.txt);
+  ok(r7.opts.indexOf(r7.y) >= 0, '日期下拉里能选到昨天', JSON.stringify(r7.opts));
+  ok(r7.def === r7.y, '今天没有作业时自动落在最近一天，而不是空白', '默认选中 = ' + r7.def);
+  ok(r7.markOk === true, '补登真的能落账', String(r7.markOk));
+
 } catch (e) {
   console.log('\n❌ 脚本中断：' + (e && e.message));
   failed++;

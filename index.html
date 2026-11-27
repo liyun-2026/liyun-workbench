@@ -4589,7 +4589,7 @@ var Icon = {
           <p class="sec-meta">纯表单 · 不加装饰插图</p>
           <label>发给哪些班（可多选，点「全部」一次选上所有班）</label>
           <div style="display:flex;flex-wrap:wrap;gap:6px" id="hwClsPick"></div>
-          <label for="hwDate">截止日期</label>
+          <label for="hwDate">布置日期（学生哪天交）</label>
           <input type="date" id="hwDate" class="hw-date">
           <label for="hwText">作业内容</label>
           <textarea id="hwText" placeholder="作业内容，如：即兴评述《AI 会取代主持人吗》，明早功检查"></textarea>
@@ -19856,16 +19856,45 @@ const StuHw = {
     const title = (typeof StuQuant !== 'undefined') ? StuQuant.myTitle() : '';
     if (card) card.style.display = title ? '' : 'none';
     if (!title){ box.innerHTML = ''; return; }
-    const clsId = Stu.clsId(), date = Util.today();
-    const hws = Store.list('homework').filter(h => h && h.clsId === clsId && h.date === date);
-    if (!hws.length){
-      box.innerHTML = '<p class="hint" style="margin:0">今晚老师还没有布置作业。</p>';
+    /* ── ==5.77== 不再死认「今天」──
+       主理人 2026-11-27 拿着班干部的截屏来问：「连续两晚都点不了」。
+       根因：教务「布置作业」那个日期框，标签写的是**「截止日期」**（for=hwDate），
+       实际却存进了 h.date；而这里按 h.date === 今天 去筛。
+       于是「晚上布置、截止填明天」→ 班委当晚按今天找，一条都没有，
+       卡片只剩一句「今晚老师还没有布置作业」，连着两晚都无从下手；
+       隔天想补登也一样没入口（日期已经翻页）。
+       现在：把近 7 天**真布置过作业**的日期列出来让班委自己选，
+       默认今天（今天没有就自动落到最近一天）。登记精确到每条作业 id，切哪天都不会串。 */
+    const clsId = Stu.clsId();
+    const today = Util.today();
+    const dates = [...new Set(Store.list('homework')
+      .filter(h => h && !h._d && h.clsId === clsId && h.date)
+      .map(h => h.date))]
+      .filter(d => d >= this._dayOff(-7) && d <= this._dayOff(1))
+      .sort().reverse();
+    if (!dates.length){
+      box.innerHTML = '<p class="hint" style="margin:0">老师最近还没有布置作业，等布置了再来登记。</p>';
       return;
     }
+    const sel = dates.indexOf(this._entryDate) >= 0 ? this._entryDate
+              : (dates.indexOf(today) >= 0 ? today : dates[0]);
+    this._entryDate = sel;
+    const hws = Store.list('homework').filter(h => h && !h._d && h.clsId === clsId && h.date === sel);
     const stu = Store.list('students', Util.byName).filter(s => s && s.classId === clsId);
     box.innerHTML = `
-      <p class="hint" style="margin:0 0 10px">你是<b>${Util.esc(title)}</b> —— 登记今晚这 <b>${hws.length}</b> 项作业谁交了。
+      <div class="row" style="margin:0 0 10px;gap:8px;align-items:center;flex-wrap:wrap">
+        <select onchange="StuHw.pickEntryDate(this.value)" style="max-width:190px">
+          ${dates.map(d => `<option value="${d}" ${d === sel ? 'selected' : ''}>${d}${d === today ? '（今天）' : ''}</option>`).join('')}
+        </select>
+        <span class="hint" style="margin:0">选哪天的作业就登记哪天${sel !== today ? ' · 你现在在<b>补登 ' + sel + '</b>' : ''}</span>
+      </div>
+      <p class="hint" style="margin:0 0 10px">你是<b>${Util.esc(title)}</b> —— 登记 <b>${sel}</b> 这 <b>${hws.length}</b> 项作业谁交了。
         点一下 = 交了，再点 = 没交，第三下 = 取消。</p>
+      <p class="hint" style="margin:0 0 10px">${hws.map(h => {
+        const ab = h.abbr || Util.abbr(h.text);
+        const full = String(h.text || '');
+        return `<b>${Util.esc(ab)}</b> = ${Util.esc(full.length > 18 ? full.slice(0, 18) + '…' : full)}`;
+      }).join('　·　')}</p>
       ${stu.map(s => `
         <div class="item" style="flex-direction:column;align-items:stretch">
           <span>${Util.esc(s.name)}</span>
@@ -19878,6 +19907,14 @@ const StuHw = {
             }).join('')}
           </div>
         </div>`).join('')}`;
+  },
+
+  _entryDate: '',
+  pickEntryDate(v){ this._entryDate = String(v || ''); this.renderEntry(); },
+  /* 相对今天的日期串（n 为负就是往前） */
+  _dayOff(n){
+    const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   },
 
   mark(hid, sid){
