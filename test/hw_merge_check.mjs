@@ -237,10 +237,12 @@ try {
     /* 把今天那条删掉，还原「今晚教务还没布置 / 或者布置时日期填成了明天」的现场 */
     Store.list('homework').filter(h => h && h.clsId === ${JSON.stringify(seeded.cls)} && h.date === t)
       .forEach(h => Store.softDelete('homework', h.id));
-    const oldSid = Stu.sid, oldCls = Stu.clsId, oldTitle = StuQuant.myTitle;
+    const oldSid = Stu.sid, oldCls = Stu.clsId, oldTitle = StuQuant.myTitle, oldIsOff = StuQuant.isOfficer, oldOff = StuQuant.myOfficer;
     Stu.sid = () => ${JSON.stringify(seeded.ids[0])};
     Stu.clsId = () => ${JSON.stringify(seeded.cls)};
     StuQuant.myTitle = () => '学习委员';
+    StuQuant.isOfficer = () => true;
+    StuQuant.myOfficer = () => ({ title: '学习委员' });
     StuHw._entryDate = '';
     StuHw.renderEntry();
     const box = document.getElementById('stuHwEntry');
@@ -252,12 +254,66 @@ try {
     if (txt.indexOf('绕口') >= 0) { StuHw.mark(hwY.id, ${JSON.stringify(seeded.ids[1])}); markOk = !!Store.list('hw:' + hwY.id).find(x => x.studentId === ${JSON.stringify(seeded.ids[1])}); }
     StuSid: { }
     Stu.sid = oldSid; Stu.clsId = oldCls; StuQuant.myTitle = oldTitle;
+    StuQuant.isOfficer = oldIsOff; StuQuant.myOfficer = oldOff;
     return { txt: txt.slice(0, 260), opts, def: sel ? sel.value : '', markOk, today: t, y };
   })()`);
   ok(r7.txt.indexOf('绕口') >= 0, '今天没作业时，昨天的作业依然摆在入口里（这就是连两晚点不了的解）', r7.txt);
   ok(r7.opts.indexOf(r7.y) >= 0, '日期下拉里能选到昨天', JSON.stringify(r7.opts));
   ok(r7.def === r7.y, '今天没有作业时自动落在最近一天，而不是空白', '默认选中 = ' + r7.def);
   ok(r7.markOk === true, '补登真的能落账', String(r7.markOk));
+
+  /* ==5.79== 主理人 2026-11-27 的原话：「班委们每天都是晚上的时候去统计，布置作业当天晚上的
+     时候去统计，但是你依旧没有统计的入口。并不是时间的原因。」
+     真实现场：教务晚上布置作业，日期框叫「布置日期（学生哪天交）」，学生明天交 → date = 明天。
+     以前的默认逻辑按「不晚于今天的最近一天」找，会落到**昨天**那批旧作业上，
+     班委一进来看见的是昨天，今晚这批根本不在眼前 —— 等于还是没有入口。 */
+  section('▶ 7b. 晚上布置、登记日期填成明天：入口要落在「刚布置的那批」');
+  const r7b = await cdp.eval(`(() => {
+    const dayOff = (n) => { const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+n);
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+    const tomorrow = dayOff(1);
+    /* 教务今晚刚布置的：交作业的日期是明天 */
+    const hwT = Store.upsert('homework', { clsId: ${JSON.stringify(seeded.cls)}, date: tomorrow, text: '今晚布置的气声练习', abbr: '气声' });
+    const oldSid = Stu.sid, oldCls = Stu.clsId, oldTitle = StuQuant.myTitle, oldIsOff = StuQuant.isOfficer, oldOff = StuQuant.myOfficer;
+    Stu.sid = () => ${JSON.stringify(seeded.ids[0])};
+    Stu.clsId = () => ${JSON.stringify(seeded.cls)};
+    StuQuant.myTitle = () => '学习委员';
+    StuQuant.isOfficer = () => true;
+    StuQuant.myOfficer = () => ({ title: '学习委员' });
+    StuHw._entryDate = '';              // 班委刚打开页面，没手动选过
+    StuHw.renderEntry();
+    const box = document.getElementById('stuHwEntry');
+    const txt = box ? box.innerText.replace(/\\s+/g, ' ') : '';
+    const sel = box ? box.querySelector('select') : null;
+    Stu.sid = oldSid; Stu.clsId = oldCls; StuQuant.myTitle = oldTitle;
+    StuQuant.isOfficer = oldIsOff; StuQuant.myOfficer = oldOff;
+    return { txt: txt.slice(0, 420), def: sel ? sel.value : '', tomorrow, hwId: hwT.id };
+  })()`);
+  ok(r7b.def === r7b.tomorrow, '默认落在「刚布置的那批」（日期是明天），不是昨天那批', '默认选中 = ' + r7b.def + ' / 明天 = ' + r7b.tomorrow);
+  ok(r7b.txt.indexOf('气声') >= 0, '刚布置的作业就摆在眼前（简称对得上）', r7b.txt);
+
+  section('▶ 8. 「质量完成」只有教务能评，且三态可回退');
+  const r8 = await cdp.eval(`(() => {
+    const hwId = ${JSON.stringify(seeded.hw)}, sid = ${JSON.stringify(seeded.ids[3])};
+    const before = (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}).ok;
+    /* 没提交过就评质量 —— 应该被拦住 */
+    Store.softDelete('hw:' + hwId, (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}).id || 'x');
+    Homework.markQuality(hwId, sid);
+    const afterNoSub = (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}).ok;
+    /* 先确认提交，再评 */
+    Homework.mark(hwId, sid);                 // 未登记 → 已提交
+    Homework.markQuality(hwId, sid);          // → 质量完成
+    const q1 = (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}).ok;
+    Homework.markQuality(hwId, sid);          // → 质量不达标
+    const q2 = (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}).ok;
+    Homework.markQuality(hwId, sid);          // → 取消
+    const q3 = ('ok' in (Store.list('hw:' + hwId).find(x => x.studentId === sid) || {}));
+    return { before, afterNoSub, q1, q2, q3 };
+  })()`);
+  ok(r8.afterNoSub === undefined, '没提交就评质量 → 被拦住（不凭空造一条记录）', JSON.stringify(r8));
+  ok(r8.q1 === 1, '第一次点 = 质量完成', 'ok = ' + r8.q1);
+  ok(r8.q2 === 0, '第二次点 = 质量不达标', 'ok = ' + r8.q2);
+  ok(r8.q3 === false, '第三次点 = 取消（字段真的被删掉，不是留个 undefined）', '还有 ok 字段？' + r8.q3);
 
 } catch (e) {
   console.log('\n❌ 脚本中断：' + (e && e.message));

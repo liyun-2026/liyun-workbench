@@ -243,6 +243,18 @@ input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
 .roster-miss>b:first-child{display:block;font-size:15px;margin-bottom:6px}
 .roster-miss p{margin:0 0 6px;font-size:13.5px;color:var(--text-dim);line-height:1.7}
 .roster-miss p:last-child{margin-bottom:0}
+/* ==5.78== 每人每项作业一组：简称 + 「已提交」+（教务评过才显示的）「质量完成」 */
+.hwgrp{display:inline-flex;align-items:center;gap:5px;padding:3px 6px 3px 4px;
+  border:1px solid var(--line);border-radius:9px;background:transparent}
+.hwabbr{font-size:11px;color:var(--text-dim);min-width:22px;text-align:center}
+/* 学生的名字单独做标签（不再塞进按钮里）—— 两个按钮的文字固定是「已提交 / 质量完成」 */
+.hw-name{font-size:13.5px;color:var(--text);padding:0 2px 0 4px;white-space:nowrap}
+/* 教务端「已布置 → 登记」面板：一排 chips，自动换行 */
+.hw-subs{display:flex;flex-wrap:wrap;gap:8px 10px;margin-top:10px}
+.hw-qonly{opacity:.95;pointer-events:none;font-size:12px;padding:4px 8px}
+/* 质量完成：金 = 已完成，朱红 = 未达标。跟「已提交」的绿/红分开，不混成一个意思 */
+.chip.q-on{background:var(--gold);color:#2b2416;border-color:transparent}
+.chip.q-no{border-color:#c25650;color:#c25650;background:transparent}
 .roster-miss b{font-weight:600;color:var(--text)}
 /* ==5.38== 「系统」金框徽章：白卡风格克制 —— 只描一圈金线、金字，不填底。
    挂在账号列表的 sys 行（老师管理 / 学生账号）与设置页「系统工作号」区块。 */
@@ -8338,10 +8350,12 @@ const Roster = {
     const guarded = all.filter(s => Util.isSystemStu(s));
     box.innerHTML = (students.length
       ? students.map(s => {
-          const o = Store.list('officers').find(x => x && x.studentId === s.id && x.title);
+          /* ==5.79== 职务名空着也要挂标签（显示「班委」）—— 否则教务在名册里
+             看着像没指定成功，实际上权限已经生效了，白白排查半天。 */
+          const o = Store.list('officers').find(x => x && x.studentId === s.id);
           return `<div class="item">
             <span class="grow">${Util.esc(s.name)}${o
-              ? ` <span class="chip" style="pointer-events:none">${Util.esc(o.title)}</span>` : ''}</span>
+              ? ` <span class="chip" style="pointer-events:none">${Util.esc(o.title || '班委')}</span>` : ''}</span>
             ${Auth.canEdit() ? `<button class="del" onclick="Roster.delStu('${s.id}')">✕</button>` : ''}
           </div>`;
         }).join('')
@@ -8415,7 +8429,7 @@ const Roster = {
       const s = all.find(x => x && x.id === o.studentId);
       const acc = users.filter(u => u && u.role === 'student' && u.studentId && u.studentId === o.studentId);
       const bad = [];
-      if (!String(o.title || '').trim()) bad.push('职务名没填 —— 空名字不算班干部，权限不生效');
+      if (!String(o.title || '').trim()) bad.push('职务名没填 —— 权限照常生效，学生端只会显示成「班委」，建议补上');
       if (!o.studentId) bad.push('还没选是哪位学员');
       else if (!s) bad.push('指定的学员名册里已经没有了（名册重导过？）—— 重新选一次就好');
       if (o.studentId && s && !acc.length) bad.push('这位学员没有学生账号，或账号没挂到他档案上 —— 去「学生账号」页点「一键为学生建账号」补挂');
@@ -13674,21 +13688,55 @@ const Homework = {
     const students = Store.list('students', Util.byName).filter(s => s.classId === h.clsId);
     if (!students.length) return '<p class="hint">这个班还没有学员</p>';
     const recs = Store.list('hw:' + h.id);
-    const subs = {};
-    recs.forEach(x => { subs[x.studentId] = x.done; });
     /* 谁录的：班干部用学生账号登记时会盖上 by（见后端 sanitizeStudent） */
     const bys = [...new Set(recs.filter(x => x && x.by).map(x => x.by))];
-    return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">` +
+    /* ==5.78== 两个维度分开：
+         · 已提交 —— 班委在学生端点，教务也能量
+         · 质量完成 —— 只有教务能评（服务端会把班委传上来的 ok 字段剥掉）
+       以前只有一个「交没交」，班委点完教务没地方补质量。 */
+    return `<div class="hw-subs">` +
       students.map(s => {
-        const st = subs[s.id];
         const rec = recs.find(x => x && x.studentId === s.id);
-        const cls = st === 1 ? 'chip-on' : st === 0 ? 'chip-no' : '';
-        /* ==5.27== 只读视角：交没交看得见，点不动 */
-        if (!Auth.canEdit()) return `<span class="chip ${cls}" style="pointer-events:none">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</span>`;
-        return `<button class="chip ${cls}" title="${rec && rec.by ? '由 ' + Util.esc(rec.by) + ' 登记' : ''}" onclick="Homework.mark('${h.id}','${s.id}')">${Util.esc(s.name)}${st === 1 ? ' ✓' : st === 0 ? ' ✗' : ''}</button>`;
+        const done = rec ? rec.done : undefined;
+        const sub = done === 1 ? 'chip-on' : done === 0 ? 'chip-no' : '';
+        const ok = rec ? rec.ok : undefined;
+        const q = ok === 1 ? 'chip q-on' : ok === 0 ? 'chip q-no' : 'chip';
+        /* ==5.79== 主理人 2026-11-27：「按钮里面的文字就只有已提交和质量完成，暂时不增加其他的」
+           —— 名字从按钮里拿出来单独做标签，两个按钮的文字固定就这两句，
+           交没交 / 评没评靠颜色分（绿=已提交 金=质量完成 朱红=未交/未达标），不再往按钮里塞 ✓ ✗ 之类。 */
+        /* ==5.27== 只读视角：交没交、质量看得见，点不动 */
+        if (!Auth.canEdit()) return `<span class="hwgrp">
+            <span class="hw-name">${Util.esc(s.name)}</span>
+            ${`<span class="chip ${sub} hw-qonly">已提交</span>`}
+            ${ok !== undefined ? `<span class="${q} hw-qonly">质量完成</span>` : ''}
+          </span>`;
+        return `<span class="hwgrp">
+            <span class="hw-name">${Util.esc(s.name)}</span>
+            <button class="chip ${sub}" title="${rec && rec.by ? '由 ' + Util.esc(rec.by) + ' 登记' : '点一下 = 已提交，再点 = 未交，第三下 = 清除'}"
+                    onclick="Homework.mark('${h.id}','${s.id}')">已提交</button>
+            <button class="${q}" title="质量完成（只有教务能评）"
+                    onclick="Homework.markQuality('${h.id}','${s.id}')">质量完成</button>
+          </span>`;
       }).join('') +
-      `</div><p class="hint">点一下 = 已交，再点 = 未交，第三下 = 清除。未登记的不计分。${
-        bys.length ? ' 登记人：' + bys.map(x => Util.esc(x)).join('、') : ''}</p>`;
+      `</div><p class="hint">左边<b>已提交</b>（绿=交了，朱红=没交；班委在手机上点，你也可以点，以你为准）·
+       右边<b>质量完成</b>（金=达标，朱红=不达标），只有你能评。没点过的不计分。
+       ${bys.length ? ' 登记人：' + bys.map(x => Util.esc(x)).join('、') : ''}</p>`;
+  },
+
+  /** 质量完成：只有教务能评。三态 —— 未评 → 质量完成 → 质量不达标 → 取消。 */
+  markQuality(hid, sid){
+    if (!Auth.canEdit()) return UI.toast('质量由教务老师评');
+    const key = 'hw:' + hid;
+    const rec = Store.list(key).find(x => x && x.studentId === sid);
+    if (!rec) return UI.toast('先确认这位同学已提交，再评质量');
+    const next = rec.ok === 1 ? 0 : (rec.ok === 0 ? null : 1);
+    const it = Object.assign({}, rec);
+    /* 取消时必须显式写成 undefined 再合并 —— upsert 是 Object.assign({}, 旧, 新)，
+       光 delete 掉字段只是"没传"，旧值会被原样留下来，界面上取消不掉。 */
+    it.ok = (next === null) ? undefined : next;
+    Store.upsert(key, it);
+    this.render();
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
   },
 
   toggle(id){
@@ -19425,13 +19473,19 @@ const StuExam = {
    只给「班级总分 + 我自己那几条」，不出他人姓名、不做排名。
    这既是隐私，也是少惹矛盾。 */
 const StuQuant = {
-  /** 我是不是班干部（教务在名册里指定的，见 Roster.officers） */
-  myTitle(){
+  /** 我是不是班干部（教务在名册里指定的，见 Roster.officers）
+      ==5.78== 不再要求「职务名非空」：教务选了人但名字那栏没填，以前就整个失效，
+      入口凭空消失且谁都查不出来。现在只要那一行指定了本人就算，名字只用于显示。 */
+  myOfficer(){
     const sid = Stu.sid();
-    const o = Store.list('officers').find(x => x && x.studentId === sid && x.title);
-    return o ? o.title : '';
+    if (!sid) return null;
+    return Store.list('officers').find(x => x && x.studentId === sid) || null;
   },
-  isOfficer(){ return !!this.myTitle(); },
+  myTitle(){
+    const o = this.myOfficer();
+    return o ? String(o.title || '').trim() : '';
+  },
+  isOfficer(){ return !!this.myOfficer(); },
 
   /* ==5.69== 量化细则（主理人：「量化细则看不上，要显示加分扣分都要显示」）
      按来源分组，加分红、扣分绿 —— 跟教务端量化页同一个口径。
@@ -19842,8 +19896,21 @@ const StuHw = {
        服务端按「只看自己」把 officers/students/homework 全滤成空，前端什么都不知道，
        于是入口凭空没了 —— 学生以为系统坏了，教务也查不出所以然。 */
     const sid = Stu.sid();
-    const inRoster = !!sid && Store.list('students').some(x => x && x.id === sid);
+    const allStu = Store.list('students');
+    const inRoster = !!sid && allStu.some(x => x && x.id === sid);
     if (!inRoster){
+      /* ==5.79== 冷启动别误伤：网慢的时候名册还没下来，这里同样是「查不到本人」，
+         以前会直接弹「你的账号没和学籍对上」，把正常学生吓一跳。
+         名册为空就先说「正在同步」，3 秒后自己再看一眼（最多 4 次 ≈ 12 秒）。 */
+      if (!allStu.length && (this._missTry || 0) < 4){
+        this._missTry = (this._missTry || 0) + 1;
+        if (card) card.style.display = '';
+        box.innerHTML = '<p class="hint" style="margin:0">正在同步名册…</p>';
+        clearTimeout(this._missT);
+        this._missT = setTimeout(() => this.renderEntry(), 3000);
+        return;
+      }
+      this._missTry = 0;
       if (card) card.style.display = '';
       box.innerHTML = `<div class="roster-miss">
         <b>这台账号还没和名册里的学籍对上</b>
@@ -19853,43 +19920,63 @@ const StuHw = {
       </div>`;
       return;
     }
-    const title = (typeof StuQuant !== 'undefined') ? StuQuant.myTitle() : '';
-    if (card) card.style.display = title ? '' : 'none';
-    if (!title){ box.innerHTML = ''; return; }
-    /* ── ==5.77== 不再死认「今天」──
-       主理人 2026-11-27 拿着班干部的截屏来问：「连续两晚都点不了」。
-       根因：教务「布置作业」那个日期框，标签写的是**「截止日期」**（for=hwDate），
-       实际却存进了 h.date；而这里按 h.date === 今天 去筛。
-       于是「晚上布置、截止填明天」→ 班委当晚按今天找，一条都没有，
-       卡片只剩一句「今晚老师还没有布置作业」，连着两晚都无从下手；
-       隔天想补登也一样没入口（日期已经翻页）。
-       现在：把近 7 天**真布置过作业**的日期列出来让班委自己选，
-       默认今天（今天没有就自动落到最近一天）。登记精确到每条作业 id，切哪天都不会串。 */
+    this._missTry = 0;
+    /* ==5.78== 身份判定改用 isOfficer()（不看职务名有没有填） */
+    const isOff = (typeof StuQuant !== 'undefined') && StuQuant.isOfficer();
+    if (card) card.style.display = isOff ? '' : 'none';
+    if (!isOff){ box.innerHTML = ''; return; }
+    const title = (StuQuant.myTitle() || '') || '班委';
     const clsId = Stu.clsId();
     const today = Util.today();
-    const dates = [...new Set(Store.list('homework')
-      .filter(h => h && !h._d && h.clsId === clsId && h.date)
-      .map(h => h.date))]
-      .filter(d => d >= this._dayOff(-7) && d <= this._dayOff(1))
-      .sort().reverse();
+    /* 不再限制 7 天窗口：教务那个日期框可以填成一周后（它原本叫「截止日期」），
+       限死窗口就又变成「明明布置了、这里却说没布置」。最多列 14 个日期。 */
+    const hwAll = Store.list('homework').filter(h => h && !h._d && h.clsId === clsId && h.date);
+    const dates = [...new Set(hwAll.map(h => h.date))].sort().reverse().slice(0, 14);
     if (!dates.length){
-      box.innerHTML = '<p class="hint" style="margin:0">老师最近还没有布置作业，等布置了再来登记。</p>';
+      box.innerHTML = '<p class="hint" style="margin:0">老师还没有布置过作业，等布置了再来登记。</p>';
       return;
     }
-    const sel = dates.indexOf(this._entryDate) >= 0 ? this._entryDate
-              : (dates.indexOf(today) >= 0 ? today : dates[0]);
+    /* ==5.79== 默认落在「最近一次布置」的那天，不再按「今天」找。
+       主理人 2026-11-27：「班委们每天都是晚上的时候去统计，布置作业当天晚上的时候去统计」。
+       教务那个日期框叫「布置日期（学生哪天交）」—— 晚上布置、学生明天交，存下来的
+       date 就是**明天**。以前按 date===今天 找，所以当天晚上永远说「还没有布置作业」
+       （他的截屏原话就是这句，可下面明明挂着 11-26 的待检查作业）。
+       现在取最近写入的那条作业的日期：不管它写的是今天、明天还是补登旧账，都正好是他要登的那批。 */
+    let sel;
+    if (dates.indexOf(this._entryDate) >= 0) sel = this._entryDate;
+    else {
+      let latest = '', latestU = -1;
+      hwAll.forEach(h => {
+        const u = Number(h._u) || 0;
+        if (u > latestU || (u === latestU && String(h.date) > latest)){ latestU = u; latest = h.date; }
+      });
+      sel = dates.indexOf(latest) >= 0 ? latest : (dates.indexOf(today) >= 0 ? today : dates[0]);
+    }
     this._entryDate = sel;
     const hws = Store.list('homework').filter(h => h && !h._d && h.clsId === clsId && h.date === sel);
     const stu = Store.list('students', Util.byName).filter(s => s && s.classId === clsId);
+    /* ==5.79== 下拉里每一天先报「几项 · 已登几人」，班委一眼看清哪天还没登完 ——
+       不用逐日点进去翻。数字按「这条作业下有多少人点过已提交/未交」算。 */
+    const dayStat = d => {
+      const hs = hwAll.filter(h => h.date === d);
+      let done = 0;
+      hs.forEach(h => { done += Store.list('hw:' + h.id).filter(x => x && !x._d && (x.done === 1 || x.done === 0)).length; });
+      return { n: hs.length, done, tot: hs.length * stu.length };
+    };
     box.innerHTML = `
       <div class="row" style="margin:0 0 10px;gap:8px;align-items:center;flex-wrap:wrap">
-        <select onchange="StuHw.pickEntryDate(this.value)" style="max-width:190px">
-          ${dates.map(d => `<option value="${d}" ${d === sel ? 'selected' : ''}>${d}${d === today ? '（今天）' : ''}</option>`).join('')}
+        <select onchange="StuHw.pickEntryDate(this.value)" style="max-width:240px">
+          ${dates.map(d => { const t = dayStat(d);
+            return `<option value="${d}" ${d === sel ? 'selected' : ''}>${d.slice(5)} · ${t.n}项 · 已登${t.done}/${t.tot}</option>`;
+          }).join('')}
         </select>
-        <span class="hint" style="margin:0">选哪天的作业就登记哪天${sel !== today ? ' · 你现在在<b>补登 ' + sel + '</b>' : ''}</span>
+        <span class="hint" style="margin:0">选哪天的作业就登记哪天${
+          sel === today ? ' · 就是今天这批'
+          : (sel > today ? ' · 这是<b>刚布置</b>的那批（学生 ' + sel + ' 才交）'
+                         : ' · 你现在在<b>补登 ' + sel + '</b>')}</span>
       </div>
-      <p class="hint" style="margin:0 0 10px">你是<b>${Util.esc(title)}</b> —— 登记 <b>${sel}</b> 这 <b>${hws.length}</b> 项作业谁交了。
-        点一下 = 交了，再点 = 没交，第三下 = 取消。</p>
+      <p class="hint" style="margin:0 0 8px">你是<b>${Util.esc(title)}</b> —— 登记 <b>${sel}</b> 这 <b>${hws.length}</b> 项作业谁<b>已提交</b>。
+        点一下 = 已提交，再点 = 未交，第三下 = 取消。<b>「质量完成」由教务老师在电脑上评，你不用点。</b></p>
       <p class="hint" style="margin:0 0 10px">${hws.map(h => {
         const ab = h.abbr || Util.abbr(h.text);
         const full = String(h.text || '');
@@ -19898,12 +19985,18 @@ const StuHw = {
       ${stu.map(s => `
         <div class="item" style="flex-direction:column;align-items:stretch">
           <span>${Util.esc(s.name)}</span>
-          <div class="row" style="flex-wrap:wrap;margin-top:6px">
+          <div class="row" style="flex-wrap:wrap;margin-top:6px;gap:6px">
             ${hws.map(h => {
               const rec = Store.list('hw:' + h.id).find(x => x && x.studentId === s.id);
-              const cls = rec && rec.done === 1 ? 'chip-on' : (rec && rec.done === 0 ? 'chip-no' : '');
+              const sub = rec && rec.done === 1 ? 'on' : (rec && rec.done === 0 ? 'no' : '');
               const ab = h.abbr || Util.abbr(h.text);
-              return `<button class="chip ${cls}" onclick="StuHw.mark('${h.id}','${s.id}')" title="${Util.esc(h.text)}">${Util.esc(ab)}${rec ? (rec.done ? ' ✓' : ' ✗') : ''}</button>`;
+              /* ==5.79== 班委端只有两个词：按钮「已提交」，教务评过后多一个只读的「质量完成」。
+                 别的字样一概不加（主理人：「按钮里面的文字就只有已提交和质量完成」）。 */
+              return `<span class="hwgrp">
+                <span class="hwabbr">${Util.esc(ab)}</span>
+                <button class="chip ${sub}" onclick="StuHw.mark('${h.id}','${s.id}')" title="${Util.esc(h.text)}">已提交</button>
+                ${rec && rec.ok === 1 ? '<span class="chip q-on hw-qonly">质量完成</span>' : ''}
+              </span>`;
             }).join('')}
           </div>
         </div>`).join('')}`;

@@ -122,6 +122,26 @@ try {
   const shot = await cdp.send('Page.captureScreenshot', { format: 'png' });
   await writeFile(path.join(OUT, 'officer-entry-m390.png'), Buffer.from(shot.data, 'base64'));
   console.log('📸 ' + path.join(OUT, 'officer-entry-m390.png'));
+
+  /* ==5.79== 第二张：主理人真实说的那种现场 —— 教务**今晚**布置，日期填的是明天（学生明天交），
+     班委当晚打开。以前按「今天」找，这条永远不在眼前，等于没有入口。 */
+  const t2 = await cdp.eval(`(() => {
+    const cls = (Store.list('classes')[0] || {}).id;
+    const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+1);
+    const tomorrow = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    Store.upsert('homework', { clsId: cls, date: tomorrow, text: '今晚加练：气息控制 15 分钟', abbr: '气息' });
+    StuHw._entryDate = '';          // 班委刚打开，没手动选过
+    StuHw.renderEntry();
+    const m = document.getElementById('main'); if (m) m.scrollTop = 0;
+    const box = document.getElementById('stuHwEntry');
+    const sel = box ? box.querySelector('select') : null;
+    return { tomorrow, def: sel ? sel.value : '', txt: box ? box.innerText.replace(/\\s+/g,' ').slice(0,160) : '' };
+  })()`);
+  console.log('今晚布置（日期=明天 ' + t2.tomorrow + '）→ 默认落在 ' + t2.def + ' · ' + t2.txt);
+  await sleep(500);
+  const shot2 = await cdp.send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(OUT, 'officer-tonight-m390.png'), Buffer.from(shot2.data, 'base64'));
+  console.log('📸 ' + path.join(OUT, 'officer-tonight-m390.png'));
 } finally {
   try { await fetch(`${BASE}/api/dev-reset`, { method: 'POST' }); } catch { /* 清场 */ }
   try { chrome && chrome.kill('SIGKILL'); } catch { /* 已退 */ }

@@ -428,7 +428,14 @@ function filterForStudent(src, me) {
      以及本班那几条作业的提交登记（他要替全班录）。
      别的照旧不给 —— 考勤、成绩、评语、体重、别人的请假还是只看自己。 */
   const officers = Array.isArray(src.officers) ? src.officers : [];
-  const amOfficer = !!(clsId && officers.some(o => o && o.studentId === sid && o.title));
+  /* ==5.78== 判班干部不再要求「职务名非空」。
+     主理人 2026-11-27：「班委依旧没有统计的入口，并不是时间的原因」。
+     现场最可能的一种：教务在名册里选了人，但职务名那一栏没填/没存上 →
+     以前这里 `&& o.title` 判否 → 整个班委权限失效、入口凭空不见，
+     而界面上「已指定」的样子看起来完全正常，谁也查不出原因。
+     现在：只要 officers 里那一行指定了这位学员，就算班干部；
+     职务名只用于显示（空的话前端显示「班委」）。教务端照旧会提醒去补名字。 */
+  const amOfficer = !!(clsId && officers.some(o => o && o.studentId === sid));
   const clsStuIds = amOfficer ? new Set(allStu.filter(x => x && x.classId === clsId).map(x => x.id)) : null;
   const out = {};
   for (const [k, v] of Object.entries(src)) {
@@ -553,7 +560,7 @@ function sanitizeStudent(src, me, server) {
   const myStu = allStu.find(x => x && x.id === sid);
   const myCls = myStu ? myStu.classId : '';
   const offs = Array.isArray(server.officers) ? server.officers : [];
-  const amOfficer = !!(myCls && offs.some(o => o && o.studentId === sid && o.title));
+  const amOfficer = !!(myCls && offs.some(o => o && o.studentId === sid));   /* ==5.78== 同上：职务名不作门槛 */
   const clsStuIds = new Set(allStu.filter(x => x && x.classId === myCls).map(x => x.id));
 
   /* 打卡：一人一天一条，id 由服务端定成 studentId，
@@ -562,8 +569,10 @@ function sanitizeStudent(src, me, server) {
     /* 班干部录作业 */
     if (amOfficer && k.indexOf('hw:') === 0){
       if (!Array.isArray(v)) continue;
+      /* ==5.78== 「质量完成」只有教务能评，班委只能点「已提交」。
+         班委把 ok（质量）字段一起传上来的一律剥掉，服务端说了算。 */
       const keep = v.filter(x => x && x.id && (x._d || clsStuIds.has(x.studentId)))
-                    .map(x => Object.assign({}, x, { by: me.name, byId: me.id }));
+                    .map(x => { const o = Object.assign({}, x, { by: me.name, byId: me.id }); delete o.ok; return o; });
       if (keep.length) out[k] = keep;
       continue;
     }

@@ -77,6 +77,8 @@ try {
       officers: [
         { id: 'o1', clsId: 'c1', title: '学习委员', studentId: 's1' },
         { id: 'o2', clsId: 'c1', title: '班长', studentId: 's2' },
+        /* 第三种现场：教务选了人，职务名那栏没填 —— 5.78 起不再因此失效 */
+        { id: 'o3', clsId: 'c1', title: '', studentId: 's5' },
       ],
     },
   });
@@ -90,6 +92,7 @@ try {
   const a1 = await mk('班委一', 'student', 's1');
   const a2 = await mk('班委二', 'student', '');
   const a3 = await mk('普通生', 'student', 's3');
+  const a4 = await mk('空职务班委', 'student', 's5');
   ok(a1.j.ok && a2.j.ok && a3.j.ok, '建 3 个学生号（班委一挂 s1 / 班委二不挂档 / 普通生挂 s3）',
      JSON.stringify([a1.j, a2.j, a3.j]).slice(0, 250));
 
@@ -118,12 +121,31 @@ try {
   console.log('        ↳ 这就是「看不到入口」的根因。前端已改为明说原因 + 给出补挂办法');
   console.log('          （见 test/hw_merge_check.mjs §4：作业页会显示「还没和名册里的学籍对上」）');
 
+  section('▶ 3b. 班委三（职务名空着）登录后看到的数据');
+  const t4 = await login('空职务班委', 'stu-pass-1234');
+  const p4 = await api({ action: 'pull', token: t4 });
+  const sh4 = p4.j.shared || {};
+  ok((sh4.officers || []).some((o) => o && o.studentId === 's5'),
+     '职务名没填也照样拿到班干部记录（5.78 前这里会整个失效）',
+     'officers = ' + JSON.stringify((sh4.officers || []).map((o) => o.title + '/' + o.studentId)));
+  ok((sh4.students || []).length >= 5 && (sh4.homework || []).some((h) => h && h.id === 'h1'),
+     '同班同学 + 今晚作业都拿得到（入口的两个条件都齐）',
+     `students=${(sh4.students || []).length} homework=${(sh4.homework || []).length}`);
+
   /* ── 4. 班委一登记作业 ── */
   section('▶ 4. 班委一替全班登记「谁交了」');
   const hwRecs = students.slice(0, 3).map((s) => ({ id: 'r_' + s.id, studentId: s.id, done: 1 }));
   hwRecs.push({ id: 'r_s4', studentId: 's4', done: 0 });
   const push2 = await api({ action: 'push', token: t1, shared: { 'hw:h1': hwRecs } });
   ok(push2.status === 200 && push2.j.ok, '班委一推送成功', JSON.stringify(push2.j).slice(0, 200));
+
+  section('▶ 4b. 班委想顺手写「质量完成」—— 必须被服务端剥掉');
+  await api({ action: 'push', token: t1, shared: { 'hw:h1': [
+    { id: 'r_s1', studentId: 's1', done: 1, ok: 1 },
+  ] } });
+  const pq = await api({ action: 'pull', token: admin });
+  const q1 = ((pq.j.shared || {})['hw:h1'] || []).find((x) => x.studentId === 's1');
+  ok(q1 && q1.ok === undefined, '班委传上来的 ok 被剥掉了（质量只能教务评）', JSON.stringify(q1));
 
   /* ── 5. 教务拉回来：有没有落账、有没有盖章 ── */
   section('▶ 5. 教务端拉回来（用户说这里是空白）');

@@ -85,7 +85,7 @@ try {
     dep(s[3].id, 1, 4); dep(s[4].id, 0, 5); dep(s[5].id, 1, 6); dep(s[6].id, 0, 7);
     Store.set('_hkCls', cls.id); Store.set('_hkDate', d);
     App.go('homework'); Homework.renderChk();
-    return { cls: cls.id, date: d };
+    return { cls: cls.id, date: d, hw: hw.id };
   })()`);
   await sleep(700);
 
@@ -98,6 +98,20 @@ try {
   })()`);
   const s1 = await cdp.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { ...rect, scale: 2 } });
   await writeFile(path.join(OUT, 'merge-desktop.png'), Buffer.from(s1.data, 'base64'));
+
+  /* 第二张：教务端「已布置」里这条作业展开后的登记面板（已提交 + 质量完成） */
+  await cdp.eval(`(() => {
+    Homework._open = ${JSON.stringify(seeded.hw)};
+    Homework.render();
+    const box = document.getElementById('hwBody');
+    const card = box ? (box.closest('.card') || box) : null;
+    if (card) card.scrollIntoView({ block: 'start' });
+    return true;
+  })()`);
+  await sleep(700);
+  const s1b = await cdp.send('Page.captureScreenshot', { format: 'png' });
+  await writeFile(path.join(OUT, 'quality-desktop.png'), Buffer.from(s1b.data, 'base64'));
+  console.log('📸 ' + path.join(OUT, 'quality-desktop.png'));
 
   /* 手机：账号没挂学籍的提示 */
   await cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
