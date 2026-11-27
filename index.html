@@ -4743,8 +4743,17 @@ var Icon = {
           <select id="exCls" onchange="Exam.pickCls(this.value)"></select>
           <select id="exSheetSel" onchange="Exam.pickSheet(this.value)"></select>
         </div>
+        <!-- ==5.80== 这场考试的日期可以改、这一场可以删（主理人 2026-11-27
+             「你要让我有一个可以选择日期的窗口呀，而且你要给我一个可以删除这场考试的一个窗口」） -->
+        <div class="row edit-only" id="exCurRow" style="margin-top:8px;flex-wrap:wrap;display:none">
+          <span class="hint" style="margin:0">这场考试的日期</span>
+          <input type="date" id="exSheetDate" onchange="Exam.setSheetDate(this.value)" style="max-width:172px">
+          <button class="btn ghost" onclick="Exam.delSheet()" style="color:#c25650">删除这一场</button>
+        </div>
         <div class="row" style="margin-top:8px;flex-wrap:wrap">
           <input type="text" id="exSheetName" placeholder="新场次名，如：9月第3周模考" style="min-width:190px">
+          <span class="hint" style="margin:0">哪天考</span>
+          <input type="date" id="exNewDate" style="max-width:172px">
           <button class="btn ghost edit-only" onclick="Exam.newSheet()">新建这一场</button>
         </div>
         <div id="exSheet" style="margin-top:12px"></div>
@@ -14779,15 +14788,54 @@ const Exam = {
     const clsId = this._cls();
     const el = document.getElementById('exSheetName');
     const name = (el.value || '').trim();
+    /* ==5.80== 建场次时自己选日期。以前写死 `Util.today()`，
+       今天建明天的考试，存下来却是今天 —— 主理人 2026-11-27 就是卡在这。 */
+    const dtEl = document.getElementById('exNewDate');
+    const date = (dtEl && dtEl.value) || Util.today();
     if (!clsId) return UI.toast('先选个班级');
     if (!name) return UI.toast('给这次模考起个名字，比如「9 月第 3 周」');
     const dup = this.sheets(clsId).find(s => s.name === name);
     el.value = '';
-    if (dup){ Store.set('_exSheet', dup.id); this.renderSheet(); return UI.toast('这场已经在了，直接往下填'); }
-    const it = Store.upsert('exam_sheets', { clsId, name, date: Util.today() });
+    if (dup){
+      Store.set('_exSheet', dup.id); this.renderSheet();
+      return UI.toast('这场已经在了（' + dup.date + '），日期不对可以在上面改');
+    }
+    const it = Store.upsert('exam_sheets', { clsId, name, date });
     Store.set('_exSheet', it.id);
-    UI.toast('建好了，下面开始填分');
+    if (dtEl) dtEl.value = '';        // 下一次默认回到今天，日期永远看得见
+    UI.toast(date === Util.today() ? '建好了，下面开始填分' : '建好了（' + date + '），下面开始填分');
     this.renderSheet();
+  },
+
+  /** 改这一场的考试日期（已经建错的场次靠这儿救） */
+  setSheetDate(v){
+    const id = this._sheet();
+    const s = id ? this.sheetById(id) : null;
+    if (!s) return;
+    const d = String(v || '').trim();
+    if (!d || d === s.date) return;
+    Store.upsert('exam_sheets', Object.assign({}, s, { date: d }));
+    UI.toast('这场考试改到 ' + d);
+    this.renderSheet();
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
+  },
+
+  /** 删掉这一场（连它的成绩一起，各端曲线/排名同步消失） */
+  delSheet(){
+    const id = this._sheet();
+    const s = id ? this.sheetById(id) : null;
+    if (!s) return UI.toast('上面先选一场');
+    const n = Store.list('exam_scores').filter(x => x && !x._d && x.sheetId === s.id).length;
+    const q = '删掉「' + s.name + '」（' + s.date + '）？'
+      + (n ? '\n\n这场已经录了 ' + n + ' 条成绩，会一起删掉，不能恢复。' : '\n\n这场还没录成绩。');
+    if (!confirm(q)) return;
+    Store.list('exam_scores').filter(x => x && !x._d && x.sheetId === s.id)
+      .forEach(x => Store.softDelete('exam_scores', x.id));
+    Store.softDelete('exam_sheets', s.id);
+    Store.remove('_exSheet');
+    UI.toast('这一场删掉了');
+    this.renderSheet();
+    if (typeof Sync !== 'undefined' && Sync.on && Sync.on()) Sync.push();
   },
 
   renderSheet(){
@@ -14803,6 +14851,16 @@ const Exam = {
     selEl.innerHTML = sheets.length
       ? sheets.map(s => `<option value="${s.id}" ${s.id === cur ? 'selected' : ''}>${Util.esc(s.name)}（${s.date}）</option>`).join('')
       : '<option value="">还没有场次</option>';
+
+    /* ==5.80== 选中这一场 → 上面亮出「这场考试的日期」和「删除这一场」 */
+    const curSheet = cur ? this.sheetById(cur) : null;
+    const curRow = document.getElementById('exCurRow');
+    if (curRow) curRow.style.display = curSheet ? '' : 'none';
+    const dtIn = document.getElementById('exSheetDate');
+    if (dtIn && curSheet) dtIn.value = curSheet.date || '';
+    /* 新建那一行的日期默认今天（清空后回到今天，不会静悄悄沿上一次的值） */
+    const newDt = document.getElementById('exNewDate');
+    if (newDt && !newDt.value) newDt.value = Util.today();
 
     const box = document.getElementById('exSheet');
     const stat = document.getElementById('exExpStat');
