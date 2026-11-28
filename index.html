@@ -6131,8 +6131,22 @@ function isDemoEntity(o){
 }
 
 const Store = (() => {
-  const NS  = 'bysdash:';
-  const SEC = 'bysdash$secret:';
+  /* ==5.81== 同一台电脑开两个账号（主理人 2026-11-28：「这台电脑放着看板端，
+     我要再登录另一个账号，给我一个能登录的网址」）。
+     看板跟工作窗口在同一个浏览器里共用 localStorage，一个键存一个 token ——
+     后登的那个会把看板顶掉。所以给网址加一个 slot 参数，整条存储换命名空间：
+       https://liyun2026.top/?slot=2   ← 独立会话，和默认那一路互不干扰
+     两个窗口可以同时登两个账号，谁也不影响谁；关掉再开还是登录状态。 */
+  const SLOT = (() => {
+    try {
+      const v = (new URLSearchParams(location.search).get('slot') || '').replace(/[^a-z0-9]/gi, '').slice(0, 6);
+      return v;
+    } catch { return ''; }
+  })();
+  const NS  = 'bysdash:' + (SLOT ? SLOT + '@' : '');
+  const SEC = 'bysdash$secret:' + (SLOT ? SLOT + '@' : '');
+  /* 窗口身份写到标题上 —— 任务栏 / 标签页一眼分得清哪个是看板、哪个是工作窗口 */
+  if (SLOT){ try { document.title = '砺蕴教务 · 窗口 ' + SLOT; } catch {} }
   const TOMB_TTL = 30 * 864e5;   // 墓碑保留 30 天，之后清掉（那时各端早同步过了）
 
   /* localStorage 不是到处都能用：Safari 打开本地文件、隐私模式、企业策略下，
