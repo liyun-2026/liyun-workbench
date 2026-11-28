@@ -738,7 +738,14 @@ async function doLogin(s, body) {
   const kAuth = `auth/${uid}`;
   const kRate = `rate/${uid}`;
 
-  const rate = (await s.get(kRate, { type: 'json' })) || { n: 0, until: 0 };
+  /* ==5.82== 限流只是「防爆破」的附加保护，不能让它把正常登录挡在门外。
+     2026-11-28 现场：EdgeOne 的 KV 对**不存在的键**开始返回 403 AccessDenied
+     （COS 里没有 ListBucket 权限时，缺对象就是 403 而不是 404），
+     而 `rate/{uid}` 只在「密码输错过」之后才写过 —— 绝大多数账号这个键根本不存在，
+     于是每一次登录都在这一行抛 500：用户看到的是「服务出错 + 一串 XML」。
+     读不到就按「没有失败记录」放行，写不进去也不影响登录。 */
+  let rate = { n: 0, until: 0 };
+  try { rate = (await s.get(kRate, { type: 'json' })) || rate; } catch (e) { /* 缺键/平台抽风：当作没记录 */ }
   const now = Date.now();
   if (rate.until && now < rate.until) {
     const mins = Math.ceil((rate.until - now) / 60000);
@@ -784,14 +791,15 @@ async function doLogin(s, body) {
     const h = await hex(pass + '|' + auth.salt);
     if (h !== auth.hash) {
       const n = (rate.n || 0) + 1;
-      await s.setJSON(kRate, { n, until: n >= MAX_FAIL ? now + LOCK_MS : 0 });
+      /* ==5.82== 记不上失败次数也不能让登录报错（同上的平台 403 背景） */
+      try { await s.setJSON(kRate, { n, until: n >= MAX_FAIL ? now + LOCK_MS : 0 }); } catch (e) { /* 忽略 */ }
       const left = MAX_FAIL - n;
       return json({ error: left > 0 ? `密码不对，还能试 ${left} 次` : '密码错误次数过多，已锁定 5 分钟' }, 401);
     }
   }
 
   if (auth.active === false) return json({ error: '这个账号已被停用，请联系教务' }, 403);
-  if (rate.n) await s.setJSON(kRate, { n: 0, until: 0 });
+  if (rate.n){ try { await s.setJSON(kRate, { n: 0, until: 0 }); } catch (e) { /* 忽略 */ } }
 
   /* 自愈：老版本迁移过来的账号不在索引里，登录时补上，否则教务看不到它。
      ==5.51== 摘要只在「缺这条」时补 —— 每次登录都写 sys/users 会在早高峰
